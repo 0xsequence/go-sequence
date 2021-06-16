@@ -1,21 +1,30 @@
-package sequence
+package contract
 
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 )
 
-// .. like artifacts, we have Name, ABI and Bin..
-// we can encode calls here to slam into a txn.. etc..
+type ContractABI struct {
+	*abi.ABI
+	Name string
+	Bin  []byte
+}
 
-// NewContractTransaction() .. uses NewTransaction() below..
-
-// NewTransaction() -- more generic, pass your own data
-
-// NewContractCall() -- lets us read data, ..
+func (c *ContractABI) Encode(method string, args ...interface{}) ([]byte, error) {
+	m, ok := c.ABI.Methods[method]
+	if !ok {
+		return nil, fmt.Errorf("contract method %s not found", method)
+	}
+	input, err := m.Inputs.Pack(args...)
+	if err != nil {
+		return nil, err
+	}
+	input = append(m.ID, input...)
+	return input, nil
+}
 
 func NewContractRegistry() *ContractRegistry {
 	return &ContractRegistry{
@@ -64,25 +73,6 @@ func (c *ContractRegistry) Encode(contractName, method string, args ...interface
 	return contractABI.Encode(method, args...)
 }
 
-type ContractABI struct {
-	*abi.ABI
-	Name string
-	Bin  []byte
-}
-
-func (c *ContractABI) Encode(method string, args ...interface{}) ([]byte, error) {
-	m, ok := c.ABI.Methods[method]
-	if !ok {
-		return nil, fmt.Errorf("contract method %s not found", method)
-	}
-	input, err := m.Inputs.Pack(args...)
-	if err != nil {
-		return nil, err
-	}
-	input = append(m.ID, input...)
-	return input, nil
-}
-
 func MustNewType(str string) abi.Type {
 	typ, err := abi.NewType(str, "", nil)
 	if err != nil {
@@ -97,12 +87,4 @@ func MustNewArrayTypeTuple(components []abi.ArgumentMarshaling) abi.Type {
 		panic(err)
 	}
 	return typ
-}
-
-func MustParseABI(abiJSON string) *abi.ABI {
-	parsed, err := abi.JSON(strings.NewReader(abiJSON))
-	if err != nil {
-		panic("failed to parse abi json")
-	}
-	return &parsed
 }

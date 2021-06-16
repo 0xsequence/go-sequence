@@ -14,7 +14,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contract"
 	"github.com/0xsequence/go-sequence/deployer"
 )
 
@@ -124,27 +124,27 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.ABI_WALLET_FACTORY, common.FromHex(contracts.FactoryBin), 0, nil)
+	walletFactoryAddress, err := ud.Deploy(ctx, contract.WalletFactory.ABI, contract.WalletFactory.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contracts.ABI_WALLET_MAIN_MODULE, common.FromHex(contracts.MainModuleBin), 0, nil, walletFactoryAddress)
+	mainModuleAddress, err := ud.Deploy(ctx, contract.WalletMainModule.ABI, contract.WalletMainModule.Bin, 0, nil, walletFactoryAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.ABI_WALLET_MAIN_MODULE_UPGRADABLE, common.FromHex(contracts.MainModuleUpgradableBin), 0, nil)
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contract.WalletMainModuleUpgradable.ABI, contract.WalletMainModuleUpgradable.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.ABI_WALLET_GUEST_MODULE, common.FromHex(contracts.GuestModuleBin), 0, nil)
+	guestModuleAddress, err := ud.Deploy(ctx, contract.WalletGuestModule.ABI, contract.WalletGuestModule.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contracts.ABI_WALLET_UTILS, common.FromHex(contracts.SequenceUtilsBin), 0, nil, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contract.WalletUtils.ABI, contract.WalletUtils.Bin, 0, nil, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}

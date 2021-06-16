@@ -1,21 +1,21 @@
 package testutil
 
 import (
-	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contract"
 )
 
 var (
-	Artifacts = sequence.NewContractRegistry()
+	Artifacts = contract.NewContractRegistry()
 )
 
 func init() {
-	Artifacts.Register(&sequence.ContractABI{
-		Name: "WALLET_FACTORY",
-		ABI:  contracts.ABI_WALLET_FACTORY,
-		Bin:  common.FromHex(contracts.FactoryBin),
-	})
+	Artifacts.Register(contract.WalletFactory)
+
+	// Artifacts.Register(&contract.ContractABI{
+	// 	Name: "WALLET_FACTORY",
+	// 	ABI:  contract.ABI_WALLET_FACTORY,
+	// 	Bin:  common.FromHex(contracts.FactoryBin),
+	// })
 
 	// TODO: include a bunch of other abi + bins here.. for ERC20_MOCK, etc....
 }

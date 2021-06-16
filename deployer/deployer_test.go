@@ -4,8 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contract"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +33,7 @@ func TestDeployer(t *testing.T) {
 	testSequenceContext := testutil.SequenceContext()
 
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
-	walletFactoryAddress, err := ud.Deploy(context.Background(), contracts.ABI_WALLET_FACTORY, common.FromHex(contracts.FactoryBin), 0, nil)
+	walletFactoryAddress, err := ud.Deploy(context.Background(), contract.WalletFactory.ABI, contract.WalletFactory.Bin, 0, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, testSequenceContext.FactoryAddress, walletFactoryAddress)
 }

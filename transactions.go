@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/contract"
 )
 
 // Transaction is a meta-transaction request..
@@ -24,7 +25,7 @@ type Transaction struct {
 	// Expiration *big.Int // optional, .. // TODO
 	// AfterNonce ... // TODO
 
-	Nested Transactions // Nested transaction
+	// Nested Transactions // Nested transaction
 }
 
 func (t *Transaction) Encode() error {
@@ -196,7 +197,7 @@ func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
 
 		var inputType = abi.Arguments{
 			abi.Argument{
-				Type: MustNewType("string"),
+				Type: contract.MustNewType("string"),
 			},
 		}
 

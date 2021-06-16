@@ -14,7 +14,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
-	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contract/gen/ierc1271"
 )
 
 func Sign(wallet *Wallet, input []byte) ([]byte, *Signature, error) {
@@ -290,7 +290,7 @@ func (p *SignaturePart) IsValid(digest [32]byte, provider *ethrpc.Provider) (boo
 	case sigType == sigTypeEip1271:
 		// Call EIP1271 contract to validate it's siganture
 		// NOTE: the wallet must be deployed, it doesn't support counter-factual sigantures
-		erc1271, err := contracts.NewIERC1271(p.Address, provider)
+		erc1271, err := ierc1271.NewIERC1271(p.Address, provider)
 		if err != nil {
 			return false, err
 		}
@@ -300,7 +300,7 @@ func (p *SignaturePart) IsValid(digest [32]byte, provider *ethrpc.Provider) (boo
 			return false, err
 		}
 
-		return contracts.ABI_ERC1271_isValidSignatureBytes32 != hexutil.Encode(res[:]), nil
+		return ierc1271.IsValidSignatureBytes32_MagicReturnValue != hexutil.Encode(res[:]), nil
 
 	default:
 		return false, fmt.Errorf("signature type not implemented %d", sigType)
@@ -495,7 +495,7 @@ func IsValidSignature(walletAddress common.Address, digest, seqSig []byte, walle
 
 	} else {
 		// Smart wallet is deployed, query erc1271 method to check signature
-		erc1271, err := contracts.NewIERC1271(walletAddress, provider)
+		erc1271, err := ierc1271.NewIERC1271(walletAddress, provider)
 		if err != nil {
 			return false, err
 		}
@@ -509,7 +509,7 @@ func IsValidSignature(walletAddress common.Address, digest, seqSig []byte, walle
 			return false, err
 		}
 
-		if contracts.ABI_ERC1271_isValidSignatureBytes32 != hexutil.Encode(res[:]) {
+		if ierc1271.IsValidSignatureBytes32_MagicReturnValue != hexutil.Encode(res[:]) {
 			return false, fmt.Errorf("failed to validate")
 		}
 	}
