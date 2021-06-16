@@ -166,7 +166,7 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 
 // UniDeploy will deploy a contract registered in `Contracts` registry using the universal deployer. Multiple calls to UniDeploy
 // will instantiate just a single instance for the same contract with the same `contractInstanceNum`.
-func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanceNum uint, contractConstructorArgs ...interface{}) common.Address {
+func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanceNum uint, contractConstructorArgs ...interface{}) (common.Address, *contract.ContractABI) {
 	contractABI := Contracts.Get(contractName)
 	if contractABI == nil {
 		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
@@ -179,12 +179,12 @@ func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanc
 	if err != nil {
 		t.Fatal(err)
 	}
-	return contractAddress
+	return contractAddress, contractABI
 }
 
 // Deploy will deploy a contract registered in `Contracts` registry using the standard deployment method. Each Deploy call
 // will instanitate a new contract on the test chain.
-func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) *types.Receipt {
+func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) (*types.Receipt, *contract.ContractABI) {
 	contractABI := Contracts.Get(contractName)
 	if contractABI == nil {
 		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
@@ -228,7 +228,7 @@ func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructo
 		t.Fatal(fmt.Errorf("txn failed: %w", err))
 	}
 
-	return receipt
+	return receipt, contractABI
 }
 
 func (c *TestChain) AssertCodeAt(t *testing.T, address common.Address) {

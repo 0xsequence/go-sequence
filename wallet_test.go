@@ -1,15 +1,17 @@
 package sequence_test
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/contract/gen/walletcallmock"
+	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -145,13 +147,58 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 }
 
 func TestTransaction(t *testing.T) {
-	receipt := testChain.Deploy(t, "WALLET_CALL_RECV_MOCK")
-	fmt.Println("==>", receipt.ContractAddress.Hex())
+	callmockAddress, callmockABI := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
-	callrecv, err := walletcallmock.NewCallReceiverMock(receipt.ContractAddress, testChain.Provider)
+	calldata, err := callmockABI.Encode("testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
 	assert.NoError(t, err)
-	fmt.Println("==>", callrecv)
 
-	callmockAddress := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-	fmt.Println("==>", callmockAddress.Hex())
+	fmt.Println("==>", calldata)
+
+	// TODO: build a sequence.Transaction()
+
+	// TODO: query value on-chain
+
+	// NOTE: below we do a simple SendContractTransaction
+	// we can prob add this to testutil, .. easy
+
+	// but.. what we need is to make it work with meta-transactions..
+
+	wallet := testChain.MustWallet(2)
+	signedTxn, _, err := wallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+		To:   &callmockAddress,
+		Data: calldata,
+	})
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTxn)
+	assert.NoError(t, err)
+
+	_, err = waitReceipt(context.Background())
+	assert.NoError(t, err)
+
+	ret, err := testChain.Provider.QueryContract(context.Background(), callmockAddress.Hex(), "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	fmt.Println("===>", ret)
+
+	// testutil.Contracts.Get("WALLET_CALL_RECV_MOCK").SendTransaction(context.Background(), testChain.MustWallet(2), callmockAddress, "testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
+
+	testutil.ContractTransact(
+		testChain.MustWallet(2),
+		callmockAddress, callmockABI.ABI,
+		"testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"),
+	)
+
+	wee := &Wee{ABI: callmockABI.ABI}
+
+	var a *abi.ABI = wee.ABI
+
+	_ = a
+
+	// contract.Contract <---<< Address, ABI, and some methods........ would be nice..........
+
+}
+
+type Wee struct {
+	*abi.ABI
+	Other string
 }
