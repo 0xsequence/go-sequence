@@ -28,7 +28,7 @@ var (
 	ABI_WALLET_MAIN_MODULE_UPGRADABLE,
 	ABI_WALLET_GUEST_MODULE,
 	ABI_WALLET_UTILS,
-	_ *abi.ABI
+	_ *abi.ABI //*sequence.ContractABI
 )
 
 var (
@@ -36,19 +36,15 @@ var (
 )
 
 func init() {
+	// TODO: NewContractABI(artifactJSON string) // .. via go:embed, etc.
+	// ABI_WALLET_FACTORY = &sequence.ContractABI{Name: "WALLET_FACTORY", ABI: MustParseABI(FactoryABI), Bin: common.FromHex(FactoryBin)}
+
 	ABI_WALLET_FACTORY = MustParseABI(FactoryABI)
 	ABI_WALLET_MAIN_MODULE = MustParseABI(MainModuleABI)
 	ABI_WALLET_MAIN_MODULE_UPGRADABLE = MustParseABI(MainModuleUpgradableABI)
 	ABI_WALLET_GUEST_MODULE = MustParseABI(GuestModuleABI)
 	ABI_WALLET_UTILS = MustParseABI(SequenceUtilsABI)
 }
-
-type Artifact struct {
-	ABI *abi.ABI
-	Bin []byte
-}
-
-type ArtifactMap map[string]*Artifact
 
 func MustParseABI(abiJSON string) *abi.ABI {
 	parsed, err := abi.JSON(strings.NewReader(abiJSON))
@@ -72,3 +68,7 @@ func MustParseABI(abiJSON string) *abi.ABI {
 // walletcontractXX .. ugly. lol..
 
 // TODO: include a bunch of others.. openzeppelin, erc-1155, ......
+
+// contractgen.XXXX
+
+// contractabi.XXXXXX

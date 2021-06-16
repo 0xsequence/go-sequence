@@ -343,9 +343,9 @@ func (w *Wallet) IsValidSignature(digest, signature []byte) (bool, error) {
 
 var (
 	// ImageHashUpdatedEventSig is emitted anytime wallet config is updated.
-	ImageHashUpdatedEventSig = mustEncodeSig("ImageHashUpdated(bytes32)")
+	ImageHashUpdatedEventSig = MustEncodeSig("ImageHashUpdated(bytes32)")
 
 	// ImplementationUpdatedEventSig is emitted anytime a wallet's mainModule is changed,
 	// this is a rare occurence.
-	ImplementationUpdatedEventSig = mustEncodeSig("ImplementationUpdated(address)")
+	ImplementationUpdatedEventSig = MustEncodeSig("ImplementationUpdated(address)")
 )

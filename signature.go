@@ -545,3 +545,7 @@ func PackMessageData(chainID *big.Int, owner common.Address, digest []byte) ([]b
 	}
 	return output, nil
 }
+
+func MustEncodeSig(str string) common.Hash {
+	return crypto.Keccak256Hash([]byte(str))
+}

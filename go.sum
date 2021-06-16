@@ -11,10 +11,13 @@ cloud.google.com/go/firestore v1.1.0/go.mod h1:ulACoGHTpvq5r8rxGJ4ddJZBZqakUQqCl
 cloud.google.com/go/pubsub v1.0.1/go.mod h1:R0Gpsv3s54REJCy4fxDixWD93lHJMoZTyQ2kNxGRt3I=
 cloud.google.com/go/storage v1.0.0/go.mod h1:IhtSnM/ZTZV8YYJWCY8RULGVqBDmpoyjwiyrjsg+URw=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
+github.com/0xsequence/ethkit v1.2.2/go.mod h1:7Ap+7sg+XSLBHxmxeYQNtNVAECvPANLc3D5+ygvLCJE=
 github.com/0xsequence/ethkit v1.3.4 h1:C1mPqAJEnwDHQUhlMFLtNnAzDr6YcGZgoqqSd4Jqnwc=
 github.com/0xsequence/ethkit v1.3.4/go.mod h1:7Ap+7sg+XSLBHxmxeYQNtNVAECvPANLc3D5+ygvLCJE=
 github.com/0xsequence/ethkit v1.3.6 h1:xFu6F9hfULx2r0uzzMOSst4CeDb9+zve5qn8CHELBY4=
 github.com/0xsequence/ethkit v1.3.6/go.mod h1:7Ap+7sg+XSLBHxmxeYQNtNVAECvPANLc3D5+ygvLCJE=
+github.com/0xsequence/go-ethauth v0.7.1 h1:mfwddjkzE4GhHZMgytj3QUMr+PoMoNXYnGEbH3Xr5dk=
+github.com/0xsequence/go-ethauth v0.7.1/go.mod h1:tegBf4hKTCSF9Gm11Nvi1tBTWyRrhPg1lYTjmhORH08=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=

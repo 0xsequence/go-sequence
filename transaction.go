@@ -96,15 +96,15 @@ func SendTransaction(signedTxs SignedTransactions) (string, error) {
 var (
 	// NonceChangeEventSig is the signature event emitted as the first event on the batch execution
 	// 0x1f180c27086c7a39ea2a7b25239d1ab92348f07ca7bb59d1438fcf527568f881
-	NonceChangeEventSig = mustEncodeSig("NonceChange(uint256,uint256)")
+	NonceChangeEventSig = MustEncodeSig("NonceChange(uint256,uint256)")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch
 	// 0x3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7
-	TxFailedEventSig = mustEncodeSig("TxFailed(bytes32,bytes)")
+	TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,bytes)")
 
 	// TxExecutedEventSig is the signature of the event emitted in a successful transaction
 	// ........
-	TxExecutedEventSig = mustEncodeSig("TxExecuted(bytes32)")
+	TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32)")
 )
 
 // type TransactionBatch struct {
