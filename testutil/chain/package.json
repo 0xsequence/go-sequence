@@ -1,0 +1,30 @@
+{
+  "name": "test-chain",
+  "version": "0.0.0",
+  "private": true,
+  "license": "none",
+  "scripts": {
+    "test": "concurrently -k --success first 'yarn start:server' 'cd ../../ && make go-test'",
+    "start:server": "yarn ganache:mine",
+    "start:server:verbose": "yarn ganache:mine:verbose",
+    "ganache:serial": "ganache-cli --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
+    "ganache:verbose": "ganache-cli --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --verbose --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
+    "ganache:drone": "/app/ganache-core.docker.cli.js --blockTime 2 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
+    "ganache:mine": "ganache-cli --blockTime 2 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
+    "ganache:mine:verbose": "ganache-cli --blockTime 2 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --verbose --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
+    "ganache:stop": "ps aux | grep ganache-cli | grep -v grep | awk '{print $2}' | xargs kill -9"
+  },
+  "devDependencies": {
+    "concurrently": "^6.2.0",
+    "ganache-cli": "^6.12.2"
+  },
+  "config": {
+    "mnemonic": "major danger this key only test please avoid main net use okay",
+    "ganacheChainID": 4337,
+    "ganachePort": 8545,
+    "ganacheGasLimit": "0xfffffffffff",
+    "ganacheGasPrice": "20000000000",
+    "etherBalance": "100000",
+    "extra": ""
+  }
+}
