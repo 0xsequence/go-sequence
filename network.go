@@ -20,22 +20,22 @@ type WalletContext struct {
 type NetworkConfig struct {
 	Name       string
 	ChainID    big.Int
-	ENSAddress string // TODO: address?
+	ENSAddress *common.Address
 
-	RpcURL   string // TODO: rename to NodeURL ? ..
+	RpcURL   string
 	Provider *ethrpc.Provider
 
-	Relayer interface{} // TODO .. or add RelayerURL
-	// TODO: indexer..
+	RelayerURL *string // optional, one of the these should be set
+	Relayer    Relayer
+
+	IndexerURL *string // optional, one of these should be set
+	// Indexer Indexer
 
 	IsDefaultChain bool
 	IsAuthChain    bool
 
 	SequenceAPIURL string
 }
-
-// type ChainID interface{} // TOOD: hmm.. do we want this..? and add diff methods..?
-type ChainID big.Int
 
 type Networks []NetworkConfig
 
