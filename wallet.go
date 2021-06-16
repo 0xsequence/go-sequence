@@ -330,9 +330,9 @@ func (w *Wallet) IsDeployed() (bool, error) {
 	return false, nil
 }
 
-// func (w *Wallet) UpdateConfig() // TODO
+// func (w *Wallet) UpdateConfig() // TODO in future
 
-// func (w *Wallet) PublishConfig() // TODO
+// func (w *Wallet) PublishConfig() // TODO in future
 
 func (w *Wallet) IsValidSignature(digest, signature []byte) (bool, error) {
 	if w.provider == nil {
