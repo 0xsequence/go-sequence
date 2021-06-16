@@ -2,17 +2,16 @@ package testutil
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"path/filepath"
-	"runtime"
+	"testing"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contract"
 	"github.com/0xsequence/go-sequence/deployer"
@@ -114,10 +113,17 @@ func (c *TestChain) MustWallet(optAccountIndex ...uint32) *ethwallet.Wallet {
 	return wallet
 }
 
-// TODO: add Deploy() and DeployWith() commands ....
+func (c *TestChain) GetDeployWallet() *ethwallet.Wallet {
+	return c.MustWallet(5)
+}
+
+// GetDeployTransactor returns a account transactor typically used for deploying contracts
+func (c *TestChain) GetDeployTransactor() *bind.TransactOpts {
+	return c.GetDeployWallet().Transactor()
+}
 
 func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewUniversalDeployer(c.MustWallet(5))
+	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
@@ -158,41 +164,84 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 	}, nil
 }
 
-// TODO: .DeployContract() etc..
-
-// ParseTestWalletMnemonic parses the wallet mnemonic from ./package.json, the same
-// key used to start the test chain server.
-func ParseTestWalletMnemonic() (string, error) {
-	_, filename, _, _ := runtime.Caller(0)
-	cwd := filepath.Dir(filename)
-
-	packageJSONFile := filepath.Join(cwd, "./chain/package.json")
-	data, err := ioutil.ReadFile(packageJSONFile)
+// UniDeploy will deploy a contract registered in `Contracts` registry using the universal deployer. Multiple calls to UniDeploy
+// will instantiate just a single instance for the same contract with the same `contractInstanceNum`.
+func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanceNum uint, contractConstructorArgs ...interface{}) common.Address {
+	contractABI := Contracts.Get(contractName)
+	if contractABI == nil {
+		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
+	}
+	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
 	if err != nil {
-		return "", fmt.Errorf("ParseTestWalletMnemonic, read: %w", err)
+		t.Fatal(err)
 	}
-
-	var dict struct {
-		Config struct {
-			Mnemonic string `json:"mnemonic"`
-		} `json:"config"`
-	}
-	err = json.Unmarshal(data, &dict)
+	contractAddress, err := ud.Deploy(context.Background(), contractABI.ABI, contractABI.Bin, contractInstanceNum, nil, contractConstructorArgs...)
 	if err != nil {
-		return "", fmt.Errorf("ParseTestWalletMnemonic, unmarshal: %w", err)
+		t.Fatal(err)
 	}
-
-	return dict.Config.Mnemonic, nil
+	return contractAddress
 }
 
-var sequenceContext = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0xf9D09D634Fb818b05149329C1dcCFAeA53639d96"),
-	MainModuleAddress:           common.HexToAddress("0xd01F11855bCcb95f88D7A48492F66410d4637313"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x7EFE6cE415956c5f80C6530cC6cc81b4808F6118"),
-	GuestModuleAddress:          common.HexToAddress("0x02390F3E6E5FD1C6786CB78FD3027C117a9955A7"),
-	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
+// Deploy will deploy a contract registered in `Contracts` registry using the standard deployment method. Each Deploy call
+// will instanitate a new contract on the test chain.
+func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) *types.Receipt {
+	contractABI := Contracts.Get(contractName)
+	if contractABI == nil {
+		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
+	}
+
+	data := make([]byte, len(contractABI.Bin))
+	copy(data, contractABI.Bin)
+
+	var input []byte
+	var err error
+
+	// encode constructor call
+	if len(contractConstructorArgs) > 0 && len(contractABI.Constructor.Inputs) > 0 {
+		input, err = contractABI.Pack("", contractConstructorArgs...)
+	} else {
+		input, err = contractABI.Pack("")
+	}
+	if err != nil {
+		t.Fatal(fmt.Errorf("contract constructor pack failed: %w", err))
+	}
+
+	// append constructor calldata at end of the contract bin
+	data = append(data, input...)
+
+	wallet := c.GetDeployWallet()
+	signedTxn, _, err := wallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+		Data: data,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, waitTx, err := wallet.SendTransaction(context.Background(), signedTxn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := waitTx(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.Status != types.ReceiptStatusSuccessful {
+		t.Fatal(fmt.Errorf("txn failed: %w", err))
+	}
+
+	return receipt
 }
 
-func SequenceContext() sequence.WalletContext {
-	return sequenceContext
+func (c *TestChain) AssertCodeAt(t *testing.T, address common.Address) {
+	code, err := c.Provider.CodeAt(context.Background(), address, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(code) == 0 {
+		t.Fatal(fmt.Errorf("no contract code at %s", address.Hex()))
+	}
+}
+
+func (c *TestChain) WaitMined(txn common.Hash) error {
+	_, err := ethrpc.WaitForTxnReceipt(context.Background(), c.Provider, txn)
+	return err
 }

@@ -9,11 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
-// https://github.com/0xsequence/wallet-contracts/blob/master/src/contracts/Wallet.sol#L57-L59
-const WalletContractBytecode = "0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3"
-
-var walletContractBytecode = common.FromHex(WalletContractBytecode)
-
 type WalletConfig struct {
 	Threshold uint16              `json:"threshold"`
 	Signers   WalletConfigSigners `json:"signers"`

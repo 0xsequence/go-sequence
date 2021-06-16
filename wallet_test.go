@@ -1,6 +1,7 @@
 package sequence_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contract/gen/walletcallmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,4 +142,16 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 	assert.NoError(t, err)
 	assert.Equal(t, wallet.Address(), address)
+}
+
+func TestTransaction(t *testing.T) {
+	receipt := testChain.Deploy(t, "WALLET_CALL_RECV_MOCK")
+	fmt.Println("==>", receipt.ContractAddress.Hex())
+
+	callrecv, err := walletcallmock.NewCallReceiverMock(receipt.ContractAddress, testChain.Provider)
+	assert.NoError(t, err)
+	fmt.Println("==>", callrecv)
+
+	callmockAddress := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	fmt.Println("==>", callmockAddress.Hex())
 }

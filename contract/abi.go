@@ -38,27 +38,64 @@ type ContractRegistry struct {
 	names     []string // index of contract names in the map
 }
 
-func (c *ContractRegistry) Register(contractABI *ContractABI) {
+func (c *ContractRegistry) Add(contractABI *ContractABI) error {
 	if c.contracts == nil {
 		c.contracts = map[string]*ContractABI{}
+	}
+	if contractABI.Name == "" {
+		return fmt.Errorf("unable to register contract with empty name")
 	}
 	c.contracts[contractABI.Name] = contractABI
 	c.names = append(c.names, contractABI.Name)
 	sort.Sort(sort.StringSlice(c.names))
+	return nil
 }
 
-func (s *ContractRegistry) RegisterJSON(name string, abiJSON string) {
-	s.Register(&ContractABI{
-		Name: name,
-		ABI:  MustParseABI(abiJSON),
-	})
+func (c *ContractRegistry) Register(contractName string, contractABI *abi.ABI, contractBin []byte) (*ContractABI, error) {
+	r := &ContractABI{Name: contractName, ABI: contractABI, Bin: contractBin}
+	err := c.Add(r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ContractRegistry) RegisterJSON(contractName string, contractABIJSON string, contractBin []byte) (*ContractABI, error) {
+	parsedABI, err := ParseABI(contractABIJSON)
+	if err != nil {
+		return nil, err
+	}
+	return s.Register(contractName, parsedABI, contractBin)
+}
+
+func (c *ContractRegistry) MustAdd(contractABI *ContractABI) {
+	err := c.Add(contractABI)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (c *ContractRegistry) MustRegister(contractName string, contractABI *abi.ABI, contractBin []byte) *ContractABI {
+	r, err := c.Register(contractName, contractABI, contractBin)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
+func (c *ContractRegistry) MustRegisterJSON(contractName string, contractABIJSON string, contractBin []byte) *ContractABI {
+	r, err := c.RegisterJSON(contractName, contractABIJSON, contractBin)
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 func (c *ContractRegistry) ContractNames() []string {
 	return c.names
 }
 
-func (c *ContractRegistry) GetContractABI(name string) *ContractABI {
+func (c *ContractRegistry) Get(name string) *ContractABI {
 	return c.contracts[name]
 }
 

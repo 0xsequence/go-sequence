@@ -50,10 +50,18 @@ func MustParseArtifactJSON(artifactJSON string) *ContractABI {
 	return contractABI
 }
 
-func MustParseABI(abiJSON string) *abi.ABI {
+func ParseABI(abiJSON string) (*abi.ABI, error) {
 	parsed, err := abi.JSON(strings.NewReader(abiJSON))
 	if err != nil {
-		panic("contracts: unable to parse abi json")
+		return nil, fmt.Errorf("unable to parse abi json: %w", err)
 	}
-	return &parsed
+	return &parsed, nil
+}
+
+func MustParseABI(abiJSON string) *abi.ABI {
+	parsed, err := ParseABI(abiJSON)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
 }
