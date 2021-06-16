@@ -16,7 +16,8 @@ type Relayer interface {
 	Relay(ctx context.Context, signedTxs interface{}) (interface{}, error)
 
 	// TODO: what "type" should metaTxID be..? it is a hash..
-	// but, its kinda different cuz we dont require 0x right..?
+	// but, its kinda different cuz we dont require 0x so may not be able to use common.Hash
+	// alternatively we could make metaTxID a different length of hash to differentiate it, but its a breaking change on client-side
 	Wait(ctx context.Context, metaTxID common.Hash, timeout time.Duration) (interface{}, error)
 
 	// GasRefundOptions() // TODO, in future when needed..
@@ -33,13 +34,3 @@ type LocalRelayer struct {
 // TODO: lets add wallet deploy method, on wallet itself..  via Relayer..
 // we can prob add a NewWalletDeployTransaction(walletConfig, walletContext) method on sequence.XX too...
 // ..
-
-//////---------
-
-// STEPS.....
-
-// 1. read sequence.js code and how we work with txns.... pretty much, we just encode the data field, and send.. okay..
-
-// 2. read old sdk code how we do it.....
-
-// 3. read skyweaver-api code how we're doing parallel txns etc.......

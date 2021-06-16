@@ -22,7 +22,7 @@ TODO
 
 - [ ] tests, 9. transaction with parallel nonces.. we use this in skyweaver, lets review.. etc.
 
-- [ ] add ethauth IsValidSequenceAccountProof
+- [x] add ethauth IsValidSequenceAccountProof
 
 -----------------------------
 -----------------------------
