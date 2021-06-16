@@ -17,6 +17,10 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
+func Sign(wallet *Wallet, input []byte) ([]byte, *Signature, error) {
+	return wallet.SignDigest(input)
+}
+
 // Signature for sequence message
 type Signature struct {
 	Threshold uint16         `json:"threshold"`

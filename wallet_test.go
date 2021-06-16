@@ -43,7 +43,7 @@ func TestWalletSignMessage(t *testing.T) {
 
 	message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-	sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
+	sig, _, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 	assert.NoError(t, err)
 
 	expectedSig := "0x00010001a0fb306480bc3027c04d33a16370f4618b29f2d5b89464f526045c94802bc9d1525389c364b75daf58e859ed0d6105aac6b3718e4659814c7793c626653edb871b02"
@@ -64,7 +64,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 
 	message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-	sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
+	sig, _, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 	assert.NoError(t, err)
 
 	expectedSig := "0x000100012e60548f7789a2ee82e2b616c7527c74832b2fd2d7b9e1f47e2f6c1f319d0da628bca0af30c43c2ab5a195dbfed89c0f2ed8bc632e18f3d42973cd676550d7371b02"
@@ -85,7 +85,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	wallet.SetChainID(big.NewInt(3))
 
 	message := "Hi! this is a test message"
-	sig, err := wallet.SignMessage([]byte(message))
+	sig, _, err := wallet.SignMessage([]byte(message))
 	assert.NoError(t, err)
 
 	subDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), ethcoder.Keccak256([]byte(message)))
@@ -125,7 +125,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	wallet.SetChainID(big.NewInt(3))
 
 	message := "Hi! this is a test message"
-	sig, err := wallet.SignMessage([]byte(message))
+	sig, _, err := wallet.SignMessage([]byte(message))
 	assert.NoError(t, err)
 
 	subDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), ethcoder.Keccak256([]byte(message)))

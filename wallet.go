@@ -241,18 +241,20 @@ func (w *Wallet) GetTransactionCount(blockNum ...big.Int) *big.Int {
 	return w.GetNonce(blockNum...)
 }
 
-func (w *Wallet) SignMessage(msg []byte) ([]byte, error) {
+func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
 	return w.SignDigest(MessageDigest(msg))
 }
 
-func (w *Wallet) SignDigest(digest []byte) ([]byte, error) {
+// TODO: rename this to just "Sign"... and then pass isDigest bool .. its easier.. and also keep
+// a SignDigest() as well.
+func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
 	if w.chainID == nil {
-		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
+		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
 
 	subDigest, err := SubDigest(w.Address(), w.chainID, digest)
 	if err != nil {
-		return nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
+		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
 
 	sig := &Signature{
@@ -277,7 +279,7 @@ func (w *Wallet) SignDigest(digest []byte) ([]byte, error) {
 
 		sigValue, err := signer.SignMessage(subDigest)
 		if err != nil {
-			return nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 		}
 		sigValue = append(sigValue, sigTypeEthSign)
 
@@ -288,10 +290,10 @@ func (w *Wallet) SignDigest(digest []byte) ([]byte, error) {
 
 	encodedSig, err := sig.Encode()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return encodedSig, nil
+	return encodedSig, sig, nil
 }
 
 // func (w *Wallet) SignTypedData() // TODO
