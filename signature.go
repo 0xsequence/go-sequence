@@ -51,118 +51,6 @@ const (
 	sigTypeEip1271                  // 3
 )
 
-// DecodeSignature sequence into individual parts
-func DecodeSignature(sequenceSignature []byte) (*Signature, error) {
-	sig := sequenceSignature
-
-	s := len(sig)
-	if s < 2 {
-		return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds threshold")
-	}
-
-	threshold := binary.BigEndian.Uint16(sig[0:2])
-	parts := []*SignaturePart{}
-
-	for i := 2; i < s; {
-		// Read type of entry
-		ni := i + 1
-		if s < ni {
-			return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds signature type")
-		}
-		t := uint8(sig[i])
-		i = ni
-
-		// Read weight
-		ni = i + 1
-		if s < ni {
-			return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds weight")
-		}
-		w := uint8(sig[i])
-		i = ni
-
-		var p *SignaturePart
-
-		// Process corresponding type
-		switch {
-
-		case t == sigPartTypeEOA:
-			// Read signature
-			ni := i + 66
-			if s < ni {
-				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds eoa signature")
-			}
-			sp := sig[i:ni]
-			i = ni
-
-			// Create signature part
-			p = &SignaturePart{
-				Weight: w,
-				Value:  sp,
-				Type:   t,
-			}
-
-		case t == sigPartTypeAddress:
-			// Read address
-			ni := i + 20
-			if s < ni {
-				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds address part")
-			}
-			addr := common.BytesToAddress(sig[i:ni])
-			i = ni
-
-			// Create address part
-			p = &SignaturePart{
-				Weight:  w,
-				Address: addr,
-				Type:    t,
-			}
-
-		case t == sigPartTypeDynamic:
-			// Read address
-			ni := i + 20
-			if s < ni {
-				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds dynamic address")
-			}
-			addr := common.BytesToAddress(sig[i:ni])
-			i = ni
-
-			// Read signature size
-			ni = i + 2
-			if s < ni {
-				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds signature size")
-			}
-			sigsize := int(binary.BigEndian.Uint16(sig[i:ni]))
-			i = ni
-
-			// Read signature
-			ni = i + sigsize
-			if s < ni {
-				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds dynamic signature")
-			}
-			sp := sig[i:ni]
-			i = ni
-
-			// Create dynamic signature part
-			p = &SignaturePart{
-				Weight:  w,
-				Address: addr,
-				Value:   sp,
-				Type:    t,
-			}
-
-		default:
-			return nil, fmt.Errorf("sequence: invalid signature, unknown part")
-		}
-
-		parts = append(parts, p)
-	}
-
-	return &Signature{
-		Threshold: threshold,
-		Signers:   parts,
-	}, nil
-}
-
 // Encode returns encoded sequence signature bytes of all signatures in the Signers set
 func (s *Signature) Encode() ([]byte, error) {
 	sig := []byte{}
@@ -414,6 +302,118 @@ func (p *SignaturePart) IsValid(digest [32]byte, provider *ethrpc.Provider) (boo
 		return false, fmt.Errorf("signature type not implemented %d", sigType)
 
 	}
+}
+
+// DecodeSignature sequence into individual parts
+func DecodeSignature(sequenceSignature []byte) (*Signature, error) {
+	sig := sequenceSignature
+
+	s := len(sig)
+	if s < 2 {
+		return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds threshold")
+	}
+
+	threshold := binary.BigEndian.Uint16(sig[0:2])
+	parts := []*SignaturePart{}
+
+	for i := 2; i < s; {
+		// Read type of entry
+		ni := i + 1
+		if s < ni {
+			return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds signature type")
+		}
+		t := uint8(sig[i])
+		i = ni
+
+		// Read weight
+		ni = i + 1
+		if s < ni {
+			return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds weight")
+		}
+		w := uint8(sig[i])
+		i = ni
+
+		var p *SignaturePart
+
+		// Process corresponding type
+		switch {
+
+		case t == sigPartTypeEOA:
+			// Read signature
+			ni := i + 66
+			if s < ni {
+				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds eoa signature")
+			}
+			sp := sig[i:ni]
+			i = ni
+
+			// Create signature part
+			p = &SignaturePart{
+				Weight: w,
+				Value:  sp,
+				Type:   t,
+			}
+
+		case t == sigPartTypeAddress:
+			// Read address
+			ni := i + 20
+			if s < ni {
+				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds address part")
+			}
+			addr := common.BytesToAddress(sig[i:ni])
+			i = ni
+
+			// Create address part
+			p = &SignaturePart{
+				Weight:  w,
+				Address: addr,
+				Type:    t,
+			}
+
+		case t == sigPartTypeDynamic:
+			// Read address
+			ni := i + 20
+			if s < ni {
+				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds dynamic address")
+			}
+			addr := common.BytesToAddress(sig[i:ni])
+			i = ni
+
+			// Read signature size
+			ni = i + 2
+			if s < ni {
+				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds signature size")
+			}
+			sigsize := int(binary.BigEndian.Uint16(sig[i:ni]))
+			i = ni
+
+			// Read signature
+			ni = i + sigsize
+			if s < ni {
+				return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds dynamic signature")
+			}
+			sp := sig[i:ni]
+			i = ni
+
+			// Create dynamic signature part
+			p = &SignaturePart{
+				Weight:  w,
+				Address: addr,
+				Value:   sp,
+				Type:    t,
+			}
+
+		default:
+			return nil, fmt.Errorf("sequence: invalid signature, unknown part")
+		}
+
+		parts = append(parts, p)
+	}
+
+	return &Signature{
+		Threshold: threshold,
+		Signers:   parts,
+	}, nil
 }
 
 // Join signatures
