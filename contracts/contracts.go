@@ -35,7 +35,7 @@ func init() {
 	WalletGuestModule = artifact("WALLET_GUEST", walletguest.WalletGuestABI, walletguest.WalletGuestBin)
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
 
-	IERC1271 = MustParseArtifactJSON(artifact_ierc1271)
+	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 }
 
 func artifact(contractName, abiJSON, bytecodeHex string) ethartifact.Artifact {
@@ -44,13 +44,4 @@ func artifact(contractName, abiJSON, bytecodeHex string) ethartifact.Artifact {
 		ABI:          ethcontract.MustParseABI(abiJSON),
 		Bin:          common.FromHex(bytecodeHex),
 	}
-}
-
-// TODO: use ethkit function..
-func MustParseArtifactJSON(artifactJSON string) ethartifact.Artifact {
-	artifact, err := ethartifact.ParseArtifactJSON(artifactJSON)
-	if err != nil {
-		panic(err)
-	}
-	return artifact
 }
