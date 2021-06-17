@@ -8,7 +8,6 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethwallet"
-	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/testutil"
@@ -147,9 +146,9 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 }
 
 func TestTransaction(t *testing.T) {
-	callmockAddress, callmockABI := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
-	calldata, err := callmockABI.Encode("testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
 	assert.NoError(t, err)
 
 	fmt.Println("==>", calldata)
@@ -165,7 +164,7 @@ func TestTransaction(t *testing.T) {
 
 	wallet := testChain.MustWallet(2)
 	signedTxn, _, err := wallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
-		To:   &callmockAddress,
+		To:   &callmockContract.Address,
 		Data: calldata,
 	})
 	assert.NoError(t, err)
@@ -176,7 +175,7 @@ func TestTransaction(t *testing.T) {
 	_, err = waitReceipt(context.Background())
 	assert.NoError(t, err)
 
-	ret, err := testChain.Provider.QueryContract(context.Background(), callmockAddress.Hex(), "lastValA()", "uint256", nil)
+	ret, err := testChain.Provider.QueryContract(context.Background(), callmockContract.Address.Hex(), "lastValA()", "uint256", nil)
 	assert.NoError(t, err)
 	fmt.Println("===>", ret)
 
@@ -184,21 +183,8 @@ func TestTransaction(t *testing.T) {
 
 	testutil.ContractTransact(
 		testChain.MustWallet(2),
-		callmockAddress, callmockABI.ABI,
+		callmockContract.Address, callmockContract.ABI,
 		"testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"),
 	)
 
-	wee := &Wee{ABI: callmockABI.ABI}
-
-	var a *abi.ABI = wee.ABI
-
-	_ = a
-
-	// contract.Contract <---<< Address, ABI, and some methods........ would be nice..........
-
-}
-
-type Wee struct {
-	*abi.ABI
-	Other string
 }

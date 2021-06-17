@@ -8,7 +8,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/go-sequence/contract"
 )
 
 // Transaction is a meta-transaction request..
@@ -197,7 +196,7 @@ func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
 
 		var inputType = abi.Arguments{
 			abi.Argument{
-				Type: contract.MustNewType("string"),
+				Type: ethcoder.MustNewType("string"),
 			},
 		}
 

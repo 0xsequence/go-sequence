@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/contract"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
 )
 
@@ -130,27 +131,27 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contract.WalletFactory.ABI, contract.WalletFactory.Bin, 0, nil)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contract.WalletMainModule.ABI, contract.WalletMainModule.Bin, 0, nil, walletFactoryAddress)
+	mainModuleAddress, err := ud.Deploy(ctx, contracts.WalletMainModule.ABI, contracts.WalletMainModule.Bin, 0, nil, walletFactoryAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contract.WalletMainModuleUpgradable.ABI, contract.WalletMainModuleUpgradable.Bin, 0, nil)
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.WalletMainModuleUpgradable.ABI, contracts.WalletMainModuleUpgradable.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contract.WalletGuestModule.ABI, contract.WalletGuestModule.Bin, 0, nil)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.WalletGuestModule.ABI, contracts.WalletGuestModule.Bin, 0, nil)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contract.WalletUtils.ABI, contract.WalletUtils.Bin, 0, nil, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contracts.WalletUtils.ABI, contracts.WalletUtils.Bin, 0, nil, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
@@ -166,41 +167,41 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 
 // UniDeploy will deploy a contract registered in `Contracts` registry using the universal deployer. Multiple calls to UniDeploy
 // will instantiate just a single instance for the same contract with the same `contractInstanceNum`.
-func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanceNum uint, contractConstructorArgs ...interface{}) (common.Address, *contract.ContractABI) {
-	contractABI := Contracts.Get(contractName)
-	if contractABI == nil {
+func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanceNum uint, contractConstructorArgs ...interface{}) *ethcontract.Contract {
+	artifact, ok := Contracts.Get(contractName)
+	if !ok {
 		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
 	}
 	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
 	if err != nil {
 		t.Fatal(err)
 	}
-	contractAddress, err := ud.Deploy(context.Background(), contractABI.ABI, contractABI.Bin, contractInstanceNum, nil, contractConstructorArgs...)
+	contractAddress, err := ud.Deploy(context.Background(), artifact.ABI, artifact.Bin, contractInstanceNum, nil, contractConstructorArgs...)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return contractAddress, contractABI
+	return ethcontract.NewContractCaller(contractAddress, artifact.ABI, c.Provider)
 }
 
 // Deploy will deploy a contract registered in `Contracts` registry using the standard deployment method. Each Deploy call
 // will instanitate a new contract on the test chain.
-func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) (*types.Receipt, *contract.ContractABI) {
-	contractABI := Contracts.Get(contractName)
-	if contractABI == nil {
+func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) (*ethcontract.Contract, *types.Receipt) {
+	artifact, ok := Contracts.Get(contractName)
+	if !ok {
 		t.Fatal(fmt.Errorf("contract abi not found for name %s", contractName))
 	}
 
-	data := make([]byte, len(contractABI.Bin))
-	copy(data, contractABI.Bin)
+	data := make([]byte, len(artifact.Bin))
+	copy(data, artifact.Bin)
 
 	var input []byte
 	var err error
 
 	// encode constructor call
-	if len(contractConstructorArgs) > 0 && len(contractABI.Constructor.Inputs) > 0 {
-		input, err = contractABI.Pack("", contractConstructorArgs...)
+	if len(contractConstructorArgs) > 0 && len(artifact.ABI.Constructor.Inputs) > 0 {
+		input, err = artifact.ABI.Pack("", contractConstructorArgs...)
 	} else {
-		input, err = contractABI.Pack("")
+		input, err = artifact.ABI.Pack("")
 	}
 	if err != nil {
 		t.Fatal(fmt.Errorf("contract constructor pack failed: %w", err))
@@ -228,7 +229,7 @@ func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructo
 		t.Fatal(fmt.Errorf("txn failed: %w", err))
 	}
 
-	return receipt, contractABI
+	return ethcontract.NewContractCaller(receipt.ContractAddress, artifact.ABI, c.Provider), receipt
 }
 
 func (c *TestChain) AssertCodeAt(t *testing.T, address common.Address) {

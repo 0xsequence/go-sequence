@@ -14,7 +14,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
-	"github.com/0xsequence/go-sequence/contract/gen/ierc1271"
+	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 )
 
 func Sign(wallet *Wallet, input []byte) ([]byte, *Signature, error) {
