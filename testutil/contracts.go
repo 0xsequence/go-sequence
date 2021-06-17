@@ -1,9 +1,12 @@
 package testutil
 
 import (
+	"context"
+
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -21,17 +24,59 @@ func init() {
 	Contracts.MustRegisterJSON("WALLET_CALL_RECV_MOCK", walletcallmock.CallReceiverMockABI, common.FromHex(walletcallmock.CallReceiverMockBin))
 }
 
-func ContractCall(provider *ethrpc.Provider, contractAddress common.Address, contractABI abi.ABI, method string, args ...interface{}) ([]string, []interface{}, error) {
-	// weeeeee........... yeaaaa..........
-	return nil, nil, nil
+func ContractCall(provider *ethrpc.Provider, contractAddress common.Address, contractABI abi.ABI, result interface{}, method string, args ...interface{}) ([]byte, error) {
+	calldata, err := contractABI.Pack(method, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := ethereum.CallMsg{
+		To:   &contractAddress,
+		Data: calldata,
+	}
+
+	output, err := provider.CallContract(context.Background(), msg, nil)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return output, nil
+	}
+
+	err = contractABI.Unpack(result, method, output)
+	if err != nil {
+		return output, err
+	}
+	return output, nil
 }
 
-// .. keep..? maybe.. doesnt hurt..
-func ContractQuery(provider *ethrpc.Provider, contractAddress common.Address, contractABI abi.ABI, inputExpr, outputExpr string, args []string) ([]string, []interface{}, error) {
-	// weeeeee........... yeaaaa..........
-	return nil, nil, nil
+func ContractQuery(provider *ethrpc.Provider, contractAddress common.Address, inputExpr, outputExpr string, args []string) ([]string, error) {
+	return provider.QueryContract(context.Background(), contractAddress.Hex(), inputExpr, outputExpr, args)
 }
 
-func ContractTransact(signer *ethwallet.Wallet, contractAddress common.Address, contractABI abi.ABI, method string, args ...interface{}) (*types.Transaction, error) {
-	return nil, nil
+func ContractTransact(signer *ethwallet.Wallet, contractAddress common.Address, contractABI abi.ABI, method string, args ...interface{}) (*types.Receipt, error) {
+	calldata, err := contractABI.Pack(method, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	signedTxn, _, err := signer.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+		To:   &contractAddress,
+		Data: calldata,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	_, waitReceipt, err := signer.SendTransaction(context.Background(), signedTxn)
+	if err != nil {
+		return nil, err
+	}
+
+	receipt, err := waitReceipt(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return receipt, nil
 }

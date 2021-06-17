@@ -1,7 +1,6 @@
 package sequence_test
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -162,29 +160,19 @@ func TestTransaction(t *testing.T) {
 
 	// but.. what we need is to make it work with meta-transactions..
 
-	wallet := testChain.MustWallet(2)
-	signedTxn, _, err := wallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
-		To:   &callmockContract.Address,
-		Data: calldata,
-	})
-	assert.NoError(t, err)
+	// // testutil.Contracts.Get("WALLET_CALL_RECV_MOCK").SendTransaction(context.Background(), testChain.MustWallet(2), callmockAddress, "testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
 
-	_, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTxn)
-	assert.NoError(t, err)
+	// receipt, err := testutil.ContractTransact(
+	// 	testChain.MustWallet(2),
+	// 	callmockContract.Address, callmockContract.ABI,
+	// 	"testCall", big.NewInt(143), ethcoder.MustHexDecode("0x112233"),
+	// )
+	// assert.NoError(t, err)
+	// assert.NotNil(t, receipt)
+	// assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
 
-	_, err = waitReceipt(context.Background())
-	assert.NoError(t, err)
-
-	ret, err := testChain.Provider.QueryContract(context.Background(), callmockContract.Address.Hex(), "lastValA()", "uint256", nil)
-	assert.NoError(t, err)
-	fmt.Println("===>", ret)
-
-	// testutil.Contracts.Get("WALLET_CALL_RECV_MOCK").SendTransaction(context.Background(), testChain.MustWallet(2), callmockAddress, "testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
-
-	testutil.ContractTransact(
-		testChain.MustWallet(2),
-		callmockContract.Address, callmockContract.ABI,
-		"testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"),
-	)
+	// ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	// assert.NoError(t, err)
+	// fmt.Println("==>", ret)
 
 }
