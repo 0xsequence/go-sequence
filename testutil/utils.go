@@ -54,3 +54,8 @@ func DummyAddr() common.Address {
 	addr, _ := ethwallet.NewWalletFromRandomEntropy()
 	return addr.Address()
 }
+
+// DummyPrivateKey returns random private key in hex used with ethwallet
+func DummyPrivateKey(seed uint64) string {
+	return fmt.Sprintf("%064x", seed)
+}

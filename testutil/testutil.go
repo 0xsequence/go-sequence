@@ -123,6 +123,11 @@ func (c *TestChain) GetDeployTransactor() *bind.TransactOpts {
 	return c.GetDeployWallet().Transactor()
 }
 
+// GetRelayerWallet is the wallet dedicated EOA wallet to relaying transactions
+func (c *TestChain) GetRelayerWallet() *ethwallet.Wallet {
+	return c.MustWallet(6)
+}
+
 func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
 	if err != nil {
@@ -163,6 +168,17 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
 	}, nil
+}
+
+func (c *TestChain) MustDeploySequenceContext() sequence.WalletContext {
+	sc, err := c.DeploySequenceContext()
+	if err != nil {
+		panic(err)
+	}
+	if sc != sequenceContext {
+		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContext")
+	}
+	return sc
 }
 
 // UniDeploy will deploy a contract registered in `Contracts` registry using the universal deployer. Multiple calls to UniDeploy
@@ -245,4 +261,56 @@ func (c *TestChain) AssertCodeAt(t *testing.T, address common.Address) {
 func (c *TestChain) WaitMined(txn common.Hash) error {
 	_, err := ethrpc.WaitForTxnReceipt(context.Background(), c.Provider, txn)
 	return err
+}
+
+func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
+	// Generate a single-owner sequence wallet based on a private key generated from seed above
+	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
+	if err != nil {
+		return nil, err
+	}
+	wallet, err := sequence.NewWalletSingleOwner(owner)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set provider on sequence wallet
+	err = wallet.SetProvider(c.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set relayer on sequence wallet, which is used when the wallet sends transactions
+	localRelayer, err := sequence.NewLocalRelayer(c.GetRelayerWallet())
+	if err != nil {
+		return nil, err
+	}
+	err = wallet.SetRelayer(localRelayer)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if wallet is already deployed, in which case we will return right away
+	ok, _ := wallet.IsDeployed()
+	if ok {
+		return wallet, nil
+	}
+
+	// Deploy the wallet, via our account designated for relaying txs, but it could be any with some ETH
+	sender := c.GetRelayerWallet()
+	_, _, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
+	if err != nil {
+		return nil, err
+	}
+	_, err = waitReceipt(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure deployment worked
+	ok, _ = wallet.IsDeployed()
+	if !ok {
+		return nil, fmt.Errorf("dummy sequence wallet failed to deploy")
+	}
+	return wallet, nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 )
 
 type WalletOptions struct {
@@ -232,21 +233,27 @@ func (w *Wallet) GetSignerWeight() *big.Int {
 	return totalWeight
 }
 
-func (w *Wallet) GetNonce(blockNum ...big.Int) *big.Int {
-	// TODO: ask teh relayer..? not sure why were asking the relayer, but okay
-	return nil
+func (w *Wallet) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {
+	if w.relayer == nil {
+		return nil, ErrRelayerNotSet
+	}
+	var blockNum *big.Int
+	if len(optBlockNum) > 0 {
+		blockNum = optBlockNum[0]
+	}
+	return w.relayer.GetNonce(context.Background(), w.config, w.context, nil, blockNum)
 }
 
-func (w *Wallet) GetTransactionCount(blockNum ...big.Int) *big.Int {
-	return w.GetNonce(blockNum...)
+func (w *Wallet) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) {
+	return w.GetNonce(optBlockNum...)
 }
 
 func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
 	return w.SignDigest(MessageDigest(msg))
 }
 
-// TODO: rename this to just "Sign"... and then pass isDigest bool .. its easier.. and also keep
-// a SignDigest() as well.
+// func (w *Wallet) SignTypedData() // TODO
+
 func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
 	if w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
@@ -296,40 +303,80 @@ func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
 	return encodedSig, sig, nil
 }
 
-// func (w *Wallet) SignTypedData() // TODO
-
-func (w *Wallet) SignTransaction(txn *Transaction) (interface{}, error) {
-	return nil, nil
+func (w *Wallet) SignTransaction(txn *Transaction) (*SignedTransactions, error) {
+	return w.SignTransactions(Transactions{txn})
 }
 
-func (w *Wallet) SignTransactionBatch(txns Transactions) (interface{}, error) {
-	return nil, nil
-}
-
-// TODO: SendTransaction()
-
-// TODO: SendTransactionBatch()
-
-func (w *Wallet) Deploy() error {
-	if w.relayer == nil {
-		return ErrRelayerNotSet
+func (w *Wallet) SignTransactions(txns Transactions) (*SignedTransactions, error) {
+	stxns, err := prepareTransactionsForSigning(txns)
+	if err != nil {
+		return nil, err
 	}
-	// TODO: .. via a relayer..
-	return nil
+
+	// TODO: check if gas limits are set.. if not, ask relayer to estimate and set
+	// for now, we assume all are set correctly..
+
+	// If provided nonce append it to all other transactions
+	// otherwise get next nonce for this wallet
+	var nonce *big.Int
+	providedNonce, err := txns.Nonce()
+	if err != nil {
+		return nil, err
+	}
+	if providedNonce != nil {
+		nonce = providedNonce
+	} else {
+		readNonce, err := w.GetNonce()
+		if err != nil {
+			return nil, err
+		}
+		if readNonce == nil {
+			return nil, fmt.Errorf("readNonce is invalid")
+		}
+		nonce = readNonce
+	}
+	for _, tx := range txns {
+		tx.Nonce = nonce
+	}
+
+	// Get transactions digest
+	digest, err := stxns.Digest()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sign the transactions
+	sig, _, err := w.SignDigest(digest)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SignedTransactions{
+		Digest:        digest,
+		Signature:     sig,
+		ChainID:       w.chainID,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  stxns,
+	}, nil
+}
+
+func (w *Wallet) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error) {
+	return w.SendTransactions(ctx, signedTxns)
+}
+
+func (w *Wallet) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error) {
+	if w.relayer == nil {
+		return "", nil, nil, ErrRelayerNotSet
+	}
+	return w.relayer.Relay(ctx, signedTxns)
 }
 
 func (w *Wallet) IsDeployed() (bool, error) {
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
-	code, err := w.provider.CodeAt(context.Background(), w.Address(), nil)
-	if err != nil {
-		return false, err
-	}
-	if len(code) > 2 {
-		return true, nil
-	}
-	return false, nil
+	return IsWalletDeployed(w.provider, w.Address())
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future
@@ -341,6 +388,17 @@ func (w *Wallet) IsValidSignature(digest, signature []byte) (bool, error) {
 		return false, ErrProviderNotSet
 	}
 	return IsValidSignature(w.Address(), digest, signature, w.context, w.chainID, w.provider)
+}
+
+func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (bool, error) {
+	code, err := provider.CodeAt(context.Background(), walletAddress, nil)
+	if err != nil {
+		return false, err
+	}
+	if len(code) > 2 {
+		return true, nil
+	}
+	return false, nil
 }
 
 var (

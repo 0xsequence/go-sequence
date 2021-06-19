@@ -17,6 +17,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	testChain.MustDeploySequenceContext()
 }
 
 func TestChainID(t *testing.T) {

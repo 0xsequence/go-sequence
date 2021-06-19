@@ -1,14 +1,16 @@
 package sequence_test
 
 import (
-	"fmt"
+	"context"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,36 +145,123 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	assert.Equal(t, wallet.Address(), address)
 }
 
-func TestTransaction(t *testing.T) {
-	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-
-	calldata, err := callmockContract.Encode("testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
+// TODO: we have a direct wallet deploy method, we don't need to lazily do it..
+// but we can support it too I suppose, not a huge deal.
+/*func TestWalletDeploy(t *testing.T) {
+	// Create new single owner smart wallet (initially undeployed, of course)
+	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	fmt.Println("==>", calldata)
+	wallet, err := sequence.NewWalletSingleOwner(eoa, testutil.SequenceContext())
+	assert.NoError(t, err)
 
-	// TODO: build a sequence.Transaction()
+	wallet.SetProvider(testChain.Provider)
+	chainID := wallet.GetChainID()
+	assert.Equal(t, uint64(4337), chainID.Uint64())
 
-	// TODO: query value on-chain
+	// Confirm the wallet is not deployed
+	isDeployed, err := wallet.IsDeployed()
+	if err != nil {
+		t.Fatalf("wallet is deployed, but expecting it to be undeployed")
+	}
+	assert.False(t, isDeployed)
 
-	// NOTE: below we do a simple SendContractTransaction
-	// we can prob add this to testutil, .. easy
+	relayWallet := testChain.GetRelayerWallet()
 
-	// but.. what we need is to make it work with meta-transactions..
-
-	// // testutil.Contracts.Get("WALLET_CALL_RECV_MOCK").SendTransaction(context.Background(), testChain.MustWallet(2), callmockAddress, "testCall", big.NewInt(44), ethcoder.MustHexDecode("0x112233"))
-
-	// receipt, err := testutil.ContractTransact(
-	// 	testChain.MustWallet(2),
-	// 	callmockContract.Address, callmockContract.ABI,
-	// 	"testCall", big.NewInt(143), ethcoder.MustHexDecode("0x112233"),
-	// )
+	// walletAddress, tx, waitReceipt, err := sequence.DeploySequenceWallet(relayWallet, wallet.GetWalletConfig(), wallet.GetWalletContext())
 	// assert.NoError(t, err)
-	// assert.NotNil(t, receipt)
-	// assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+	// assert.NotNil(t, tx)
 
-	// ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	// receipt, err := waitReceipt(context.Background())
 	// assert.NoError(t, err)
-	// fmt.Println("==>", ret)
+	// assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
+	// isDeployed, err = wallet.IsDeployed()
+	// assert.NoError(t, err)
+	// assert.True(t, isDeployed)
+
+	// assert.Equal(t, wallet.Address(), walletAddress)
+
+	// Encode contract tx for: context.Factory.deploy(mainModule.Address, imageHash(config))
+	walletImageHash, err := wallet.ImageHash()
+	assert.NoError(t, err)
+
+	// NOTE: technically it's enough to call this method directly, it does not have to be via the guest module.
+	deployData, err := contracts.WalletFactory.ABI.Pack("deploy", wallet.GetWalletContext().MainModuleAddress, walletImageHash)
+	assert.NoError(t, err)
+
+	deployMetaTx := sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: false,
+		GasLimit:      big.NewInt(800000), // TODO, use a "creationLimit" instead of hardcoded value.
+		Value:         big.NewInt(0),
+		To:            wallet.GetWalletContext().FactoryAddress,
+		Data:          deployData,
+	}
+
+	deployTxData, err := contracts.WalletMainModule.ABI.Pack("execute", []sequence.Transaction{deployMetaTx}, big.NewInt(0), []byte{})
+	assert.NoError(t, err)
+
+	// Send the txn to the guest module to have the new wallet created
+	guestModuleAddresss := testutil.SequenceContext().GuestModuleAddress
+
+	deployTx, _, err := relayWallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+		To:   &guestModuleAddresss,
+		Data: deployTxData,
+	})
+
+	signedDeployTx, err := relayWallet.SignTx(deployTx, chainID)
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := relayWallet.SendTransaction(context.Background(), signedDeployTx)
+	assert.NoError(t, err)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	isDeployed, err = wallet.IsDeployed()
+	assert.NoError(t, err)
+	assert.True(t, isDeployed)
+}*/
+
+func TestTransaction(t *testing.T) {
+	// Ensure dummy sequence wallet from seed 1 is deployed
+	wallet, err := testChain.DummySequenceWallet(1)
+	assert.NoError(t, err)
+	assert.NotNil(t, wallet)
+
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(55), ethcoder.MustHexDecode("0x112255"))
+	assert.NoError(t, err)
+
+	stx := &sequence.Transaction{
+		// DelegateCall:  false,
+		// RevertOnError: false,
+		GasLimit: big.NewInt(800000), // TODO: do separate test which estimates the gas.., and we can leave it 0/nil
+		// Value:         big.NewInt(0),
+		To:   callmockContract.Address,
+		Data: calldata,
+	}
+
+	// Now, we must sign the meta txn
+	signedTx, err := wallet.SignTransaction(stx)
+	assert.NoError(t, err)
+
+	metaTxID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+	// assert.NotEmpty(t, metaTxID)
+	_ = metaTxID
+	assert.NotNil(t, tx)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "55", ret[0])
 }

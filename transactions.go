@@ -2,95 +2,137 @@ package sequence
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethcontract"
+	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/contracts"
 )
 
-// Transaction is a meta-transaction request..
-// TODO: we could do embedded thing..?
-type Transaction struct {
-	DelegateCall  bool           // Performs delegatecall
-	RevertOnError bool           // Reverts transaction bundle if tx fails
-	GasLimit      *big.Int       // Maximum gas to be forwarded
-	To            common.Address // Address to send transaction, aka target
-	Value         *big.Int       // Amount of ETH to pass with the call
-	Data          []byte         // Calldata to pass
-
-	Nonce *big.Int // Nonce of the transaction, will be set automatically if unset
-	// Expiration *big.Int // optional, .. // TODO
-	// AfterNonce ... // TODO
-
-	// Nested Transactions // Nested transaction
+func mustNewArrayTypeTuple(components []abi.ArgumentMarshaling) abi.Type {
+	typ, err := abi.NewType("tuple[]", "", components)
+	if err != nil {
+		panic(err)
+	}
+	return typ
 }
 
-func (t *Transaction) Encode() error {
-	return nil
+var ArrayOfMetaTxnType = mustNewArrayTypeTuple([]abi.ArgumentMarshaling{
+	{
+		Name: "delegateCall", Type: "bool",
+	},
+	{
+		Name: "revertOnError", Type: "bool",
+	},
+	{
+		Name: "gasLimit", Type: "uint256",
+	},
+	{
+		Name: "target", Type: "address",
+	},
+	{
+		Name: "value", Type: "uint256",
+	},
+	{
+		Name: "data", Type: "bytes",
+	},
+})
+
+var nonceAndMetaTxns = abi.Arguments{
+	abi.Argument{
+		Type: ethcoder.MustNewType("uint256"),
+	},
+	abi.Argument{
+		Type: ArrayOfMetaTxnType,
+	},
+}
+
+//--
+
+// Transaction type for Sequence meta-transaction, with encoded calldata.
+//
+// The fields with abi struct tags match the `Transaction` type as defined in the IModuleCalls interface.
+//
+// https://github.com/0xsequence/wallet-contracts/blob/master/src/contracts/modules/commons/interfaces/IModuleCalls.sol#L13
+type Transaction struct {
+	DelegateCall  bool           `abi:"delegateCall"`  // Performs delegatecall
+	RevertOnError bool           `abi:"revertOnError"` // Reverts transaction bundle if tx fails
+	GasLimit      *big.Int       `abi:"gasLimit"`      // Maximum gas to be forwarded
+	To            common.Address `abi:"target"`        // Address to send transaction, aka target
+	Value         *big.Int       `abi:"value"`         // Amount of ETH to pass with the call
+	Data          []byte         `abi:"data"`          // Calldata to pass
+
+	Nonce *big.Int // Nonce of the transaction, will be set automatically if unset
+
+	// Expiration *big.Int // optional.. TODO
+	// AfterNonce .. // optional.. TODO
+
+	// Nested Transactions // Nested transaction
 }
 
 // for this structure..
 type Transactions []*Transaction
 
+// TODO: reconsider this.....
+func transactionsArrayOfValues(txns Transactions) []Transaction {
+	v := []Transaction{}
+	for _, t := range txns {
+		v = append(v, *t)
+	}
+	return v
+}
+
+func (t Transactions) Nonce() (*big.Int, error) {
+	var nonce *big.Int
+	for _, txn := range t {
+		if txn.Nonce != nil {
+			nonce = txn.Nonce
+			break
+		}
+	}
+	for _, txn := range t {
+		if txn.Nonce != nil && txn.Nonce.Cmp(nonce) != 0 {
+			// TODO(pk): is this correct, I thought we could have mixed nonce.. or is this restrictions
+			// only per-group/nest?
+			return nil, fmt.Errorf("mixed nonces on sequence transactions are not allowed")
+		}
+	}
+	return nonce, nil
+}
+
+func (t Transactions) Digest() ([]byte, error) {
+	metaNonce, err := t.Nonce()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: get rid of the transactionsArrayOfValues(t)
+	// we can prob just reference []Transaction ..... but, means we get reference, which is kinda more ideal too.
+	// or just keep it and rename that method..?
+
+	data, err := nonceAndMetaTxns.PackValues([]interface{}{metaNonce, transactionsArrayOfValues(t)})
+	if err != nil {
+		return nil, fmt.Errorf("transaction digest failed to pack values: %w", err)
+	}
+
+	return ethcoder.Keccak256(data), nil
+}
+
+// SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
-	ChainID *big.Int
-	Config  WalletConfig
-	Context WalletContext
+	ChainID       *big.Int
+	WalletConfig  WalletConfig
+	WalletContext WalletContext
 
 	Digest       []byte       // Digest of the transactions
-	Signature    []byte       // or *Signature ..? // Signature of the digest
+	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
 	Transactions Transactions // The meta-transactions
 }
-
-// TransactionEncoded type for Sequence meta-transaction, with encoded calldata. This structure
-// is a fully encoded transaction payload which contains all sub-transactions, however, the Sequence
-// wallet execute function accepts an array of TransactionEncoded as well, but note, that a MetaTransaction
-// itself may encode nested sub-transactions, aka trees of calls.
-//
-// The type matches the `Transaction` type as defined in the IModuleCalls interface.
-//
-// https://github.com/0xsequence/wallet-contracts/blob/master/src/contracts/modules/commons/interfaces/IModuleCalls.sol#L13
-// type TransactionEncoded struct {
-// 	DelegateCall  bool           // Performs delegatecall
-// 	RevertOnError bool           // Reverts transaction bundle if tx fails
-// 	GasLimit      *big.Int       // Maximum gas to be forwarded
-// 	Target        common.Address // Address of the contract to call
-// 	Value         *big.Int       // Amount of ETH to pass with the call
-// 	Data          []byte         // Calldata to pass
-// }
-
-func NewTransaction() (*Transaction, error) {
-	return nil, nil
-}
-
-func NewTransactionBatch() (Transactions, error) {
-	return nil, nil
-}
-
-// SignTransactions(wallet *Wallet, ..etc..)
-
-func SendTransaction(signedTxs SignedTransactions) (string, error) {
-	// returns the metaTxID ......
-	return "", nil
-}
-
-//-------
-
-// Transaction type for Sequence meta-transaction, with encoded calldata.
-//
-// The type matches the `Transaction` type as defined in the IModuleCalls interface.
-//
-// https://github.com/0xsequence/wallet-contracts/blob/master/src/contracts/modules/commons/interfaces/IModuleCalls.sol#L13
-// type Transaction struct {
-// 	DelegateCall  bool           // Performs delegatecall
-// 	RevertOnError bool           // Reverts transaction bundle if tx fails
-// 	GasLimit      *big.Int       // Maximum gas to be forwarded
-// 	Target        common.Address // Address of the contract to call
-// 	Value         *big.Int       // Amount of ETH to pass with the call
-// 	Data          []byte         // Calldata to pass
-// }
 
 // Transaction events as defined in wallet-contracts IModuleCalls.sol
 var (
@@ -107,36 +149,9 @@ var (
 	TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32)")
 )
 
-// type TransactionBatch struct {
-// }
-
-// TransactionRequest etc..
-
-// TODO: see sequence.js..
-
-// TODO: review ethkit / TransactionRequest
-// and lets update from there.. yep, easier..
-
-// type TransactionRequest struct {
-// 	From  *common.Address // NOTE: this is automatically set..
-// 	To    common.Address
-// 	Nonce *big.Int
-
-// 	GasLimit *big.Int
-// 	// GasPrice *big.Int // NOTE: this is automatically set/estimated
-
-// 	Data    []byte
-// 	Value   *big.Int
-// 	ChainID *big.Int
-
-// 	// expiration?: BigNumberish
-// 	// afterNonce?: NonceDependency | BigNumberish
-// }
-
-// TODO:
-
 // EncodeNonce with space
 func EncodeNonce(space *big.Int, nonce *big.Int) *big.Int {
+	// TODO: what kind of error checking do we need here for overflow checks..?
 	shl := big.NewInt(2)
 	shl.Exp(shl, big.NewInt(96), nil)
 
@@ -182,6 +197,35 @@ func GenerateRandomNonce() (*big.Int, error) {
 	return nonce, nil
 }
 
+func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+	walletAddress, err := AddressFromWalletConfig(walletConfig, walletContext)
+	if err != nil {
+		return nil, err
+	}
+
+	ok, err := IsWalletDeployed(provider, walletAddress)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return big.NewInt(0), nil
+	}
+
+	if space == nil {
+		space = big.NewInt(0)
+	}
+
+	contract := ethcontract.NewContractCaller(walletAddress, contracts.WalletMainModule.ABI, provider)
+
+	var nonceResult *big.Int
+	err = contract.Call(nil, &nonceResult, "readNonce", space)
+	if err != nil {
+		return nil, err
+	}
+
+	return nonceResult, nil
+}
+
 // IsTxFailedLog returns true if the log belongs to a failed smart meta-transaction
 func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
 	log := logs[len(logs)-1] // check the last log in the set
@@ -221,4 +265,26 @@ func IsNonceChangedEvent(logs []*types.Log) bool {
 		return false
 	}
 	return true
+}
+
+// prepareTransactionsForSigning checks the transactions data structure with basic
+// integrity checks
+func prepareTransactionsForSigning(txns Transactions) (Transactions, error) {
+	if len(txns) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+	}
+
+	stxns := Transactions{}
+	for _, txn := range txns {
+		if txn == nil {
+			return nil, fmt.Errorf("cannot sign a nil transaction")
+		}
+		if txn.Value == nil {
+			txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
+		}
+
+		stxns = append(stxns, txn)
+	}
+
+	return stxns, nil
 }
