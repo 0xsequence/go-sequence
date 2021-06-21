@@ -4,6 +4,17 @@ go-sequence
 Sequence Wallet client written in Go.
 
 
+## Usage
+
+TODO: add docs.. etc. examples, etc.
+
+## Developing the go-sequence library
+
+1. `make boostrap` -- will install node modules of ./testutil/chain
+2. `make start-test-chain` -- starts the test ethereum chain (id 4337)
+3. (in a separate terminal) `make go-test` -- runs test suite
+
+
 ## Testing
 
 Testing is super important, to run the tests just call `make test`. As well, you can

@@ -11,7 +11,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type MetaTxnID string // TODO: can this be a common.Hash ..? I think not.. I think has to be just a string..
@@ -138,10 +137,8 @@ func encodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 		return common.Address{}, nil, err
 	}
 
-	execdata, err := contracts.WalletMainModule.ABI.Pack("execute", transactionsArrayOfValues(txns), seqNonce, metaSig)
+	execdata, err := contracts.WalletMainModule.ABI.Pack("execute", txns.AsValues(), seqNonce, metaSig)
 	if err != nil {
-		fmt.Println("here..")
-		spew.Dump(txns)
 		return common.Address{}, nil, err
 	}
 

@@ -14,46 +14,6 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
-func mustNewArrayTypeTuple(components []abi.ArgumentMarshaling) abi.Type {
-	typ, err := abi.NewType("tuple[]", "", components)
-	if err != nil {
-		panic(err)
-	}
-	return typ
-}
-
-var ArrayOfMetaTxnType = mustNewArrayTypeTuple([]abi.ArgumentMarshaling{
-	{
-		Name: "delegateCall", Type: "bool",
-	},
-	{
-		Name: "revertOnError", Type: "bool",
-	},
-	{
-		Name: "gasLimit", Type: "uint256",
-	},
-	{
-		Name: "target", Type: "address",
-	},
-	{
-		Name: "value", Type: "uint256",
-	},
-	{
-		Name: "data", Type: "bytes",
-	},
-})
-
-var nonceAndMetaTxns = abi.Arguments{
-	abi.Argument{
-		Type: ethcoder.MustNewType("uint256"),
-	},
-	abi.Argument{
-		Type: ArrayOfMetaTxnType,
-	},
-}
-
-//--
-
 // Transaction type for Sequence meta-transaction, with encoded calldata.
 //
 // The fields with abi struct tags match the `Transaction` type as defined in the IModuleCalls interface.
@@ -68,24 +28,13 @@ type Transaction struct {
 	Data          []byte         `abi:"data"`          // Calldata to pass
 
 	Nonce *big.Int // Nonce of the transaction, will be set automatically if unset
-
 	// Expiration *big.Int // optional.. TODO
 	// AfterNonce .. // optional.. TODO
 
-	// Nested Transactions // Nested transaction
+	Nested Transactions // Nested transaction
 }
 
-// for this structure..
 type Transactions []*Transaction
-
-// TODO: reconsider this.....
-func transactionsArrayOfValues(txns Transactions) []Transaction {
-	v := []Transaction{}
-	for _, t := range txns {
-		v = append(v, *t)
-	}
-	return v
-}
 
 func (t Transactions) Nonce() (*big.Int, error) {
 	var nonce *big.Int
@@ -111,16 +60,20 @@ func (t Transactions) Digest() ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO: get rid of the transactionsArrayOfValues(t)
-	// we can prob just reference []Transaction ..... but, means we get reference, which is kinda more ideal too.
-	// or just keep it and rename that method..?
-
-	data, err := nonceAndMetaTxns.PackValues([]interface{}{metaNonce, transactionsArrayOfValues(t)})
+	data, err := nonceAndMetaTxns.PackValues([]interface{}{metaNonce, t.AsValues()})
 	if err != nil {
 		return nil, fmt.Errorf("transaction digest failed to pack values: %w", err)
 	}
 
 	return ethcoder.Keccak256(data), nil
+}
+
+func (t Transactions) AsValues() []Transaction {
+	v := []Transaction{}
+	for _, o := range t {
+		v = append(v, *o)
+	}
+	return v
 }
 
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
