@@ -144,6 +144,6 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 	return metaTxnID, ntx, waitReceipt, nil
 }
 
-func (r *LocalRelayer) Wait(ctx context.Context, metaTxID sequence.MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
-	return nil, nil
+func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
+	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, timeout)
 }

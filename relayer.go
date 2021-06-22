@@ -30,7 +30,7 @@ type Relayer interface {
 	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxID MetaTxnID, timeout time.Duration) (*types.Receipt, error)
+	Wait(ctx context.Context, metaTxnID MetaTxnID, timeout time.Duration) (*types.Receipt, error)
 
 	// TODO, in future when needed..
 	// GasRefundOptions()
@@ -49,12 +49,12 @@ func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Trans
 		return "", err
 	}
 
-	metaTxIDHex := ethcoder.HexEncode(metaSubDigest)
-	if len(metaTxIDHex) != 66 {
+	metaTxnIDHex := ethcoder.HexEncode(metaSubDigest)
+	if len(metaTxnIDHex) != 66 {
 		return "", fmt.Errorf("computed meta txn id is invalid length")
 	}
 
-	return MetaTxnID(metaTxIDHex[2:]), nil
+	return MetaTxnID(metaTxnIDHex[2:]), nil
 }
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
@@ -83,4 +83,9 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	}
 
 	return walletAddress, execdata, nil
+}
+
+func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
+	// TODO.
+	return nil, fmt.Errorf("TODO")
 }
