@@ -19,7 +19,7 @@ type Relayer interface {
 	GetProvider() *ethrpc.Provider
 
 	// ..
-	EstimateGasLimits(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, transactions Transactions) (Transactions, error)
+	EstimateGasLimits(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
 
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)

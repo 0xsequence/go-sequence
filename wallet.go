@@ -304,18 +304,31 @@ func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
 	return encodedSig, sig, nil
 }
 
-func (w *Wallet) SignTransaction(txn *Transaction) (*SignedTransactions, error) {
-	return w.SignTransactions(Transactions{txn})
+func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
+	return w.SignTransactions(ctx, Transactions{txn})
 }
 
-func (w *Wallet) SignTransactions(txns Transactions) (*SignedTransactions, error) {
+func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
 	stxns, err := prepareTransactionsForSigning(txns)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: check if gas limits are set.. if not, ask relayer to estimate and set
-	// for now, we assume all are set correctly..
+	// If a transaction has 0 gasLimit and not revertOnError
+	// compute all new gas limits
+	estimateGas := false
+	for _, txn := range txns {
+		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
+			estimateGas = true
+			break
+		}
+	}
+	if estimateGas {
+		_, err := w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
+		if err != nil {
+			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
+		}
+	}
 
 	// If provided nonce append it to all other transactions
 	// otherwise get next nonce for this wallet

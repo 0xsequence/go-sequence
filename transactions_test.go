@@ -26,14 +26,14 @@ func TestTransaction(t *testing.T) {
 	stx := &sequence.Transaction{
 		// DelegateCall:  false,
 		// RevertOnError: false,
-		GasLimit: big.NewInt(800000), // TODO: do separate test which estimates the gas.., and we can leave it 0/nil
+		// GasLimit: big.NewInt(800000),
 		// Value:         big.NewInt(0),
 		To:   callmockContract.Address,
 		Data: calldata,
 	}
 
 	// Now, we must sign the meta txn
-	signedTx, err := wallet.SignTransaction(stx)
+	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
 
 	metaTxID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)

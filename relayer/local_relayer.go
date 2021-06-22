@@ -2,12 +2,15 @@ package relayer
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum"
+	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 )
@@ -35,9 +38,59 @@ func (r *LocalRelayer) GetProvider() *ethrpc.Provider {
 	return r.Sender.GetProvider()
 }
 
-func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, transactions sequence.Transactions) (sequence.Transactions, error) {
-	// TODO: ..... lets go......
-	return nil, nil
+func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
+	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
+	if err != nil {
+		return nil, err
+	}
+
+	provider := r.GetProvider()
+
+	isWalletDeployed, err := sequence.IsWalletDeployed(provider, walletAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultGasLimit := int64(800_000)
+
+	for _, txn := range txns {
+		// Respect gasLimit request of the transaction (as long as its not 0)
+		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
+			continue
+		}
+
+		// Fee can't be estimated locally for delegateCalls
+		if txn.DelegateCall {
+			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
+			continue
+		}
+
+		// Fee can't be estimated for self-called if wallet hasn't been deployed
+		if txn.To == walletAddress && !isWalletDeployed {
+			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
+			continue
+		}
+
+		// Estimate with eth_estimate call
+		callMsg := ethereum.CallMsg{
+			From:  walletAddress,
+			Gas:   0, // estimating this value
+			Value: txn.Value,
+			Data:  txn.Data,
+		}
+		zeroAddress := common.Address{}
+		if txn.To != zeroAddress {
+			callMsg.To = &txn.To
+		}
+
+		gasLimit, err := provider.EstimateGas(ctx, callMsg)
+		if err != nil {
+			return nil, fmt.Errorf("ethtxn: %w", err)
+		}
+		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
+	}
+
+	return txns, nil
 }
 
 func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
