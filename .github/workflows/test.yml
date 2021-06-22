@@ -4,14 +4,19 @@ name: test
 
 jobs:
 
-  bootstrap:
+  test:
     name: Test
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - uses: actions/cache@v2
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.x
+        uses: actions/cache@v2
         with:
           # In order:
           # * Module download cache
@@ -26,11 +31,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16.x
 
       - name: Install node
         uses: actions/setup-node@v1
