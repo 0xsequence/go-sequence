@@ -22,11 +22,11 @@ jobs:
           key: ${{ runner.os }}-install-${{ hashFiles('./testutil/chain/**/package.json', './testutil/chain/**/yarn.lock') }}
 
       - name: Yarn
-      - run: cd ./testutil/chain && yarn install --network-concurrency 1
+        run: cd ./testutil/chain && yarn install --network-concurrency 1
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
       - name: Start test-chain server in background
-      - run: make start-test-chain &
+        run: make start-test-chain &
 
 
   test:
