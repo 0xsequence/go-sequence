@@ -36,25 +36,45 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestERC20Transfer(t *testing.T) {
-	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.DummySequenceWallet(1)
+	// Ensure two dummy sequence wallets are deployed
+	wallets, err := testChain.DummySequenceWallets(2, 1)
 	assert.NoError(t, err)
-	assert.NotNil(t, wallet)
+	assert.NotNil(t, wallets)
 
-	// Create normal txn of: callmockContract.mockMint(wallet, 100)
+	// Create normal txn of: callmockContract.mockMint(wallets[0], 100)
 	callmockContract := testChain.UniDeploy(t, "ERC20Mock", 0)
-	calldata, err := callmockContract.Encode("mockMint", wallet.Address(), big.NewInt(100))
+	calldata, err := callmockContract.Encode("mockMint", wallets[0].Address(), big.NewInt(100))
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = signAndSend(t, wallet, callmockContract.Address, calldata)
+	err = signAndSend(t, wallets[0], callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Check the value
-	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallet.Address().Hex()})
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[0].Address().Hex()})
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "100", ret[0])
+
+	// Create normal txn of: callmockContract.transfer(wallets[1], 20)
+	calldata, err = callmockContract.Encode("transfer", wallets[1].Address(), big.NewInt(20))
+	assert.NoError(t, err)
+
+	// Sign and send the transaction
+	err = signAndSend(t, wallets[0], callmockContract.Address, calldata)
+	assert.NoError(t, err)
+
+	// Check the value of wallet 1
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[0].Address().Hex()})
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "80", ret[0])
+
+	// Check the value of wallet 2
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[1].Address().Hex()})
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "20", ret[0])
 }
 
 func signAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data []byte) error {

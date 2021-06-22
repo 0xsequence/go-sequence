@@ -265,6 +265,20 @@ func (c *TestChain) WaitMined(txn common.Hash) error {
 	return err
 }
 
+func (c *TestChain) DummySequenceWallets(nWallets uint64, startingSeed uint64) ([]*sequence.Wallet, error) {
+	var wallets []*sequence.Wallet
+
+	for i := uint64(0); i < nWallets; i++ {
+		wallet, err := c.DummySequenceWallet(startingSeed + i*1000)
+		if err != nil {
+			return nil, err
+		}
+		wallets = append(wallets, wallet)
+	}
+
+	return wallets, nil
+}
+
 func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
