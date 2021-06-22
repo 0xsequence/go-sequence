@@ -37,7 +37,7 @@ func TestTransaction(t *testing.T) {
 
 func TestERC20Transfer(t *testing.T) {
 	// Ensure two dummy sequence wallets are deployed
-	wallets, err := testChain.DummySequenceWallets(2, 1)
+	wallets, err := testChain.DummySequenceWallets(3, 1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallets)
 
@@ -75,6 +75,37 @@ func TestERC20Transfer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "20", ret[0])
+
+	// Create normal txns to:
+	// 1. callmockContract.transfer(wallets[1], 10)
+	// 2. callmockContract.transfer(wallets[2], 30)
+	var calldatas [][]byte
+	calldata1, err := callmockContract.Encode("transfer", wallets[1].Address(), big.NewInt(10))
+	calldatas = append(calldatas, calldata1)
+	calldata2, err := callmockContract.Encode("transfer", wallets[2].Address(), big.NewInt(30))
+	calldatas = append(calldatas, calldata2)
+
+	// Sign and send the transaction
+	err = batchSignAndSend(t, wallets[0], callmockContract.Address, calldatas)
+	assert.NoError(t, err)
+
+	// Check the value of wallet 1
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[0].Address().Hex()})
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "40", ret[0])
+
+	// Check the value of wallet 2
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[1].Address().Hex()})
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "30", ret[0])
+
+	// Check the value of wallet 3
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[1].Address().Hex()})
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "30", ret[0])
 }
 
 func signAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data []byte) error {
@@ -92,6 +123,39 @@ func signAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data 
 	assert.NoError(t, err)
 
 	metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, metaTxnID)
+	assert.NotNil(t, tx)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
+	// NOTE: if you start test chain with `make start-test-chain-verbose`, you will see the metaTxnID above
+	// correctly logged..
+
+	return err
+}
+
+func batchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data [][]byte) error {
+	var stxs []*sequence.Transaction
+	for i := 0; i < len(data); i++ {
+		stxs = append(stxs, &sequence.Transaction{
+			// DelegateCall:  false,
+			// RevertOnError: false,
+			// GasLimit: big.NewInt(800000),
+			// Value:         big.NewInt(0),
+			To:   to,
+			Data: data[i],
+		})
+	}
+
+	// Now, we must sign the meta txn
+	signedTx, err := wallet.SignTransactions(context.Background(), stxs)
+	assert.NoError(t, err)
+
+	metaTxnID, tx, waitReceipt, err := wallet.SendTransactions(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
 	assert.NotNil(t, tx)
