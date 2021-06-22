@@ -17,6 +17,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
+	"github.com/0xsequence/go-sequence/relayer"
 )
 
 type TestChain struct {
@@ -282,7 +283,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
 	}
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := sequence.NewLocalRelayer(c.GetRelayerWallet())
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet())
 	if err != nil {
 		return nil, err
 	}
