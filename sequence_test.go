@@ -23,3 +23,8 @@ func init() {
 func TestChainID(t *testing.T) {
 	assert.Equal(t, testChain.ChainID().Uint64(), uint64(4337))
 }
+
+func TestSpeed(t *testing.T) {
+	// checking github actions cache for subsequent test..
+	assert.True(t, true)
+}
