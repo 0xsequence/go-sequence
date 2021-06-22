@@ -1,6 +1,6 @@
 on: [push]
 
-name: tests
+name: test
 
 jobs:
 
@@ -25,8 +25,8 @@ jobs:
         run: cd ./testutil/chain && yarn install --network-concurrency 1
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
-      - name: Start test-chain server in background
-        run: make start-test-chain &
+      #- name: Start test-chain server in background
+      #  run: make start-test-chain &
 
 
   test:
@@ -56,5 +56,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
       - name: Test
-        run: make go-test
+        run: make test
