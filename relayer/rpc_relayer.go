@@ -13,6 +13,7 @@ import (
 
 // TODO ....
 type RpcRelayer struct {
+	// Service ...
 }
 
 var _ sequence.Relayer = &RpcRelayer{}

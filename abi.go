@@ -15,7 +15,7 @@ var abiTransactionsType = ethcoder.MustNewArrayTypeTuple([]abi.ArgumentMarshalin
 	{Name: "data", Type: "bytes"},
 })
 
-// abiTransactionsDigestType represents abi coder of []Transaction digest
+// abiTransactionsDigestType represents abi coder of []Transaction digest pre-image
 var abiTransactionsDigestType = abi.Arguments{
 	abi.Argument{Type: ethcoder.MustNewType("uint256")},
 	abi.Argument{Type: abiTransactionsType},
