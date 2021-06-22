@@ -20,12 +20,16 @@ var (
 	WalletGuestModule,
 	WalletUtils,
 	IERC1271,
+	ERC20Mock,
 	_ ethartifact.Artifact
 )
 
 var (
 	//go:embed artifacts/erc1271/ierc1271.json
 	artifact_ierc1271 string
+
+	//go:embed artifacts/erc-1155/mocks/ERC20Mock.sol/ERC20Mock.json
+	artifact_erc20mock string
 )
 
 func init() {
@@ -36,6 +40,8 @@ func init() {
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
 
 	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
+
+	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }
 
 func artifact(contractName, abiJSON, bytecodeHex string) ethartifact.Artifact {

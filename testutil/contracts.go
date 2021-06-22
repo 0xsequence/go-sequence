@@ -20,6 +20,7 @@ var (
 )
 
 func init() {
+	Contracts.MustAdd(contracts.ERC20Mock)
 	Contracts.MustAdd(contracts.WalletFactory)
 
 	Contracts.MustRegisterJSON("WALLET_CALL_RECV_MOCK", walletcallmock.CallReceiverMockABI, common.FromHex(walletcallmock.CallReceiverMockBin))
