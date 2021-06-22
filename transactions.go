@@ -60,7 +60,7 @@ func (t Transactions) Digest() ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := nonceAndMetaTxns.PackValues([]interface{}{metaNonce, t.AsValues()})
+	data, err := abiTransactionsDigestType.PackValues([]interface{}{metaNonce, t.AsValues()})
 	if err != nil {
 		return nil, fmt.Errorf("transaction digest failed to pack values: %w", err)
 	}
