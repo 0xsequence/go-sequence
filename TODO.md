@@ -10,21 +10,38 @@ TODO
 
 - [x] tests, 3. create a wallet (undeployed), sign a message and validate it, then recover
 
-- [ ] tests, 4. create a wallet (deployed), sign a message and validate it, then recover
+- [x] tests, 4. create a wallet (deployed), sign a message and validate it, then recover
 
-- [ ] tests, 5. part of testutil we can include some erc20 mock bytecode + abi to make mocking a bit easier
+- [x] implement `Transaction` and `Transactions` to send basic meta-transaction and write test with CallReceiverMock
 
-- [ ] tests, 6. deploy erc20 mock contract, mint some tokens, then do a transfer, then do another transfer with a batch
+- [ ] implement ComputeMetaTxID method
 
-- [ ] tests, 7. test the local relayer
+- [ ] implement support for `Transaction.Nested` to add support for nested txns, and add `Transactions.Encode()` method
+      which will return a new `Transactions` array, where each child of depths >=2 will be reduced to single node,
+			and calls `selfExecute` method all the way down the tree
 
-- [ ] tests, 8. transaction, batch transactions, etc.....
+- [ ] implement simple check in Transaction Encode() to ensure the first transaction is always revertOnError = false
 
-- [ ] tests, 9. transaction with parallel nonces.. we use this in skyweaver, lets review.. etc.
+- [ ] implement decoder of calldata for a meta-txn exec nested calldata, back to a `Transactions` structure
+
+- [ ] implement relayer.RpcRelayer which adheres to sequence.Relayer interface
+
+- [ ] add erc20 mock contract to `contracts`, then write test deploy erc20 mock contract, mint some tokens,
+			then do a transfer, then do another transfer with a batch
+
+- [ ] implement helper functions to send parallel txns to the relayer to make it simpler for the developer
+			when using go-sequence and wants to send native parallel txns which are not dependent on eachother (ie. skyweaver
+			uses this for sending rewards and conquest tickets)
+
+- [ ] part of testutil, include erc20 and erc1155 mock tokens so we can use it in other tests easily
 
 - [x] add ethauth IsValidSequenceAccountProof
 
------------------------------
+
+
+
+
+----------------------------- generally, ignore the stuff below here.
 -----------------------------
 
 
@@ -41,7 +58,7 @@ TODO
 
 
 -----------------------------
------------------------------
+----------------------------- these are methods we had previously in the chaind/sdk 
 -----------------------------
 
 
