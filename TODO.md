@@ -16,6 +16,8 @@ TODO
 
 - [x] implement ComputeMetaTxID method
 
+- [ ] implement LocalRelayer.Wait method -- listening on events for the metaTxID to show up, but we should also have a timeout. See WaitReceipt() impl in ethkit
+
 - [ ] implement support for `Transaction.Nested` to add support for nested txns, and add `Transactions.Encode()` method
       which will return a new `Transactions` array, where each child of depths >=2 will be reduced to single node,
 			and calls `selfExecute` method all the way down the tree
