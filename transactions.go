@@ -242,7 +242,7 @@ func prepareTransactionsForSigning(txns Transactions) (Transactions, error) {
 	return stxns, nil
 }
 
-func DecodeTransactions(data []byte) (Transactions, error) {
+func DecodeTransactions(execdata []byte) (Transactions, error) {
 	// TODO .......
 	return nil, nil
 }
