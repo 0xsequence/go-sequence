@@ -34,8 +34,6 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletC
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-//
-// TODO: ethwallet.WaitReceipt needs to move to ethtxn or ethrpc ..
 func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	return "", nil, nil, nil
 }
