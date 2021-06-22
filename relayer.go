@@ -99,6 +99,9 @@ func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig WalletConfig, 
 }
 
 func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
+	// a wallet creation call)
+
 	sender := r.Sender
 
 	to, execdata, err := encodeTransactionsForRelaying(
