@@ -21,7 +21,7 @@ jobs:
             ./testutil/chain/*/*/node_modules
           key: ${{ runner.os }}-install-${{ hashFiles('./testutil/chain/**/package.json', './testutil/chain/**/yarn.lock') }}
 
-      - name: Yarn
+      - name: Yarn install
         run: cd ./testutil/chain && yarn install --network-concurrency 1
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
@@ -31,11 +31,8 @@ jobs:
 
   test:
     name: Test
+    needs: bootstrap
     runs-on: ubuntu-latest
-
-    env:
-      GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
 
     steps:
       - name: Install Go
