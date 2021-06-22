@@ -16,24 +16,22 @@ TODO
 
 - [x] implement ComputeMetaTxID method
 
-- [ ] implement LocalRelayer.Wait method -- listening on events for the metaTxID to show up, but we should also have a timeout. See WaitReceipt() impl in ethkit
-
 - [ ] implement support for `Transaction.Nested` to add support for nested txns, and add `Transactions.Encode()` method
       which will return a new `Transactions` array, where each child of depths >=2 will be reduced to single node,
 			and calls `selfExecute` method all the way down the tree
 
-- [ ] implement simple check in Transaction Encode() to ensure the first transaction is always revertOnError = false
-
 - [ ] implement decoder of calldata for a meta-txn exec nested calldata, back to a `Transactions` structure
+
+- [ ] implement helper functions to send parallel txns to the relayer to make it simpler for the developer
+			when using go-sequence and wants to send native parallel txns which are not dependent on eachother (ie. skyweaver
+			uses this for sending rewards and conquest tickets)
+
+- [ ] implement LocalRelayer.Wait method -- listening on events for the metaTxID to show up, but we should also have a timeout. See WaitReceipt() impl 				in ethkit
 
 - [ ] implement relayer.RpcRelayer which adheres to sequence.Relayer interface
 
 - [ ] add erc20 mock contract to `contracts`, then write test deploy erc20 mock contract, mint some tokens,
 			then do a transfer, then do another transfer with a batch
-
-- [ ] implement helper functions to send parallel txns to the relayer to make it simpler for the developer
-			when using go-sequence and wants to send native parallel txns which are not dependent on eachother (ie. skyweaver
-			uses this for sending rewards and conquest tickets)
 
 - [ ] part of testutil, include erc20 and erc1155 mock tokens so we can use it in other tests easily
 

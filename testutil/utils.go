@@ -24,9 +24,9 @@ func SequenceContext() sequence.WalletContext {
 	return sequenceContext
 }
 
-// ParseTestWalletMnemonic parses the wallet mnemonic from ./package.json, the same
+// parseTestWalletMnemonic parses the wallet mnemonic from ./package.json, the same
 // key used to start the test chain server.
-func ParseTestWalletMnemonic() (string, error) {
+func parseTestWalletMnemonic() (string, error) {
 	_, filename, _, _ := runtime.Caller(0)
 	cwd := filepath.Dir(filename)
 

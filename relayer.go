@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -36,7 +37,7 @@ type Relayer interface {
 	// request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 	//
 	// TODO: ethwallet.WaitReceipt needs to move to ethtxn or ethrpc ..
-	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error)
+	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	// ..
 	Wait(ctx context.Context, metaTxID MetaTxnID, timeout time.Duration) (*types.Receipt, error)
@@ -97,7 +98,7 @@ func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig WalletConfig, 
 	return GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 
-func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error) {
+func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	sender := r.Sender
 
 	to, execdata, err := encodeTransactionsForRelaying(
@@ -121,7 +122,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *SignedTransactions)
 		return "", nil, nil, err
 	}
 
-	ntx, _, err := sender.NewTransaction(ctx, &ethwallet.TransactionRequest{
+	ntx, err := sender.NewTransaction(ctx, &ethtxn.TransactionRequest{
 		To: &to, Data: execdata,
 	})
 	if err != nil {

@@ -3,6 +3,7 @@ package sequence
 import (
 	"context"
 
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -11,7 +12,7 @@ import (
 
 var zeroAddress = common.Address{}
 
-func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethwallet.WaitReceipt, error) {
+func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if sender.GetProvider() == nil {
 		return common.Address{}, nil, nil, ErrProviderNotSet
 	}
@@ -37,7 +38,7 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, w
 		return common.Address{}, nil, nil, err
 	}
 
-	deployTx, _, err := sender.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+	deployTx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 		To:   &walletContext.FactoryAddress,
 		Data: deployData,
 	})

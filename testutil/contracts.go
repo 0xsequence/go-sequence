@@ -5,6 +5,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
@@ -60,7 +61,7 @@ func ContractTransact(signer *ethwallet.Wallet, contractAddress common.Address, 
 		return nil, err
 	}
 
-	signedTxn, _, err := signer.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+	signedTxn, err := signer.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 		To:   &contractAddress,
 		Data: calldata,
 	})

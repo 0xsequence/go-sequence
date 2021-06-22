@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -124,7 +125,7 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 		return common.Address{}, fmt.Errorf("deployer: deploy pack: %w", err)
 	}
 
-	tx, _, err := u.Wallet.NewTransaction(ctx, &ethwallet.TransactionRequest{
+	tx, err := u.Wallet.NewTransaction(ctx, &ethtxn.TransactionRequest{
 		To:   &UNIVERSAL_DEPLOYER_2_ADDRESS,
 		Data: input,
 	})
@@ -166,7 +167,7 @@ func (u *UniversalDeployer) deployUniversalDeployer2(ctx context.Context, txPara
 	// the UNIVERSAL_DEPLOYER_2_BYTECODE changes of the deployer -- which should never really happen.
 
 	// deploy universal deployer 2 contract
-	tx, _, err := u.Wallet.NewTransaction(ctx, &ethwallet.TransactionRequest{
+	tx, err := u.Wallet.NewTransaction(ctx, &ethtxn.TransactionRequest{
 		To:   &UNIVERSAL_DEPLOYER_ADDRESS,
 		Data: UNIVERSAL_DEPLOYER_2_BYTECODE,
 	})
@@ -197,7 +198,7 @@ func (u *UniversalDeployer) deployUniversalDeployer1(ctx context.Context, txPara
 
 	// ensure deployer's wallet balance has necessary funding
 	if deployerBalance.Cmp(UNIVERSAL_DEPLOYER_FUNDING) < 0 {
-		signedTxn, _, err := u.Wallet.NewTransaction(ctx, &ethwallet.TransactionRequest{
+		signedTxn, err := u.Wallet.NewTransaction(ctx, &ethtxn.TransactionRequest{
 			To:       &EOA_UNIVERSAL_DEPLOYER_ADDRESS,
 			ETHValue: UNIVERSAL_DEPLOYER_FUNDING,
 		})

@@ -9,6 +9,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -83,7 +84,7 @@ func (c *TestChain) Wallet() (*ethwallet.Wallet, error) {
 	var err error
 
 	if c.walletMnemonic == "" {
-		c.walletMnemonic, err = ParseTestWalletMnemonic()
+		c.walletMnemonic, err = parseTestWalletMnemonic()
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +228,7 @@ func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructo
 	data = append(data, input...)
 
 	wallet := c.GetDeployWallet()
-	signedTxn, _, err := wallet.NewTransaction(context.Background(), &ethwallet.TransactionRequest{
+	signedTxn, err := wallet.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 		Data: data,
 	})
 	if err != nil {

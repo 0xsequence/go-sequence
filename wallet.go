@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -361,11 +362,11 @@ func (w *Wallet) SignTransactions(txns Transactions) (*SignedTransactions, error
 	}, nil
 }
 
-func (w *Wallet) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error) {
+func (w *Wallet) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	return w.SendTransactions(ctx, signedTxns)
 }
 
-func (w *Wallet) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error) {
+func (w *Wallet) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
