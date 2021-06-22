@@ -14,7 +14,7 @@ TODO
 
 - [x] implement `Transaction` and `Transactions` to send basic meta-transaction and write test with CallReceiverMock
 
-- [ ] implement ComputeMetaTxID method
+- [x] implement ComputeMetaTxID method
 
 - [ ] implement support for `Transaction.Nested` to add support for nested txns, and add `Transactions.Encode()` method
       which will return a new `Transactions` array, where each child of depths >=2 will be reduced to single node,

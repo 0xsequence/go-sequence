@@ -6,14 +6,13 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 )
-
-type MetaTxnID string // TODO: can this be a common.Hash ..? I think not.. I think has to be just a string..
 
 // TODO: RelayerOptions struct {
 // 	 BundleCreation bool
@@ -23,11 +22,13 @@ type MetaTxnID string // TODO: can this be a common.Hash ..? I think not.. I thi
 // }
 
 type Relayer interface {
+	// ..
 	GetProvider() *ethrpc.Provider
 
+	// ..
 	EstimateGasLimits(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, transactions Transactions) (Transactions, error)
 
-	// TODO: how many bits for the space..?
+	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
 
 	// Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
@@ -37,12 +38,32 @@ type Relayer interface {
 	// TODO: ethwallet.WaitReceipt needs to move to ethtxn or ethrpc ..
 	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethwallet.WaitReceipt, error)
 
-	// TODO: what "type" should metaTxID be..? it is a hash..
-	// but, its kinda different cuz we dont require 0x so may not be able to use common.Hash
-	// alternatively we could make metaTxID a different length of hash to differentiate it, but its a breaking change on client-side
+	// ..
 	Wait(ctx context.Context, metaTxID MetaTxnID, timeout time.Duration) (*types.Receipt, error)
 
-	// GasRefundOptions() // TODO, in future when needed..
+	// TODO, in future when needed..
+	// GasRefundOptions()
+}
+
+type MetaTxnID string
+
+func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions) (MetaTxnID, error) {
+	txnsDigest, err := txns.Digest()
+	if err != nil {
+		return "", err
+	}
+
+	metaSubDigest, err := SubDigest(walletAddress, chainID, txnsDigest)
+	if err != nil {
+		return "", err
+	}
+
+	metaTxIDHex := ethcoder.HexEncode(metaSubDigest)
+	if len(metaTxIDHex) != 66 {
+		return "", fmt.Errorf("computed meta txn id is invalid length")
+	}
+
+	return MetaTxnID(metaTxIDHex[2:]), nil
 }
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -90,27 +111,34 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *SignedTransactions)
 		return "", nil, nil, err
 	}
 
+	walletAddress, err := AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	metaTxnID, err := ComputeMetaTxnID(walletAddress, signedTxs.ChainID, signedTxs.Transactions)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
 	ntx, _, err := sender.NewTransaction(ctx, &ethwallet.TransactionRequest{
 		To: &to, Data: execdata,
 	})
 	if err != nil {
-		return "", nil, nil, err
+		return metaTxnID, nil, nil, err
 	}
 
 	signedTx, err := sender.SignTx(ntx, signedTxs.ChainID)
 	if err != nil {
-		return "", nil, nil, err
+		return metaTxnID, nil, nil, err
 	}
-
-	// TODO: compute the metaTxID .. we can prob do this sooner too....
-	metaTxnID := ""
 
 	ntx, waitReceipt, err := sender.SendTransaction(ctx, signedTx)
 	if err != nil {
-		return "", nil, nil, nil
+		return metaTxnID, nil, nil, err
 	}
 
-	return MetaTxnID(metaTxnID), ntx, waitReceipt, nil
+	return metaTxnID, ntx, waitReceipt, nil
 }
 
 func (r *LocalRelayer) Wait(ctx context.Context, metaTxID MetaTxnID, timeout time.Duration) (*types.Receipt, error) {

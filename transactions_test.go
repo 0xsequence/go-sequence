@@ -38,13 +38,16 @@ func TestTransaction(t *testing.T) {
 
 	metaTxID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
-	// assert.NotEmpty(t, metaTxID)
-	_ = metaTxID
+	assert.NotEmpty(t, metaTxID)
 	assert.NotNil(t, tx)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// TODO: decode the receipt, and lets confirm we have the metaTxID event in there..
+	// NOTE: if you start test chain with `make start-test-chain-verbose`, you will see the metaTxnID above
+	// correctly logged..
 
 	// Check the value
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
