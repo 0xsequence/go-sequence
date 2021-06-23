@@ -30,7 +30,7 @@ TODO
 
 - [ ] implement relayer.RpcRelayer which adheres to sequence.Relayer interface
 
-- [ ] add erc20 mock contract to `contracts`, then write test deploy erc20 mock contract, mint some tokens,
+- [x] add erc20 mock contract to `contracts`, then write test deploy erc20 mock contract, mint some tokens,
 			then do a transfer, then do another transfer with a batch
 
 - [ ] part of testutil, include erc20 and erc1155 mock tokens so we can use it in other tests easily
