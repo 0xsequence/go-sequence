@@ -10,11 +10,11 @@ import (
 // WalletContext is the module addresses deployed on a network, aka the context / environment
 // of the Sequence Smart Wallet system on Ethereum.
 type WalletContext struct {
-	FactoryAddress              common.Address `json:"factory"`
-	MainModuleAddress           common.Address `json:"mainModule"`
-	MainModuleUpgradableAddress common.Address `json:"mainModuleUpgradable"`
-	GuestModuleAddress          common.Address `json:"guestModule"`
-	UtilsAddress                common.Address `json:"utils"`
+	FactoryAddress              common.Address `json:"factory" toml:"factory_address"`
+	MainModuleAddress           common.Address `json:"mainModule" toml:"main_module_address"`
+	MainModuleUpgradableAddress common.Address `json:"mainModuleUpgradable" toml:"main_module_upgradable_address"`
+	GuestModuleAddress          common.Address `json:"guestModule" toml:"guest_module_address"`
+	UtilsAddress                common.Address `json:"utils" toml:"utils_address"`
 }
 
 type NetworkConfig struct {
