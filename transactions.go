@@ -32,7 +32,34 @@ type Transaction struct {
 	// Expiration *big.Int // optional.. TODO
 	// AfterNonce .. // optional.. TODO
 
-	Nested Transactions // Nested transaction
+	// Children represents nested/bundled transactions
+	Children TransactionBundle
+}
+
+func (t *Transaction) IsBundle() bool {
+	return t.Children.Transactions != nil && len(t.Children.Transactions) > 0
+}
+
+// AddToBundle will create a bundle from the passed txns and add it to current transaction
+func (t *Transaction) AddToBundle(txns Transactions) {
+	if t.IsBundle() {
+		// append to existing bundle
+		t.Children.Transactions.Append(txns)
+	} else {
+		// create a new bundle
+		t.Children = TransactionBundle{Transactions: txns}
+	}
+}
+
+func (t *Transaction) Encode() error {
+	// will encode the bundle if necessary..
+	if t.IsBundle() {
+		err := t.Children.Encode()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t Transaction) Bundle() Transactions {
@@ -40,6 +67,32 @@ func (t Transaction) Bundle() Transactions {
 }
 
 type Transactions []*Transaction
+
+// Append will append the passed txns to the `t` array (as separate Transaction elements).
+func (t *Transactions) Append(txns Transactions) {
+	*t = append(*t, txns...)
+}
+
+// Prepend will prepend the passed txns to the `t` array (as separate Transaction elements).
+func (t *Transactions) Prepend(txns Transactions) {
+	*t = append(txns, *t...)
+}
+
+// AppendBundle will append the passed txns as *a bundle of txns*. This means, it will be included as a single
+// element at this level of the `t` array.
+func (t Transactions) AppendBundle(txns Transactions) {
+	bundleTxn := &Transaction{}
+	bundleTxn.AddToBundle(txns)
+	t.Append(Transactions{bundleTxn})
+}
+
+// PrependBundle will prepend the passed txns as *a bundle of txns*. This means, it will be included as a single
+// element at this level of the `t` array.
+func (t Transactions) PrependBundle(txns Transactions) {
+	bundleTxn := &Transaction{}
+	bundleTxn.AddToBundle(txns)
+	t.Prepend(Transactions{bundleTxn})
+}
 
 func (t Transactions) Nonce() (*big.Int, error) {
 	var nonce *big.Int
@@ -72,12 +125,28 @@ func (t Transactions) Digest() ([]byte, error) {
 	return ethcoder.Keccak256(data), nil
 }
 
+func (t Transactions) Encode() error {
+	return nil
+}
+
 func (t Transactions) AsValues() []Transaction {
 	v := []Transaction{}
 	for _, o := range t {
 		v = append(v, *o)
 	}
 	return v
+}
+
+type TransactionBundle struct {
+	// Transactions in a bundle
+	Transactions
+
+	// ExecData represents the encoding of Transactions above, in form of a selfExecute call
+	ExecData []byte
+}
+
+func (b *TransactionBundle) Encode() error {
+	return nil
 }
 
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
@@ -138,8 +207,8 @@ func DecodeNonce(raw *big.Int) (*big.Int, *big.Int) {
 	return space, nonce
 }
 
-// GenerateRandomNonce returns a random space for a nonce
-// to ensure transactions can be executed in parallel
+// GenerateRandomNonce returns a random space for a nonce to ensure
+// transactions can be executed in parallel.
 func GenerateRandomNonce() (*big.Int, error) {
 	// Max random value i.e 2^100 - 1, since nonce space is the first
 	// 160 bits in a nonce. We skip the first 60 bits to keep
@@ -147,7 +216,7 @@ func GenerateRandomNonce() (*big.Int, error) {
 	max := new(big.Int)
 	max.Exp(big.NewInt(2), big.NewInt(100), nil).Sub(max, big.NewInt(1))
 
-	//Generate random number between 0 and 2**160-1
+	// Generate random number between 0 and 2**160-1
 	nonce, err := rand.Int(rand.Reader, max)
 	if err != nil {
 		return new(big.Int).Set(nil), err
