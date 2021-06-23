@@ -121,3 +121,27 @@ func TestDecodeSelfExecute(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(transactions), 1)
 }
+
+func TestNonceOverflowChecks(t *testing.T) {
+	// 2^160-1 should be a valid nonce space
+	// 2^96-1 should be a valid nonce
+	_, err := sequence.EncodeNonce(
+		new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(160), nil), big.NewInt(1)),
+		new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(96), nil), big.NewInt(1)),
+	)
+	assert.NoError(t, err)
+
+	// 2^160 exceeds the maximum nonce space
+	_, err = sequence.EncodeNonce(
+		new(big.Int).Exp(big.NewInt(2), big.NewInt(160), nil),
+		new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(96), nil), big.NewInt(1)),
+	)
+	assert.Error(t, err)
+
+	// 2^96 exceeds the maximum nonce
+	_, err = sequence.EncodeNonce(
+		new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(160), nil), big.NewInt(1)),
+		new(big.Int).Exp(big.NewInt(2), big.NewInt(96), nil),
+	)
+	assert.Error(t, err)
+}

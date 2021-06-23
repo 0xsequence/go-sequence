@@ -159,15 +159,21 @@ var (
 )
 
 // EncodeNonce with space
-func EncodeNonce(space *big.Int, nonce *big.Int) *big.Int {
-	// TODO: what kind of error checking do we need here for overflow checks..?
+func EncodeNonce(space *big.Int, nonce *big.Int) (*big.Int, error) {
+	if space.Cmp(new(big.Int).Exp(big.NewInt(2), big.NewInt(160), nil)) >= 0 {
+		return nil, fmt.Errorf("nonce space exceeds maximum of 2^160-1")
+	}
+	if nonce.Cmp(new(big.Int).Exp(big.NewInt(2), big.NewInt(96), nil)) >= 0 {
+		return nil, fmt.Errorf("nonce exceeds maximum of 2^96-1")
+	}
+
 	shl := big.NewInt(2)
 	shl.Exp(shl, big.NewInt(96), nil)
 
 	res := new(big.Int).Mul(space, shl)
 	res.Add(res, nonce)
 
-	return res
+	return res, nil
 }
 
 // DecodeNonce raw nonce, returns (space, nonce)
