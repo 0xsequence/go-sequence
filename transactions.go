@@ -114,7 +114,7 @@ func EncodeNonce(space *big.Int, nonce *big.Int) *big.Int {
 	return res
 }
 
-// DecodeNonce with space
+// DecodeNonce raw nonce, returns (space, nonce)
 func DecodeNonce(raw *big.Int) (*big.Int, *big.Int) {
 	shr := big.NewInt(2)
 	shr.Exp(shr, big.NewInt(96), nil)
@@ -128,9 +128,7 @@ func DecodeNonce(raw *big.Int) (*big.Int, *big.Int) {
 	return space, nonce
 }
 
-// GenerateRandomNonce returns a ................................................
-//
-// This function can be used to get a random space for a nonce
+// GenerateRandomNonce returns a random space for a nonce
 // to ensure transactions can be executed in parallel
 func GenerateRandomNonce() (*big.Int, error) {
 	// Max random value i.e 2^100 - 1, since nonce space is the first
