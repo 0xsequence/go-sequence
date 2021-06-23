@@ -40,6 +40,16 @@ func (t *Transaction) IsBundle() bool {
 	return t.Children != nil && len(t.Children) > 0
 }
 
+func (t *Transaction) EncodeExecdata() ([]byte, error) {
+	if !t.IsBundle() {
+		return t.Data, nil
+	}
+
+	// TODO: we then create a selfExec encoding from the .Children
+	// and return that
+	return nil, nil
+}
+
 // AddToBundle will create a bundle from the passed txns and add it to current transaction
 func (t *Transaction) AddToBundle(txns Transactions) {
 	if t.IsBundle() {
