@@ -45,11 +45,10 @@ func (t Transactions) Nonce() (*big.Int, error) {
 			break
 		}
 	}
+	// For a given bundle of transactions (of the same depth), all nonce must be the same.
 	for _, txn := range t {
 		if txn.Nonce != nil && txn.Nonce.Cmp(nonce) != 0 {
-			// TODO(pk): is this correct, I thought we could have mixed nonce.. or is this restrictions
-			// only per-group/nest?
-			return nil, fmt.Errorf("mixed nonces on sequence transactions are not allowed")
+			return nil, fmt.Errorf("mixed nonces on sequence transactions are not allowed for a given bundle")
 		}
 	}
 	return nonce, nil
