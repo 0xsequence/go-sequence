@@ -33,33 +33,22 @@ type Transaction struct {
 	// AfterNonce .. // optional.. TODO
 
 	// Children represents nested/bundled transactions
-	Children TransactionBundle
+	Children Transactions
 }
 
 func (t *Transaction) IsBundle() bool {
-	return t.Children.Transactions != nil && len(t.Children.Transactions) > 0
+	return t.Children != nil && len(t.Children) > 0
 }
 
 // AddToBundle will create a bundle from the passed txns and add it to current transaction
 func (t *Transaction) AddToBundle(txns Transactions) {
 	if t.IsBundle() {
 		// append to existing bundle
-		t.Children.Transactions.Append(txns)
+		t.Children.Append(txns)
 	} else {
 		// create a new bundle
-		t.Children = TransactionBundle{Transactions: txns}
+		t.Children = txns
 	}
-}
-
-func (t *Transaction) Encode() error {
-	// will encode the bundle if necessary..
-	if t.IsBundle() {
-		err := t.Children.Encode()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 type Transactions []*Transaction
@@ -121,10 +110,6 @@ func (t Transactions) Digest() ([]byte, error) {
 	return ethcoder.Keccak256(data), nil
 }
 
-func (t Transactions) Encode() error {
-	return nil
-}
-
 func (t Transactions) AsValues() []Transaction {
 	v := []Transaction{}
 	for _, o := range t {
@@ -133,16 +118,8 @@ func (t Transactions) AsValues() []Transaction {
 	return v
 }
 
-type TransactionBundle struct {
-	// Transactions in a bundle
-	Transactions
-
-	// ExecData represents the encoding of Transactions above, in form of a selfExecute call
-	ExecData []byte
-}
-
-func (b *TransactionBundle) Encode() error {
-	return nil
+func (t Transactions) EncodeExecdata() ([]byte, error) {
+	return nil, nil
 }
 
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
@@ -307,6 +284,10 @@ func prepareTransactionsForSigning(txns Transactions) (Transactions, error) {
 	}
 
 	return stxns, nil
+}
+
+func EncodeTransactions(txns Transactions) ([]byte, error) {
+	return txns.EncodeExecdata()
 }
 
 func DecodeTransactions(execdata []byte) (Transactions, error) {
