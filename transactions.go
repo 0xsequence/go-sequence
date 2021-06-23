@@ -1,6 +1,7 @@
 package sequence
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -241,6 +242,34 @@ func prepareTransactionsForSigning(txns Transactions) (Transactions, error) {
 }
 
 func DecodeTransactions(execdata []byte) (Transactions, error) {
-	// TODO .......
-	return nil, nil
+	if len(execdata) < 4 {
+		return nil, fmt.Errorf("not enough data to be an execute or selfExecute call")
+	}
+
+	var transactions []Transaction
+	var nonce *big.Int
+	var signature []byte
+
+	executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
+
+	if bytes.Equal(execdata[:4], executeMethod.ID) {
+		err := executeMethod.Inputs.Unpack(&[]interface{}{&transactions, &nonce, &signature}, execdata[4:])
+		if err != nil {
+			return nil, err
+		}
+	} else if bytes.Equal(execdata[:4], selfExecuteMethod.ID) {
+		err := selfExecuteMethod.Inputs.Unpack(&transactions, execdata[4:])
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("not an execute or selfExecute call")
+	}
+
+	var pointers Transactions
+	for i := 0; i < len(transactions); i++ {
+		pointers = append(pointers, &transactions[i])
+	}
+	return pointers, nil
 }
