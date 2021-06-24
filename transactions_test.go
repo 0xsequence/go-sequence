@@ -34,7 +34,7 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestERC20Transfer(t *testing.T) {
-	// Ensure two dummy sequence wallets are deployed
+	// Ensure three dummy sequence wallets are deployed
 	wallets, err := testChain.DummySequenceWallets(3, 1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallets)
