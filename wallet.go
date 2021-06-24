@@ -255,7 +255,7 @@ func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
 
 // func (w *Wallet) SignTypedData() // TODO
 
-func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
+func (w *Wallet) SignDigest(digest common.Hash) ([]byte, *Signature, error) {
 	if w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -309,7 +309,7 @@ func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*Signed
 }
 
 func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
-	stxns, err := prepareTransactionsForSigning(txns)
+	stxns, err := prepareTransactionsForEncoding(txns)
 	if err != nil {
 		return nil, err
 	}
@@ -330,31 +330,22 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		}
 	}
 
-	// If provided nonce append it to all other transactions
-	// otherwise get next nonce for this wallet
-	var nonce *big.Int
-	providedNonce, err := txns.Nonce()
+	// get next nonce for this wallet
+	nonce, err := w.GetNonce()
 	if err != nil {
 		return nil, err
 	}
-	if providedNonce != nil {
-		nonce = providedNonce
-	} else {
-		readNonce, err := w.GetNonce()
-		if err != nil {
-			return nil, err
-		}
-		if readNonce == nil {
-			return nil, fmt.Errorf("readNonce is invalid")
-		}
-		nonce = readNonce
+	if nonce == nil {
+		return nil, fmt.Errorf("readNonce is invalid")
 	}
-	for _, tx := range txns {
-		tx.Nonce = nonce
+
+	bundle := Transaction{
+		Transactions: stxns,
+		Nonce:        nonce,
 	}
 
 	// Get transactions digest
-	digest, err := stxns.Digest()
+	digest, err := bundle.Digest()
 	if err != nil {
 		return nil, err
 	}
@@ -366,12 +357,13 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 	}
 
 	return &SignedTransactions{
-		Digest:        digest,
-		Signature:     sig,
 		ChainID:       w.chainID,
 		WalletConfig:  w.config,
 		WalletContext: w.context,
 		Transactions:  stxns,
+		Nonce:         nonce,
+		Digest:        digest,
+		Signature:     sig,
 	}, nil
 }
 
@@ -397,7 +389,7 @@ func (w *Wallet) IsDeployed() (bool, error) {
 
 // func (w *Wallet) PublishConfig() // TODO in future
 
-func (w *Wallet) IsValidSignature(digest, signature []byte) (bool, error) {
+func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, error) {
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}

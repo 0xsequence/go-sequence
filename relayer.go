@@ -40,8 +40,13 @@ type Relayer interface {
 
 type MetaTxnID string
 
-func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions) (MetaTxnID, error) {
-	txnsDigest, err := txns.Digest()
+func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions, nonce *big.Int) (MetaTxnID, error) {
+	bundle := Transaction{
+		Transactions: txns,
+		Nonce:        nonce,
+	}
+
+	txnsDigest, err := bundle.Digest()
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +65,7 @@ func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Trans
 }
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
-func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, walletContext WalletContext, seqSig []byte, txns Transactions) (common.Address, []byte, error) {
+func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
 	// TODO/NOTE: first version, we assume the wallet is deployed, then we can add bundlecreation after.
 	// .....
 
@@ -74,12 +79,7 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 		return common.Address{}, nil, err
 	}
 
-	seqNonce, err := txns.Nonce()
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	execdata, err := contracts.WalletMainModule.ABI.Pack("execute", txns.AsValues(), seqNonce, seqSig)
+	execdata, err := contracts.WalletMainModule.Encode("execute", txns.AsValues(), nonce, seqSig)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

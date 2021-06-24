@@ -40,7 +40,7 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 
 		valid, err := IsValidSignature(
 			common.HexToAddress(proof.Address),
-			messageDigest,
+			common.BytesToHash(messageDigest),
 			ethcoder.MustHexDecode(proof.Signature),
 			WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
 			chainID,

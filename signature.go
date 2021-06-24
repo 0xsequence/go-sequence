@@ -17,7 +17,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 )
 
-func Sign(wallet *Wallet, input []byte) ([]byte, *Signature, error) {
+func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
 	return wallet.SignDigest(input)
 }
 
@@ -462,10 +462,10 @@ func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext,
 	return wc, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	// Try to do it first with ethereum sign signature format
 	// TODO: .... update.. use IsValidEOASignature() ..
-	ok, err := ethwallet.ValidateEthereumSignature(walletAddress.String(), digest, hexutil.Encode(seqSig))
+	ok, err := ethwallet.ValidateEthereumSignature(walletAddress.String(), digest[:], hexutil.Encode(seqSig))
 	if err == nil {
 		return ok, nil
 	}
@@ -501,10 +501,7 @@ func IsValidSignature(walletAddress common.Address, digest, seqSig []byte, walle
 		}
 
 		// NOTE: we expect digest to be ready for ERC1271 call, so digest must be fully encoded as expected
-		hash := [32]byte{}
-		copy(hash[:], digest)
-
-		res, err := erc1271.IsValidSignature(&bind.CallOpts{From: common.Address{0x1}}, hash, seqSig)
+		res, err := erc1271.IsValidSignature(&bind.CallOpts{From: common.Address{0x1}}, digest, seqSig)
 		if err != nil {
 			return false, err
 		}
@@ -517,11 +514,11 @@ func IsValidSignature(walletAddress common.Address, digest, seqSig []byte, walle
 	return true, nil
 }
 
-func MessageDigest(message []byte) []byte {
-	return ethcoder.Keccak256(message)
+func MessageDigest(message []byte) common.Hash {
+	return common.BytesToHash(ethcoder.Keccak256(message))
 }
 
-func SubDigest(address common.Address, chainID *big.Int, digest []byte) ([]byte, error) {
+func SubDigest(address common.Address, chainID *big.Int, digest common.Hash) ([]byte, error) {
 	if chainID == nil {
 		return nil, ErrUnknownChainID
 	}
@@ -537,12 +534,12 @@ func SubDigest(address common.Address, chainID *big.Int, digest []byte) ([]byte,
 }
 
 // PackMessageData encodes a Sequence contract "message"
-func PackMessageData(chainID *big.Int, owner common.Address, digest []byte) ([]byte, error) {
+func PackMessageData(chainID *big.Int, owner common.Address, digest common.Hash) ([]byte, error) {
 	if chainID == nil {
 		return nil, ErrUnknownChainID
 	}
 	output, err := ethcoder.SolidityPack([]string{"string", "uint256", "address", "bytes"}, []interface{}{
-		"\x19\x01", chainID, owner, digest,
+		"\x19\x01", chainID, owner, digest[:],
 	})
 	if err != nil {
 		return nil, err
