@@ -100,7 +100,7 @@ func TestERC20Transfer(t *testing.T) {
 	assert.Equal(t, "30", ret[0])
 
 	// Check the value of wallet 3
-	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[1].Address().Hex()})
+	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[2].Address().Hex()})
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "30", ret[0])
