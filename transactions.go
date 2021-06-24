@@ -35,6 +35,10 @@ type Transaction struct {
 	Nested Transactions // Nested transaction
 }
 
+func (t Transaction) Bundle() Transactions {
+	return []*Transaction{&t}
+}
+
 type Transactions []*Transaction
 
 func (t Transactions) Nonce() (*big.Int, error) {
