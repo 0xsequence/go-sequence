@@ -96,6 +96,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		return nil, err
 	}
 
+	// TODO: Move the - 1024 hardcoded value to an option
 	lastBlockNumber := block - 1024
 
 	metaTxIdBytes := common.Hex2Bytes(string(metaTxnID))
@@ -114,6 +115,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		}
 
 		query := ethereum.FilterQuery{
+			// TODO: Move the - 12 hardcoded value to an option
 			FromBlock: big.NewInt(int64(lastBlockNumber) - 12),
 			ToBlock:   big.NewInt(int64(block)),
 			Topics:    nonceChangedTopics,
