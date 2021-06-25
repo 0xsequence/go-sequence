@@ -40,11 +40,6 @@ type Relayer interface {
 
 type MetaTxnID string
 
-var (
-	txFailedTopic     = common.Hex2Bytes("3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7")
-	nonceChangedTopic = common.HexToHash("1f180c27086c7a39ea2a7b25239d1ab92348f07ca7bb59d1438fcf527568f881")
-)
-
 func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions) (MetaTxnID, error) {
 	txnsDigest, err := txns.Digest()
 	if err != nil {
@@ -107,7 +102,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 
 	// All transactions must change nonces
 	// so load all nonce changes and search the logs
-	nonceChangedTopics := [][]common.Hash{{nonceChangedTopic}}
+	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
 
 	// Load all logs until we found the receipt or we reach timeout
 	for time.Now().Before(timeoutTime) {
@@ -141,7 +136,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 				// Success transactions have no topics and the metaTxId is the data
 				found := len(txLog.Topics) == 0 && bytes.Equal(txLog.Data, metaTxIdBytes)
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-				found = found || (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), txFailedTopic) && bytes.HasPrefix(txLog.Data, metaTxIdBytes))
+				found = found || (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes))
 
 				if found {
 					return tx, nil
