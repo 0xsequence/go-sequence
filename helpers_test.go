@@ -20,6 +20,10 @@ func signAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data 
 		Data: data,
 	}
 
+	return signAndSendRawTransaction(t, wallet, stx)
+}
+
+func signAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *sequence.Transaction) error {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)

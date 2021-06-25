@@ -305,7 +305,7 @@ func (w *Wallet) SignDigest(digest []byte) ([]byte, *Signature, error) {
 }
 
 func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
-	return w.SignTransactions(ctx, Transactions{txn})
+	return w.SignTransactions(ctx, txn.Bundle())
 }
 
 func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
