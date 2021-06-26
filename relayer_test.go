@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,9 +49,10 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }
 
 func TestGetReceiptOfErrorTransaction(t *testing.T) {
@@ -97,9 +99,10 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnFailed, status)
 }
 
 func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
@@ -179,9 +182,11 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status) // native txn was successful
+	assert.Equal(t, sequence.MetaTxnFailed, status)                // meta txn failed
 }
 
 func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
@@ -236,7 +241,8 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }

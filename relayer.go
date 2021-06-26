@@ -32,13 +32,21 @@ type Relayer interface {
 	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxnID MetaTxnID, timeout time.Duration) (*types.Receipt, error)
+	Wait(ctx context.Context, metaTxnID MetaTxnID, timeout time.Duration) (MetaTxnStatus, *types.Receipt, error)
 
 	// TODO, in future when needed..
 	// GasRefundOptions()
 }
 
 type MetaTxnID string
+
+type MetaTxnStatus uint8
+
+const (
+	MetaTxnStatusUnknown MetaTxnStatus = iota
+	MetaTxnExecuted
+	MetaTxnFailed
+)
 
 func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions, nonce *big.Int) (MetaTxnID, error) {
 	bundle := Transaction{
@@ -87,13 +95,13 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	return walletAddress, execdata, nil
 }
 
-func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
+func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, timeout time.Duration) (MetaTxnStatus, *types.Receipt, error) {
 	timeoutTime := time.Now().Add(timeout)
 
 	// Start listening logs from current block - 1024
 	block, err := provider.BlockNumber(ctx)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	// TODO: Move the - 1024 hardcoded value to an option
@@ -135,13 +143,20 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 			}
 
 			for _, txLog := range tx.Logs {
-				// Success transactions have no topics and the metaTxId is the data
-				found := len(txLog.Topics) == 0 && bytes.Equal(txLog.Data, metaTxIdBytes)
-				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-				found = found || (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes))
+				status := MetaTxnStatusUnknown
 
-				if found {
-					return tx, nil
+				// Success transactions have no topics and the metaTxId is the data
+				if len(txLog.Topics) == 0 && bytes.Equal(txLog.Data, metaTxIdBytes) {
+					status = MetaTxnExecuted
+				}
+
+				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
+				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
+					status = MetaTxnFailed
+				}
+
+				if status > 0 {
+					return status, tx, nil
 				}
 			}
 		}
@@ -150,5 +165,5 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		lastBlockNumber = block
 	}
 
-	return nil, fmt.Errorf("Waiting for meta transaction timeout %v", metaTxnID)
+	return 0, nil, fmt.Errorf("Waiting for meta transaction timeout %v", metaTxnID)
 }
