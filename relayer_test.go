@@ -9,6 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,10 +18,6 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	wallet, err := testChain.DummySequenceWallet(1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
-
-	isDeployed, err := wallet.IsDeployed()
-	assert.NoError(t, err)
-	assert.True(t, isDeployed)
 
 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -40,7 +37,7 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 		Nonce:         nonce,
 	}
 
-	err = signAndSendRawTransaction(t, wallet, stx)
+	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	// Get transactions digest
@@ -61,16 +58,12 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
-	isDeployed, err := wallet.IsDeployed()
-	assert.NoError(t, err)
-	assert.True(t, isDeployed)
-
 	// Turn on revert flag on callmock
 	callmockContract, _ := testChain.Deploy(t, "WALLET_CALL_RECV_MOCK")
 	calldata, err := callmockContract.Encode("setRevertFlag", true)
 	assert.NoError(t, err)
 
-	err = signAndSend(t, wallet, callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Call callmock, this should revert and fail the transaction
@@ -90,7 +83,7 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 		Nonce:         nonce,
 	}
 
-	err = signAndSendRawTransaction(t, wallet, stx)
+	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	// Get transactions digest
@@ -122,14 +115,14 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = signAndSend(t, wallet, callmockContract.Address, calldata)
+		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 
 	calldata, err := callmockContract.Encode("setRevertFlag", true)
 	assert.NoError(t, err)
 
-	err = signAndSend(t, wallet, callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
@@ -141,7 +134,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 			GasLimit:      big.NewInt(190000),
 			RevertOnError: false,
 		}
-		err = signAndSendRawTransaction(t, wallet, stx)
+		err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 		assert.NoError(t, err)
 	}
 
@@ -161,7 +154,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 		Nonce:         nonce,
 	}
 
-	err = signAndSendRawTransaction(t, wallet, stx)
+	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
@@ -173,7 +166,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 			GasLimit:      big.NewInt(190000),
 			RevertOnError: false,
 		}
-		err = signAndSendRawTransaction(t, wallet, stx)
+		err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 	}
 
 	// Get transactions digest
@@ -205,7 +198,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = signAndSend(t, wallet, callmockContract.Address, calldata)
+		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 
@@ -225,13 +218,13 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 		Nonce:         nonce,
 	}
 
-	err = signAndSendRawTransaction(t, wallet, stx)
+	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = signAndSend(t, wallet, callmockContract.Address, calldata)
+		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 

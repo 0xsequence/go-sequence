@@ -25,7 +25,7 @@ func TestTransactionBundling(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = signAndSend(t, wallets[0], callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Check the value
@@ -110,7 +110,7 @@ func TestTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = signAndSend(t, wallet, callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Check the value
@@ -132,7 +132,7 @@ func TestERC20Transfer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = signAndSend(t, wallets[0], callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Check the value
@@ -146,7 +146,7 @@ func TestERC20Transfer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = signAndSend(t, wallets[0], callmockContract.Address, calldata)
+	err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Check the value of wallet 1
@@ -171,7 +171,7 @@ func TestERC20Transfer(t *testing.T) {
 	calldatas = append(calldatas, calldata2)
 
 	// Sign and send the transaction
-	err = batchSignAndSend(t, wallets[0], callmockContract.Address, calldatas)
+	err = testutil.BatchSignAndSend(t, wallets[0], callmockContract.Address, calldatas)
 	assert.NoError(t, err)
 
 	// Check the value of wallet 1

@@ -250,16 +250,6 @@ func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructo
 	return ethcontract.NewContractCaller(receipt.ContractAddress, artifact.ABI, c.Provider), receipt
 }
 
-func (c *TestChain) AssertCodeAt(t *testing.T, address common.Address) {
-	code, err := c.Provider.CodeAt(context.Background(), address, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(code) == 0 {
-		t.Fatal(fmt.Errorf("no contract code at %s", address.Hex()))
-	}
-}
-
 func (c *TestChain) WaitMined(txn common.Hash) error {
 	_, err := ethrpc.WaitForTxnReceipt(context.Background(), c.Provider, txn)
 	return err
