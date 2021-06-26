@@ -36,6 +36,10 @@ type Transaction struct {
 	// AfterNonce .. // optional.. TODO
 }
 
+func (t *Transaction) Bundle() Transactions {
+	return Transactions{t}
+}
+
 func (t *Transaction) isValid() error {
 	// invariant 1: calldata and execdata are mutually exclusive
 	if t.Data != nil && (t.Transactions != nil || t.Nonce != nil || t.Signature != nil) {
