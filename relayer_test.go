@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,14 +44,15 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle())
+	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle(), nonce)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }
 
 func TestGetReceiptOfErrorTransaction(t *testing.T) {
@@ -92,14 +94,15 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle())
+	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle(), nonce)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnFailed, status)
 }
 
 func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
@@ -116,7 +119,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	// Turn on revert flag on callmock
 	callmockContract, _ := testChain.Deploy(t, "WALLET_CALL_RECV_MOCK")
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
 		err = signAndSend(t, wallet, callmockContract.Address, calldata)
@@ -129,7 +132,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	err = signAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
 		stx := &sequence.Transaction{
@@ -161,7 +164,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	err = signAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
-	for i := 1; i <= 9; i++ {
+	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
 		stx := &sequence.Transaction{
@@ -174,14 +177,16 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle())
+	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle(), nonce)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status) // native txn was successful
+	assert.Equal(t, sequence.MetaTxnFailed, status)                // meta txn failed
 }
 
 func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
@@ -197,7 +202,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
 		err = signAndSend(t, wallet, callmockContract.Address, calldata)
@@ -223,7 +228,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	err = signAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
-	for i := 1; i <= 9; i++ {
+	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
 		err = signAndSend(t, wallet, callmockContract.Address, calldata)
@@ -231,12 +236,13 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle())
+	metaTxnId, err := sequence.ComputeMetaTxnID(wallet.Address(), testChain.ChainID(), stx.Bundle(), nonce)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, 3*time.Second)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }

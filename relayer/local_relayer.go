@@ -107,8 +107,9 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		r,
 		signedTxs.WalletConfig,
 		signedTxs.WalletContext,
-		signedTxs.Signature,
 		signedTxs.Transactions,
+		signedTxs.Nonce,
+		signedTxs.Signature,
 	)
 	if err != nil {
 		return "", nil, nil, err
@@ -119,7 +120,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
-	metaTxnID, err := sequence.ComputeMetaTxnID(walletAddress, signedTxs.ChainID, signedTxs.Transactions)
+	metaTxnID, err := sequence.ComputeMetaTxnID(walletAddress, signedTxs.ChainID, signedTxs.Transactions, signedTxs.Nonce)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -144,6 +145,6 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 	return metaTxnID, ntx, waitReceipt, nil
 }
 
-func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
+func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, timeout time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, timeout)
 }

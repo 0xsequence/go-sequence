@@ -40,6 +40,6 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 }
 
 // ..
-func (r *RpcRelayer) Wait(ctx context.Context, metaTxID sequence.MetaTxnID, timeout time.Duration) (*types.Receipt, error) {
-	return nil, nil
+func (r *RpcRelayer) Wait(ctx context.Context, metaTxID sequence.MetaTxnID, timeout time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+	return 0, nil, nil
 }
