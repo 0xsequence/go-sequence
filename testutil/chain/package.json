@@ -4,7 +4,7 @@
   "private": true,
   "license": "none",
   "scripts": {
-    "test": "concurrently -k --success first 'yarn start:server' 'cd ../../ && make test'",
+    "test": "concurrently -k --success first 'yarn start:server' 'cd ../../ && make go-test'",
     "start:server": "yarn ganache:mine",
     "start:server:verbose": "yarn ganache:mine:verbose",
     "ganache:serial": "ganache-cli --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",

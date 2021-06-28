@@ -4,8 +4,10 @@ all:
 bootstrap:
 	cd ./testutil/chain && yarn install
 
-test:
-	$(MAKE) check-test-chain-running && go clean -testcache && go test -p 1 -v ./...
+test: check-test-chain-running go-test
+
+go-test:
+	go clean -testcache && go test -p 1 -v ./...
 
 test-ci:
 	cd ./testutil/chain && yarn test
