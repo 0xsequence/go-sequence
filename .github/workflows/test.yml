@@ -48,5 +48,8 @@ jobs:
         run: cd ./testutil/chain && yarn install --network-concurrency 1
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
+      - name: Boot test-chain
+        run: make start-test-chain &
+
       - name: Test
-        run: make test-ci
+        run: make test
