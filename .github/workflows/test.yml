@@ -49,4 +49,4 @@ jobs:
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
       - name: Test
-        run: make test
+        run: make test-ci
