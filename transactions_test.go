@@ -73,11 +73,15 @@ func TestTransactionVerbose(t *testing.T) {
 
 	assert.Equal(t, wallet.Address(), walletAddress)
 
+	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromTransactionsDigest(walletAddress, testChain.ChainID(), signedTx.Digest, signedTx.Nonce)
+	assert.NoError(t, err)
+
 	// Send the transaction
 	metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
 	assert.NotNil(t, tx)
+	assert.Equal(t, expectedMetaTxnID, metaTxnID)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
