@@ -11,6 +11,7 @@ import (
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/relayer/proto"
@@ -125,7 +126,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	call := &proto.MetaTxn{
 		Contract: to.Hex(),
-		Input:    common.ToHex(execdata),
+		Input:    hexutil.Encode(execdata),
 	}
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
