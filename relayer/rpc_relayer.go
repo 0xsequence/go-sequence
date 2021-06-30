@@ -102,6 +102,7 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequenc
 
 // NOTE: nonce space is 160 bits wide
 func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+	// TODO: query r.Service.GetMetaTxnNonce() instead.. as it tracks nonces already queued..
 	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 
