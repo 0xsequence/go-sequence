@@ -82,10 +82,9 @@ func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *seque
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
 
-	metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+	metaTxnID, _, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
-	assert.NotNil(t, tx)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
