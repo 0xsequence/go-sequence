@@ -61,9 +61,16 @@ func TestTransactionVerbose(t *testing.T) {
 	assert.NotEmpty(t, signedTx.Digest)
 	assert.NotEmpty(t, signedTx.Signature)
 
-	// TODO: add test we can recover address from signature+digest provided here.
-	// or better yet, include it in a longer test
+	// Recover walletconfig + address from the signed transaction digest + signature
+	walletConfig, err := sequence.RecoverWalletConfigFromDigest(signedTx.Digest.Bytes(), signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
+	assert.NoError(t, err)
 
+	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, testutil.SequenceContext())
+	assert.NoError(t, err)
+
+	assert.Equal(t, wallet.Address(), walletAddress)
+
+	// Send the transaction
 	metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
