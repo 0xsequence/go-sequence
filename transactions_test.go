@@ -61,13 +61,27 @@ func TestTransactionVerbose(t *testing.T) {
 	assert.NotEmpty(t, signedTx.Digest)
 	assert.NotEmpty(t, signedTx.Signature)
 
-	// TODO: add test we can recover address from signature+digest provided here.
-	// or better yet, include it in a longer test
+	// Recover walletconfig + address from the signed transaction digest + signature
+	txSubDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), signedTx.Digest)
+	assert.NoError(t, err)
 
+	walletConfig, err := sequence.RecoverWalletConfigFromDigest(txSubDigest, signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
+	assert.NoError(t, err)
+
+	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, testutil.SequenceContext())
+	assert.NoError(t, err)
+
+	assert.Equal(t, wallet.Address(), walletAddress)
+
+	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromTransactionsDigest(walletAddress, testChain.ChainID(), signedTx.Digest, signedTx.Nonce)
+	assert.NoError(t, err)
+
+	// Send the transaction
 	metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
 	assert.NotNil(t, tx)
+	assert.Equal(t, expectedMetaTxnID, metaTxnID)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)

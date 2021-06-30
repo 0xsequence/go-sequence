@@ -29,8 +29,8 @@ type Transaction struct {
 	Data          []byte         `abi:"data"`          // Calldata to pass
 
 	Transactions Transactions // Child transactions
-	Nonce        *big.Int     // Transaction nonce
-	Signature    []byte       // Transaction signature
+	Nonce        *big.Int     // Meta-Transaction nonce, with encoded space
+	Signature    []byte       // Meta-Transaction signature
 
 	// Expiration *big.Int // optional.. TODO
 	// AfterNonce .. // optional.. TODO
@@ -80,11 +80,10 @@ func (t *Transaction) Execdata() ([]byte, error) {
 }
 
 func (t *Transaction) Digest() (common.Hash, error) {
-	// we don't check t.isValid() here because we want this to also work when the signature isn't set
+	// we don't check t.IsValid() here because we want this to also work when the signature isn't set
 	if t.Data != nil {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
-
 	if t.Nonce == nil {
 		return common.Hash{}, fmt.Errorf("nonce must be set to compute digest")
 	}
@@ -93,7 +92,6 @@ func (t *Transaction) Digest() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
 	}
-
 	return common.BytesToHash(ethcoder.Keccak256(message)), nil
 }
 

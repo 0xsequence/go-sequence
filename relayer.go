@@ -59,6 +59,10 @@ func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Trans
 		return "", err
 	}
 
+	return ComputeMetaTxnIDFromTransactionsDigest(walletAddress, chainID, txnsDigest, nonce)
+}
+
+func ComputeMetaTxnIDFromTransactionsDigest(walletAddress common.Address, chainID *big.Int, txnsDigest common.Hash, nonce *big.Int) (MetaTxnID, error) {
 	metaSubDigest, err := SubDigest(walletAddress, chainID, txnsDigest)
 	if err != nil {
 		return "", err
@@ -68,7 +72,6 @@ func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Trans
 	if len(metaTxnIDHex) != 66 {
 		return "", fmt.Errorf("computed meta txn id is invalid length")
 	}
-
 	return MetaTxnID(metaTxnIDHex[2:]), nil
 }
 
