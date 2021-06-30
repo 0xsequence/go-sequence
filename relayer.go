@@ -32,7 +32,7 @@ type Relayer interface {
 	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxnID MetaTxnID, timeout time.Duration) (MetaTxnStatus, *types.Receipt, error)
+	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout *time.Duration) (MetaTxnStatus, *types.Receipt, error)
 
 	// TODO, in future when needed..
 	// GasRefundOptions()
@@ -98,8 +98,19 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	return walletAddress, execdata, nil
 }
 
-func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, timeout time.Duration) (MetaTxnStatus, *types.Receipt, error) {
-	timeoutTime := time.Now().Add(timeout)
+func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout *time.Duration) (MetaTxnStatus, *types.Receipt, error) {
+	// Supply optTimeout or default timeout if one isn't set on the `ctx`
+	if _, ok := ctx.Deadline(); !ok {
+		var clearTimeout context.CancelFunc
+
+		if optTimeout == nil {
+			t := 120 * time.Second // default timeout of 120 seconds
+			optTimeout = &t
+		}
+
+		ctx, clearTimeout = context.WithTimeout(ctx, *optTimeout)
+		defer clearTimeout()
+	}
 
 	// Start listening logs from current block - 1024
 	block, err := provider.BlockNumber(ctx)
@@ -117,9 +128,19 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
 
 	// Load all logs until we found the receipt or we reach timeout
-	for time.Now().Before(timeoutTime) {
-		block, err := provider.BlockNumber(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			err := ctx.Err()
+			if err == context.DeadlineExceeded {
+				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v", metaTxnID)
+			} else if err != nil {
+				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
+			}
+		default:
+		}
 
+		block, err := provider.BlockNumber(ctx)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -167,6 +188,4 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		time.Sleep(time.Second)
 		lastBlockNumber = block
 	}
-
-	return 0, nil, fmt.Errorf("Waiting for meta transaction timeout %v", metaTxnID)
 }
