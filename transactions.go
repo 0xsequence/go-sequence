@@ -40,7 +40,7 @@ func (t *Transaction) Bundle() Transactions {
 	return Transactions{t}
 }
 
-func (t *Transaction) isValid() error {
+func (t *Transaction) IsValid() error {
 	// invariant 1: calldata and execdata are mutually exclusive
 	if t.Data != nil && (t.Transactions != nil || t.Nonce != nil || t.Signature != nil) {
 		return fmt.Errorf("transactions cannot have both calldata and execdata")
@@ -59,7 +59,7 @@ func (t *Transaction) IsBundle() bool {
 }
 
 func (t *Transaction) Execdata() ([]byte, error) {
-	if err := t.isValid(); err != nil {
+	if err := t.IsValid(); err != nil {
 		return nil, err
 	}
 
