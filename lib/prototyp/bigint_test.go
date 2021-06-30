@@ -45,3 +45,14 @@ func TestBigIntAdd(t *testing.T) {
 
 	assert.Equal(t, int64(42+84), b1.Int().Int64())
 }
+
+func TestBigIntScan(t *testing.T) {
+	b := BigInt{}
+
+	assert.NoError(t, b.Scan("1"))
+	assert.NoError(t, b.Scan([]byte("1")))
+	assert.Error(t, b.Scan(1))
+	assert.Error(t, b.Scan(1.0))
+	assert.Error(t, b.Scan("1x"))
+	assert.Error(t, b.Scan("1."))
+}

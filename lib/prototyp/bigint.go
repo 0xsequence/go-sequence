@@ -134,8 +134,21 @@ func (b *BigInt) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
+	var svalue string
+	switch v := src.(type) {
+	case string:
+		svalue = v
+	case []byte:
+		svalue = string(v)
+	default:
+		return fmt.Errorf("BigInt.Scan: unexpected type %T", src)
+	}
+	var ok bool
 	i := &big.Int{}
-	i, _ = i.SetString(string(src.([]byte)), 10)
+	i, ok = i.SetString(svalue, 10)
+	if !ok {
+		return fmt.Errorf("BigInt.Scan: failed to scan value %q", svalue)
+	}
 	*b = BigInt(*i)
 	return nil
 }
