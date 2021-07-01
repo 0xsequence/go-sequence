@@ -104,7 +104,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		var clearTimeout context.CancelFunc
 
 		if optTimeout == nil {
-			t := 120 * time.Second // default timeout of 120 seconds
+			t := 200 * time.Second // default timeout of 200 seconds
 			optTimeout = &t
 		}
 
@@ -119,7 +119,13 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 	}
 
 	// TODO: Move the - 1024 hardcoded value to an option
-	lastBlockNumber := block - 1024
+	del := uint64(1024)
+	lastBlockNumber := block
+	if del > lastBlockNumber {
+		lastBlockNumber = 0 // clamp down
+	} else {
+		lastBlockNumber -= del
+	}
 
 	metaTxIdBytes := common.Hex2Bytes(string(metaTxnID))
 
@@ -136,6 +142,8 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v", metaTxnID)
 			} else if err != nil {
 				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
+			} else {
+				return 0, nil, nil
 			}
 		default:
 		}
@@ -146,10 +154,21 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 			continue
 		}
 
+		// TODO (pk): why are we querying latest-12 each iteration?
+		// as we will be overlapping blocks already covered
+
+		// TODO: Move the - 12 hardcoded value to an option
+		del = uint64(12)
+		fromBlock := lastBlockNumber
+		if del > fromBlock {
+			fromBlock = 0
+		} else {
+			fromBlock -= del
+		}
+
 		query := ethereum.FilterQuery{
-			// TODO: Move the - 12 hardcoded value to an option
-			FromBlock: big.NewInt(int64(lastBlockNumber) - 12),
-			ToBlock:   big.NewInt(int64(block)),
+			FromBlock: big.NewInt(0).SetUint64(fromBlock),
+			ToBlock:   big.NewInt(0).SetUint64(block),
 			Topics:    nonceChangedTopics,
 		}
 
