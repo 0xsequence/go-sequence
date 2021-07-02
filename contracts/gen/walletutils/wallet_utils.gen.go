@@ -170,7 +170,7 @@ func bindWalletUtils(address common.Address, caller bind.ContractCaller, transac
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletUtils *WalletUtilsRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletUtils *WalletUtilsRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletUtils.Contract.WalletUtilsCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -189,7 +189,7 @@ func (_WalletUtils *WalletUtilsRaw) Transact(opts *bind.TransactOpts, method str
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletUtils *WalletUtilsCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletUtils *WalletUtilsCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletUtils.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -208,12 +208,17 @@ func (_WalletUtils *WalletUtilsTransactorRaw) Transact(opts *bind.TransactOpts, 
 //
 // Solidity: function callBalanceOf(address _addr) view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallBalanceOf(opts *bind.CallOpts, _addr common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callBalanceOf", _addr)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callBalanceOf", _addr)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallBalanceOf is a free data retrieval call binding the contract method 0x48acd29f.
@@ -234,12 +239,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallBalanceOf(_addr common.Address
 //
 // Solidity: function callBlockNumber() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallBlockNumber(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callBlockNumber")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callBlockNumber")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallBlockNumber is a free data retrieval call binding the contract method 0xd1db3907.
@@ -260,12 +270,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallBlockNumber() (*big.Int, error
 //
 // Solidity: function callBlockhash(uint256 _i) view returns(bytes32)
 func (_WalletUtils *WalletUtilsCaller) CallBlockhash(opts *bind.CallOpts, _i *big.Int) ([32]byte, error) {
-	var (
-		ret0 = new([32]byte)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callBlockhash", _i)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callBlockhash", _i)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
 }
 
 // CallBlockhash is a free data retrieval call binding the contract method 0xd5b5337f.
@@ -286,12 +301,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallBlockhash(_i *big.Int) ([32]by
 //
 // Solidity: function callChainId() pure returns(uint256 id)
 func (_WalletUtils *WalletUtilsCaller) CallChainId(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callChainId")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callChainId")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallChainId is a free data retrieval call binding the contract method 0x0fdecfac.
@@ -312,12 +332,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallChainId() (*big.Int, error) {
 //
 // Solidity: function callCode(address _addr) view returns(bytes code)
 func (_WalletUtils *WalletUtilsCaller) CallCode(opts *bind.CallOpts, _addr common.Address) ([]byte, error) {
-	var (
-		ret0 = new([]byte)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callCode", _addr)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callCode", _addr)
+
+	if err != nil {
+		return *new([]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
+
+	return out0, err
+
 }
 
 // CallCode is a free data retrieval call binding the contract method 0xc66764e1.
@@ -338,12 +363,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallCode(_addr common.Address) ([]
 //
 // Solidity: function callCodeHash(address _addr) view returns(bytes32 codeHash)
 func (_WalletUtils *WalletUtilsCaller) CallCodeHash(opts *bind.CallOpts, _addr common.Address) ([32]byte, error) {
-	var (
-		ret0 = new([32]byte)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callCodeHash", _addr)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callCodeHash", _addr)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
 }
 
 // CallCodeHash is a free data retrieval call binding the contract method 0x543196eb.
@@ -364,12 +394,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallCodeHash(_addr common.Address)
 //
 // Solidity: function callCodeSize(address _addr) view returns(uint256 size)
 func (_WalletUtils *WalletUtilsCaller) CallCodeSize(opts *bind.CallOpts, _addr common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callCodeSize", _addr)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callCodeSize", _addr)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallCodeSize is a free data retrieval call binding the contract method 0xc39f2d5c.
@@ -390,12 +425,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallCodeSize(_addr common.Address)
 //
 // Solidity: function callCoinbase() view returns(address)
 func (_WalletUtils *WalletUtilsCaller) CallCoinbase(opts *bind.CallOpts) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callCoinbase")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callCoinbase")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // CallCoinbase is a free data retrieval call binding the contract method 0x98f9fbc4.
@@ -416,12 +456,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallCoinbase() (common.Address, er
 //
 // Solidity: function callDifficulty() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallDifficulty(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callDifficulty")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callDifficulty")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallDifficulty is a free data retrieval call binding the contract method 0xaeea5fb5.
@@ -442,12 +487,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallDifficulty() (*big.Int, error)
 //
 // Solidity: function callGasLeft() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallGasLeft(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callGasLeft")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callGasLeft")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallGasLeft is a free data retrieval call binding the contract method 0x43d9c935.
@@ -468,12 +518,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallGasLeft() (*big.Int, error) {
 //
 // Solidity: function callGasLimit() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallGasLimit(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callGasLimit")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callGasLimit")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallGasLimit is a free data retrieval call binding the contract method 0xe90f13e7.
@@ -494,12 +549,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallGasLimit() (*big.Int, error) {
 //
 // Solidity: function callGasPrice() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallGasPrice(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callGasPrice")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callGasPrice")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallGasPrice is a free data retrieval call binding the contract method 0xc272d5c3.
@@ -520,12 +580,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallGasPrice() (*big.Int, error) {
 //
 // Solidity: function callOrigin() view returns(address)
 func (_WalletUtils *WalletUtilsCaller) CallOrigin(opts *bind.CallOpts) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callOrigin")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callOrigin")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // CallOrigin is a free data retrieval call binding the contract method 0x984395bc.
@@ -546,12 +611,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallOrigin() (common.Address, erro
 //
 // Solidity: function callTimestamp() view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) CallTimestamp(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "callTimestamp")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "callTimestamp")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // CallTimestamp is a free data retrieval call binding the contract method 0xf209883a.
@@ -572,12 +642,17 @@ func (_WalletUtils *WalletUtilsCallerSession) CallTimestamp() (*big.Int, error) 
 //
 // Solidity: function knownImageHashes(address ) view returns(bytes32)
 func (_WalletUtils *WalletUtilsCaller) KnownImageHashes(opts *bind.CallOpts, arg0 common.Address) ([32]byte, error) {
-	var (
-		ret0 = new([32]byte)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "knownImageHashes", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "knownImageHashes", arg0)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
 }
 
 // KnownImageHashes is a free data retrieval call binding the contract method 0x7ae99638.
@@ -598,12 +673,17 @@ func (_WalletUtils *WalletUtilsCallerSession) KnownImageHashes(arg0 common.Addre
 //
 // Solidity: function lastImageHashUpdate(bytes32 ) view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) LastImageHashUpdate(opts *bind.CallOpts, arg0 [32]byte) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "lastImageHashUpdate", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "lastImageHashUpdate", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // LastImageHashUpdate is a free data retrieval call binding the contract method 0x1551f0ab.
@@ -624,12 +704,17 @@ func (_WalletUtils *WalletUtilsCallerSession) LastImageHashUpdate(arg0 [32]byte)
 //
 // Solidity: function lastSignerUpdate(address ) view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) LastSignerUpdate(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "lastSignerUpdate", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "lastSignerUpdate", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // LastSignerUpdate is a free data retrieval call binding the contract method 0x1cd05dc4.
@@ -650,12 +735,17 @@ func (_WalletUtils *WalletUtilsCallerSession) LastSignerUpdate(arg0 common.Addre
 //
 // Solidity: function lastWalletUpdate(address ) view returns(uint256)
 func (_WalletUtils *WalletUtilsCaller) LastWalletUpdate(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUtils.contract.Call(opts, out, "lastWalletUpdate", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "lastWalletUpdate", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // LastWalletUpdate is a free data retrieval call binding the contract method 0xe717aba9.
@@ -676,10 +766,15 @@ func (_WalletUtils *WalletUtilsCallerSession) LastWalletUpdate(arg0 common.Addre
 //
 // Solidity: function requireMinNonce(address _wallet, uint256 _nonce) view returns()
 func (_WalletUtils *WalletUtilsCaller) RequireMinNonce(opts *bind.CallOpts, _wallet common.Address, _nonce *big.Int) error {
-	var ()
-	out := &[]interface{}{}
-	err := _WalletUtils.contract.Call(opts, out, "requireMinNonce", _wallet, _nonce)
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "requireMinNonce", _wallet, _nonce)
+
+	if err != nil {
+		return err
+	}
+
 	return err
+
 }
 
 // RequireMinNonce is a free data retrieval call binding the contract method 0xb472f0a2.
@@ -700,10 +795,15 @@ func (_WalletUtils *WalletUtilsCallerSession) RequireMinNonce(_wallet common.Add
 //
 // Solidity: function requireNonExpired(uint256 _expiration) view returns()
 func (_WalletUtils *WalletUtilsCaller) RequireNonExpired(opts *bind.CallOpts, _expiration *big.Int) error {
-	var ()
-	out := &[]interface{}{}
-	err := _WalletUtils.contract.Call(opts, out, "requireNonExpired", _expiration)
+	var out []interface{}
+	err := _WalletUtils.contract.Call(opts, &out, "requireNonExpired", _expiration)
+
+	if err != nil {
+		return err
+	}
+
 	return err
+
 }
 
 // RequireNonExpired is a free data retrieval call binding the contract method 0x7f29d538.
@@ -934,6 +1034,7 @@ func (_WalletUtils *WalletUtilsFilterer) ParseRequiredConfig(log types.Log) (*Wa
 	if err := _WalletUtils.contract.UnpackLog(event, "RequiredConfig", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1086,5 +1187,6 @@ func (_WalletUtils *WalletUtilsFilterer) ParseRequiredSigner(log types.Log) (*Wa
 	if err := _WalletUtils.contract.UnpackLog(event, "RequiredSigner", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

@@ -164,7 +164,7 @@ func bindWalletUpgradable(address common.Address, caller bind.ContractCaller, tr
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletUpgradable *WalletUpgradableRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletUpgradable *WalletUpgradableRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletUpgradable.Contract.WalletUpgradableCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -183,7 +183,7 @@ func (_WalletUpgradable *WalletUpgradableRaw) Transact(opts *bind.TransactOpts, 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletUpgradable *WalletUpgradableCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletUpgradable *WalletUpgradableCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletUpgradable.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -202,12 +202,17 @@ func (_WalletUpgradable *WalletUpgradableTransactorRaw) Transact(opts *bind.Tran
 //
 // Solidity: function imageHash() view returns(bytes32)
 func (_WalletUpgradable *WalletUpgradableCaller) ImageHash(opts *bind.CallOpts) ([32]byte, error) {
-	var (
-		ret0 = new([32]byte)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "imageHash")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "imageHash")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
 }
 
 // ImageHash is a free data retrieval call binding the contract method 0x51605d80.
@@ -228,12 +233,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) ImageHash() ([32]byte, e
 //
 // Solidity: function isValidSignature(bytes32 _hash, bytes _signatures) view returns(bytes4)
 func (_WalletUpgradable *WalletUpgradableCaller) IsValidSignature(opts *bind.CallOpts, _hash [32]byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "isValidSignature", _hash, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "isValidSignature", _hash, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature is a free data retrieval call binding the contract method 0x1626ba7e.
@@ -254,12 +264,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) IsValidSignature(_hash [
 //
 // Solidity: function isValidSignature(bytes _data, bytes _signatures) view returns(bytes4)
 func (_WalletUpgradable *WalletUpgradableCaller) IsValidSignature0(opts *bind.CallOpts, _data []byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "isValidSignature0", _data, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "isValidSignature0", _data, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature0 is a free data retrieval call binding the contract method 0x20c13b0b.
@@ -280,12 +295,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) IsValidSignature0(_data 
 //
 // Solidity: function nonce() view returns(uint256)
 func (_WalletUpgradable *WalletUpgradableCaller) Nonce(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "nonce")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "nonce")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
@@ -306,12 +326,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) Nonce() (*big.Int, error
 //
 // Solidity: function readHook(bytes4 _signature) view returns(address)
 func (_WalletUpgradable *WalletUpgradableCaller) ReadHook(opts *bind.CallOpts, _signature [4]byte) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "readHook", _signature)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "readHook", _signature)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // ReadHook is a free data retrieval call binding the contract method 0x1a9b2337.
@@ -332,12 +357,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) ReadHook(_signature [4]b
 //
 // Solidity: function readNonce(uint256 _space) view returns(uint256)
 func (_WalletUpgradable *WalletUpgradableCaller) ReadNonce(opts *bind.CallOpts, _space *big.Int) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "readNonce", _space)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "readNonce", _space)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // ReadNonce is a free data retrieval call binding the contract method 0x8c3f5563.
@@ -358,12 +388,17 @@ func (_WalletUpgradable *WalletUpgradableCallerSession) ReadNonce(_space *big.In
 //
 // Solidity: function supportsInterface(bytes4 _interfaceID) pure returns(bool)
 func (_WalletUpgradable *WalletUpgradableCaller) SupportsInterface(opts *bind.CallOpts, _interfaceID [4]byte) (bool, error) {
-	var (
-		ret0 = new(bool)
-	)
-	out := ret0
-	err := _WalletUpgradable.contract.Call(opts, out, "supportsInterface", _interfaceID)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletUpgradable.contract.Call(opts, &out, "supportsInterface", _interfaceID)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
 // SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
@@ -762,6 +797,7 @@ func (_WalletUpgradable *WalletUpgradableFilterer) ParseCreatedContract(log type
 	if err := _WalletUpgradable.contract.UnpackLog(event, "CreatedContract", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -895,6 +931,7 @@ func (_WalletUpgradable *WalletUpgradableFilterer) ParseImageHashUpdated(log typ
 	if err := _WalletUpgradable.contract.UnpackLog(event, "ImageHashUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1028,6 +1065,7 @@ func (_WalletUpgradable *WalletUpgradableFilterer) ParseImplementationUpdated(lo
 	if err := _WalletUpgradable.contract.UnpackLog(event, "ImplementationUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1162,6 +1200,7 @@ func (_WalletUpgradable *WalletUpgradableFilterer) ParseNonceChange(log types.Lo
 	if err := _WalletUpgradable.contract.UnpackLog(event, "NonceChange", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1296,5 +1335,6 @@ func (_WalletUpgradable *WalletUpgradableFilterer) ParseTxFailed(log types.Log) 
 	if err := _WalletUpgradable.contract.UnpackLog(event, "TxFailed", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

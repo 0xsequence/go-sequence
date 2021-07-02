@@ -45,7 +45,7 @@ func ContractCall(provider *ethrpc.Provider, contractAddress common.Address, con
 		return output, nil
 	}
 
-	err = contractABI.Unpack(result, method, output)
+	err = contractABI.UnpackIntoInterface(result, method, output)
 	if err != nil {
 		return output, err
 	}

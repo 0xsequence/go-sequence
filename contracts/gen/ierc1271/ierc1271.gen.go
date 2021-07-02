@@ -137,7 +137,7 @@ func bindIERC1271(address common.Address, caller bind.ContractCaller, transactor
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_IERC1271 *IERC1271Raw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_IERC1271 *IERC1271Raw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _IERC1271.Contract.IERC1271Caller.contract.Call(opts, result, method, params...)
 }
 
@@ -156,7 +156,7 @@ func (_IERC1271 *IERC1271Raw) Transact(opts *bind.TransactOpts, method string, p
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_IERC1271 *IERC1271CallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_IERC1271 *IERC1271CallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _IERC1271.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -175,12 +175,17 @@ func (_IERC1271 *IERC1271TransactorRaw) Transact(opts *bind.TransactOpts, method
 //
 // Solidity: function isValidSignature(bytes32 _hash, bytes _signature) view returns(bytes4 magicValue)
 func (_IERC1271 *IERC1271Caller) IsValidSignature(opts *bind.CallOpts, _hash [32]byte, _signature []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _IERC1271.contract.Call(opts, out, "isValidSignature", _hash, _signature)
-	return *ret0, err
+	var out []interface{}
+	err := _IERC1271.contract.Call(opts, &out, "isValidSignature", _hash, _signature)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature is a free data retrieval call binding the contract method 0x1626ba7e.
@@ -201,12 +206,17 @@ func (_IERC1271 *IERC1271CallerSession) IsValidSignature(_hash [32]byte, _signat
 //
 // Solidity: function isValidSignature(bytes _data, bytes _signature) view returns(bytes4 magicValue)
 func (_IERC1271 *IERC1271Caller) IsValidSignature0(opts *bind.CallOpts, _data []byte, _signature []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _IERC1271.contract.Call(opts, out, "isValidSignature0", _data, _signature)
-	return *ret0, err
+	var out []interface{}
+	err := _IERC1271.contract.Call(opts, &out, "isValidSignature0", _data, _signature)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature0 is a free data retrieval call binding the contract method 0x20c13b0b.

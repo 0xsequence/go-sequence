@@ -154,7 +154,7 @@ func bindCallReceiverMock(address common.Address, caller bind.ContractCaller, tr
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_CallReceiverMock *CallReceiverMockRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_CallReceiverMock *CallReceiverMockRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _CallReceiverMock.Contract.CallReceiverMockCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -173,7 +173,7 @@ func (_CallReceiverMock *CallReceiverMockRaw) Transact(opts *bind.TransactOpts, 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_CallReceiverMock *CallReceiverMockCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_CallReceiverMock *CallReceiverMockCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _CallReceiverMock.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -192,12 +192,17 @@ func (_CallReceiverMock *CallReceiverMockTransactorRaw) Transact(opts *bind.Tran
 //
 // Solidity: function lastValA() view returns(uint256)
 func (_CallReceiverMock *CallReceiverMockCaller) LastValA(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _CallReceiverMock.contract.Call(opts, out, "lastValA")
-	return *ret0, err
+	var out []interface{}
+	err := _CallReceiverMock.contract.Call(opts, &out, "lastValA")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // LastValA is a free data retrieval call binding the contract method 0xc0aec4d3.
@@ -218,12 +223,17 @@ func (_CallReceiverMock *CallReceiverMockCallerSession) LastValA() (*big.Int, er
 //
 // Solidity: function lastValB() view returns(bytes)
 func (_CallReceiverMock *CallReceiverMockCaller) LastValB(opts *bind.CallOpts) ([]byte, error) {
-	var (
-		ret0 = new([]byte)
-	)
-	out := ret0
-	err := _CallReceiverMock.contract.Call(opts, out, "lastValB")
-	return *ret0, err
+	var out []interface{}
+	err := _CallReceiverMock.contract.Call(opts, &out, "lastValB")
+
+	if err != nil {
+		return *new([]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
+
+	return out0, err
+
 }
 
 // LastValB is a free data retrieval call binding the contract method 0xebd35e47.
