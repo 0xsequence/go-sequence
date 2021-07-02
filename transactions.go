@@ -276,7 +276,8 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	contract := ethcontract.NewContractCaller(walletAddress, contracts.WalletMainModule.ABI, provider)
 
 	var nonceResult *big.Int
-	err = contract.Call(nil, &nonceResult, "readNonce", space)
+	results := []interface{}{&nonceResult}
+	err = contract.Call(nil, &results, "readNonce", space)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +308,11 @@ func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
 			return "", true, nil
 		}
 		errMsg := ""
-		if err := inputType.Unpack(&errMsg, reason[4:]); err != nil {
+		values, err := inputType.Unpack(reason[4:])
+		if err != nil {
+			return "", false, err
+		}
+		if err = inputType.Copy(&errMsg, values); err != nil {
 			return "", false, err
 		}
 		return errMsg, true, nil
@@ -372,9 +377,17 @@ func DecodeTransaction(data []byte) (*Transaction, error) {
 		selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
 
 		if bytes.Equal(data[:4], executeMethod.ID) {
-			err = executeMethod.Inputs.Unpack(&[]interface{}{&transactions, &nonce, &signature}, data[4:])
+			var values []interface{}
+			values, err = executeMethod.Inputs.Unpack(data[4:])
+			if err == nil {
+				err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
+			}
 		} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
-			err = selfExecuteMethod.Inputs.Unpack(&transactions, data[4:])
+			var values []interface{}
+			values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
+			if err == nil {
+				err = selfExecuteMethod.Inputs.Copy(&transactions, values)
+			}
 		}
 		if err != nil {
 			return nil, err

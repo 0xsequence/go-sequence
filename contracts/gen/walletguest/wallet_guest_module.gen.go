@@ -164,7 +164,7 @@ func bindWalletGuest(address common.Address, caller bind.ContractCaller, transac
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletGuest *WalletGuestRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletGuest *WalletGuestRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletGuest.Contract.WalletGuestCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -183,7 +183,7 @@ func (_WalletGuest *WalletGuestRaw) Transact(opts *bind.TransactOpts, method str
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletGuest *WalletGuestCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletGuest *WalletGuestCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletGuest.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -202,12 +202,17 @@ func (_WalletGuest *WalletGuestTransactorRaw) Transact(opts *bind.TransactOpts, 
 //
 // Solidity: function isValidSignature(bytes32 _hash, bytes _signatures) view returns(bytes4)
 func (_WalletGuest *WalletGuestCaller) IsValidSignature(opts *bind.CallOpts, _hash [32]byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletGuest.contract.Call(opts, out, "isValidSignature", _hash, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletGuest.contract.Call(opts, &out, "isValidSignature", _hash, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature is a free data retrieval call binding the contract method 0x1626ba7e.
@@ -228,12 +233,17 @@ func (_WalletGuest *WalletGuestCallerSession) IsValidSignature(_hash [32]byte, _
 //
 // Solidity: function isValidSignature(bytes _data, bytes _signatures) view returns(bytes4)
 func (_WalletGuest *WalletGuestCaller) IsValidSignature0(opts *bind.CallOpts, _data []byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletGuest.contract.Call(opts, out, "isValidSignature0", _data, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletGuest.contract.Call(opts, &out, "isValidSignature0", _data, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature0 is a free data retrieval call binding the contract method 0x20c13b0b.
@@ -254,12 +264,17 @@ func (_WalletGuest *WalletGuestCallerSession) IsValidSignature0(_data []byte, _s
 //
 // Solidity: function nonce() view returns(uint256)
 func (_WalletGuest *WalletGuestCaller) Nonce(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletGuest.contract.Call(opts, out, "nonce")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletGuest.contract.Call(opts, &out, "nonce")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
@@ -280,12 +295,17 @@ func (_WalletGuest *WalletGuestCallerSession) Nonce() (*big.Int, error) {
 //
 // Solidity: function readNonce(uint256 _space) view returns(uint256)
 func (_WalletGuest *WalletGuestCaller) ReadNonce(opts *bind.CallOpts, _space *big.Int) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletGuest.contract.Call(opts, out, "readNonce", _space)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletGuest.contract.Call(opts, &out, "readNonce", _space)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // ReadNonce is a free data retrieval call binding the contract method 0x8c3f5563.
@@ -306,12 +326,17 @@ func (_WalletGuest *WalletGuestCallerSession) ReadNonce(_space *big.Int) (*big.I
 //
 // Solidity: function supportsInterface(bytes4 _interfaceID) pure returns(bool)
 func (_WalletGuest *WalletGuestCaller) SupportsInterface(opts *bind.CallOpts, _interfaceID [4]byte) (bool, error) {
-	var (
-		ret0 = new(bool)
-	)
-	out := ret0
-	err := _WalletGuest.contract.Call(opts, out, "supportsInterface", _interfaceID)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletGuest.contract.Call(opts, &out, "supportsInterface", _interfaceID)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
 // SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
@@ -521,6 +546,7 @@ func (_WalletGuest *WalletGuestFilterer) ParseCreatedContract(log types.Log) (*W
 	if err := _WalletGuest.contract.UnpackLog(event, "CreatedContract", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -655,6 +681,7 @@ func (_WalletGuest *WalletGuestFilterer) ParseNonceChange(log types.Log) (*Walle
 	if err := _WalletGuest.contract.UnpackLog(event, "NonceChange", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -789,5 +816,6 @@ func (_WalletGuest *WalletGuestFilterer) ParseTxFailed(log types.Log) (*WalletGu
 	if err := _WalletGuest.contract.UnpackLog(event, "TxFailed", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

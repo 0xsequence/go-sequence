@@ -164,7 +164,7 @@ func bindWalletMain(address common.Address, caller bind.ContractCaller, transact
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletMain *WalletMainRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletMain *WalletMainRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletMain.Contract.WalletMainCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -183,7 +183,7 @@ func (_WalletMain *WalletMainRaw) Transact(opts *bind.TransactOpts, method strin
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_WalletMain *WalletMainCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_WalletMain *WalletMainCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _WalletMain.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -202,12 +202,17 @@ func (_WalletMain *WalletMainTransactorRaw) Transact(opts *bind.TransactOpts, me
 //
 // Solidity: function FACTORY() view returns(address)
 func (_WalletMain *WalletMainCaller) FACTORY(opts *bind.CallOpts) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "FACTORY")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "FACTORY")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // FACTORY is a free data retrieval call binding the contract method 0x2dd31000.
@@ -228,12 +233,17 @@ func (_WalletMain *WalletMainCallerSession) FACTORY() (common.Address, error) {
 //
 // Solidity: function INIT_CODE_HASH() view returns(bytes32)
 func (_WalletMain *WalletMainCaller) INITCODEHASH(opts *bind.CallOpts) ([32]byte, error) {
-	var (
-		ret0 = new([32]byte)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "INIT_CODE_HASH")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "INIT_CODE_HASH")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
 }
 
 // INITCODEHASH is a free data retrieval call binding the contract method 0x257671f5.
@@ -254,12 +264,17 @@ func (_WalletMain *WalletMainCallerSession) INITCODEHASH() ([32]byte, error) {
 //
 // Solidity: function isValidSignature(bytes32 _hash, bytes _signatures) view returns(bytes4)
 func (_WalletMain *WalletMainCaller) IsValidSignature(opts *bind.CallOpts, _hash [32]byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "isValidSignature", _hash, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "isValidSignature", _hash, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature is a free data retrieval call binding the contract method 0x1626ba7e.
@@ -280,12 +295,17 @@ func (_WalletMain *WalletMainCallerSession) IsValidSignature(_hash [32]byte, _si
 //
 // Solidity: function isValidSignature(bytes _data, bytes _signatures) view returns(bytes4)
 func (_WalletMain *WalletMainCaller) IsValidSignature0(opts *bind.CallOpts, _data []byte, _signatures []byte) ([4]byte, error) {
-	var (
-		ret0 = new([4]byte)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "isValidSignature0", _data, _signatures)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "isValidSignature0", _data, _signatures)
+
+	if err != nil {
+		return *new([4]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([4]byte)).(*[4]byte)
+
+	return out0, err
+
 }
 
 // IsValidSignature0 is a free data retrieval call binding the contract method 0x20c13b0b.
@@ -306,12 +326,17 @@ func (_WalletMain *WalletMainCallerSession) IsValidSignature0(_data []byte, _sig
 //
 // Solidity: function nonce() view returns(uint256)
 func (_WalletMain *WalletMainCaller) Nonce(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "nonce")
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "nonce")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
@@ -332,12 +357,17 @@ func (_WalletMain *WalletMainCallerSession) Nonce() (*big.Int, error) {
 //
 // Solidity: function readHook(bytes4 _signature) view returns(address)
 func (_WalletMain *WalletMainCaller) ReadHook(opts *bind.CallOpts, _signature [4]byte) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "readHook", _signature)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "readHook", _signature)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // ReadHook is a free data retrieval call binding the contract method 0x1a9b2337.
@@ -358,12 +388,17 @@ func (_WalletMain *WalletMainCallerSession) ReadHook(_signature [4]byte) (common
 //
 // Solidity: function readNonce(uint256 _space) view returns(uint256)
 func (_WalletMain *WalletMainCaller) ReadNonce(opts *bind.CallOpts, _space *big.Int) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "readNonce", _space)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "readNonce", _space)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // ReadNonce is a free data retrieval call binding the contract method 0x8c3f5563.
@@ -384,12 +419,17 @@ func (_WalletMain *WalletMainCallerSession) ReadNonce(_space *big.Int) (*big.Int
 //
 // Solidity: function supportsInterface(bytes4 _interfaceID) pure returns(bool)
 func (_WalletMain *WalletMainCaller) SupportsInterface(opts *bind.CallOpts, _interfaceID [4]byte) (bool, error) {
-	var (
-		ret0 = new(bool)
-	)
-	out := ret0
-	err := _WalletMain.contract.Call(opts, out, "supportsInterface", _interfaceID)
-	return *ret0, err
+	var out []interface{}
+	err := _WalletMain.contract.Call(opts, &out, "supportsInterface", _interfaceID)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
 // SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
@@ -767,6 +807,7 @@ func (_WalletMain *WalletMainFilterer) ParseCreatedContract(log types.Log) (*Wal
 	if err := _WalletMain.contract.UnpackLog(event, "CreatedContract", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -900,6 +941,7 @@ func (_WalletMain *WalletMainFilterer) ParseImplementationUpdated(log types.Log)
 	if err := _WalletMain.contract.UnpackLog(event, "ImplementationUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1034,6 +1076,7 @@ func (_WalletMain *WalletMainFilterer) ParseNonceChange(log types.Log) (*WalletM
 	if err := _WalletMain.contract.UnpackLog(event, "NonceChange", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1168,5 +1211,6 @@ func (_WalletMain *WalletMainFilterer) ParseTxFailed(log types.Log) (*WalletMain
 	if err := _WalletMain.contract.UnpackLog(event, "TxFailed", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

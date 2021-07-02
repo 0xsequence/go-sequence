@@ -121,8 +121,8 @@ func (c *TestChain) GetDeployWallet() *ethwallet.Wallet {
 }
 
 // GetDeployTransactor returns a account transactor typically used for deploying contracts
-func (c *TestChain) GetDeployTransactor() *bind.TransactOpts {
-	return c.GetDeployWallet().Transactor()
+func (c *TestChain) GetDeployTransactor() (*bind.TransactOpts, error) {
+	return c.GetDeployWallet().Transactor(context.Background())
 }
 
 // GetRelayerWallet is the wallet dedicated EOA wallet to relaying transactions
