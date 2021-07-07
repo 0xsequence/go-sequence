@@ -157,8 +157,8 @@ func TestTransactionBundling(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, _, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
-	waitReceipt(context.Background())
 	assert.NoError(t, err)
+	waitReceipt(context.Background())
 
 	// Check the value of wallet 1
 	ret, err = testutil.ContractQuery(testChain.Provider, callmockContract.Address, "balanceOf(address)", "uint256", []string{wallets[0].Address().Hex()})
