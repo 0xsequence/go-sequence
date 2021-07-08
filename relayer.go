@@ -46,6 +46,7 @@ const (
 	MetaTxnStatusUnknown MetaTxnStatus = iota
 	MetaTxnExecuted
 	MetaTxnFailed
+	MetaTxnReverted
 )
 
 func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions, nonce *big.Int) (MetaTxnID, error) {

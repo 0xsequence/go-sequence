@@ -80,17 +80,47 @@ func (t *Transaction) Execdata() ([]byte, error) {
 }
 
 func (t *Transaction) Digest() (common.Hash, error) {
-	// we don't check t.IsValid() here because we want this to also work when the signature isn't set
+	// precondition: the digest only exists for transaction bundles
 	if t.Data != nil {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
-	if t.Nonce == nil {
-		return common.Hash{}, fmt.Errorf("nonce must be set to compute digest")
+
+	var message []byte
+	if t.Nonce != nil {
+		var err error
+		message, err = abiTransactionsDigestType.Pack(t.Nonce, t.Transactions.AsValues())
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
+		}
+	} else {
+		var err error
+		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
+		}
+	}
+	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+}
+
+func (t *Transaction) GuestDigest() (common.Hash, error) {
+	// precondition: the digest only exists for transaction bundles
+	if t.Data != nil {
+		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	message, err := abiTransactionsDigestType.Pack(t.Nonce, t.Transactions.AsValues())
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
+	var message []byte
+	if t.Nonce != nil {
+		var err error
+		message, err = abiTransactionsStringDigestType.Pack("guest:", t.Transactions.AsValues())
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("failed to pack \"guest:\" and transactions: %w", err)
+		}
+	} else {
+		var err error
+		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
+		}
 	}
 	return common.BytesToHash(ethcoder.Keccak256(message)), nil
 }
@@ -285,49 +315,40 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	return nonceResult, nil
 }
 
-// IsTxFailedLog returns true if the log belongs to a failed smart meta-transaction
-func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
-	log := logs[len(logs)-1] // check the last log in the set
-	if ok := len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig; ok {
-
-		var txhash [32]byte
-		var reason []byte
-
-		if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&txhash, &reason}); err != nil {
-			return "", false, err
-		}
-
-		var inputType = abi.Arguments{
-			abi.Argument{
-				Type: ethcoder.MustNewType("string"),
-			},
-		}
-
-		if len(reason) < 4 {
-			// There is no reason
-			return "", true, nil
-		}
-		errMsg := ""
-		values, err := inputType.Unpack(reason[4:])
-		if err != nil {
-			return "", false, err
-		}
-		if err = inputType.Copy(&errMsg, values); err != nil {
-			return "", false, err
-		}
-		return errMsg, true, nil
-	}
-	return "", false, nil
+func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
+	return len(log.Topics) == 0 && bytes.Equal(log.Data, hash[:])
 }
 
-func IsNonceChangedEvent(logs []*types.Log) bool {
-	if len(logs[0].Topics) != 1 {
-		return false
+func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
+	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSig {
+		return common.Hash{}, "", fmt.Errorf("not a TxFailed event")
 	}
-	if logs[0].Topics[0] != NonceChangeEventSig {
-		return false
+
+	var hash common.Hash
+	var revert []byte
+	if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
+		return common.Hash{}, "", err
 	}
-	return true
+
+	reason, err := abi.UnpackRevert(revert)
+	if err != nil {
+		return common.Hash{}, "", err
+	}
+
+	return hash, reason, nil
+}
+
+func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
+	if len(log.Topics) != 1 || log.Topics[0] != NonceChangeEventSig {
+		return nil, nil, fmt.Errorf("not a NonceChange event")
+	}
+
+	var space, nonce *big.Int
+	if err := ethcoder.AbiDecoder([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
+		return nil, nil, err
+	}
+
+	return space, nonce, nil
 }
 
 // prepareTransactionsForEncoding checks the transactions data structure with basic
