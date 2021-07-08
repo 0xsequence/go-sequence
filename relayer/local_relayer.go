@@ -2,7 +2,6 @@ package relayer
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -85,7 +84,8 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 
 		gasLimit, err := provider.EstimateGas(ctx, callMsg)
 		if err != nil {
-			return nil, fmt.Errorf("ethtxn: %w", err)
+			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
+			continue
 		}
 		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
 	}
