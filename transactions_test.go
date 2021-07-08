@@ -125,29 +125,29 @@ func TestTransactionBundling(t *testing.T) {
 
 	// These are wallet[0]'s intended transactions
 	bundle := sequence.Transactions{
-		&sequence.Transaction{ // balances: 90, 10, 0
+		{
 			To:   callmockContract.Address,
 			Data: calldata1,
-		},
-		&sequence.Transaction{ // balances: 80, 10, 10
+		}, // balances: 90, 10, 0
+		{
 			To:   callmockContract.Address,
 			Data: calldata2,
-		},
-		&sequence.Transaction{
+		}, // balances: 80, 10, 10
+		{
 			To: wallets[0].Address(),
 			Transactions: sequence.Transactions{
-				&sequence.Transaction{ // balances: 70, 20, 10
+				{
 					To:   callmockContract.Address,
 					Data: calldata1,
-				},
-				&sequence.Transaction{ // balances: 60, 20, 20
+				}, // balances: 70, 20, 10
+				{
 					To:   callmockContract.Address,
 					Data: calldata2,
-				},
-				&sequence.Transaction{ // balances: 50, 20, 30
+				}, // balances: 60, 20, 20
+				{
 					To:   callmockContract.Address,
 					Data: calldata2,
-				},
+				}, // balances: 50, 20, 30
 			},
 		},
 	}
@@ -257,8 +257,8 @@ func TestDecodeExecute(t *testing.T) {
 
 	transaction, err := sequence.DecodeTransaction(data)
 	assert.NoError(t, err)
-	assert.Equal(t, len(transaction.Transactions), 1)
-	assert.Equal(t, len(transaction.Transactions[0].Transactions), 2)
+	assert.Len(t, transaction.Transactions, 1)
+	assert.Len(t, transaction.Transactions[0].Transactions, 2)
 
 	data2, err := transaction.Execdata()
 	assert.NoError(t, err)
@@ -270,7 +270,7 @@ func TestDecodeSelfExecute(t *testing.T) {
 
 	transaction, err := sequence.DecodeTransaction(data)
 	assert.NoError(t, err)
-	assert.Equal(t, len(transaction.Transactions), 1)
+	assert.Len(t, transaction.Transactions, 1)
 
 	data2, err := transaction.Execdata()
 	assert.NoError(t, err)
