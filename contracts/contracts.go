@@ -7,6 +7,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
+	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletguest"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletmain"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletupgradable"
@@ -21,6 +22,7 @@ var (
 	WalletUtils,
 	IERC1271,
 	ERC20Mock,
+	WalletGasEstimator,
 	_ ethartifact.Artifact
 )
 
@@ -38,6 +40,7 @@ func init() {
 	WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable.WalletUpgradableABI, walletupgradable.WalletUpgradableBin)
 	WalletGuestModule = artifact("WALLET_GUEST", walletguest.WalletGuestABI, walletguest.WalletGuestBin)
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
+	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin)
 
 	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 

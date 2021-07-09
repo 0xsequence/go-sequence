@@ -9,6 +9,8 @@
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletcallmock --type=CallReceiverMock --outFile=./walletcallmock/wallet_call_mock.gen.go --artifactsFile=../artifacts/wallet-contracts/mocks/CallReceiverMock.sol/CallReceiverMock.json
 
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json
+
 //
 // erc1271
 //
