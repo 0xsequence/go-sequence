@@ -15,11 +15,13 @@
     "ganache:drone": "/app/ganache-core.docker.cli.js --blockTime 1 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
     "ganache:mine": "ganache-cli --blockTime 1 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
     "ganache:mine:verbose": "ganache-cli --blockTime 1 --chainId ${npm_package_config_ganacheChainID} --networkId ${npm_package_config_ganacheChainID} --verbose --port ${npm_package_config_ganachePort} --gasLimit ${npm_package_config_ganacheGasLimit} --gasPrice ${npm_package_config_ganacheGasPrice} --defaultBalanceEther ${npm_package_config_etherBalance} --deterministic --mnemonic \"${npm_package_config_mnemonic}\" ${npm_package_config_extra}",
-    "ganache:stop": "ps aux | grep ganache-cli | grep -v grep | awk '{print $2}' | xargs kill -9"
+    "ganache:stop": "ps aux | grep ganache-cli | grep -v grep | awk '{print $2}' | xargs kill -9",
+    "wait:server": "wait-on -t 120000 http-get://127.0.0.1:8545/"
   },
   "devDependencies": {
     "concurrently": "^6.2.0",
-    "ganache-cli": "^6.12.2"
+    "ganache-cli": "^6.12.2",
+    "wait-on": "^6.0.0"
   },
   "config": {
     "mnemonic": "major danger this key only test please avoid main net use okay",
