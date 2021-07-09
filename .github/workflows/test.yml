@@ -49,7 +49,7 @@ jobs:
         if: ${{ steps.yarn-cache.outputs.cache-hit != 'true' }}
 
       - name: Boot test-chain
-        run: make start-test-chain &
+        run: make start-test-chain-verbose &
 
       - name: Test
         run: make test

@@ -21,5 +21,5 @@ func init() {
 }
 
 func TestChainID(t *testing.T) {
-	assert.Equal(t, testChain.ChainID().Uint64(), uint64(4337))
+	assert.Equal(t, testChain.ChainID().Uint64(), uint64(1337))
 }

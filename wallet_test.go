@@ -67,7 +67,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 	sig, _, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 	assert.NoError(t, err)
 
-	expectedSig := "0x000100012e60548f7789a2ee82e2b616c7527c74832b2fd2d7b9e1f47e2f6c1f319d0da628bca0af30c43c2ab5a195dbfed89c0f2ed8bc632e18f3d42973cd676550d7371b02"
+	expectedSig := "0x00010001aea46cf46662768aa0287f04788afeaf84ed12eda6dd759bdb500db113b289b20cbc85a8dbb040e14082b401b081e33f16a9685993b168212a1a0f4e686cb8b31c02"
 	assert.Equal(t, expectedSig, ethcoder.HexEncode(sig))
 
 	isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)

@@ -13,10 +13,10 @@ test-concurrently:
 	cd ./testutil/chain && yarn test
 
 start-test-chain:
-	cd ./testutil/chain && yarn start:server
+	cd ./testutil/chain && yarn start:geth
 
 start-test-chain-verbose:
-	cd ./testutil/chain && yarn start:server:verbose
+	cd ./testutil/chain && yarn start:geth:verbose
 
 clean:
 	@go clean -testcache
