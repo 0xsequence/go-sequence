@@ -9,9 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
@@ -313,42 +311,6 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	}
 
 	return nonceResult, nil
-}
-
-func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
-	return len(log.Topics) == 0 && bytes.Equal(log.Data, hash[:])
-}
-
-func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
-	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSig {
-		return common.Hash{}, "", fmt.Errorf("not a TxFailed event")
-	}
-
-	var hash common.Hash
-	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
-		return common.Hash{}, "", err
-	}
-
-	reason, err := abi.UnpackRevert(revert)
-	if err != nil {
-		return common.Hash{}, "", err
-	}
-
-	return hash, reason, nil
-}
-
-func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
-	if len(log.Topics) != 1 || log.Topics[0] != NonceChangeEventSig {
-		return nil, nil, fmt.Errorf("not a NonceChange event")
-	}
-
-	var space, nonce *big.Int
-	if err := ethcoder.AbiDecoder([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
-		return nil, nil, err
-	}
-
-	return space, nonce, nil
 }
 
 // prepareTransactionsForEncoding checks the transactions data structure with basic
