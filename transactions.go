@@ -345,61 +345,47 @@ func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
 	return stxns, nil
 }
 
-func EncodeTransactions(txns Transactions) ([]byte, error) {
-	return txns.Execdata()
-}
+func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
+	if len(data) < 4 {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
+	}
 
-func DecodeTransaction(data []byte) (*Transaction, error) {
 	var transactions []Transaction
 	var nonce *big.Int
 	var signature []byte
 	var err error
 
-	if len(data) >= 4 {
-		executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
-		selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
+	executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
 
-		if bytes.Equal(data[:4], executeMethod.ID) {
-			var values []interface{}
-			values, err = executeMethod.Inputs.Unpack(data[4:])
-			if err == nil {
-				err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
-			}
-		} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
-			var values []interface{}
-			values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
-			if err == nil {
-				err = selfExecuteMethod.Inputs.Copy(&transactions, values)
-			}
+	if bytes.Equal(data[:4], executeMethod.ID) {
+		var values []interface{}
+		values, err = executeMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
 		}
-		if err != nil {
-			return nil, err
+	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
+		var values []interface{}
+		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
 		}
-
-		if transactions != nil {
-			for i := 0; i < len(transactions); i++ {
-				decoded, err := DecodeTransaction(transactions[i].Data)
-				if err != nil {
-					return nil, err
-				}
-
-				if decoded.Transactions != nil {
-					transactions[i].Data = nil
-					transactions[i].Transactions = decoded.Transactions
-					transactions[i].Nonce = decoded.Nonce
-					transactions[i].Signature = decoded.Signature
-				}
-			}
-		}
-	}
-
-	if transactions == nil {
-		return &Transaction{Data: data}, nil
 	} else {
-		return &Transaction{
-			Transactions: NewTransactionsFromValues(transactions),
-			Nonce:        nonce,
-			Signature:    signature,
-		}, nil
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for i := 0; i < len(transactions); i++ {
+		decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data)
+		if err == nil {
+			transactions[i].Data = nil
+			transactions[i].Transactions = decodedTransactions
+			transactions[i].Nonce = decodedNonce
+			transactions[i].Signature = decodedSignature
+		}
+	}
+
+	return NewTransactionsFromValues(transactions), nonce, signature, nil
 }
