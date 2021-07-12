@@ -34,6 +34,35 @@ type Transaction struct {
 	// AfterNonce .. // optional.. TODO
 }
 
+func (t *Transaction) Clone() *Transaction {
+	clone := Transaction{
+		DelegateCall:  t.DelegateCall,
+		RevertOnError: t.RevertOnError,
+		To:            t.To,
+	}
+	if t.GasLimit != nil {
+		clone.GasLimit = new(big.Int).Set(t.GasLimit)
+	}
+	if t.Value != nil {
+		clone.Value = new(big.Int).Set(t.Value)
+	}
+	if t.Data != nil {
+		clone.Data = make([]byte, len(t.Data))
+		copy(clone.Data, t.Data)
+	}
+	if t.Transactions != nil {
+		clone.Transactions = t.Transactions.Clone()
+	}
+	if t.Nonce != nil {
+		clone.Nonce = new(big.Int).Set(t.Nonce)
+	}
+	if t.Signature != nil {
+		clone.Signature = make([]byte, len(t.Signature))
+		copy(clone.Signature, t.Signature)
+	}
+	return &clone
+}
+
 func (t *Transaction) Bundle() Transactions {
 	return Transactions{t}
 }
@@ -186,6 +215,14 @@ func (t Transactions) Execdata() ([]byte, error) {
 	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), big.NewInt(0), make([]byte, 0))
 }
 
+func (t Transactions) Clone() Transactions {
+	txns := make(Transactions, len(t))
+	for i, txn := range t {
+		txns[i] = txn.Clone()
+	}
+	return txns
+}
+
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
 	ChainID       *big.Int
@@ -325,6 +362,9 @@ func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
 		if txn == nil {
 			return nil, fmt.Errorf("cannot sign a nil transaction")
 		}
+
+		txn = txn.Clone()
+
 		if txn.Value == nil {
 			txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
 		}
