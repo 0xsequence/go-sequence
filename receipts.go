@@ -42,17 +42,18 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 		return nil, fmt.Errorf("transaction %v is pending", receipt.TxHash.Hex())
 	}
 
-	decoded, err := DecodeTransaction(transaction.Data())
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
 	if err != nil {
 		return nil, err
 	}
 
-	transactions, err := prepareTransactionsForEncoding(decoded.Transactions)
+	transactions, err := prepareTransactionsForEncoding(decodedTransactions)
 	if err != nil {
 		return nil, err
 	}
 
-	_, receipts, err := decodeReceipt(receipt.Logs, transactions, decoded.Nonce, *transaction.To(), transaction.ChainId(), isGuestExecuteTransaction(decoded), "")
+	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
+	_, receipts, err := decodeReceipt(receipt.Logs, transactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute, "")
 	if err != nil {
 		return nil, err
 	}
