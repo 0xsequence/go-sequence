@@ -6,6 +6,7 @@ import (
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletguest"
@@ -23,6 +24,7 @@ var (
 	IERC1271,
 	ERC20Mock,
 	WalletGasEstimator,
+	GasEstimator,
 	_ ethartifact.Artifact
 )
 
@@ -32,6 +34,10 @@ var (
 
 	//go:embed artifacts/erc-1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
+
+	GasEstimatorDeployedBytecode string
+
+	WalletGasEstimatoreDeployedBytecode string
 )
 
 func init() {
@@ -41,6 +47,10 @@ func init() {
 	WalletGuestModule = artifact("WALLET_GUEST", walletguest.WalletGuestABI, walletguest.WalletGuestBin)
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
 	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin)
+	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin)
+
+	GasEstimatorDeployedBytecode = gasestimator.GasEstimatorDeployedBin
+	WalletGasEstimatoreDeployedBytecode = walletgasestimator.WalletGasEstimatorDeployedBin
 
 	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 
