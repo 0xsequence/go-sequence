@@ -477,7 +477,7 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 
 	if len(code) == 0 {
 		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
-		subDigest, err := SubDigest(walletAddress, chainID, digest)
+		subDigest, err := SubDigest(chainID, walletAddress, digest)
 		if err != nil {
 			return false, err
 		}
@@ -516,35 +516,6 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 
 func MessageDigest(message []byte) common.Hash {
 	return common.BytesToHash(ethcoder.Keccak256(message))
-}
-
-func SubDigest(address common.Address, chainID *big.Int, digest common.Hash) ([]byte, error) {
-	if chainID == nil {
-		return nil, ErrUnknownChainID
-	}
-
-	// sequence smart wallet uses additional encoding of the digest in IsValidSignature()
-	packedData, err := PackMessageData(chainID, address, digest)
-	if err != nil {
-		return nil, fmt.Errorf("subDigest, packageMessageData failed: %w", err)
-	}
-
-	// returns subdigest
-	return ethcoder.Keccak256(packedData), nil
-}
-
-// PackMessageData encodes a Sequence contract "message"
-func PackMessageData(chainID *big.Int, owner common.Address, digest common.Hash) ([]byte, error) {
-	if chainID == nil {
-		return nil, ErrUnknownChainID
-	}
-	output, err := ethcoder.SolidityPack([]string{"string", "uint256", "address", "bytes"}, []interface{}{
-		"\x19\x01", chainID, owner, digest[:],
-	})
-	if err != nil {
-		return nil, err
-	}
-	return output, nil
 }
 
 func MustEncodeSig(str string) common.Hash {

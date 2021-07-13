@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -112,21 +111,11 @@ func (t *Transaction) Digest() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	var message []byte
 	if t.Nonce != nil {
-		var err error
-		message, err = abiTransactionsDigestType.Pack(t.Nonce, t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
-		}
+		return ComputeWalletExecDigest(t.Nonce, t.Transactions)
 	} else {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
-		}
+		return ComputeSelfExecDigest(t.Transactions)
 	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
 }
 
 func (t *Transaction) GuestDigest() (common.Hash, error) {
@@ -135,21 +124,9 @@ func (t *Transaction) GuestDigest() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	var message []byte
-	if t.Nonce != nil {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("guest:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"guest:\" and transactions: %w", err)
-		}
-	} else {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
-		}
-	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+	// TODO: should we check t.Nonce and return error, as invarient check..?
+
+	return ComputeGuestExecDigest(t.Transactions)
 }
 
 // AddToBundle will create a bundle from the passed txns and add it to current transaction

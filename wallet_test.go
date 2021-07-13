@@ -88,7 +88,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	sig, _, err := wallet.SignMessage([]byte(message))
 	assert.NoError(t, err)
 
-	subDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
+	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
 	assert.NoError(t, err)
 
 	recoveredWalletConfig, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
@@ -128,7 +128,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	sig, _, err := wallet.SignMessage([]byte(message))
 	assert.NoError(t, err)
 
-	subDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
+	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
 	assert.NoError(t, err)
 
 	recoveredWalletConfig, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)

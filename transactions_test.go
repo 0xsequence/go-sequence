@@ -62,7 +62,7 @@ func TestTransactionVerbose(t *testing.T) {
 	assert.NotEmpty(t, signedTx.Signature)
 
 	// Recover walletconfig + address from the signed transaction digest + signature
-	txSubDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), signedTx.Digest)
+	txSubDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), signedTx.Digest)
 	assert.NoError(t, err)
 
 	walletConfig, err := sequence.RecoverWalletConfigFromDigest(txSubDigest, signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
@@ -73,7 +73,7 @@ func TestTransactionVerbose(t *testing.T) {
 
 	assert.Equal(t, wallet.Address(), walletAddress)
 
-	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromTransactionsDigest(walletAddress, testChain.ChainID(), signedTx.Digest, signedTx.Nonce)
+	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
 	assert.NoError(t, err)
 
 	// Send the transaction

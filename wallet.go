@@ -260,7 +260,7 @@ func (w *Wallet) SignDigest(digest common.Hash) ([]byte, *Signature, error) {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
 
-	subDigest, err := SubDigest(w.Address(), w.chainID, digest)
+	subDigest, err := SubDigest(w.chainID, w.Address(), digest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}

@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum"
@@ -48,33 +47,6 @@ const (
 	MetaTxnFailed
 	MetaTxnReverted
 )
-
-func ComputeMetaTxnID(walletAddress common.Address, chainID *big.Int, txns Transactions, nonce *big.Int) (MetaTxnID, error) {
-	bundle := Transaction{
-		Transactions: txns,
-		Nonce:        nonce,
-	}
-
-	txnsDigest, err := bundle.Digest()
-	if err != nil {
-		return "", err
-	}
-
-	return ComputeMetaTxnIDFromTransactionsDigest(walletAddress, chainID, txnsDigest, nonce)
-}
-
-func ComputeMetaTxnIDFromTransactionsDigest(walletAddress common.Address, chainID *big.Int, txnsDigest common.Hash, nonce *big.Int) (MetaTxnID, error) {
-	metaSubDigest, err := SubDigest(walletAddress, chainID, txnsDigest)
-	if err != nil {
-		return "", err
-	}
-
-	metaTxnIDHex := ethcoder.HexEncode(metaSubDigest)
-	if len(metaTxnIDHex) != 66 {
-		return "", fmt.Errorf("computed meta txn id is invalid length")
-	}
-	return MetaTxnID(metaTxnIDHex[2:]), nil
-}
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
 func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {

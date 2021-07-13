@@ -115,7 +115,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		if err != nil {
 			return nil, nil, err
 		}
-		subDigest, err := SubDigest(address, chainID, digest)
+		subDigest, err := SubDigest(chainID, address, digest)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -129,7 +129,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		if err != nil {
 			return nil, nil, err
 		}
-		subDigest, err := SubDigest(address, chainID, digest)
+		subDigest, err := SubDigest(chainID, address, digest)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -139,7 +139,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 	// compute the meta-transaction ID
 	if !isSelfExecute && !isGuestExecute {
 		var err error
-		metaTxnID, err = ComputeMetaTxnID(address, chainID, transactions, nonce)
+		metaTxnID, err = ComputeMetaTxnID(chainID, address, transactions, nonce, 0)
 		if err != nil {
 			return nil, nil, err
 		}
