@@ -274,8 +274,8 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 	txns := sequence.Transaction{
 		To:       callmockContract.Address,
 		Data:     calldata,
-		Value:    big.NewInt(0),
-		GasLimit: big.NewInt(0),
+		Value:    big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+		GasLimit: big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
 	}
 	bundle := txns.Bundle()
 
