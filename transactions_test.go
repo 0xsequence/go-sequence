@@ -10,6 +10,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethtxn"
+	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -255,7 +256,70 @@ func TestTransactionERC20Transfer(t *testing.T) {
 	assert.Equal(t, "30", ret[0])
 }
 
-func TestTransactionToGuestModuleVerbose(t *testing.T) {
+func TestTransactionToGuestModuleRelay(t *testing.T) {
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
+	assert.NoError(t, err)
+
+	txns := sequence.Transaction{
+		To:       callmockContract.Address,
+		Data:     calldata,
+		Value:    big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+		GasLimit: big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+	}
+	bundle := txns.Bundle()
+
+	// TODO ^... something is wrong with PrepareTransactionsForEncoding, as we should be able
+	// to omit "Value" and "GasLimit" above, but in fact, it doesnt work..
+
+	// TODO: rename this method..
+	encodedTxns, err := sequence.PrepareTransactionsForEncoding(bundle)
+	assert.NoError(t, err)
+
+	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns.AsValues(), big.NewInt(0), []byte{})
+	assert.NoError(t, err)
+
+	// TODO: rename this.. it is computing the guest SubDigest .. maybe find another name for it..?
+	// but, this is not the meta txn ID we want in the end
+	metaTxnID, err := sequence.ComputeMetaTxnID(
+		testChain.ChainID(),
+		testChain.SequenceContext().GuestModuleAddress,
+		bundle, nil, sequence.MetaTxnGuestExec,
+	)
+	assert.NoError(t, err)
+
+	// Relay the txn manually, directly to the guest module
+	sender := testChain.GetRelayerWallet()
+	guestAddress := testChain.SequenceContext().GuestModuleAddress
+	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To: &guestAddress, Data: execdata,
+	})
+	assert.NoError(t, err)
+
+	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+
+	// NOTE: we cannot use sequence.WaitForMetaTxn and listen for the metaTxnID, as there is no NonceChange
+	// event in the above transaction as its just calling the mock receiver
+
+	// Assert that first log in the receipt computes to the guest subdigest / id
+	assert.True(t, fmt.Sprintf("0x%s", metaTxnID) == common.BytesToHash(receipt.Logs[0].Data).Hex())
+
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "1239", ret[0])
+}
+
+func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	// Ensure dummy sequence wallet from seed 1 is deployed
 	wallet, err := testChain.DummySequenceWallet(8888, true)
 	assert.NoError(t, err)
