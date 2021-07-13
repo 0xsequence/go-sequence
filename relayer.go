@@ -63,7 +63,12 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 		return common.Address{}, nil, err
 	}
 
-	execdata, err := contracts.WalletMainModule.Encode("execute", txns.AsValues(), nonce, seqSig)
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	execdata, err := contracts.WalletMainModule.Encode("execute", encodedTxns, nonce, seqSig)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

@@ -42,7 +42,11 @@ func ComputeWalletExecDigest(nonce *big.Int, txns Transactions) (common.Hash, er
 	if nonce == nil {
 		return common.Hash{}, fmt.Errorf("nonce is required for wallet execute")
 	}
-	message, err := abiTransactionsDigestType.Pack(nonce, txns.AsValues())
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	message, err := abiTransactionsDigestType.Pack(nonce, encodedTxns)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
 	}
@@ -50,7 +54,11 @@ func ComputeWalletExecDigest(nonce *big.Int, txns Transactions) (common.Hash, er
 }
 
 func ComputeSelfExecDigest(txns Transactions) (common.Hash, error) {
-	message, err := abiTransactionsStringDigestType.Pack("self:", txns.AsValues())
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	message, err := abiTransactionsStringDigestType.Pack("self:", encodedTxns)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
 	}
@@ -58,7 +66,11 @@ func ComputeSelfExecDigest(txns Transactions) (common.Hash, error) {
 }
 
 func ComputeGuestExecDigest(txns Transactions) (common.Hash, error) {
-	message, err := abiTransactionsStringDigestType.Pack("guest:", txns.AsValues())
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	message, err := abiTransactionsStringDigestType.Pack("guest:", encodedTxns)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to pack \"guest:\" and transactions: %w", err)
 	}

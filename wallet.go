@@ -309,10 +309,17 @@ func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*Signed
 }
 
 func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
-	stxns, err := prepareTransactionsForEncoding(txns)
-	if err != nil {
-		return nil, err
-	}
+	// stxns, err := xxprepareTransactionsForEncoding(txns)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// encodedTxns, err := txns.EncodedTransactions()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	var err error
 
 	// If a transaction has 0 gasLimit and not revertOnError
 	// compute all new gas limits
@@ -324,7 +331,7 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		}
 	}
 	if estimateGas {
-		_, err := w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
+		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
 		if err != nil {
 			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
 		}
@@ -340,7 +347,7 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 	}
 
 	bundle := Transaction{
-		Transactions: stxns,
+		Transactions: txns,
 		Nonce:        nonce,
 	}
 
@@ -356,11 +363,16 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		return nil, err
 	}
 
+	// encodedTxns, err := bundle.Transactions.EncodedTransactions()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return &SignedTransactions{
 		ChainID:       w.chainID,
 		WalletConfig:  w.config,
 		WalletContext: w.context,
-		Transactions:  stxns,
+		Transactions:  txns, //NewTransactionsFromValues(encodedTxns),
 		Nonce:         nonce,
 		Digest:        digest,
 		Signature:     sig,

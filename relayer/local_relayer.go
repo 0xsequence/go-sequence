@@ -52,7 +52,12 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 
 	defaultGasLimit := int64(800_000)
 
-	for _, txn := range txns {
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, txn := range encodedTxns {
 		// Respect gasLimit request of the transaction (as long as its not 0)
 		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
 			continue
@@ -88,6 +93,11 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 			continue
 		}
 		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
+	}
+
+	// update gasLimit on original transactions
+	for i, txn := range txns {
+		txn.GasLimit = encodedTxns[i].GasLimit
 	}
 
 	return txns, nil
