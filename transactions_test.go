@@ -15,7 +15,6 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/testutil"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -273,26 +272,19 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
 
-	// bundle := sequence.Transactions{
-	// 	{
-	// 		To:   callmockContract.Address,
-	// 		Data: calldata,
-	// 	},
-	// }
-
 	txns := sequence.Transaction{
-		To:   callmockContract.Address,
-		Data: calldata,
+		To:       callmockContract.Address,
+		Data:     calldata,
+		Value:    big.NewInt(0),
+		GasLimit: big.NewInt(0),
 	}
 	bundle := txns.Bundle()
 
-	// signedBundle, err := wallet.SignTransactions(context.Background(), bundle)
-	// assert.NoError(t, err)
+	// TODO: rename this method..
+	encodedTxns, err := sequence.PrepareTransactionsForEncoding(bundle)
+	assert.NoError(t, err)
 
-	spew.Dump(bundle.AsValues())
-
-	// NOTE: contracts.WalletMainModule and contracts.WalletGuestModule have the same execute method
-	execdata, err := contracts.WalletGuestModule.Encode("execute", bundle.AsValues(), big.NewInt(0), []byte{})
+	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns.AsValues(), big.NewInt(0), []byte{})
 	assert.NoError(t, err)
 
 	metaTxnID, err := sequence.ComputeMetaTxnID(

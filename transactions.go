@@ -327,6 +327,10 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	return nonceResult, nil
 }
 
+func PrepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
+	return prepareTransactionsForEncoding(txns)
+}
+
 // prepareTransactionsForEncoding checks the transactions data structure with basic
 // integrity checks
 func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
