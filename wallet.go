@@ -309,6 +309,10 @@ func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*Signed
 }
 
 func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
+	if len(txns) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+	}
+
 	stxns, err := prepareTransactionsForEncoding(txns)
 	if err != nil {
 		return nil, err

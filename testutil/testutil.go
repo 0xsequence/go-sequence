@@ -340,6 +340,17 @@ func (c *TestChain) DummySequenceWallets(nWallets uint64, startingSeed uint64) (
 	return wallets, nil
 }
 
+func (c *TestChain) RandomNonce() *big.Int {
+	space := big.NewInt(int64(time.Now().Nanosecond()))
+
+	encoded, err := sequence.EncodeNonce(space, big.NewInt(0))
+	if err != nil {
+		panic(err)
+	}
+
+	return encoded
+}
+
 func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))

@@ -150,12 +150,46 @@ func (t Transactions) AsValues() []Transaction {
 	return v
 }
 
-func (t Transactions) Execdata() ([]byte, error) {
+func (t Transactions) Nonce() (*big.Int, error) {
+	var nonce *big.Int
+
+	for _, tx := range t {
+		if tx.Nonce != nil {
+			if nonce == nil {
+				nonce = tx.Nonce
+			} else {
+				if nonce.Cmp(tx.Nonce) != 0 {
+					return nil, fmt.Errorf("transaction contains mixed nonces")
+				}
+			}
+		}
+	}
+
+	return nonce, nil
+}
+
+func (t Transactions) Execdata(sig []byte) ([]byte, error) {
 	transactions, err := prepareTransactionsForEncoding(t)
 	if err != nil {
 		return nil, err
 	}
-	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), big.NewInt(0), make([]byte, 0))
+
+	nonce, err := t.Nonce()
+	if nonce == nil {
+		nonce = big.NewInt(0)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sig == nil {
+		sig = make([]byte, 0)
+	}
+
+	fmt.Println("Using nonce", nonce.String())
+
+	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), nonce, sig)
 }
 
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
@@ -333,10 +367,6 @@ func IsNonceChangedEvent(logs []*types.Log) bool {
 // prepareTransactionsForEncoding checks the transactions data structure with basic
 // integrity checks
 func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
-	if len(txns) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
 	stxns := Transactions{}
 	for _, txn := range txns {
 		if txn == nil {
@@ -363,7 +393,7 @@ func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
 }
 
 func EncodeTransactions(txns Transactions) ([]byte, error) {
-	return txns.Execdata()
+	return txns.Execdata(nil)
 }
 
 func DecodeTransaction(data []byte) (*Transaction, error) {
