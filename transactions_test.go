@@ -4,13 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/testutil"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -250,6 +255,71 @@ func TestTransactionERC20Transfer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "30", ret[0])
+}
+
+func TestTransactionToGuestModuleVerbose(t *testing.T) {
+	// Ensure dummy sequence wallet from seed 1 is deployed
+	wallet, err := testChain.DummySequenceWallet(8888, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, wallet)
+
+	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
+	isDeployed, err := wallet.IsDeployed()
+	assert.NoError(t, err)
+	assert.False(t, isDeployed)
+
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
+	assert.NoError(t, err)
+
+	// bundle := sequence.Transactions{
+	// 	{
+	// 		To:   callmockContract.Address,
+	// 		Data: calldata,
+	// 	},
+	// }
+
+	txns := sequence.Transaction{
+		To:   callmockContract.Address,
+		Data: calldata,
+	}
+	bundle := txns.Bundle()
+
+	// signedBundle, err := wallet.SignTransactions(context.Background(), bundle)
+	// assert.NoError(t, err)
+
+	spew.Dump(bundle.AsValues())
+
+	// NOTE: contracts.WalletMainModule and contracts.WalletGuestModule have the same execute method
+	execdata, err := contracts.WalletGuestModule.Encode("execute", bundle.AsValues(), big.NewInt(0), []byte{})
+	assert.NoError(t, err)
+
+	metaTxnID, err := sequence.ComputeMetaTxnID(
+		testChain.ChainID(),
+		testChain.SequenceContext().GuestModuleAddress,
+		bundle, nil, sequence.MetaTxnGuestExec,
+	)
+	assert.NoError(t, err)
+	fmt.Println("==> metaTxnID??", metaTxnID)
+
+	// Relay the txn manually, directly to the guest module
+	sender := testChain.GetRelayerWallet()
+	guestAddress := testChain.SequenceContext().GuestModuleAddress
+	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To: &guestAddress, Data: execdata,
+	})
+	assert.NoError(t, err)
+
+	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+
+	waitReceipt(context.Background())
+
+	time.Sleep(2 * time.Second)
 }
 
 func TestDecodeExecute(t *testing.T) {

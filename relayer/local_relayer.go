@@ -101,6 +101,9 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
 	// a wallet creation call)
 
+	// TODO: lets update LocalRelayer so it'll do auto-bundle creation.. to prepend, and send to guestModule, etc..
+	// its more consistent, and easier for tests..
+
 	sender := r.Sender
 
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(
