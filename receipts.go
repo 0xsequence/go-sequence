@@ -47,13 +47,8 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 		return nil, err
 	}
 
-	transactions, err := prepareTransactionsForEncoding(decodedTransactions)
-	if err != nil {
-		return nil, err
-	}
-
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
-	_, receipts, err := decodeReceipt(receipt.Logs, transactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute, "")
+	_, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute, "")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +110,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		if err != nil {
 			return nil, nil, err
 		}
-		subDigest, err := SubDigest(address, chainID, digest)
+		subDigest, err := SubDigest(chainID, address, digest)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -129,7 +124,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		if err != nil {
 			return nil, nil, err
 		}
-		subDigest, err := SubDigest(address, chainID, digest)
+		subDigest, err := SubDigest(chainID, address, digest)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -139,7 +134,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 	// compute the meta-transaction ID
 	if !isSelfExecute && !isGuestExecute {
 		var err error
-		metaTxnID, err = ComputeMetaTxnID(address, chainID, transactions, nonce)
+		metaTxnID, err = ComputeMetaTxnID(chainID, address, transactions, nonce, 0)
 		if err != nil {
 			return nil, nil, err
 		}

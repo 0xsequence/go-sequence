@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethtxn"
+	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +66,7 @@ func TestTransactionVerbose(t *testing.T) {
 	assert.NotEmpty(t, signedTx.Signature)
 
 	// Recover walletconfig + address from the signed transaction digest + signature
-	txSubDigest, err := sequence.SubDigest(wallet.Address(), wallet.GetChainID(), signedTx.Digest)
+	txSubDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), signedTx.Digest)
 	assert.NoError(t, err)
 
 	walletConfig, err := sequence.RecoverWalletConfigFromDigest(txSubDigest, signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
@@ -73,7 +77,7 @@ func TestTransactionVerbose(t *testing.T) {
 
 	assert.Equal(t, wallet.Address(), walletAddress)
 
-	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromTransactionsDigest(walletAddress, testChain.ChainID(), signedTx.Digest, signedTx.Nonce)
+	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
 	assert.NoError(t, err)
 
 	// Send the transaction
@@ -250,6 +254,176 @@ func TestTransactionERC20Transfer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "30", ret[0])
+}
+
+func TestTransactionToGuestModuleBasic(t *testing.T) {
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
+	assert.NoError(t, err)
+
+	txns := sequence.Transaction{
+		To:   callmockContract.Address,
+		Data: calldata,
+	}
+	bundle := txns.Bundle()
+
+	encodedTxns, err := bundle.EncodedTransactions()
+	assert.NoError(t, err)
+
+	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+	assert.NoError(t, err)
+
+	// TODO: rename this.. it is computing the guest SubDigest .. maybe find another name for it..?
+	// but, this is not the meta txn ID we want in the end
+	metaTxnID, err := sequence.ComputeMetaTxnID(
+		testChain.ChainID(),
+		testChain.SequenceContext().GuestModuleAddress,
+		bundle, nil, sequence.MetaTxnGuestExec,
+	)
+	assert.NoError(t, err)
+
+	// Relay the txn manually, directly to the guest module
+	sender := testChain.GetRelayerWallet()
+	guestAddress := testChain.SequenceContext().GuestModuleAddress
+	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To: &guestAddress, Data: execdata,
+	})
+	assert.NoError(t, err)
+
+	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+
+	// fmt.Println("==> metaTxnID", metaTxnID)
+	// fmt.Println("==> txnHash", receipt.TxHash.Hex())
+
+	// NOTE: we cannot use sequence.WaitForMetaTxn and listen for the metaTxnID, as there is no NonceChange
+	// event in the above transaction as its just calling the mock receiver
+
+	// Assert that first log in the receipt computes to the guest subdigest / id
+	assert.True(t, fmt.Sprintf("0x%s", metaTxnID) == common.BytesToHash(receipt.Logs[0].Data).Hex())
+
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "1239", ret[0])
+}
+
+func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
+	// Ensure dummy sequence wallet from seed 1 is deployed
+	wallet, err := testChain.DummySequenceWallet(testutil.RandomSeed(), true)
+	assert.NoError(t, err)
+	assert.NotNil(t, wallet)
+
+	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
+	isDeployed, err := wallet.IsDeployed()
+	assert.NoError(t, err)
+	if isDeployed {
+		t.Fatal("expecting wallet to be undeployed")
+	}
+
+	// Wallet deployment data
+	_, walletFactoryAddress, walletDeployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
+	assert.NoError(t, err)
+
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+	assert.NoError(t, err)
+
+	// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
+	// Then we send it to the GuestModule
+
+	walletBundle := sequence.Transactions{
+		{
+			To: wallet.Address(),
+			Transactions: sequence.Transactions{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
+			},
+		},
+	}
+
+	signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
+	assert.NoError(t, err)
+
+	signedWalletData, err := signedWalletBundle.Execdata()
+	assert.NoError(t, err)
+
+	guestBundle := sequence.Transactions{
+		{
+			To:   walletFactoryAddress,
+			Data: walletDeployData,
+		},
+		{
+			To:   wallet.Address(),
+			Data: signedWalletData,
+		},
+	}
+
+	encodedTxns, err := guestBundle.EncodedTransactions()
+	assert.NoError(t, err)
+
+	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+	assert.NoError(t, err)
+
+	metaTxnID, err := sequence.ComputeMetaTxnID(
+		testChain.ChainID(),
+		testChain.SequenceContext().GuestModuleAddress,
+		guestBundle, nil, sequence.MetaTxnGuestExec,
+	)
+	assert.NoError(t, err)
+
+	// Relay the txn manually, directly to the guest module
+	sender := testChain.GetRelayerWallet()
+	guestAddress := testChain.SequenceContext().GuestModuleAddress
+	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To: &guestAddress, Data: execdata,
+	})
+	assert.NoError(t, err)
+
+	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	assert.NoError(t, err)
+
+	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	assert.NoError(t, err)
+
+	receipt, err := waitReceipt(context.Background())
+	assert.NoError(t, err)
+	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// spew.Dump(sequence.DecodeRevertReason(receipt.Logs))
+
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "2255", ret[0])
+
+	// TODO: check the txn receipt..
+	// curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xb3e5dd48b198c37b5efbdbb95f857b15d519fa77fa4cb12233936536cdd0288c"],"id":1}' | jq
+
+	// TODO: what should be meta txn id coming out..? seems it might be correct above? but
+	// we're not finding it below because there is no NonceChange event.
+
+	// NOTE: this never returns as there is no NonceChange event..
+	metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID, nil)
+	assert.NoError(t, err)
+	assert.True(t, metaStatus == sequence.MetaTxnExecuted)
+
+	// Wallet should be deployed now
+	isDeployed, err = wallet.IsDeployed()
+	assert.NoError(t, err)
+	assert.True(t, isDeployed)
 }
 
 func TestDecodeExecute(t *testing.T) {

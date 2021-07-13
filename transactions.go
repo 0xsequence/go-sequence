@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -32,6 +31,12 @@ type Transaction struct {
 
 	// Expiration *big.Int // optional.. TODO
 	// AfterNonce .. // optional.. TODO
+
+	encoded bool
+}
+
+func (t *Transaction) IsEncoded() bool {
+	return t.encoded
 }
 
 func (t *Transaction) Clone() *Transaction {
@@ -94,15 +99,15 @@ func (t *Transaction) Execdata() ([]byte, error) {
 		return nil, fmt.Errorf("transaction is not a bundle: only bundles have execdata")
 	}
 
-	transactions, err := prepareTransactionsForEncoding(t.Transactions)
+	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
 		return nil, err
 	}
 
 	if t.Signature != nil {
-		return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), t.Nonce, t.Signature)
+		return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 	} else {
-		return contracts.WalletMainModule.Encode("selfExecute", transactions.AsValues())
+		return contracts.WalletMainModule.Encode("selfExecute", encodedTxns)
 	}
 }
 
@@ -112,21 +117,11 @@ func (t *Transaction) Digest() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	var message []byte
 	if t.Nonce != nil {
-		var err error
-		message, err = abiTransactionsDigestType.Pack(t.Nonce, t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
-		}
+		return ComputeWalletExecDigest(t.Nonce, t.Transactions)
 	} else {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
-		}
+		return ComputeSelfExecDigest(t.Transactions)
 	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
 }
 
 func (t *Transaction) GuestDigest() (common.Hash, error) {
@@ -135,21 +130,9 @@ func (t *Transaction) GuestDigest() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	var message []byte
-	if t.Nonce != nil {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("guest:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"guest:\" and transactions: %w", err)
-		}
-	} else {
-		var err error
-		message, err = abiTransactionsStringDigestType.Pack("self:", t.Transactions.AsValues())
-		if err != nil {
-			return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
-		}
-	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+	// TODO: should we check t.Nonce and return error, as invarient check..?
+
+	return ComputeGuestExecDigest(t.Transactions)
 }
 
 // AddToBundle will create a bundle from the passed txns and add it to current transaction
@@ -199,6 +182,45 @@ func (t Transactions) PrependBundle(txns Transactions) {
 	t.Prepend(Transactions{bundleTxn})
 }
 
+func (t Transactions) EncodedTransactions() ([]Transaction, error) {
+	if len(t) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+	}
+
+	stxns := []Transaction{}
+	for _, txn := range t {
+		if txn == nil {
+			return nil, fmt.Errorf("cannot sign a nil transaction")
+		}
+
+		txn := txn.Clone()
+
+		if !txn.encoded {
+			// encode the transaction is still unencoded
+			if txn.Value == nil {
+				txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
+			}
+			if txn.GasLimit == nil {
+				txn.GasLimit = big.NewInt(0) // default of 0 is expected by abi coder
+			}
+
+			// flatten the bundle into a single transaction as expected by `execute` contract method
+			if txn.IsBundle() {
+				var err error
+				txn.Data, err = txn.Execdata()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		txn.encoded = true
+		stxns = append(stxns, *txn)
+	}
+
+	return stxns, nil
+}
+
 func (t Transactions) AsValues() []Transaction {
 	v := []Transaction{}
 	for _, o := range t {
@@ -208,11 +230,11 @@ func (t Transactions) AsValues() []Transaction {
 }
 
 func (t Transactions) Execdata() ([]byte, error) {
-	transactions, err := prepareTransactionsForEncoding(t)
+	encodedTxns, err := t.EncodedTransactions()
 	if err != nil {
 		return nil, err
 	}
-	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), big.NewInt(0), make([]byte, 0))
+	return contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), make([]byte, 0))
 }
 
 func (t Transactions) Clone() Transactions {
@@ -236,21 +258,11 @@ type SignedTransactions struct {
 }
 
 func (t *SignedTransactions) Execdata() ([]byte, error) {
-	transactions, err := prepareTransactionsForEncoding(t.Transactions)
+	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(transactions); i++ {
-		if transactions[i].IsBundle() {
-			var err error
-			transactions[i].Data, err = transactions[i].Execdata()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), t.Nonce, t.Signature)
+	return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 }
 
 // Transaction events as defined in wallet-contracts IModuleCalls.sol
@@ -348,41 +360,6 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	}
 
 	return nonceResult, nil
-}
-
-// prepareTransactionsForEncoding checks the transactions data structure with basic
-// integrity checks
-func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
-	if len(txns) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
-	stxns := Transactions{}
-	for _, txn := range txns {
-		if txn == nil {
-			return nil, fmt.Errorf("cannot sign a nil transaction")
-		}
-
-		txn = txn.Clone()
-
-		if txn.Value == nil {
-			txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
-		}
-		if txn.GasLimit == nil {
-			txn.GasLimit = big.NewInt(0)
-		}
-		if txn.IsBundle() {
-			var err error
-			txn.Data, err = txn.Execdata()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		stxns = append(stxns, txn)
-	}
-
-	return stxns, nil
 }
 
 func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
