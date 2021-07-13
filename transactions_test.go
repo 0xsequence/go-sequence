@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethtxn"
@@ -280,6 +279,9 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 	}
 	bundle := txns.Bundle()
 
+	// TODO ^... something is wrong with PrepareTransactionsForEncoding, as we should be able
+	// to omit "Value" and "GasLimit" above, but in fact, it doesnt work..
+
 	// TODO: rename this method..
 	encodedTxns, err := sequence.PrepareTransactionsForEncoding(bundle)
 	assert.NoError(t, err)
@@ -287,6 +289,8 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns.AsValues(), big.NewInt(0), []byte{})
 	assert.NoError(t, err)
 
+	// TODO: rename this.. it is computing the guest SubDigest .. maybe find another name for it..?
+	// but, this is not the meta txn ID we want in the end
 	metaTxnID, err := sequence.ComputeMetaTxnID(
 		testChain.ChainID(),
 		testChain.SequenceContext().GuestModuleAddress,
@@ -311,7 +315,18 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 
 	waitReceipt(context.Background())
 
-	time.Sleep(2 * time.Second)
+	fmt.Println("==> txnHash", ntx.Hash())
+
+	// TODO: check the txn receipt..
+	// curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xb3e5dd48b198c37b5efbdbb95f857b15d519fa77fa4cb12233936536cdd0288c"],"id":1}' | jq
+
+	// TODO: what should be meta txn id coming out..? seems it might be correct above? but
+	// we're not finding it below because there is no NonceChange event.
+
+	// NOTE: this never returns as there is no NonceChange event..
+	// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID, nil)
+	// assert.NoError(t, err)
+	// assert.True(t, metaStatus == sequence.MetaTxnExecuted)
 }
 
 func TestDecodeExecute(t *testing.T) {

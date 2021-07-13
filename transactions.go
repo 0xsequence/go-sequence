@@ -338,6 +338,8 @@ func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
 		return nil, fmt.Errorf("cannot sign an empty set of transactions")
 	}
 
+	// TODO: something is wrong here.. we need to test down the tree..?
+
 	stxns := Transactions{}
 	for _, txn := range txns {
 		if txn == nil {
