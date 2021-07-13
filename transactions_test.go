@@ -317,6 +317,12 @@ func TestTransactionToGuestModuleVerbose(t *testing.T) {
 
 	fmt.Println("==> txnHash", ntx.Hash())
 
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "1239", ret[0])
+
 	// TODO: check the txn receipt..
 	// curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xb3e5dd48b198c37b5efbdbb95f857b15d519fa77fa4cb12233936536cdd0288c"],"id":1}' | jq
 
