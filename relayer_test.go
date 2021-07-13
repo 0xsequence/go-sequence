@@ -40,7 +40,7 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
+	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
@@ -86,7 +86,7 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
+	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
@@ -169,7 +169,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
+	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 
@@ -228,7 +228,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
+	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnId)
 

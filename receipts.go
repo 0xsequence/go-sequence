@@ -48,7 +48,7 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 	}
 
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
-	_, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute, "")
+	_, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute)
 	if err != nil {
 		return nil, err
 	}
@@ -96,48 +96,20 @@ func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
 	return space, nonce, nil
 }
 
-func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int, address common.Address, chainID *big.Int, isGuestExecute bool, metaTxnID MetaTxnID) ([]*types.Log, []*Receipt, error) {
+func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int, address common.Address, chainID *big.Int, isGuestExecute bool) ([]*types.Log, []*Receipt, error) {
 	isSelfExecute := nonce == nil
 
-	// compute the logged transaction hash
-	var hash common.Hash
-	if !isGuestExecute {
-		bundle := Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
-		}
-		digest, err := bundle.Digest()
-		if err != nil {
-			return nil, nil, err
-		}
-		subDigest, err := SubDigest(chainID, address, digest)
-		if err != nil {
-			return nil, nil, err
-		}
-		hash = common.BytesToHash(subDigest)
-	} else {
-		bundle := Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
-		}
-		digest, err := bundle.GuestDigest()
-		if err != nil {
-			return nil, nil, err
-		}
-		subDigest, err := SubDigest(chainID, address, digest)
-		if err != nil {
-			return nil, nil, err
-		}
-		hash = common.BytesToHash(subDigest)
+	digestType := MetaTxnWalletExec
+	if isSelfExecute {
+		digestType = MetaTxnSelfExec
+	} else if isGuestExecute {
+		digestType = MetaTxnGuestExec
 	}
 
-	// compute the meta-transaction ID
-	if !isSelfExecute && !isGuestExecute {
-		var err error
-		metaTxnID, err = ComputeMetaTxnID(chainID, address, transactions, nonce, 0)
-		if err != nil {
-			return nil, nil, err
-		}
+	// compute the logged transaction hash
+	metaTxnID, hash, err := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	var topLevelLogs []*types.Log
@@ -190,7 +162,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 
 		if transaction.Transactions != nil {
 			var err error
-			receipt.Logs, receipt.Receipts, err = decodeReceipt(receipt.Logs, transaction.Transactions, transaction.Nonce, transaction.To, chainID, isGuestExecuteTransaction(transaction), metaTxnID)
+			receipt.Logs, receipt.Receipts, err = decodeReceipt(receipt.Logs, transaction.Transactions, transaction.Nonce, transaction.To, chainID, isGuestExecuteTransaction(transaction))
 			if err != nil {
 				return nil, nil, err
 			}
