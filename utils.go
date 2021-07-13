@@ -23,17 +23,7 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, w
 		return common.Address{}, nil, nil, err
 	}
 
-	walletImageHash, err := ImageHashOfWalletConfig(walletConfig)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-
-	walletAddress, err := AddressFromImageHash(walletImageHash, walletContext)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
-
-	deployData, err := contracts.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+	walletAddress, _, deployData, err := EncodeWalletDeployment(walletConfig, walletContext)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -51,4 +41,23 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, w
 	tx, waitReceipt, err := sender.SendTransaction(context.Background(), signedDeployTx)
 
 	return walletAddress, tx, waitReceipt, nil
+}
+
+func EncodeWalletDeployment(walletConfig WalletConfig, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
+	walletImageHash, err := ImageHashOfWalletConfig(walletConfig)
+	if err != nil {
+		return common.Address{}, common.Address{}, nil, err
+	}
+
+	walletAddress, err := AddressFromImageHash(walletImageHash, walletContext)
+	if err != nil {
+		return common.Address{}, common.Address{}, nil, err
+	}
+
+	deployData, err := contracts.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+	if err != nil {
+		return common.Address{}, common.Address{}, nil, err
+	}
+
+	return walletAddress, walletContext.FactoryAddress, deployData, nil
 }

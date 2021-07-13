@@ -263,21 +263,15 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 	assert.NoError(t, err)
 
 	txns := sequence.Transaction{
-		To:       callmockContract.Address,
-		Data:     calldata,
-		Value:    big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
-		GasLimit: big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+		To:   callmockContract.Address,
+		Data: calldata,
 	}
 	bundle := txns.Bundle()
 
-	// TODO ^... something is wrong with PrepareTransactionsForEncoding, as we should be able
-	// to omit "Value" and "GasLimit" above, but in fact, it doesnt work..
-
-	// TODO: rename this method..
-	encodedTxns, err := sequence.PrepareTransactionsForEncoding(bundle)
+	encodedBundle, err := sequence.PrepareTransactionsForEncoding(bundle)
 	assert.NoError(t, err)
 
-	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns.AsValues(), big.NewInt(0), []byte{})
+	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedBundle.AsValues(), big.NewInt(0), []byte{})
 	assert.NoError(t, err)
 
 	// TODO: rename this.. it is computing the guest SubDigest .. maybe find another name for it..?
@@ -285,7 +279,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 	metaTxnID, err := sequence.ComputeMetaTxnID(
 		testChain.ChainID(),
 		testChain.SequenceContext().GuestModuleAddress,
-		bundle, nil, sequence.MetaTxnGuestExec,
+		encodedBundle, nil, sequence.MetaTxnGuestExec,
 	)
 	assert.NoError(t, err)
 
@@ -330,18 +324,37 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, isDeployed)
 
-	// Create normal txn of: callmockContract.testCall(55, 0x112255)
-	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
+	// Wallet deployment data
+	_, factoryAddress, deployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
 	assert.NoError(t, err)
 
-	txns := sequence.Transaction{
-		To:       callmockContract.Address,
-		Data:     calldata,
-		Value:    big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
-		GasLimit: big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+	assert.NoError(t, err)
+
+	// TODO: lets encode a wallet deployment, then call in the bundle, and send it to the guest module..
+
+	// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
+	bundle := sequence.Transactions{
+		{
+			To:       factoryAddress,
+			Data:     deployData,
+			Value:    big.NewInt(0),
+			GasLimit: big.NewInt(0),
+		},
+		{
+			To: wallet.Address(),
+			Transactions: sequence.Transactions{
+				{
+					To:       callmockContract.Address,
+					Data:     calldata,
+					Value:    big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+					GasLimit: big.NewInt(0), // TODO: shouldnt need to set this manually, should be set by PrepareTransactionsForEncoding
+				},
+			},
+		},
 	}
-	bundle := txns.Bundle()
 
 	// TODO ^... something is wrong with PrepareTransactionsForEncoding, as we should be able
 	// to omit "Value" and "GasLimit" above, but in fact, it doesnt work..
@@ -385,7 +398,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
-	assert.Equal(t, "1239", ret[0])
+	assert.Equal(t, "2255", ret[0])
 
 	// TODO: check the txn receipt..
 	// curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xb3e5dd48b198c37b5efbdbb95f857b15d519fa77fa4cb12233936536cdd0288c"],"id":1}' | jq
