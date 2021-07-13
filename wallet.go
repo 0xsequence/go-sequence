@@ -309,16 +309,6 @@ func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*Signed
 }
 
 func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
-	// stxns, err := xxprepareTransactionsForEncoding(txns)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// encodedTxns, err := txns.EncodedTransactions()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	var err error
 
 	// If a transaction has 0 gasLimit and not revertOnError
@@ -363,16 +353,11 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		return nil, err
 	}
 
-	// encodedTxns, err := bundle.Transactions.EncodedTransactions()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return &SignedTransactions{
 		ChainID:       w.chainID,
 		WalletConfig:  w.config,
 		WalletContext: w.context,
-		Transactions:  txns, //NewTransactionsFromValues(encodedTxns),
+		Transactions:  txns,
 		Nonce:         nonce,
 		Digest:        digest,
 		Signature:     sig,

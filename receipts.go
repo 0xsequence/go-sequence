@@ -47,11 +47,6 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 		return nil, err
 	}
 
-	// transactions, err := prepareTransactionsForEncoding(decodedTransactions)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
 	_, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute, "")
 	if err != nil {
