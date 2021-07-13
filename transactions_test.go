@@ -256,7 +256,7 @@ func TestTransactionERC20Transfer(t *testing.T) {
 	assert.Equal(t, "30", ret[0])
 }
 
-func TestTransactionToGuestModuleRelay(t *testing.T) {
+func TestTransactionToGuestModuleBasic(t *testing.T) {
 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
