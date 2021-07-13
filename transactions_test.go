@@ -77,7 +77,7 @@ func TestTransactionVerbose(t *testing.T) {
 
 	assert.Equal(t, wallet.Address(), walletAddress)
 
-	expectedMetaTxnID, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
+	expectedMetaTxnID, _, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
 	assert.NoError(t, err)
 
 	// Send the transaction
@@ -274,7 +274,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 	assert.NoError(t, err)
 
-	metaTxnID, err := sequence.ComputeMetaTxnID(
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(
 		testChain.ChainID(),
 		testChain.SequenceContext().GuestModuleAddress,
 		bundle, nil, sequence.MetaTxnGuestExec,
@@ -374,7 +374,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 	assert.NoError(t, err)
 
-	metaTxnID, err := sequence.ComputeMetaTxnID(
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(
 		testChain.ChainID(),
 		testChain.SequenceContext().GuestModuleAddress,
 		guestBundle, nil, sequence.MetaTxnGuestExec,

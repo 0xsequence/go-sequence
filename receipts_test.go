@@ -105,13 +105,10 @@ func TestReceiptDecoding(t *testing.T) {
 	receipts, err := sequence.DecodeReceipt(context.Background(), receipt, wallet.GetProvider())
 	assert.NoError(t, err)
 	assert.Len(t, receipts, len(bundle))
-
-	metaTxnID := receipts[0].MetaTxnID
-	assert.NotEqual(t, "", metaTxnID)
+	assert.True(t, haveSameMetaTxnID(receipts))
 
 	for _, child := range receipts {
 		assert.True(t, hasNativeReceipt(child, receipt))
-		assert.True(t, hasMetaTxnID(child, metaTxnID))
 		assert.NoError(t, areIsomorphic(child, child.Transaction))
 	}
 
@@ -160,13 +157,21 @@ func hasNativeReceipt(receipt *sequence.Receipt, native *types.Receipt) bool {
 	return true
 }
 
-func hasMetaTxnID(receipt *sequence.Receipt, metaTxnID sequence.MetaTxnID) bool {
-	if receipt.MetaTxnID != metaTxnID {
+func haveSameMetaTxnID(receipts []*sequence.Receipt) bool {
+	if len(receipts) <= 1 {
+		return true
+	}
+
+	if len(receipts[0].MetaTxnID) == 0 {
 		return false
 	}
 
-	for _, child := range receipt.Receipts {
-		if !hasMetaTxnID(child, metaTxnID) {
+	for _, child := range receipts {
+		if child.MetaTxnID != receipts[0].MetaTxnID {
+			return false
+		}
+
+		if !haveSameMetaTxnID(child.Receipts) {
 			return false
 		}
 	}

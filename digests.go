@@ -77,14 +77,14 @@ func ComputeGuestExecDigest(txns Transactions) (common.Hash, error) {
 	return common.BytesToHash(ethcoder.Keccak256(message)), nil
 }
 
-func ComputeMetaTxnID(chainID *big.Int, address common.Address, txns Transactions, nonce *big.Int, execType MetaTxnExecType) (MetaTxnID, error) {
+func ComputeMetaTxnID(chainID *big.Int, address common.Address, txns Transactions, nonce *big.Int, execType MetaTxnExecType) (MetaTxnID, common.Hash, error) {
 	var digest common.Hash
 	var err error
 
 	switch execType {
 	case MetaTxnWalletExec:
 		if nonce == nil {
-			return "", fmt.Errorf("wallet exec type requires nonce but is nil")
+			return "", common.Hash{}, fmt.Errorf("wallet exec type requires nonce but is nil")
 		}
 		digest, err = ComputeWalletExecDigest(nonce, txns)
 
@@ -95,26 +95,26 @@ func ComputeMetaTxnID(chainID *big.Int, address common.Address, txns Transaction
 		digest, err = ComputeGuestExecDigest(txns)
 
 	default:
-		return "", fmt.Errorf("unknown exec type")
+		return "", common.Hash{}, fmt.Errorf("unknown exec type")
 	}
 	if err != nil {
-		return "", err
+		return "", common.Hash{}, err
 	}
 
 	return ComputeMetaTxnIDFromDigest(chainID, address, digest)
 }
 
-func ComputeMetaTxnIDFromDigest(chainID *big.Int, address common.Address, digest common.Hash) (MetaTxnID, error) {
+func ComputeMetaTxnIDFromDigest(chainID *big.Int, address common.Address, digest common.Hash) (MetaTxnID, common.Hash, error) {
 	subDigest, err := SubDigest(chainID, address, digest)
 	if err != nil {
-		return "", nil
+		return "", common.Hash{}, nil
 	}
 
 	metaTxnIDHex := ethcoder.HexEncode(subDigest)
 	if len(metaTxnIDHex) != 66 {
-		return "", fmt.Errorf("computed meta txn id is invalid length")
+		return "", common.Hash{}, fmt.Errorf("computed meta txn id is invalid length")
 	}
-	return MetaTxnID(metaTxnIDHex[2:]), nil
+	return MetaTxnID(metaTxnIDHex[2:]), common.BytesToHash(subDigest), nil
 }
 
 func SubDigest(chainID *big.Int, address common.Address, digest common.Hash) ([]byte, error) {
