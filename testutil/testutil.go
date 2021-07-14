@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"testing"
 	"time"
 
@@ -33,6 +34,8 @@ type TestChain struct {
 	chainID        *big.Int         // chainID determined by the test chain
 	walletMnemonic string           // test wallet mnemonic parsed from package.json
 	Provider       *ethrpc.Provider // provider rpc to the test chain
+
+	RpcRelayer *relayer.RpcRelayer // helper to track RpcRelayer client
 }
 
 type TestChainOptions struct {
@@ -86,6 +89,19 @@ func (c *TestChain) connect() error {
 
 func (c *TestChain) ChainID() *big.Int {
 	return c.chainID
+}
+
+func (c *TestChain) SequenceContext() sequence.WalletContext {
+	return SequenceContext()
+}
+
+func (c *TestChain) SetRpcRelayer(relayerURL string) error {
+	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, relayerURL, http.DefaultClient)
+	if err != nil {
+		return err
+	}
+	c.RpcRelayer = rpcRelayer
+	return nil
 }
 
 func (c *TestChain) Wallet() (*ethwallet.Wallet, error) {
@@ -351,7 +367,7 @@ func (c *TestChain) RandomNonce() *big.Int {
 	return encoded
 }
 
-func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
+func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet, error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
 	if err != nil {
@@ -376,6 +392,11 @@ func (c *TestChain) DummySequenceWallet(seed uint64) (*sequence.Wallet, error) {
 	err = wallet.SetRelayer(localRelayer)
 	if err != nil {
 		return nil, err
+	}
+
+	// Skip deploying the dummy wallet if specified
+	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {
+		return wallet, nil
 	}
 
 	// Check if wallet is already deployed, in which case we will return right away

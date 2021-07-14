@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -128,4 +130,10 @@ func BatchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, 
 	// correctly logged..
 
 	return err
+}
+
+// RandomSeed will generate a random seed
+func RandomSeed() uint64 {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Uint64()
 }

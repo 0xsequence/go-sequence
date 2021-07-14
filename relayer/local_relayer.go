@@ -2,7 +2,6 @@ package relayer
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -53,7 +52,12 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 
 	defaultGasLimit := int64(800_000)
 
-	for _, txn := range txns {
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, txn := range encodedTxns {
 		// Respect gasLimit request of the transaction (as long as its not 0)
 		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
 			continue
@@ -85,9 +89,15 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 
 		gasLimit, err := provider.EstimateGas(ctx, callMsg)
 		if err != nil {
-			return nil, fmt.Errorf("ethtxn: %w", err)
+			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
+			continue
 		}
 		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
+	}
+
+	// update gasLimit on original transactions
+	for i, txn := range txns {
+		txn.GasLimit = encodedTxns[i].GasLimit
 	}
 
 	return txns, nil
@@ -100,6 +110,9 @@ func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig sequence.Walle
 func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
 	// a wallet creation call)
+
+	// TODO: lets update LocalRelayer so it'll do auto-bundle creation.. to prepend, and send to guestModule, etc..
+	// its more consistent, and easier for tests..
 
 	sender := r.Sender
 
@@ -120,7 +133,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
-	metaTxnID, err := sequence.ComputeMetaTxnID(walletAddress, signedTxs.ChainID, signedTxs.Transactions, signedTxs.Nonce)
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
 	if err != nil {
 		return "", nil, nil, err
 	}

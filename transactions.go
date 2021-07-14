@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -34,6 +32,41 @@ type Transaction struct {
 
 	// Expiration *big.Int // optional.. TODO
 	// AfterNonce .. // optional.. TODO
+
+	encoded bool
+}
+
+func (t *Transaction) IsEncoded() bool {
+	return t.encoded
+}
+
+func (t *Transaction) Clone() *Transaction {
+	clone := Transaction{
+		DelegateCall:  t.DelegateCall,
+		RevertOnError: t.RevertOnError,
+		To:            t.To,
+	}
+	if t.GasLimit != nil {
+		clone.GasLimit = new(big.Int).Set(t.GasLimit)
+	}
+	if t.Value != nil {
+		clone.Value = new(big.Int).Set(t.Value)
+	}
+	if t.Data != nil {
+		clone.Data = make([]byte, len(t.Data))
+		copy(clone.Data, t.Data)
+	}
+	if t.Transactions != nil {
+		clone.Transactions = t.Transactions.Clone()
+	}
+	if t.Nonce != nil {
+		clone.Nonce = new(big.Int).Set(t.Nonce)
+	}
+	if t.Signature != nil {
+		clone.Signature = make([]byte, len(t.Signature))
+		copy(clone.Signature, t.Signature)
+	}
+	return &clone
 }
 
 func (t *Transaction) Bundle() Transactions {
@@ -67,32 +100,40 @@ func (t *Transaction) Execdata() ([]byte, error) {
 		return nil, fmt.Errorf("transaction is not a bundle: only bundles have execdata")
 	}
 
-	transactions, err := prepareTransactionsForEncoding(t.Transactions)
+	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
 		return nil, err
 	}
 
 	if t.Signature != nil {
-		return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), t.Nonce, t.Signature)
+		return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 	} else {
-		return contracts.WalletMainModule.Encode("selfExecute", transactions.AsValues())
+		return contracts.WalletMainModule.Encode("selfExecute", encodedTxns)
 	}
 }
 
 func (t *Transaction) Digest() (common.Hash, error) {
-	// we don't check t.IsValid() here because we want this to also work when the signature isn't set
+	// precondition: the digest only exists for transaction bundles
 	if t.Data != nil {
 		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
-	if t.Nonce == nil {
-		return common.Hash{}, fmt.Errorf("nonce must be set to compute digest")
+
+	if t.Nonce != nil {
+		return ComputeWalletExecDigest(t.Nonce, t.Transactions)
+	} else {
+		return ComputeSelfExecDigest(t.Transactions)
+	}
+}
+
+func (t *Transaction) GuestDigest() (common.Hash, error) {
+	// precondition: the digest only exists for transaction bundles
+	if t.Data != nil {
+		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
-	message, err := abiTransactionsDigestType.Pack(t.Nonce, t.Transactions.AsValues())
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
-	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+	// TODO: should we check t.Nonce and return error, as invarient check..?
+
+	return ComputeGuestExecDigest(t.Transactions)
 }
 
 // AddToBundle will create a bundle from the passed txns and add it to current transaction
@@ -140,6 +181,45 @@ func (t Transactions) PrependBundle(txns Transactions) {
 	bundleTxn := &Transaction{}
 	bundleTxn.AddToBundle(txns)
 	t.Prepend(Transactions{bundleTxn})
+}
+
+func (t Transactions) EncodedTransactions() ([]Transaction, error) {
+	if len(t) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+	}
+
+	stxns := []Transaction{}
+	for _, txn := range t {
+		if txn == nil {
+			return nil, fmt.Errorf("cannot sign a nil transaction")
+		}
+
+		txn := txn.Clone()
+
+		if !txn.encoded {
+			// encode the transaction is still unencoded
+			if txn.Value == nil {
+				txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
+			}
+			if txn.GasLimit == nil {
+				txn.GasLimit = big.NewInt(0) // default of 0 is expected by abi coder
+			}
+
+			// flatten the bundle into a single transaction as expected by `execute` contract method
+			if txn.IsBundle() {
+				var err error
+				txn.Data, err = txn.Execdata()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		txn.encoded = true
+		stxns = append(stxns, *txn)
+	}
+
+	return stxns, nil
 }
 
 func (t Transactions) AsValues() []Transaction {
@@ -192,6 +272,14 @@ func (t Transactions) Execdata(sig []byte) ([]byte, error) {
 	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), nonce, sig)
 }
 
+func (t Transactions) Clone() Transactions {
+	txns := make(Transactions, len(t))
+	for i, txn := range t {
+		txns[i] = txn.Clone()
+	}
+	return txns
+}
+
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
 	ChainID       *big.Int
@@ -205,21 +293,11 @@ type SignedTransactions struct {
 }
 
 func (t *SignedTransactions) Execdata() ([]byte, error) {
-	transactions, err := prepareTransactionsForEncoding(t.Transactions)
+	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(transactions); i++ {
-		if transactions[i].IsBundle() {
-			var err error
-			transactions[i].Data, err = transactions[i].Execdata()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), t.Nonce, t.Signature)
+	return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 }
 
 // Transaction events as defined in wallet-contracts IModuleCalls.sol
@@ -319,41 +397,6 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	return nonceResult, nil
 }
 
-// IsTxFailedLog returns true if the log belongs to a failed smart meta-transaction
-func IsTxFailedLog(logs []*types.Log) (string, bool, error) {
-	log := logs[len(logs)-1] // check the last log in the set
-	if ok := len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig; ok {
-
-		var txhash [32]byte
-		var reason []byte
-
-		if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&txhash, &reason}); err != nil {
-			return "", false, err
-		}
-
-		var inputType = abi.Arguments{
-			abi.Argument{
-				Type: ethcoder.MustNewType("string"),
-			},
-		}
-
-		if len(reason) < 4 {
-			// There is no reason
-			return "", true, nil
-		}
-		errMsg := ""
-		values, err := inputType.Unpack(reason[4:])
-		if err != nil {
-			return "", false, err
-		}
-		if err = inputType.Copy(&errMsg, values); err != nil {
-			return "", false, err
-		}
-		return errMsg, true, nil
-	}
-	return "", false, nil
-}
-
 func IsNonceChangedEvent(logs []*types.Log) bool {
 	if len(logs[0].Topics) != 1 {
 		return false
@@ -396,57 +439,47 @@ func EncodeTransactions(txns Transactions) ([]byte, error) {
 	return txns.Execdata(nil)
 }
 
-func DecodeTransaction(data []byte) (*Transaction, error) {
+func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
+	if len(data) < 4 {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
+	}
+
 	var transactions []Transaction
 	var nonce *big.Int
 	var signature []byte
 	var err error
 
-	if len(data) >= 4 {
-		executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
-		selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
+	executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
 
-		if bytes.Equal(data[:4], executeMethod.ID) {
-			var values []interface{}
-			values, err = executeMethod.Inputs.Unpack(data[4:])
-			if err == nil {
-				err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
-			}
-		} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
-			var values []interface{}
-			values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
-			if err == nil {
-				err = selfExecuteMethod.Inputs.Copy(&transactions, values)
-			}
+	if bytes.Equal(data[:4], executeMethod.ID) {
+		var values []interface{}
+		values, err = executeMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
 		}
-		if err != nil {
-			return nil, err
+	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
+		var values []interface{}
+		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
 		}
-
-		if transactions != nil {
-			for i := 0; i < len(transactions); i++ {
-				decoded, err := DecodeTransaction(transactions[i].Data)
-				if err != nil {
-					return nil, err
-				}
-
-				if decoded.Transactions != nil {
-					transactions[i].Data = nil
-					transactions[i].Transactions = decoded.Transactions
-					transactions[i].Nonce = decoded.Nonce
-					transactions[i].Signature = decoded.Signature
-				}
-			}
-		}
-	}
-
-	if transactions == nil {
-		return &Transaction{Data: data}, nil
 	} else {
-		return &Transaction{
-			Transactions: NewTransactionsFromValues(transactions),
-			Nonce:        nonce,
-			Signature:    signature,
-		}, nil
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for i := 0; i < len(transactions); i++ {
+		decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data)
+		if err == nil {
+			transactions[i].Data = nil
+			transactions[i].Transactions = decodedTransactions
+			transactions[i].Nonce = decodedNonce
+			transactions[i].Signature = decodedSignature
+		}
+	}
+
+	return NewTransactionsFromValues(transactions), nonce, signature, nil
 }
