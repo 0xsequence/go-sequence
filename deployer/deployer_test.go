@@ -23,7 +23,7 @@ func init() {
 }
 
 func TestDeployer(t *testing.T) {
-	assert.Equal(t, testChain.ChainID().Uint64(), uint64(4337))
+	assert.Equal(t, testChain.ChainID().Uint64(), uint64(1337))
 
 	testWallet := testChain.MustWallet(5)
 
@@ -33,7 +33,7 @@ func TestDeployer(t *testing.T) {
 	testSequenceContext := testutil.SequenceContext()
 
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
-	walletFactoryAddress, err := ud.Deploy(context.Background(), contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil)
+	walletFactoryAddress, err := ud.Deploy(context.Background(), contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil, 1000000)
 	assert.NoError(t, err)
 	assert.Equal(t, testSequenceContext.FactoryAddress, walletFactoryAddress)
 }

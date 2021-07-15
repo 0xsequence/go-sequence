@@ -31,6 +31,9 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig WalletConfig, w
 	deployTx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 		To:   &walletContext.FactoryAddress,
 		Data: deployData,
+		// TODO: Move this hardcoded gas limit to a configuration
+		// or fix it with a contract patch
+		GasLimit: 131072,
 	})
 
 	signedDeployTx, err := sender.SignTx(deployTx, chainID)

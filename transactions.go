@@ -183,10 +183,6 @@ func (t Transactions) PrependBundle(txns Transactions) {
 }
 
 func (t Transactions) EncodedTransactions() ([]Transaction, error) {
-	if len(t) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
 	stxns := []Transaction{}
 	for _, txn := range t {
 		if txn == nil {
@@ -229,12 +225,22 @@ func (t Transactions) AsValues() []Transaction {
 	return v
 }
 
-func (t Transactions) Execdata() ([]byte, error) {
-	encodedTxns, err := t.EncodedTransactions()
-	if err != nil {
-		return nil, err
+func (t Transactions) Nonce() (*big.Int, error) {
+	var nonce *big.Int
+
+	for _, tx := range t {
+		if tx.Nonce != nil {
+			if nonce == nil {
+				nonce = tx.Nonce
+			} else {
+				if nonce.Cmp(tx.Nonce) != 0 {
+					return nil, fmt.Errorf("transaction contains mixed nonces")
+				}
+			}
+		}
 	}
-	return contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), make([]byte, 0))
+
+	return nonce, nil
 }
 
 func (t Transactions) Clone() Transactions {

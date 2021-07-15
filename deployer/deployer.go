@@ -89,7 +89,7 @@ func NewUniversalDeployer(wallet *ethwallet.Wallet) (*UniversalDeployer, error) 
 	return ud, nil
 }
 
-func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, contractBin []byte, contractInstance uint, txParams interface{}, contractArgs ...interface{}) (common.Address, error) {
+func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, contractBin []byte, contractInstance uint, txParams interface{}, gasLimit uint, contractArgs ...interface{}) (common.Address, error) {
 	// Deploy universal deployer 2 if not yet deployed
 	code, err := u.provider.CodeAt(ctx, UNIVERSAL_DEPLOYER_2_ADDRESS, nil)
 	if err != nil {
@@ -99,6 +99,11 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 		err = u.deployUniversalDeployer2(ctx, txParams)
 		if err != nil {
 			return common.Address{}, err
+		}
+
+		code, err = u.provider.CodeAt(ctx, UNIVERSAL_DEPLOYER_2_ADDRESS, nil)
+		if len(code) == 0 {
+			return common.Address{}, fmt.Errorf("can't deploy universal deployer")
 		}
 	}
 
@@ -126,8 +131,9 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 	}
 
 	tx, err := u.Wallet.NewTransaction(ctx, &ethtxn.TransactionRequest{
-		To:   &UNIVERSAL_DEPLOYER_2_ADDRESS,
-		Data: input,
+		To:       &UNIVERSAL_DEPLOYER_2_ADDRESS,
+		Data:     input,
+		GasLimit: uint64(gasLimit),
 	})
 
 	_, waitTx, err := u.Wallet.SendTransaction(ctx, tx)
@@ -141,6 +147,11 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 	}
 	if receipt.Status != types.ReceiptStatusSuccessful {
 		return common.Address{}, fmt.Errorf("deployer: tx failed: %w", err)
+	}
+
+	code, err = u.provider.CodeAt(ctx, contractAddress, nil)
+	if len(code) == 0 {
+		return common.Address{}, fmt.Errorf("can't deploy contract")
 	}
 
 	return contractAddress, nil
@@ -168,8 +179,9 @@ func (u *UniversalDeployer) deployUniversalDeployer2(ctx context.Context, txPara
 
 	// deploy universal deployer 2 contract
 	tx, err := u.Wallet.NewTransaction(ctx, &ethtxn.TransactionRequest{
-		To:   &UNIVERSAL_DEPLOYER_ADDRESS,
-		Data: UNIVERSAL_DEPLOYER_2_BYTECODE,
+		To:       &UNIVERSAL_DEPLOYER_ADDRESS,
+		Data:     UNIVERSAL_DEPLOYER_2_BYTECODE,
+		GasLimit: 200000,
 	})
 	if err != nil {
 		return err

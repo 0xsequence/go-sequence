@@ -21,6 +21,13 @@ import (
 	"github.com/0xsequence/go-sequence/relayer"
 )
 
+func fromEther(ether *big.Int) *big.Int {
+	oneEth := big.NewInt(10)
+	oneEth.Exp(oneEth, big.NewInt(18), nil)
+
+	return ether.Mul(ether, oneEth)
+}
+
 type TestChain struct {
 	options TestChainOptions
 
@@ -115,6 +122,11 @@ func (c *TestChain) Wallet() (*ethwallet.Wallet, error) {
 	}
 	wallet.SetProvider(c.Provider)
 
+	err = c.MustFundAddress(wallet.Address())
+	if err != nil {
+		return nil, err
+	}
+
 	return wallet, nil
 }
 
@@ -129,7 +141,66 @@ func (c *TestChain) MustWallet(optAccountIndex ...uint32) *ethwallet.Wallet {
 			panic(err)
 		}
 	}
+
+	err = c.MustFundAddress(wallet.Address())
+	if err != nil {
+		panic(err)
+	}
+
 	return wallet
+}
+
+func (c *TestChain) MustFundAddress(addr common.Address) error {
+	min := fromEther(big.NewInt(1))
+	target := fromEther(big.NewInt(100))
+
+	balance, err := c.Provider.BalanceAt(context.Background(), addr, nil)
+	if err != nil {
+		return err
+	}
+
+	if balance.Cmp(min) != -1 {
+		return nil
+	}
+
+	var accounts []common.Address
+	err = c.Provider.RPC.CallContext(context.Background(), &accounts, "eth_accounts")
+	if err != nil {
+		return err
+	}
+
+	type SendTx struct {
+		From  *common.Address `json:"from"`
+		To    *common.Address `json:"to"`
+		Value string          `json:"value"`
+	}
+
+	diff := big.NewInt(0)
+	diff.Sub(target, balance)
+
+	tx := &SendTx{
+		To:    &addr,
+		From:  &accounts[0],
+		Value: "0x" + diff.Text(16),
+	}
+
+	err = c.Provider.RPC.CallContext(context.Background(), nil, "eth_sendTransaction", tx)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(2 * time.Second)
+
+	balance, err = c.Provider.BalanceAt(context.Background(), addr, nil)
+	if err != nil {
+		return err
+	}
+
+	if balance.Cmp(min) == -1 {
+		return fmt.Errorf("Test wallet has no balance")
+	}
+
+	return nil
 }
 
 func (c *TestChain) GetDeployWallet() *ethwallet.Wallet {
@@ -154,27 +225,27 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contracts.WalletMainModule.ABI, contracts.WalletMainModule.Bin, 0, nil, walletFactoryAddress)
+	mainModuleAddress, err := ud.Deploy(ctx, contracts.WalletMainModule.ABI, contracts.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.WalletMainModuleUpgradable.ABI, contracts.WalletMainModuleUpgradable.Bin, 0, nil)
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.WalletMainModuleUpgradable.ABI, contracts.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.WalletGuestModule.ABI, contracts.WalletGuestModule.Bin, 0, nil)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.WalletGuestModule.ABI, contracts.WalletGuestModule.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contracts.WalletUtils.ABI, contracts.WalletUtils.Bin, 0, nil, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contracts.WalletUtils.ABI, contracts.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
 	}
@@ -210,7 +281,7 @@ func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanc
 	if err != nil {
 		t.Fatal(err)
 	}
-	contractAddress, err := ud.Deploy(context.Background(), artifact.ABI, artifact.Bin, contractInstanceNum, nil, contractConstructorArgs...)
+	contractAddress, err := ud.Deploy(context.Background(), artifact.ABI, artifact.Bin, contractInstanceNum, nil, 5000000, contractConstructorArgs...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,6 +356,17 @@ func (c *TestChain) DummySequenceWallets(nWallets uint64, startingSeed uint64) (
 	return wallets, nil
 }
 
+func (c *TestChain) RandomNonce() *big.Int {
+	space := big.NewInt(int64(time.Now().Nanosecond()))
+
+	encoded, err := sequence.EncodeNonce(space, big.NewInt(0))
+	if err != nil {
+		panic(err)
+	}
+
+	return encoded
+}
+
 func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet, error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
@@ -335,7 +417,11 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 	}
 
 	// Ensure deployment worked
-	ok, _ = wallet.IsDeployed()
+	ok, err = wallet.IsDeployed()
+	if err != nil {
+		return nil, err
+	}
+
 	if !ok {
 		return nil, fmt.Errorf("dummy sequence wallet failed to deploy")
 	}

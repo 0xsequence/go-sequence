@@ -21,7 +21,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 
 	wallet.SetProvider(testChain.Provider)
 	chainID := wallet.GetChainID()
-	assert.Equal(t, uint64(4337), chainID.Uint64())
+	assert.Equal(t, uint64(1337), chainID.Uint64())
 
 	// Confirm the wallet is not deployed
 	isDeployed, err := wallet.IsDeployed()
