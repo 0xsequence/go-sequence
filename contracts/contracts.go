@@ -21,10 +21,10 @@ var (
 	WalletMainModuleUpgradable,
 	WalletGuestModule,
 	WalletUtils,
-	IERC1271,
-	ERC20Mock,
 	WalletGasEstimator,
 	GasEstimator,
+	IERC1271,
+	ERC20Mock,
 	_ ethartifact.Artifact
 )
 
@@ -34,10 +34,6 @@ var (
 
 	//go:embed artifacts/erc-1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
-
-	GasEstimatorDeployedBytecode string
-
-	WalletGasEstimatoreDeployedBytecode string
 )
 
 func init() {
@@ -46,21 +42,23 @@ func init() {
 	WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable.WalletUpgradableABI, walletupgradable.WalletUpgradableBin)
 	WalletGuestModule = artifact("WALLET_GUEST", walletguest.WalletGuestABI, walletguest.WalletGuestBin)
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
-	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin)
-	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin)
-
-	GasEstimatorDeployedBytecode = gasestimator.GasEstimatorDeployedBin
-	WalletGasEstimatoreDeployedBytecode = walletgasestimator.WalletGasEstimatorDeployedBin
+	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin, walletgasestimator.WalletGasEstimatorDeployedBin)
+	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
 	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }
 
-func artifact(contractName, abiJSON, bytecodeHex string) ethartifact.Artifact {
+func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...string) ethartifact.Artifact {
+	var deployedBin []byte
+	if len(deployedBytecodeHex) > 0 {
+		deployedBin = common.FromHex(deployedBytecodeHex[0])
+	}
 	return ethartifact.Artifact{
 		ContractName: contractName,
 		ABI:          ethcontract.MustParseABI(abiJSON),
 		Bin:          common.FromHex(bytecodeHex),
+		DeployedBin:  deployedBin,
 	}
 }

@@ -15,17 +15,17 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
-type StateOverride struct {
-	Key   string
-	Value string
-}
-
-type Override struct {
-	Code      string
+type CallOverride struct {
+	Code      string // TODO: change Code type from string to []byte, will be more efficient
 	Balance   *big.Int
 	Nonce     *big.Int
 	StateDiff []*StateOverride
 	State     []*StateOverride
+}
+
+type StateOverride struct {
+	Key   string
+	Value string
 }
 
 type EstimateTransaction struct {
@@ -68,7 +68,7 @@ func (e *Estimator) CalldataCost(data []byte) uint64 {
 	return cost
 }
 
-func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider, call *EstimateTransaction, overrides map[common.Address]*Override, blockTag string) (*big.Int, error) {
+func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider, call *EstimateTransaction, overrides map[common.Address]*CallOverride, blockTag string) (*big.Int, error) {
 	if blockTag == "" {
 		blockTag = "latest"
 	}
@@ -78,9 +78,10 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 		from = stubAddress()
 	}
 
-	finalOverrides := map[common.Address]*Override{
+	finalOverrides := map[common.Address]*CallOverride{
 		from: {
-			Code: contracts.GasEstimatorDeployedBytecode,
+			// TODO: prob change Override type to use []byte instead of doing so many conversions
+			Code: "0x" + common.Bytes2Hex(contracts.GasEstimator.DeployedBin),
 		},
 	}
 
@@ -291,12 +292,14 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 
 	signature := e.BuildStubSignature(walletConfig, willSign, isEOA)
 
-	overrides := map[common.Address]*Override{
+	overrides := map[common.Address]*CallOverride{
 		walletContext.MainModuleAddress: {
-			Code: contracts.WalletGasEstimatoreDeployedBytecode,
+			// TODO: prob change Override type to use []byte instead of doing so many conversions
+			Code: "0x" + common.Bytes2Hex(contracts.WalletGasEstimator.DeployedBin),
 		},
 		walletContext.MainModuleUpgradableAddress: {
-			Code: contracts.WalletGasEstimatoreDeployedBytecode,
+			// TODO: prob change Override type to use []byte instead of doing so many conversions
+			Code: "0x" + common.Bytes2Hex(contracts.WalletGasEstimator.DeployedBin),
 		},
 	}
 
