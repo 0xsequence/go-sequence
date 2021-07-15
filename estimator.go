@@ -237,7 +237,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 							Weight:  1,
 						},
 					},
-				}, []bool{false, true, true}, []bool{false, false, false})
+				}, []bool{false, true, true}, []bool{true, true, true})
 
 				sig = append(sig, 03)
 
