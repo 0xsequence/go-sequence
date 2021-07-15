@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
 )
@@ -154,6 +155,37 @@ func NewTransactionsFromValues(values []Transaction) Transactions {
 		transactions = append(transactions, &values[i])
 	}
 	return transactions
+}
+
+func (t Transactions) EncodeRaw() ([]byte, error) {
+	encoded, err := t.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+	encoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
+	return encoder.Pack(encoded)
+}
+
+func DecodeRawTransactions(data []byte) (Transactions, error) {
+	decoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
+	values, err := decoder.Unpack(data)
+	if err != nil {
+		return nil, err
+	}
+	var transactions []Transaction
+	if err = decoder.Copy(&transactions, values); err != nil {
+		return nil, err
+	}
+	for i := range transactions {
+		children, nonce, signature, err := DecodeExecdata(transactions[i].Data)
+		if err == nil {
+			transactions[i].Data = nil
+			transactions[i].Transactions = children
+			transactions[i].Nonce = nonce
+			transactions[i].Signature = signature
+		}
+	}
+	return NewTransactionsFromValues(transactions), nil
 }
 
 // Append will append the passed txns to the `t` array (as separate Transaction elements).
