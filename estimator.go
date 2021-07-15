@@ -313,12 +313,12 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 	for i := range estimates {
 		subTxs := txs[0:i]
 
-		encTxs, err := prepareTransactionsForEncoding(subTxs)
+		encTxs, err := subTxs.EncodedTransactions()
 		if err != nil {
 			return 0, err
 		}
 
-		execData, err := contracts.WalletMainModule.Encode("execute", encTxs.AsValues(), nonce, signature)
+		execData, err := contracts.WalletMainModule.Encode("execute", encTxs, nonce, signature)
 		if err != nil {
 			return 0, err
 		}

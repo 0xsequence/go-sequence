@@ -9,7 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
@@ -184,10 +183,6 @@ func (t Transactions) PrependBundle(txns Transactions) {
 }
 
 func (t Transactions) EncodedTransactions() ([]Transaction, error) {
-	if len(t) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
 	stxns := []Transaction{}
 	for _, txn := range t {
 		if txn == nil {
@@ -246,30 +241,6 @@ func (t Transactions) Nonce() (*big.Int, error) {
 	}
 
 	return nonce, nil
-}
-
-func (t Transactions) Execdata(sig []byte) ([]byte, error) {
-	transactions, err := prepareTransactionsForEncoding(t)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce, err := t.Nonce()
-	if nonce == nil {
-		nonce = big.NewInt(0)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if sig == nil {
-		sig = make([]byte, 0)
-	}
-
-	fmt.Println("Using nonce", nonce.String())
-
-	return contracts.WalletMainModule.Encode("execute", transactions.AsValues(), nonce, sig)
 }
 
 func (t Transactions) Clone() Transactions {
@@ -395,48 +366,6 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	}
 
 	return nonceResult, nil
-}
-
-func IsNonceChangedEvent(logs []*types.Log) bool {
-	if len(logs[0].Topics) != 1 {
-		return false
-	}
-	if logs[0].Topics[0] != NonceChangeEventSig {
-		return false
-	}
-	return true
-}
-
-// prepareTransactionsForEncoding checks the transactions data structure with basic
-// integrity checks
-func prepareTransactionsForEncoding(txns Transactions) (Transactions, error) {
-	stxns := Transactions{}
-	for _, txn := range txns {
-		if txn == nil {
-			return nil, fmt.Errorf("cannot sign a nil transaction")
-		}
-		if txn.Value == nil {
-			txn.Value = big.NewInt(0) // default of 0 is expected by abi coder
-		}
-		if txn.GasLimit == nil {
-			txn.GasLimit = big.NewInt(0)
-		}
-		if txn.IsBundle() {
-			var err error
-			txn.Data, err = txn.Execdata()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		stxns = append(stxns, txn)
-	}
-
-	return stxns, nil
-}
-
-func EncodeTransactions(txns Transactions) ([]byte, error) {
-	return txns.Execdata(nil)
 }
 
 func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
