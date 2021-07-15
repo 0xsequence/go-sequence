@@ -15,17 +15,17 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
-type StateOverwrite struct {
+type StateOverride struct {
 	Key   string
 	Value string
 }
 
-type Overwrite struct {
+type Override struct {
 	Code      string
 	Balance   *big.Int
 	Nonce     *big.Int
-	StateDiff []*StateOverwrite
-	State     []*StateOverwrite
+	StateDiff []*StateOverride
+	State     []*StateOverride
 }
 
 type EstimateTransaction struct {
@@ -68,7 +68,7 @@ func (e *Estimator) CalldataCost(data []byte) uint64 {
 	return cost
 }
 
-func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider, call *EstimateTransaction, overwrites map[common.Address]*Overwrite, blockTag string) (*big.Int, error) {
+func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider, call *EstimateTransaction, overrides map[common.Address]*Override, blockTag string) (*big.Int, error) {
 	if blockTag == "" {
 		blockTag = "latest"
 	}
@@ -78,19 +78,19 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 		from = stubAddress()
 	}
 
-	finalOverwrites := map[common.Address]*Overwrite{
+	finalOverrides := map[common.Address]*Override{
 		from: {
 			Code: contracts.GasEstimatorDeployedBytecode,
 		},
 	}
 
-	if overwrites != nil {
-		for key, value := range overwrites {
+	if overrides != nil {
+		for key, value := range overrides {
 			if key == call.From {
-				return nil, fmt.Errorf("can't overwride address from")
+				return nil, fmt.Errorf("can't override address from")
 			}
 
-			finalOverwrites[key] = value
+			finalOverrides[key] = value
 		}
 	}
 
@@ -111,7 +111,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	}
 
 	var res string
-	err = provider.RPC.Call(&res, "eth_call", estimateCall, blockTag, finalOverwrites)
+	err = provider.RPC.Call(&res, "eth_call", estimateCall, blockTag, finalOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 
 	signature := e.BuildStubSignature(walletConfig, willSign, isEOA)
 
-	overwrites := map[common.Address]*Overwrite{
+	overrides := map[common.Address]*Override{
 		walletContext.MainModuleAddress: {
 			Code: contracts.WalletGasEstimatoreDeployedBytecode,
 		},
@@ -326,7 +326,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 			To:   address,
 			Data: execData,
-		}, overwrites, "")
+		}, overrides, "")
 		if err != nil {
 			return 0, err
 		}
