@@ -77,7 +77,7 @@ func (s *Signature) Encode() ([]byte, error) {
 		case sigPartTypeDynamic:
 			pack, err = ethcoder.SolidityPack(
 				[]string{"uint8", "uint8", "address", "uint16", "bytes"},
-				[]interface{}{signer.Type, signer.Weight, signer.Address, len(signer.Value), signer.Value},
+				[]interface{}{signer.Type, signer.Weight, signer.Address, big.NewInt(int64(len(signer.Value))), signer.Value},
 			)
 
 		default:
