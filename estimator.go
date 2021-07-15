@@ -12,11 +12,12 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
 type CallOverride struct {
-	Code      string // TODO: change Code type from string to []byte, will be more efficient
+	Code      string
 	Balance   *big.Int
 	Nonce     *big.Int
 	StateDiff []*StateOverride
@@ -45,6 +46,9 @@ var defaultEstimator = &Estimator{
 	DataOneCost:  16,
 	DataZeroCost: 4,
 }
+
+var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
+var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	return &Estimator{
@@ -79,10 +83,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	}
 
 	finalOverrides := map[common.Address]*CallOverride{
-		from: {
-			// TODO: prob change Override type to use []byte instead of doing so many conversions
-			Code: "0x" + common.Bytes2Hex(contracts.GasEstimator.DeployedBin),
-		},
+		from: {Code: gasEstimatorCode},
 	}
 
 	if overrides != nil {
@@ -293,14 +294,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 	signature := e.BuildStubSignature(walletConfig, willSign, isEOA)
 
 	overrides := map[common.Address]*CallOverride{
-		walletContext.MainModuleAddress: {
-			// TODO: prob change Override type to use []byte instead of doing so many conversions
-			Code: "0x" + common.Bytes2Hex(contracts.WalletGasEstimator.DeployedBin),
-		},
-		walletContext.MainModuleUpgradableAddress: {
-			// TODO: prob change Override type to use []byte instead of doing so many conversions
-			Code: "0x" + common.Bytes2Hex(contracts.WalletGasEstimator.DeployedBin),
-		},
+		walletContext.MainModuleAddress:           {Code: walletGasEstimatorCode},
+		walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCode},
 	}
 
 	estimates := make([]*big.Int, len(txs)+1)
