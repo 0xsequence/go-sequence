@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 // BigInt is a type alias for big.Int used for JSON/Database marshalling.
@@ -15,6 +16,12 @@ type BigInt big.Int
 
 func NewBigInt(n int64) BigInt {
 	b := big.NewInt(n)
+	return BigInt(*b)
+}
+
+func NewBigIntFromString(s string, base int) BigInt {
+	b := big.NewInt(0)
+	b, _ = b.SetString(s, base)
 	return BigInt(*b)
 }
 
@@ -47,6 +54,16 @@ func ToBigIntArrayFromStringArray(s []string, base int) ([]BigInt, error) {
 
 func ToBigIntFromInt64(n int64) BigInt {
 	return ToBigInt(big.NewInt(n))
+}
+
+func (b *BigInt) SetString(s string, base int) bool {
+	v := big.Int(*b)
+	n, ok := v.SetString(s, base)
+	if !ok {
+		return false
+	}
+	*b = BigInt(*n)
+	return true
 }
 
 func (b BigInt) String() string {
@@ -134,6 +151,7 @@ func (b *BigInt) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
+
 	var svalue string
 	switch v := src.(type) {
 	case string:
@@ -143,12 +161,17 @@ func (b *BigInt) Scan(src interface{}) error {
 	default:
 		return fmt.Errorf("BigInt.Scan: unexpected type %T", src)
 	}
+
+	// pgx driver returns NeX where N is digits and X is exponent
+	parts := strings.SplitN(svalue, "e", 2)
+
 	var ok bool
 	i := &big.Int{}
-	i, ok = i.SetString(svalue, 10)
+	i, ok = i.SetString(parts[0], 10)
 	if !ok {
 		return fmt.Errorf("BigInt.Scan: failed to scan value %q", svalue)
 	}
 	*b = BigInt(*i)
+
 	return nil
 }
