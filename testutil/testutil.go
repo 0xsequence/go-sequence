@@ -21,13 +21,6 @@ import (
 	"github.com/0xsequence/go-sequence/relayer"
 )
 
-func fromEther(ether *big.Int) *big.Int {
-	oneEth := big.NewInt(10)
-	oneEth.Exp(oneEth, big.NewInt(18), nil)
-
-	return ether.Mul(ether, oneEth)
-}
-
 type TestChain struct {
 	options TestChainOptions
 

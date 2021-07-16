@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"math/rand"
 	"path/filepath"
 	"runtime"
@@ -136,4 +137,11 @@ func BatchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, 
 func RandomSeed() uint64 {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Uint64()
+}
+
+func fromEther(ether *big.Int) *big.Int {
+	oneEth := big.NewInt(10)
+	oneEth.Exp(oneEth, big.NewInt(18), nil)
+
+	return ether.Mul(ether, oneEth)
 }
