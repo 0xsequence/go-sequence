@@ -392,31 +392,41 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 		return wallet, nil
 	}
 
+	err = c.DeploySequenceWallet(wallet)
+	if err != nil {
+		return nil, err
+	}
+
+	return wallet, nil
+}
+
+func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet) error {
 	// Check if wallet is already deployed, in which case we will return right away
 	ok, _ := wallet.IsDeployed()
 	if ok {
-		return wallet, nil
+		return nil
 	}
 
 	// Deploy the wallet, via our account designated for relaying txs, but it could be any with some ETH
 	sender := c.GetRelayerWallet()
 	_, _, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	_, err = waitReceipt(context.Background())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Ensure deployment worked
 	ok, err = wallet.IsDeployed()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("dummy sequence wallet failed to deploy")
+		return fmt.Errorf("dummy sequence wallet failed to deploy")
 	}
-	return wallet, nil
+
+	return nil
 }

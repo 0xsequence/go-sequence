@@ -3,7 +3,9 @@ package sequence_test
 import (
 	"context"
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethtxn"
@@ -89,6 +91,67 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Equal(t, "3", ret[0])
+}
+
+func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
+	wallet, err := testChain.DummySequenceWallet(rand.Uint64(), true)
+	assert.NoError(t, err)
+
+	isDeployed, err := wallet.IsDeployed()
+	assert.NoError(t, err)
+	assert.False(t, isDeployed)
+
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+	wallet2, err := testChain.DummySequenceWallet(1)
+	clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+	assert.NoError(t, err)
+	testutil.SignAndSend(t, wallet2, callmockContract.Address, clearData)
+
+	data := make([]byte, 32)
+	rand.Read(data)
+
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(771), data)
+	assert.NoError(t, err)
+
+	txs := sequence.Transactions{
+		&sequence.Transaction{
+			To:    callmockContract.Address,
+			Data:  calldata,
+			Nonce: testChain.RandomNonce(),
+		},
+	}
+
+	estimator := sequence.NewEstimator()
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+
+	err = testChain.DeploySequenceWallet(wallet)
+	assert.NoError(t, err)
+	isDeployed, err = wallet.IsDeployed()
+	assert.NoError(t, err)
+	assert.True(t, isDeployed)
+
+	assert.NoError(t, err)
+	assert.NotZero(t, estimated)
+
+	signed, err := wallet.SignTransactions(context.Background(), txs)
+	assert.NoError(t, err)
+
+	_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+	assert.NoError(t, err)
+
+	receipt, err := wait(context.Background())
+	assert.NoError(t, err)
+
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "771", ret[0])
+
+	assert.LessOrEqual(t, receipt.GasUsed, estimated)
+	assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 }
 
 func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
