@@ -257,24 +257,6 @@ func (t Transactions) AsValues() []Transaction {
 	return v
 }
 
-func (t Transactions) Nonce() (*big.Int, error) {
-	var nonce *big.Int
-
-	for _, tx := range t {
-		if tx.Nonce != nil {
-			if nonce == nil {
-				nonce = tx.Nonce
-			} else {
-				if nonce.Cmp(tx.Nonce) != 0 {
-					return nil, fmt.Errorf("transaction contains mixed nonces")
-				}
-			}
-		}
-	}
-
-	return nonce, nil
-}
-
 func (t Transactions) Clone() Transactions {
 	txns := make(Transactions, len(t))
 	for i, txn := range t {
