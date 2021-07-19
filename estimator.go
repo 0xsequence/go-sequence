@@ -275,12 +275,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 	return encoded
 }
 
-func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
-	address, err := AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return 0, err
-	}
-
+func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
 	isEOA, err := e.AreEOAs(ctx, provider, walletConfig)
 	if err != nil {
 		return 0, err

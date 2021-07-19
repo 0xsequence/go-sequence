@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/0xsequence/go-sequence/testutil"
@@ -67,7 +68,66 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 	}
 
 	estimator := sequence.NewEstimator()
-	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+
+	assert.NoError(t, err)
+	assert.NotZero(t, estimated)
+
+	signed, err := wallet.SignTransactions(context.Background(), txs)
+	assert.NoError(t, err)
+
+	_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+	assert.NoError(t, err)
+
+	receipt, err := wait(context.Background())
+	assert.NoError(t, err)
+
+	assert.LessOrEqual(t, receipt.GasUsed, estimated)
+	assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
+
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "3", ret[0])
+}
+
+func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
+	stubConfig := sequence.WalletConfig{
+		Threshold: 2,
+		Signers: sequence.WalletConfigSigners{
+			{
+				Address: common.HexToAddress("0x6d3A40AAA98DD6cF67a1e6C85807fCc1363935D5"),
+				Weight:  1,
+			},
+			{
+				Address: common.HexToAddress("0xE809672D8768fd124196C75e36202C9C0A82740A"),
+				Weight:  1,
+			},
+		},
+	}
+
+	wallet, err := testChain.DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+	clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+	assert.NoError(t, err)
+	testutil.SignAndSend(t, wallet, callmockContract.Address, clearData)
+
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
+	assert.NoError(t, err)
+
+	txs := sequence.Transactions{
+		&sequence.Transaction{
+			To:    callmockContract.Address,
+			Data:  calldata,
+			Nonce: testChain.RandomNonce(),
+		},
+	}
+
+	estimator := sequence.NewEstimator()
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), stubConfig, wallet.GetWalletContext(), txs)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
@@ -120,7 +180,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 	}
 
 	estimator := sequence.NewEstimator()
-	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
 
 	txs[0].GasLimit = badTxs[0].GasLimit
 
@@ -181,7 +241,7 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 	}
 
 	estimator := sequence.NewEstimator()
-	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
@@ -271,7 +331,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 	}
 
 	estimator := sequence.NewEstimator()
-	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
@@ -361,7 +421,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 	}
 
 	estimator := sequence.NewEstimator()
-	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
