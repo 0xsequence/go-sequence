@@ -88,7 +88,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 
 	if overrides != nil {
 		for key, value := range overrides {
-			if key == call.From {
+			if key == from {
 				return nil, fmt.Errorf("can't override address from")
 			}
 
@@ -300,13 +300,12 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, wal
 
 	estimates := make([]*big.Int, len(txs)+1)
 
+	// The nonce is ignored by the MainModuleGasEstimator
+	// so we use a stub nonce takes at least 4 bytes
+	nonce := big.NewInt(4294967295)
+
 	// Compute gas estimation for slices of all transactions
 	// including no transaction execution and all transactions
-
-	nonce, err := txs.Nonce()
-	if err != nil {
-		return 0, err
-	}
 
 	for i := range estimates {
 		subTxs := txs[0:i]

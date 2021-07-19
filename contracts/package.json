@@ -12,6 +12,6 @@
   },
   "devDependencies": {
     "@0xsequence/erc-1155": "^3.0.4",
-    "@0xsequence/wallet-contracts": "1.9.1"
+    "@0xsequence/wallet-contracts": "1.9.4"
   }
 }
