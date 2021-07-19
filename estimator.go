@@ -88,7 +88,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 
 	if overrides != nil {
 		for key, value := range overrides {
-			if key == call.From {
+			if key == from {
 				return nil, fmt.Errorf("can't override address from")
 			}
 
