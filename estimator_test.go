@@ -90,6 +90,61 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 	assert.Equal(t, "3", ret[0])
 }
 
+func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
+	wallet, err := testChain.DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+	clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+	assert.NoError(t, err)
+	testutil.SignAndSend(t, wallet, callmockContract.Address, clearData)
+
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
+	assert.NoError(t, err)
+
+	badTxs := sequence.Transactions{
+		&sequence.Transaction{
+			To:    callmockContract.Address,
+			Data:  calldata,
+			Nonce: big.NewInt(999),
+		},
+	}
+
+	txs := sequence.Transactions{
+		&sequence.Transaction{
+			To:    callmockContract.Address,
+			Data:  calldata,
+			Nonce: testChain.RandomNonce(),
+		},
+	}
+
+	estimator := sequence.NewEstimator()
+	estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
+
+	txs[0].GasLimit = badTxs[0].GasLimit
+
+	assert.NoError(t, err)
+	assert.NotZero(t, estimated)
+
+	signed, err := wallet.SignTransactions(context.Background(), txs)
+	assert.NoError(t, err)
+
+	_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+	assert.NoError(t, err)
+
+	receipt, err := wait(context.Background())
+	assert.NoError(t, err)
+
+	assert.LessOrEqual(t, receipt.GasUsed, estimated)
+	assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
+
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	assert.NoError(t, err)
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "3", ret[0])
+}
+
 func TestEstimateBatchSequenceTransaction(t *testing.T) {
 	wallet, err := testChain.DummySequenceWallet(1)
 	assert.NoError(t, err)
