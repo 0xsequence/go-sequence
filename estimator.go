@@ -72,6 +72,41 @@ func (e *Estimator) CalldataCost(data []byte) uint64 {
 	return cost
 }
 
+// BuildProxy for address based on https://eips.ethereum.org/EIPS/eip-1167
+// the bytecode contains an aditional SLOAD to mimic the Sequence proxies
+// bytecode:
+//
+// |           0x00000000      36             calldatasize          cds
+// |           0x00000001      3d             returndatasize        0 cds
+// |           0x00000002      3d             returndatasize        0 0 cds
+// |           0x00000003      37             calldatacopy
+// |           0x00000004      30             address               addr
+// |           0x00000005      54             sload                 stub
+// |           0x00000006      50             pop
+// |           0x00000007      3d             returndatasize        0
+// |           0x00000008      3d             returndatasize        0 0
+// |           0x00000009      3d             returndatasize        0 0 0
+// |           0x0000000a      36             calldatasize          cds 0 0 0
+// |           0x0000000b      3d             returndatasize        0 cds 0 0 0
+// |           0x0000000c      73bebebebebe.  push20 0xbebebebe     0xbebe 0 cds 0 0 0
+// |           0x00000020      5a             gas                   gas 0xbebe 0 cds 0 0 0
+// |           0x00000021      f4             delegatecall          suc 0
+// |           0x00000022      3d             returndatasize        rds suc 0
+// |           0x00000023      82             dup3                  0 rds suc 0
+// |           0x00000024      80             dup1                  0 0 rds suc 0
+// |           0x00000025      3e             returndatacopy        suc 0
+// |           0x00000026      90             swap1                 0 suc
+// |           0x00000027      3d             returndatasize        rds 0 suc
+// |           0x00000028      91             swap2                 suc 0 rds
+// |           0x00000029      602d           push1 0x2e            0x2e suc 0 rds
+// |       ,=< 0x0000002b      57             jumpi                 0 rds
+// |       |   0x0000002c      fd             revert
+// |       `-> 0x0000002d      5b             jumpdest              0 rds
+// \           0x0000002e      f3             return
+func BuildProxy(addr common.Address) string {
+	return "0x363d3d3730543d3d3d363d73" + strings.Replace(addr.String(), "0x", "", 1) + "5af43d82803e903d91602d57fd5bf3"
+}
+
 func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider, call *EstimateTransaction, overrides map[common.Address]*CallOverride, blockTag string) (*big.Int, error) {
 	if blockTag == "" {
 		blockTag = "latest"
@@ -131,6 +166,10 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	gas.Add(gas, big.NewInt(int64(e.CalldataCost(call.Data))))
 
 	if !success {
+		if len(result) <= 68 {
+			return gas, fmt.Errorf("error calling restimate: UNKNOWN_REASON")
+		}
+
 		reason := string(result[68 : len(result)-1])
 		return gas, fmt.Errorf("error calling restimate: " + reason)
 	}
@@ -291,6 +330,17 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	overrides := map[common.Address]*CallOverride{
 		walletContext.MainModuleAddress:           {Code: walletGasEstimatorCode},
 		walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCode},
+	}
+
+	isDeployed, err := IsWalletDeployed(provider, address)
+	if err != nil {
+		return 0, err
+	}
+
+	if !isDeployed {
+		overrides[address] = &CallOverride{
+			Code: BuildProxy(walletContext.MainModuleAddress),
+		}
 	}
 
 	estimates := make([]*big.Int, len(txs)+1)
