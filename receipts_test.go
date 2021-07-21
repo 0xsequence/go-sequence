@@ -2,6 +2,7 @@ package sequence_test
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -108,9 +109,10 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, receipt.Logs, 16)
 
-	receipts, err := sequence.DecodeReceipt(context.Background(), receipt, wallet.GetProvider())
+	receipts, logs, err := sequence.DecodeReceipt(context.Background(), receipt, wallet.GetProvider())
 	assert.NoError(t, err)
 	assert.Len(t, receipts, len(bundle))
+	assert.Len(t, logs, 1+len(bundle)) // 1 NonceChange + n TxExecuted/TxFailed
 	assert.True(t, haveSameMetaTxnID(receipts))
 
 	for _, child := range receipts {
@@ -118,6 +120,7 @@ func TestReceiptDecoding(t *testing.T) {
 		assert.NoError(t, areIsomorphic(child, child.Transaction))
 	}
 
+	// check that all statuses are correct
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[0].Status)
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[1].Status)
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[2].Receipts[0].Status)
@@ -132,6 +135,26 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Equal(t, sequence.MetaTxnFailed, receipts[6].Status)
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[7].Status)
 
+	// check that all top-level logs are correct
+	metaTxnID := string(receipts[0].MetaTxnID)
+	_, _, err = sequence.DecodeNonceChangeEvent(logs[0])
+	assert.NoError(t, err)
+	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[1].Data))
+	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[2].Data))
+	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[3].Data))
+	hash, _, err := sequence.DecodeTxFailedEvent(logs[4])
+	assert.NoError(t, err)
+	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
+	hash, _, err = sequence.DecodeTxFailedEvent(logs[5])
+	assert.NoError(t, err)
+	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
+	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[6].Data))
+	hash, _, err = sequence.DecodeTxFailedEvent(logs[7])
+	assert.NoError(t, err)
+	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
+	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[8].Data))
+
+	// check that all internal logs are correct
 	assert.Len(t, receipts[0].Logs, 1)
 	assert.Len(t, receipts[1].Logs, 1)
 	assert.Len(t, receipts[2].Receipts[0].Logs, 1)
