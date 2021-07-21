@@ -53,30 +53,30 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 	}
 }
 
-func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider) ([]*Receipt, error) {
+func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider) ([]*Receipt, []*types.Log, error) {
 	transaction, isPending, err := provider.TransactionByHash(ctx, receipt.TxHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	} else if isPending {
-		return nil, fmt.Errorf("transaction %v is pending", receipt.TxHash.Hex())
+		return nil, nil, fmt.Errorf("transaction %v is pending", receipt.TxHash.Hex())
 	}
 
 	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
-	_, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute)
+	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, child := range receipts {
 		child.setNativeReceipt(receipt)
 	}
 
-	return receipts, nil
+	return receipts, logs, nil
 }
 
 func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
