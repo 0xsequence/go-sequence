@@ -26,6 +26,25 @@ type Receipt struct {
 	Receipts    []*Receipt
 }
 
+func (r *Receipt) Find(metaTxnID MetaTxnID) *Receipt {
+	if r.MetaTxnID == metaTxnID {
+		return nil // the parent of this receipt is the receipt we want
+	}
+
+	for _, receipt := range r.Receipts {
+		if receipt.MetaTxnID == metaTxnID {
+			return r
+		}
+
+		found := receipt.Find(metaTxnID)
+		if found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
 func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 	r.Receipt = receipt
 
