@@ -64,15 +64,21 @@ func TestReceiptDecoding(t *testing.T) {
 			To: wallet.Address(),
 			Transactions: sequence.Transactions{
 				{
-					To:            callmockContract.Address,
-					Data:          send[3],
+					To:            wallet.Address(),
 					RevertOnError: true,
-				}, // logs: 11, balance: 3, reverted
-				{
-					To:            callmockContract.Address,
-					Data:          send[10],
-					RevertOnError: true,
-				}, // logs: 12, balance: -7, reverted
+					Transactions: sequence.Transactions{ // subBundle
+						{
+							To:            callmockContract.Address,
+							Data:          send[3],
+							RevertOnError: true,
+						}, // logs: 11, balance: 3, reverted
+						{
+							To:            callmockContract.Address,
+							Data:          send[10],
+							RevertOnError: true,
+						}, // logs: 12, balance: -7, reverted
+					},
+				}, // logs: 10, balance: 6, reverted
 			},
 		}, // logs: 10, balance: 6, failed
 		{
@@ -117,8 +123,9 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[2].Receipts[0].Status)
 	assert.Equal(t, sequence.MetaTxnFailed, receipts[2].Receipts[1].Status)
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[2].Status)
+	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Receipts[0].Status)
+	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Receipts[1].Status)
 	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Status)
-	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[1].Status)
 	assert.Equal(t, sequence.MetaTxnFailed, receipts[3].Status)
 	assert.Equal(t, sequence.MetaTxnFailed, receipts[4].Status)
 	assert.Equal(t, sequence.MetaTxnExecuted, receipts[5].Status)
@@ -130,17 +137,36 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Len(t, receipts[2].Receipts[0].Logs, 1)
 	assert.Len(t, receipts[2].Receipts[1].Logs, 0)
 	assert.Len(t, receipts[2].Logs, 2)
+	assert.Len(t, receipts[3].Receipts[0].Receipts[0].Logs, 0)
+	assert.Len(t, receipts[3].Receipts[0].Receipts[1].Logs, 0)
 	assert.Len(t, receipts[3].Receipts[0].Logs, 0)
-	assert.Len(t, receipts[3].Receipts[1].Logs, 0)
 	assert.Len(t, receipts[3].Logs, 0)
 	assert.Len(t, receipts[4].Logs, 0)
 	assert.Len(t, receipts[5].Logs, 1)
 	assert.Len(t, receipts[6].Logs, 0)
 	assert.Len(t, receipts[7].Logs, 1)
 
+	// check that sequence.DecodeTxFailedEvent can decode TxFailed events
 	_, reason, err := sequence.DecodeTxFailedEvent(receipts[2].Logs[1])
 	assert.NoError(t, err)
 	assert.Equal(t, reason, receipts[2].Receipts[1].Reason)
+
+	// check that Receipt.Find() can find our sub-bundle
+	subBundle := sequence.Transactions{
+		{
+			To:            callmockContract.Address,
+			Data:          send[3],
+			RevertOnError: true,
+		},
+		{
+			To:            callmockContract.Address,
+			Data:          send[10],
+			RevertOnError: true,
+		},
+	}
+	subBundleID, _, err := sequence.ComputeMetaTxnID(wallet.GetChainID(), wallet.Address(), subBundle, nil, sequence.MetaTxnSelfExec)
+	assert.NoError(t, err)
+	assert.Equal(t, receipts[3].Find(subBundleID), receipts[3].Receipts[0])
 }
 
 func hasNativeReceipt(receipt *sequence.Receipt, native *types.Receipt) bool {
