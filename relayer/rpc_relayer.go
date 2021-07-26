@@ -103,8 +103,32 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequenc
 
 // NOTE: nonce space is 160 bits wide
 func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
-	// TODO: query r.Service.GetMetaTxnNonce() instead.. as it tracks nonces already queued..
-	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
+	if blockNum != nil {
+		return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
+	}
+
+	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
+	if err != nil {
+		return nil, err
+	}
+
+	var encodedSpace *string
+	if space != nil {
+		encodedSpace = new(string)
+		*encodedSpace = fmt.Sprintf("0x%x", space)
+	}
+
+	encodedNonce, err := r.Service.GetMetaTxnNonce(ctx, walletAddress.Hex(), encodedSpace)
+	if err != nil {
+		return nil, err
+	}
+
+	var nonce big.Int
+	if _, ok := nonce.SetString(encodedNonce, 0); !ok {
+		return nil, fmt.Errorf("%v is not a big.Int", encodedNonce)
+	}
+
+	return &nonce, nil
 }
 
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
