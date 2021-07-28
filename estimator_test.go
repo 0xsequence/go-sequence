@@ -74,6 +74,7 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -135,6 +136,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -194,6 +196,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -249,6 +252,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, badTxs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -308,6 +312,8 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+	assert.Equal(t, 1, txs[1].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -398,6 +404,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
@@ -488,6 +495,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, estimated)
+	assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 
 	signed, err := wallet.SignTransactions(context.Background(), txs)
 	assert.NoError(t, err)
