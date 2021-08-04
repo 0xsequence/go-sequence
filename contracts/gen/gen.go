@@ -13,6 +13,12 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=gasestimator --type=GasEstimator --outFile=./gasestimator/gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/GasEstimator.sol/GasEstimator.json --includeDeployed=true
 
 //
+// tokens
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=tokens --type=IERC20 --outFile=./tokens/ierc20.gen.go --artifactsFile=../artifacts/erc-1155/interfaces/IERC20.sol/IERC20.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=tokens --type=IERC1155 --outFile=./tokens/ierc1155.gen.go --artifactsFile=../artifacts/erc-1155/interfaces/IERC1155.sol/IERC1155.json
+
+//
 // erc1271
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=ierc1271 --type=IERC1271 --outFile=./ierc1271/ierc1271.gen.go --artifactsFile=../artifacts/erc1271/ierc1271.json
