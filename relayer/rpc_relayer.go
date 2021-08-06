@@ -135,6 +135,10 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletC
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	walletAddress, err := sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
+	if err != nil {
+		return "", nil, nil, err
+	}
 
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(
 		r,
@@ -149,8 +153,9 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 	}
 
 	call := &proto.MetaTxn{
-		Contract: to.Hex(),
-		Input:    hexutil.Encode(execdata),
+		Contract:      to.Hex(),
+		Input:         hexutil.Encode(execdata),
+		WalletAddress: walletAddress.Hex(),
 	}
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
