@@ -171,6 +171,16 @@ func (b *BigInt) Scan(src interface{}) error {
 	if !ok {
 		return fmt.Errorf("BigInt.Scan: failed to scan value %q", svalue)
 	}
+
+	exp := big.NewInt(0)
+	if len(parts) >= 1 {
+		exp, ok = exp.SetString(parts[1], 10)
+		if !ok {
+			return fmt.Errorf("BigInt.Scan failed to scan exp component %q", svalue)
+		}
+		i = i.Mul(i, big.NewInt(1).Exp(big.NewInt(10), exp, nil))
+	}
+
 	*b = BigInt(*i)
 
 	return nil
