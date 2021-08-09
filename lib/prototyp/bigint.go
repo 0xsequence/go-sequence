@@ -172,8 +172,8 @@ func (b *BigInt) Scan(src interface{}) error {
 		return fmt.Errorf("BigInt.Scan: failed to scan value %q", svalue)
 	}
 
-	exp := big.NewInt(0)
 	if len(parts) >= 2 {
+		exp := big.NewInt(0)
 		exp, ok = exp.SetString(parts[1], 10)
 		if !ok {
 			return fmt.Errorf("BigInt.Scan failed to scan exp component %q", svalue)
