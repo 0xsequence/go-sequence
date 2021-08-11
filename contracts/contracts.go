@@ -7,6 +7,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
+	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
@@ -33,9 +34,6 @@ var (
 )
 
 var (
-	//go:embed artifacts/erc1271/ierc1271.json
-	artifact_ierc1271 string
-
 	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
 )
@@ -49,12 +47,13 @@ func init() {
 	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin, walletgasestimator.WalletGasEstimatorDeployedBin)
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
+	IERC1271 = artifact("IERC1271", ierc1271.IERC1271ABI, "")
+
 	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
 	IERC1155 = artifact("IERC1155", tokens.IERC1155ABI, "")
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
-	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 }
 
 func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...string) ethartifact.Artifact {
