@@ -7,6 +7,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
+	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletguest"
@@ -24,9 +25,10 @@ var (
 	WalletGasEstimator,
 	GasEstimator,
 	IERC1271,
-	IERC20,
-	IERC1155,
 	ERC20Mock,
+	IERC20,
+	IERC721,
+	IERC1155,
 	_ ethartifact.Artifact
 )
 
@@ -34,11 +36,7 @@ var (
 	//go:embed artifacts/erc1271/ierc1271.json
 	artifact_ierc1271 string
 
-	//go:embed artifacts/erc-1155/interfaces/IERC20.sol/IERC20.json
-	artifact_ierc20 string
-	//go:embed artifacts/erc-1155/interfaces/IERC1155.sol/IERC1155.json
-	artifact_ierc1155 string
-	//go:embed artifacts/erc-1155/mocks/ERC20Mock.sol/ERC20Mock.json
+	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
 )
 
@@ -51,11 +49,12 @@ func init() {
 	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin, walletgasestimator.WalletGasEstimatorDeployedBin)
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
-	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
+	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
+	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
+	IERC1155 = artifact("IERC1155", tokens.IERC1155ABI, "")
 
-	IERC20 = ethartifact.MustParseArtifactJSON(artifact_ierc20)
-	IERC1155 = ethartifact.MustParseArtifactJSON(artifact_ierc1155)
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
+	IERC1271 = ethartifact.MustParseArtifactJSON(artifact_ierc1271)
 }
 
 func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...string) ethartifact.Artifact {
