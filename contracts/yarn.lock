@@ -7,6 +7,21 @@
   resolved "https://registry.yarnpkg.com/@0xsequence/erc-1155/-/erc-1155-3.0.4.tgz#38b1a548d97fbe8cc21f96f5bae0ede4dbfb0f0f"
   integrity sha512-Bm5abCWp1ZXPB7AhxhP6Rj1UTLi/OyNfoTy/HD76QmA6ysz9dw0VoK3EFLK5HeUbfXZTu/Fg9PmgG9uJ0c6Urw==
 
+"@0xsequence/erc20-meta-token@^3.0.5":
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/@0xsequence/erc20-meta-token/-/erc20-meta-token-3.0.5.tgz#67291d0ee4dd9a7161714a612dc9f982e773bc3b"
+  integrity sha512-/huCxtb8nXWfFbGsoS3T/f+/xYf4gw1bcc8+vdXy5IvY5GeyskfIaaW5IQnpeIBM5IIzg66kqUplXLDpyjZN1w==
+  dependencies:
+    "@0xsequence/erc-1155" "^3.0.4"
+
+"@0xsequence/niftyswap@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@0xsequence/niftyswap/-/niftyswap-3.0.2.tgz#abdcca75d9c70a178945df73750e292b18cc1307"
+  integrity sha512-BKJA55CRGfCacHLuahAoW26K7pSRaMWG7GnwH3vPuld5A9w2xNvD50/XrImWgetFVJiftz24AZXvd1Le1NTymg==
+  dependencies:
+    "@0xsequence/erc-1155" "^3.0.4"
+    "@0xsequence/erc20-meta-token" "^3.0.5"
+
 "@0xsequence/wallet-contracts@1.9.4":
   version "1.9.4"
   resolved "https://registry.yarnpkg.com/@0xsequence/wallet-contracts/-/wallet-contracts-1.9.4.tgz#e3e6250f523ddc8136f3a2cf953b6677c2450b86"
