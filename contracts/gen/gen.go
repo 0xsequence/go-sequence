@@ -22,12 +22,12 @@
 //
 // niftyswap
 //
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=INiftyswapExchange --outFile=contracts/iniftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapExchange.sol/INiftyswapExchange.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=INiftyswapFactory --outFile=contracts/iniftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapFactory.sol/INiftyswapFactory.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=NiftyswapExchange --outFile=contracts/niftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapExchange.sol/NiftyswapExchange.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=NiftyswapFactory --outFile=contracts/niftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapFactory.sol/NiftyswapFactory.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=IWrapAndNiftyswap --outFile=contracts/iwrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/IWrapAndNiftyswap.sol/IWrapAndNiftyswap.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=contracts --type=WrapAndNiftyswap --outFile=contracts/wrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/utils/WrapAndNiftyswap.sol/WrapAndNiftyswap.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapExchange --outFile=niftyswap/iniftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapExchange.sol/INiftyswapExchange.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapFactory --outFile=niftyswap/iniftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapFactory.sol/INiftyswapFactory.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapExchange --outFile=niftyswap/niftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapExchange.sol/NiftyswapExchange.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapFactory --outFile=niftyswap/niftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapFactory.sol/NiftyswapFactory.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=IWrapAndNiftyswap --outFile=niftyswap/iwrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/IWrapAndNiftyswap.sol/IWrapAndNiftyswap.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=WrapAndNiftyswap --outFile=niftyswap/wrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/utils/WrapAndNiftyswap.sol/WrapAndNiftyswap.json
 
 //
 // erc1271
