@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
+	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
@@ -30,6 +31,9 @@ var (
 	IERC20,
 	IERC721,
 	IERC1155,
+	NiftyswapExchange,
+	NiftyswapFactory,
+	WrapAndNiftyswap,
 	_ ethartifact.Artifact
 )
 
@@ -52,6 +56,10 @@ func init() {
 	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
 	IERC1155 = artifact("IERC1155", tokens.IERC1155ABI, "")
+
+	NiftyswapExchange = artifact("NIFTYSWAP_EXCHANGE", niftyswap.NiftyswapExchangeABI, niftyswap.NiftyswapFactoryBin)
+	NiftyswapFactory = artifact("NIFTYSWAP_FACTORY", niftyswap.NiftyswapFactoryABI, niftyswap.NiftyswapFactoryBin)
+	WrapAndNiftyswap = artifact("WRAP_AND_NIFTYSWAP", niftyswap.WrapAndNiftyswapABI, niftyswap.WrapAndNiftyswapBin)
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }
