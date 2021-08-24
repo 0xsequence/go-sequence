@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
@@ -180,18 +182,35 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig) ([]bool, error) {
 	// Get non-eoa signers
 	// required for computing worse case scenario
-	// TODO: Do these calls in parallel
-	isEoa := make([]bool, walletConfig.Signers.Len())
-	for i, s := range walletConfig.Signers {
-		code, err := provider.CodeAt(ctx, s.Address, nil)
-		if err != nil {
-			return nil, err
-		}
+	var anyErr atomic.Value
 
-		isEoa[i] = len(code) == 0
+	var wg sync.WaitGroup
+	res := make([]bool, walletConfig.Signers.Len())
+	for i, s := range walletConfig.Signers {
+		wg.Add(1)
+		go func(i int, address common.Address) {
+			defer wg.Done()
+
+			if anyErr.Load() != nil {
+				// one task of this batch already failed
+				return
+			}
+
+			var err error
+			res[i], err = isEOA(ctx, provider, s.Address)
+			if err != nil {
+				anyErr.Store(err)
+			}
+
+		}(i, s.Address)
+	}
+	wg.Wait()
+
+	if err := anyErr.Load(); err != nil {
+		return nil, err.(error)
 	}
 
-	return isEoa, nil
+	return res, nil
 }
 
 func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, isEoa []bool) ([]bool, error) {
