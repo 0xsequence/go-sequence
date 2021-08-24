@@ -10,10 +10,13 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
-const isEOAMaxConcurrentTasks = 10
+const (
+	isEOAMaxConcurrentTasks = 10
+	isEOACacheSize          = 100
+)
 
 var (
-	isEOATicket = make(chan struct{}, 10)
+	isEOATicket = make(chan struct{}, isEOAMaxConcurrentTasks)
 
 	isEOACache *lru.Cache
 )
@@ -23,7 +26,7 @@ func init() {
 		isEOATicket <- struct{}{}
 	}
 	var err error
-	isEOACache, err = lru.New(100)
+	isEOACache, err = lru.New(isEOACacheSize)
 	if err != nil {
 		log.Fatalf("failed to initialize EOA cache: %v", err)
 	}
@@ -35,7 +38,7 @@ func isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Addres
 		isEOATicket <- ticket
 	}()
 
-	key := fmt.Sprintf("%v::%v", provider, address)
+	key := fmt.Sprintf("%d::%v", provider.Config.ChaindID, address)
 
 	if val, ok := isEOACache.Get(key); ok {
 		// we have recorded data for this key, let's use it

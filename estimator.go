@@ -186,7 +186,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 
 	var wg sync.WaitGroup
 	res := make([]bool, walletConfig.Signers.Len())
-	for i, s := range walletConfig.Signers {
+	for i := range walletConfig.Signers {
 		wg.Add(1)
 		go func(i int, address common.Address) {
 			defer wg.Done()
@@ -197,12 +197,12 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 			}
 
 			var err error
-			res[i], err = isEOA(ctx, provider, s.Address)
+			res[i], err = isEOA(ctx, provider, address)
 			if err != nil {
 				anyErr.Store(err)
 			}
 
-		}(i, s.Address)
+		}(i, walletConfig.Signers[i].Address)
 	}
 	wg.Wait()
 

@@ -1,3 +1,5 @@
+TEST_FLAGS       ?= -p 1 -v
+
 all:
 	@echo "See Makefile contents for details."
 
@@ -7,7 +9,7 @@ bootstrap:
 test: wait-on-chain check-test-chain-running go-test
 
 go-test:
-	go clean -testcache && go test -p 1 -v ./...
+	go clean -testcache && go test $(TEST_FLAGS) -run=$(TEST) ./...
 
 test-concurrently:
 	cd ./testutil/chain && yarn test
