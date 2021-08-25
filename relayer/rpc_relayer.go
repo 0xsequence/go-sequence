@@ -173,7 +173,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	waitReceipt := func(ctx context.Context) (*types.Receipt, error) {
 		// NOTE: to timeout the request, pass a ctx from context.WithTimeout
-		_, receipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID), nil)
+		_, receipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID))
 		return receipt, err
 	}
 
@@ -182,6 +182,6 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 }
 
 // ..
-func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout *time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
-	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, optTimeout)
+func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, optTimeout...)
 }

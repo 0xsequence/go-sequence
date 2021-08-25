@@ -45,7 +45,7 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, nil)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnExecuted, status)
@@ -91,7 +91,7 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, nil)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnFailed, status)
@@ -174,7 +174,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, nil)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status) // native txn was successful
@@ -233,7 +233,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	assert.NotEmpty(t, metaTxnId)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId, nil)
+	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnExecuted, status)

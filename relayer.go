@@ -31,7 +31,7 @@ type Relayer interface {
 	Relay(ctx context.Context, signedTxs *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout *time.Duration) (MetaTxnStatus, *types.Receipt, error)
+	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
 
 	// TODO, in future when needed..
 	// GasRefundOptions()
@@ -76,18 +76,18 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	return walletAddress, execdata, nil
 }
 
-func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout *time.Duration) (MetaTxnStatus, *types.Receipt, error) {
-	// Supply optTimeout or default timeout if one isn't set on the `ctx`
-	if _, ok := ctx.Deadline(); !ok {
-		var clearTimeout context.CancelFunc
-
-		if optTimeout == nil {
-			t := 200 * time.Second // default timeout of 200 seconds
-			optTimeout = &t
+func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
+	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
+	// set a default timeout of 120 seconds.
+	var cancel context.CancelFunc
+	if len(optTimeout) > 0 {
+		ctx, cancel = context.WithTimeout(ctx, optTimeout[0])
+		defer cancel()
+	} else {
+		if _, ok := ctx.Deadline(); !ok {
+			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
+			defer cancel()
 		}
-
-		ctx, clearTimeout = context.WithTimeout(ctx, *optTimeout)
-		defer clearTimeout()
 	}
 
 	// Start listening logs from current block - 1024
@@ -117,7 +117,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		case <-ctx.Done():
 			err := ctx.Err()
 			if err == context.DeadlineExceeded {
-				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v", metaTxnID)
+				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
 			} else if err != nil {
 				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
 			} else {
