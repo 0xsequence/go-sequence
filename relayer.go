@@ -3,6 +3,7 @@ package sequence
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -76,6 +77,10 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	return walletAddress, execdata, nil
 }
 
+// TODO: this method is horribly inefficient and we need to rethink how such a method should be designed.
+//
+// TOOD: first, we can start by making it use a cachestore for receipts.. that will help at least..
+// but it should be used very sparingly in all cases.
 func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
@@ -85,24 +90,9 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		defer cancel()
 	} else {
 		if _, ok := ctx.Deadline(); !ok {
-			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
+			ctx, cancel = context.WithTimeout(ctx, 12*time.Second)
 			defer cancel()
 		}
-	}
-
-	// Start listening logs from current block - 1024
-	block, err := provider.BlockNumber(ctx)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	// TODO: Move the - 1024 hardcoded value to an option
-	del := uint64(1024)
-	lastBlockNumber := block
-	if del > lastBlockNumber {
-		lastBlockNumber = 0 // clamp down
-	} else {
-		lastBlockNumber -= del
 	}
 
 	metaTxIdBytes := common.Hex2Bytes(string(metaTxnID))
@@ -111,12 +101,14 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 	// so load all nonce changes and search the logs
 	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
 
+	var fromBlock uint64
+
 	// Load all logs until we found the receipt or we reach timeout
 	for {
 		select {
 		case <-ctx.Done():
 			err := ctx.Err()
-			if err == context.DeadlineExceeded {
+			if errors.Is(err, context.DeadlineExceeded) {
 				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
 			} else if err != nil {
 				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
@@ -126,27 +118,24 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		default:
 		}
 
-		block, err := provider.BlockNumber(ctx)
+		latestBlock, err := provider.BlockNumber(ctx)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
 		}
 
-		// TODO (pk): why are we querying latest-12 each iteration?
-		// as we will be overlapping blocks already covered
-
-		// TODO: Move the - 12 hardcoded value to an option
-		del = uint64(12)
-		fromBlock := lastBlockNumber
-		if del > fromBlock {
-			fromBlock = 0
-		} else {
-			fromBlock -= del
+		if fromBlock == 0 {
+			del := uint64(200)      // TODO: make it an option..
+			if latestBlock >= del { // clamp
+				fromBlock = latestBlock - del
+			} else {
+				fromBlock = latestBlock
+			}
 		}
 
 		query := ethereum.FilterQuery{
 			FromBlock: big.NewInt(0).SetUint64(fromBlock),
-			ToBlock:   big.NewInt(0).SetUint64(block),
+			ToBlock:   big.NewInt(0).SetUint64(latestBlock),
 			Topics:    nonceChangedTopics,
 		}
 
@@ -157,9 +146,18 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		}
 
 		for _, log := range logs {
+			// NOTE: unfortunately we have to fetch the entire receipt of this NonceChanged receipt between
+			// these blocks, so that we may then check the log data of that respective txn to find the
+			// MetaTxnExecuted or MetaTxnFailed status.
+			//
+			// TODO: this method would HUGELY benefit to use goware/cachestore so we don't asks nodes
+			// for the same transaction receipts we just fetched.
 			tx, err := provider.TransactionReceipt(ctx, log.TxHash)
 			if err != nil {
-				time.Sleep(time.Second)
+				if errors.Is(err, context.DeadlineExceeded) {
+					break
+				}
+				time.Sleep(1500 * time.Millisecond)
 				continue
 			}
 
@@ -182,7 +180,14 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 			}
 		}
 
+		// advance the cursor
 		time.Sleep(time.Second)
-		lastBlockNumber = block
+
+		del := uint64(12)       // NOTE: we go back in case of reorgs, etc.
+		if latestBlock >= del { // clamp
+			fromBlock = latestBlock - del
+		} else {
+			fromBlock = latestBlock
+		}
 	}
 }
