@@ -12,13 +12,10 @@ import (
 )
 
 const (
-	isEOAMaxConcurrentTasks = 10
-	eoaCacheSize            = 100
+	eoaCacheSize = 100
 )
 
 var (
-	isEOATicket = make(chan struct{}, isEOAMaxConcurrentTasks)
-
 	eoaCache cachestore.Storage
 )
 
@@ -28,10 +25,6 @@ var (
 )
 
 func init() {
-	for i := 0; i < isEOAMaxConcurrentTasks; i++ {
-		isEOATicket <- struct{}{}
-	}
-
 	var err error
 	eoaCache, err = memlru.NewWithSize(eoaCacheSize)
 	if err != nil {
@@ -40,11 +33,6 @@ func init() {
 }
 
 func isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Address) (bool, error) {
-	ticket := <-isEOATicket
-	defer func() {
-		isEOATicket <- ticket
-	}()
-
 	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
 
 	if val, _ := eoaCache.Get(ctx, key); val != nil {

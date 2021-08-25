@@ -18,6 +18,20 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
+const areEOAsMaxConcurrentTasks = 10
+
+// areEOAsTickets limits the number of concurrent goroutines spawned by the
+// AreEOAs() function. This is a global lock and ensures that even if we have
+// many calls to AreEOAs we won't spawn more than <areEOAsMaxConcurrentTasks>
+// goroutines at any given time.
+var areEOAsTickets = make(chan struct{}, areEOAsMaxConcurrentTasks)
+
+func init() {
+	for i := 0; i < areEOAsMaxConcurrentTasks; i++ {
+		areEOAsTickets <- struct{}{}
+	}
+}
+
 type CallOverride struct {
 	Code      string
 	Balance   *big.Int
@@ -185,11 +199,18 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	var anyErr atomic.Value
 
 	var wg sync.WaitGroup
+
 	res := make([]bool, walletConfig.Signers.Len())
 	for i := range walletConfig.Signers {
 		wg.Add(1)
-		go func(i int, address common.Address) {
-			defer wg.Done()
+
+		ticket := <-areEOAsTickets // wait until a ticket becomes available to continue
+		go func(ticket struct{}, i int, address common.Address) {
+
+			defer func() {
+				wg.Done()
+				areEOAsTickets <- ticket // put ticket back after finishing task
+			}()
 
 			if anyErr.Load() != nil {
 				// one task of this batch already failed
@@ -202,7 +223,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 				anyErr.Store(err)
 			}
 
-		}(i, walletConfig.Signers[i].Address)
+		}(ticket, i, walletConfig.Signers[i].Address)
 	}
 	wg.Wait()
 
