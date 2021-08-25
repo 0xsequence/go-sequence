@@ -7,26 +7,33 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/hashicorp/golang-lru"
+	"github.com/goware/cachestore"
+	"github.com/goware/cachestore/memlru"
 )
 
 const (
 	isEOAMaxConcurrentTasks = 10
-	isEOACacheSize          = 100
+	eoaCacheSize            = 100
 )
 
 var (
 	isEOATicket = make(chan struct{}, isEOAMaxConcurrentTasks)
 
-	isEOACache *lru.Cache
+	eoaCache cachestore.Storage
+)
+
+var (
+	cachedTrue  = byte('t')
+	cachedFalse = byte('f')
 )
 
 func init() {
 	for i := 0; i < isEOAMaxConcurrentTasks; i++ {
 		isEOATicket <- struct{}{}
 	}
+
 	var err error
-	isEOACache, err = lru.New(isEOACacheSize)
+	eoaCache, err = memlru.NewWithSize(eoaCacheSize)
 	if err != nil {
 		log.Fatalf("failed to initialize EOA cache: %v", err)
 	}
@@ -38,11 +45,11 @@ func isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Addres
 		isEOATicket <- ticket
 	}()
 
-	key := fmt.Sprintf("%d::%v", provider.Config.ChaindID, address)
+	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
 
-	if val, ok := isEOACache.Get(key); ok {
+	if val, _ := eoaCache.Get(ctx, key); val != nil {
 		// we have recorded data for this key, let's use it
-		return val.(bool), nil
+		return val[0] == cachedTrue, nil
 	}
 
 	// TODO: will this function time-out at some point?
@@ -51,10 +58,12 @@ func isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Addres
 		return false, err
 	}
 
-	value := len(code) == 0
+	if len(code) == 0 {
+		// if the address does not contain a smart contract, then it's an EOA
+		_ = eoaCache.Set(ctx, key, []byte{cachedTrue})
+		return true, nil
+	}
 
-	// store value in the cache
-	_ = isEOACache.Add(key, value)
-
-	return value, nil
+	_ = eoaCache.Set(ctx, key, []byte{cachedFalse})
+	return false, nil
 }
