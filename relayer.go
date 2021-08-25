@@ -90,7 +90,7 @@ func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID Me
 		defer cancel()
 	} else {
 		if _, ok := ctx.Deadline(); !ok {
-			ctx, cancel = context.WithTimeout(ctx, 12*time.Second)
+			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
 			defer cancel()
 		}
 	}
