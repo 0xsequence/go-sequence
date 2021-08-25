@@ -16,15 +16,27 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/goware/cachestore"
+	"github.com/goware/cachestore/memlru"
 )
 
-const areEOAsMaxConcurrentTasks = 10
+const (
+	defaultEstimatorCacheSize = 100
+
+	areEOAsMaxConcurrentTasks = 10
+)
 
 // areEOAsTickets limits the number of concurrent goroutines spawned by the
 // AreEOAs() function. This is a global lock and ensures that even if we have
 // many calls to AreEOAs we won't spawn more than <areEOAsMaxConcurrentTasks>
 // goroutines at any given time.
 var areEOAsTickets = make(chan struct{}, areEOAsMaxConcurrentTasks)
+
+var (
+	// byte values that represent booleans in the cache.
+	cachedTrue  = byte('t')
+	cachedFalse = byte('f')
+)
 
 func init() {
 	for i := 0; i < areEOAsMaxConcurrentTasks; i++ {
@@ -55,6 +67,8 @@ type Estimator struct {
 	BaseCost     uint64
 	DataOneCost  uint64
 	DataZeroCost uint64
+
+	cache cachestore.Storage
 }
 
 var defaultEstimator = &Estimator{
@@ -67,11 +81,18 @@ var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
+	defaultCache, _ := memlru.NewWithSize(defaultEstimatorCacheSize)
 	return &Estimator{
 		BaseCost:     defaultEstimator.BaseCost,
 		DataZeroCost: defaultEstimator.DataZeroCost,
 		DataOneCost:  defaultEstimator.DataOneCost,
+		cache:        defaultCache,
 	}
+}
+
+func (e *Estimator) SetCache(cache cachestore.Storage) *Estimator {
+	e.cache = cache
+	return e
 }
 
 func (e *Estimator) CalldataCost(data []byte) uint64 {
@@ -218,7 +239,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 			}
 
 			var err error
-			res[i], err = isEOA(ctx, provider, address)
+			res[i], err = e.isEOA(ctx, provider, address)
 			if err != nil {
 				anyErr.Store(err)
 			}
@@ -232,6 +253,30 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	}
 
 	return res, nil
+}
+
+func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Address) (bool, error) {
+	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
+
+	if val, _ := e.cache.Get(ctx, key); val != nil {
+		// we have recorded data for this key, let's use it
+		return val[0] == cachedTrue, nil
+	}
+
+	// TODO: will this function time-out at some point?
+	code, err := provider.CodeAt(ctx, address, nil)
+	if err != nil {
+		return false, err
+	}
+
+	if len(code) == 0 {
+		// if the address does not contain a smart contract, then it's an EOA
+		_ = e.cache.Set(ctx, key, []byte{cachedTrue})
+		return true, nil
+	}
+
+	_ = e.cache.Set(ctx, key, []byte{cachedFalse})
+	return false, nil
 }
 
 func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, isEoa []bool) ([]bool, error) {
