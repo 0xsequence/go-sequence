@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
@@ -21,28 +21,16 @@ import (
 )
 
 const (
-	defaultEstimatorCacheSize = 100
+	defaultEstimatorCacheSize = 500
 
 	areEOAsMaxConcurrentTasks = 10
 )
-
-// areEOAsTickets limits the number of concurrent goroutines spawned by the
-// AreEOAs() function. This is a global lock and ensures that even if we have
-// many calls to AreEOAs we won't spawn more than <areEOAsMaxConcurrentTasks>
-// goroutines at any given time.
-var areEOAsTickets = make(chan struct{}, areEOAsMaxConcurrentTasks)
 
 var (
 	// byte values that represent booleans in the cache.
 	cachedTrue  = byte('t')
 	cachedFalse = byte('f')
 )
-
-func init() {
-	for i := 0; i < areEOAsMaxConcurrentTasks; i++ {
-		areEOAsTickets <- struct{}{}
-	}
-}
 
 type CallOverride struct {
 	Code      string
@@ -215,47 +203,49 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 }
 
 func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig) ([]bool, error) {
+	res := make([]bool, walletConfig.Signers.Len())
+
 	// Get non-eoa signers
 	// required for computing worse case scenario
-	var anyErr atomic.Value
-
 	var wg sync.WaitGroup
 
-	res := make([]bool, walletConfig.Signers.Len())
+	errCh := make(chan error)
+	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
+
 	for i := range walletConfig.Signers {
 		wg.Add(1)
 
-		ticket := <-areEOAsTickets // wait until a ticket becomes available to continue
-		go func(ticket struct{}, i int, address common.Address) {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case err := <-errCh:
+			return nil, err
+		case workersCh <- struct{}{}: // wait until a worker slot becomes available to continue
+		}
 
+		go func(ctx context.Context, i int, address common.Address) {
 			defer func() {
 				wg.Done()
-				areEOAsTickets <- ticket // put ticket back after finishing task
+				<-workersCh // release the worker
 			}()
-
-			if anyErr.Load() != nil {
-				// one task of this batch already failed
-				return
-			}
 
 			var err error
 			res[i], err = e.isEOA(ctx, provider, address)
 			if err != nil {
-				anyErr.Store(err)
+				errCh <- err
+				return
 			}
-
-		}(ticket, i, walletConfig.Signers[i].Address)
+		}(ctx, i, walletConfig.Signers[i].Address)
 	}
 	wg.Wait()
-
-	if err := anyErr.Load(); err != nil {
-		return nil, err.(error)
-	}
 
 	return res, nil
 }
 
 func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Address) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
 	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
 
 	if val, _ := e.cache.Get(ctx, key); val != nil {
@@ -263,7 +253,6 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 		return val[0] == cachedTrue, nil
 	}
 
-	// TODO: will this function time-out at some point?
 	code, err := provider.CodeAt(ctx, address, nil)
 	if err != nil {
 		return false, err
