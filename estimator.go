@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
@@ -14,6 +16,20 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/goware/cachestore"
+	"github.com/goware/cachestore/memlru"
+)
+
+const (
+	defaultEstimatorCacheSize = 500
+
+	areEOAsMaxConcurrentTasks = 10
+)
+
+var (
+	// byte values that represent booleans in the cache.
+	cachedTrue  = byte('t')
+	cachedFalse = byte('f')
 )
 
 type CallOverride struct {
@@ -39,6 +55,8 @@ type Estimator struct {
 	BaseCost     uint64
 	DataOneCost  uint64
 	DataZeroCost uint64
+
+	cache cachestore.Store
 }
 
 var defaultEstimator = &Estimator{
@@ -51,11 +69,18 @@ var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
+	defaultCache, _ := memlru.NewWithSize(defaultEstimatorCacheSize)
 	return &Estimator{
 		BaseCost:     defaultEstimator.BaseCost,
 		DataZeroCost: defaultEstimator.DataZeroCost,
 		DataOneCost:  defaultEstimator.DataOneCost,
+		cache:        defaultCache,
 	}
+}
+
+func (e *Estimator) SetCache(cache cachestore.Store) *Estimator {
+	e.cache = cache
+	return e
 }
 
 func (e *Estimator) CalldataCost(data []byte) uint64 {
@@ -178,20 +203,69 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 }
 
 func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig) ([]bool, error) {
+	res := make([]bool, walletConfig.Signers.Len())
+
 	// Get non-eoa signers
 	// required for computing worse case scenario
-	// TODO: Do these calls in parallel
-	isEoa := make([]bool, walletConfig.Signers.Len())
-	for i, s := range walletConfig.Signers {
-		code, err := provider.CodeAt(ctx, s.Address, nil)
-		if err != nil {
+	var wg sync.WaitGroup
+
+	errCh := make(chan error)
+	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
+
+	for i := range walletConfig.Signers {
+		wg.Add(1)
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case err := <-errCh:
 			return nil, err
+		case workersCh <- struct{}{}: // wait until a worker slot becomes available to continue
 		}
 
-		isEoa[i] = len(code) == 0
+		go func(ctx context.Context, i int, address common.Address) {
+			defer func() {
+				wg.Done()
+				<-workersCh // release the worker
+			}()
+
+			var err error
+			res[i], err = e.isEOA(ctx, provider, address)
+			if err != nil {
+				errCh <- err
+				return
+			}
+		}(ctx, i, walletConfig.Signers[i].Address)
+	}
+	wg.Wait()
+
+	return res, nil
+}
+
+func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, address common.Address) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
+	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
+
+	if val, _ := e.cache.Get(ctx, key); val != nil {
+		// we have recorded data for this key, let's use it
+		return val[0] == cachedTrue, nil
 	}
 
-	return isEoa, nil
+	code, err := provider.CodeAt(ctx, address, nil)
+	if err != nil {
+		return false, err
+	}
+
+	if len(code) == 0 {
+		// if the address does not contain a smart contract, then it's an EOA
+		_ = e.cache.Set(ctx, key, []byte{cachedTrue})
+		return true, nil
+	}
+
+	_ = e.cache.Set(ctx, key, []byte{cachedFalse})
+	return false, nil
 }
 
 func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, isEoa []bool) ([]bool, error) {
