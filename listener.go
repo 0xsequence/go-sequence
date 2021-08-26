@@ -23,18 +23,18 @@ type MetaTxnListener struct {
 	monitor  *ethmonitor.Monitor
 
 	subscribers  []*subscriber
-	pastReceipts []*BlockOfReceipts
+	pastReceipts []BlockOfReceipts
 
 	mu sync.Mutex
 }
 
-type MetaTxnReceiptResult struct {
+type MetaTxnReceiptResult struct { // TODO: see if we can use the existing "sequence.Receipt" type we have
 	metaTxnId MetaTxnID
 	status    MetaTxnStatus
 	receipt   *types.Receipt
 }
 
-type BlockOfReceipts = []*MetaTxnReceiptResult
+type BlockOfReceipts []*MetaTxnReceiptResult
 
 type subscriber struct {
 	ch          chan *MetaTxnReceiptResult
@@ -47,6 +47,47 @@ func NewMetaTxnListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *
 		provider:    provider,
 		monitor:     monitor,
 		subscribers: make([]*subscriber, 0),
+	}
+}
+
+func (l *MetaTxnListener) Run(ctx context.Context) error {
+	oplog := l.log
+
+	suscription := l.monitor.Subscribe()
+	defer suscription.Unsubscribe()
+
+	for {
+		select {
+		case <-ctx.Done():
+			oplog.Debug().Msgf("parent signaled to cancel - listener is quitting")
+			return nil
+		case blocks := <-suscription.Blocks():
+			block := blocks.LatestBlock().Block
+
+			err := l.HandleBlock(ctx, block)
+			errCount := 0
+
+			for err != nil && errCount < 15 {
+				l.log.Warn().
+					Uint64("block", block.NumberU64()).
+					Str("block-hash", block.Hash().Hex()).
+					Uint("retries", uint(errCount)).
+					Err(err).
+					Msgf("Error processing block, schedule retry")
+
+				err = l.HandleBlock(ctx, block)
+				errCount++
+				time.Sleep(5 * time.Second)
+			}
+
+			if err != nil {
+				l.log.Err(err).
+					Uint64("block", block.NumberU64()).
+					Str("block-hash", block.Hash().Hex()).
+					Uint("retries", uint(errCount)).
+					Msgf("Error processing block, block dumped")
+			}
+		}
 	}
 }
 
@@ -81,8 +122,8 @@ func (l *MetaTxnListener) HandleBlock(ctx context.Context, block *types.Block) e
 
 	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
 	query := ethereum.FilterQuery{
-		FromBlock: new(big.Int).Sub(block.Number(), common.Big1),
-		ToBlock:   block.Number(),
+		FromBlock: block.Number(),
+		ToBlock:   new(big.Int).Add(block.Number(), common.Big1),
 		Topics:    nonceChangedTopics,
 	}
 
@@ -173,54 +214,13 @@ func (l *MetaTxnListener) HandleBlock(ctx context.Context, block *types.Block) e
 
 	if len(l.pastReceipts) < 1024 {
 		// Append at the end of slice
-		l.pastReceipts = append(l.pastReceipts, &blockOfReceipts)
+		l.pastReceipts = append(l.pastReceipts, blockOfReceipts)
 	} else {
 		// Append value but also pop the queue
-		l.pastReceipts = append(l.pastReceipts[1:], &blockOfReceipts)
+		l.pastReceipts = append(l.pastReceipts[1:], blockOfReceipts)
 	}
 
 	return nil
-}
-
-func (l *MetaTxnListener) Run(ctx context.Context) error {
-	oplog := l.log
-
-	suscription := l.monitor.Subscribe()
-	defer suscription.Unsubscribe()
-
-	for {
-		select {
-		case <-ctx.Done():
-			oplog.Debug().Msgf("parent signaled to cancel - listener is quitting")
-			return nil
-		case blocks := <-suscription.Blocks():
-			block := blocks.LatestBlock().Block
-
-			err := l.HandleBlock(ctx, block)
-			errCount := 0
-
-			for err != nil && errCount < 15 {
-				l.log.Warn().
-					Uint64("block", block.NumberU64()).
-					Str("block-hash", block.Hash().Hex()).
-					Uint("retries", uint(errCount)).
-					Err(err).
-					Msgf("Error processing block, schedule retry")
-
-				err = l.HandleBlock(ctx, block)
-				errCount++
-				time.Sleep(5 * time.Second)
-			}
-
-			if err != nil {
-				l.log.Err(err).
-					Uint64("block", block.NumberU64()).
-					Str("block-hash", block.Hash().Hex()).
-					Uint("retries", uint(errCount)).
-					Msgf("Error processing block, block dumped")
-			}
-		}
-	}
 }
 
 func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
@@ -237,18 +237,14 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 		}
 	}
 
-	// Listen for new receipts
-	sus := l.Subscribe()
-	defer sus.unsubscribe()
-
 	// See if metaTxn has been seen in past blocks
-	tatalInspected := 0
+	totalInspected := 0
 	for _, bol := range l.pastReceipts {
-		for _, receipt := range *bol {
-			tatalInspected++
+		for _, receipt := range bol {
+			totalInspected++
 			if receipt.metaTxnId == metaTxnID {
 				l.log.Debug().
-					Int("inspected", tatalInspected).
+					Int("inspected", totalInspected).
 					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found receipt among past receipts")
 
@@ -258,9 +254,13 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	}
 
 	l.log.Debug().
-		Int("inspected", tatalInspected).
+		Int("inspected", totalInspected).
 		Str("meta-tx", string(metaTxnID)).
-		Msgf("Receipt not found among past receipts")
+		Msgf("Receipt not found among past receipts. Now listening..")
+
+	// Listen for new receipts
+	sub := l.Subscribe()
+	defer sub.unsubscribe()
 
 	// Wait for receipt or
 	// context deadline
@@ -275,7 +275,7 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 			} else {
 				return 0, nil, nil
 			}
-		case receipt := <-sus.ch:
+		case receipt := <-sub.ch:
 			if receipt.metaTxnId == metaTxnID {
 				return receipt.status, receipt.receipt, nil
 			}
