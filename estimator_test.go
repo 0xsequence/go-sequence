@@ -673,3 +673,52 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 	assert.Equal(t, pick[3], false)
 	assert.Equal(t, pick[4], true)
 }
+
+func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
+	wallets := sequence.WalletConfigSigners{}
+
+	for i := 0; i < 80; i++ {
+		randomWallet, err := ethwallet.NewWalletFromRandomEntropy()
+		assert.NoError(t, err)
+
+		wallets = append(wallets, sequence.WalletConfigSigner{
+			Weight:  1,
+			Address: randomWallet.Address(),
+		})
+	}
+
+	walletConfig := sequence.WalletConfig{
+		Threshold: 2,
+		Signers:   wallets,
+	}
+
+	wallet, err := testChain.DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+	clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+	assert.NoError(t, err)
+	testutil.SignAndSend(t, wallet, callmockContract.Address, clearData)
+
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
+	assert.NoError(t, err)
+
+	txs := sequence.Transactions{
+		&sequence.Transaction{
+			To:    callmockContract.Address,
+			Data:  calldata,
+			Nonce: testChain.RandomNonce(),
+		},
+	}
+
+	// run the estimator several times (results should be cached and reused so this loop should be pretty fast)
+	for i := 0; i < 100; i++ {
+		estimator := sequence.NewEstimator()
+		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), walletConfig, wallet.GetWalletContext(), txs)
+
+		assert.NoError(t, err)
+		assert.NotZero(t, estimated)
+		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+	}
+}
