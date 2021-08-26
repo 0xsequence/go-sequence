@@ -68,7 +68,7 @@ type Estimator struct {
 	DataOneCost  uint64
 	DataZeroCost uint64
 
-	cache cachestore.Storage
+	cache cachestore.Store
 }
 
 var defaultEstimator = &Estimator{
@@ -90,7 +90,7 @@ func NewEstimator() *Estimator {
 	}
 }
 
-func (e *Estimator) SetCache(cache cachestore.Storage) *Estimator {
+func (e *Estimator) SetCache(cache cachestore.Store) *Estimator {
 	e.cache = cache
 	return e
 }
