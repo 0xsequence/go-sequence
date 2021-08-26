@@ -18,15 +18,14 @@ import (
 )
 
 type MetaTxnListener struct {
+	log      zerolog.Logger
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
-
-	mutex *sync.Mutex
 
 	subscribers  []*subscriber
 	pastReceipts []*BlockOfReceipts
 
-	log zerolog.Logger
+	mu sync.Mutex
 }
 
 type MetaTxnReceiptResult struct {
@@ -42,27 +41,26 @@ type subscriber struct {
 	unsubscribe func()
 }
 
-func NewMetaTxnListener(provider *ethrpc.Provider, monitor *ethmonitor.Monitor, log zerolog.Logger) *MetaTxnListener {
+func NewMetaTxnListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) *MetaTxnListener {
 	return &MetaTxnListener{
+		log:         log,
 		provider:    provider,
 		monitor:     monitor,
-		mutex:       &sync.Mutex{},
 		subscribers: make([]*subscriber, 0),
-		log:         log,
 	}
 }
 
 func (l *MetaTxnListener) Subscribe() *subscriber {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	subscriber := &subscriber{
 		ch: make(chan *MetaTxnReceiptResult, 1024),
 	}
 
 	subscriber.unsubscribe = func() {
-		l.mutex.Lock()
-		defer l.mutex.Unlock()
+		l.mu.Lock()
+		defer l.mu.Unlock()
 		for i, sub := range l.subscribers {
 			if sub == subscriber {
 				l.subscribers = append(l.subscribers[:i], l.subscribers[i+1:]...)
@@ -154,8 +152,8 @@ func (l *MetaTxnListener) HandleBlock(ctx context.Context, block *types.Block) e
 	// Store block of receipts
 	// use a deque so it doesn't grow forever
 	// TODO: We may as well be using the indexer database at this point
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	// Tell suscribers
 	// non-blocking send
