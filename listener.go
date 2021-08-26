@@ -100,11 +100,9 @@ func (l *MetaTxnListener) HandleBlock(ctx context.Context, block *types.Block) e
 		Msgf("Found logs")
 
 	for _, log := range logs {
-		// we need to find the metaTxnId
+		// We need to find the metaTxnIds
 		tx, err := l.provider.TransactionReceipt(ctx, log.TxHash)
 		if err != nil {
-			// TODO: Handle this, we should retry the whole block, or the transaction
-			// but what happen on a reorg if this transaction no longer exists?
 			l.log.Warn().
 				Uint64("block", block.NumberU64()).
 				Str("tx", log.TxHash.Hex()).
@@ -174,6 +172,7 @@ func (l *MetaTxnListener) HandleBlock(ctx context.Context, block *types.Block) e
 		Int("past-block-entries", len(l.pastReceipts)).
 		Int("new-entries", len(blockOfReceipts)).
 		Msgf("Push into past receipts")
+
 	if len(l.pastReceipts) < 1024 {
 		// Append at the end of slice
 		l.pastReceipts = append(l.pastReceipts, &blockOfReceipts)
