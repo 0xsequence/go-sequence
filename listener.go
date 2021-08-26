@@ -21,8 +21,7 @@ type MetaTxnListener struct {
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
 
-	mutex   *sync.Mutex
-	running bool
+	mutex *sync.Mutex
 
 	subscribers  []*subscriber
 	pastReceipts []*BlockOfReceipts
