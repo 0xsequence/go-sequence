@@ -26,7 +26,7 @@ type ReceiptListener struct {
 	pastReceipts []BlockOfReceipts
 	subscribers  []*subscriber
 
-	mu sync.RWMutex
+	mu sync.Mutex
 }
 
 type ReceiptResult struct {
@@ -245,8 +245,11 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 		}
 	}
 
+	// Listen for new receipts
+	sub := l.subscribe()
+	defer sub.unsubscribe()
+
 	// See if metaTxn has been seen in past blocks
-	l.mu.RLock()
 	totalInspected := 0
 	for _, bol := range l.pastReceipts {
 		for _, receipt := range bol {
@@ -257,21 +260,15 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found receipt among past receipts")
 
-				l.mu.RUnlock()
 				return receipt.Status, receipt.TxnReceipt, nil
 			}
 		}
 	}
-	l.mu.RUnlock()
 
 	l.log.Debug().
 		Int("inspected", totalInspected).
 		Str("meta-tx", string(metaTxnID)).
 		Msgf("Receipt not found among past receipts. Now listening..")
-
-	// Listen for new receipts
-	sub := l.subscribe()
-	defer sub.unsubscribe()
 
 	// Wait for receipt or context deadline
 	var receipt *ReceiptResult
