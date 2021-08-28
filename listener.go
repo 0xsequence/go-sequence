@@ -96,8 +96,6 @@ func (l *MetaTxnListener) Run(ctx context.Context) error {
 func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) error {
 	blockOfReceipts := BlockOfReceipts{}
 
-	// fmt.Println("==> handleBlock", block.NumberU64())
-
 	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
 	query := ethereum.FilterQuery{
 		FromBlock: block.Number(),
@@ -115,9 +113,6 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 		Uint64("block", block.NumberU64()).
 		Int("logs", len(logs)).
 		Msgf("Found logs")
-
-	// fmt.Println("==> num logs", len(logs), "block:", block.NumberU64())
-	// defer fmt.Println("")
 
 	for _, log := range logs {
 		// We need to find the metaTxnIds
@@ -167,8 +162,6 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 				Status:     status,
 				TxnReceipt: tx,
 			}
-
-			// fmt.Println("==> metaTxnID", metaTxnID, "status", status, "hash", tx.TxHash.Hex())
 
 			// Add found result to block of receipts
 			blockOfReceipts = append(blockOfReceipts, result)
@@ -257,7 +250,6 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	totalInspected := 0
 	for _, bol := range l.pastReceipts {
 		for _, receipt := range bol {
-			// fmt.Println("find.. loop..")
 			totalInspected++
 			if receipt.MetaTxnID == metaTxnID {
 				l.log.Debug().
@@ -298,20 +290,15 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 				if errors.Is(err, context.DeadlineExceeded) {
 					err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
 					return
-					// return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
 				} else if err != nil {
-					// return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
 					err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
 					return
 				} else {
-					// return 0, nil, nil
 					return
 				}
 
 			case receipt = <-sub.ch:
-				fmt.Println("receipt.. sub..", receipt.MetaTxnID)
 				if receipt.MetaTxnID == metaTxnID {
-					// return receipt.Status, receipt.TxnReceipt, nil
 					return
 				}
 			}
