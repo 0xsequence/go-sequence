@@ -18,7 +18,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type MetaTxnListener struct {
+type ReceiptListener struct {
 	log      zerolog.Logger
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
@@ -29,22 +29,22 @@ type MetaTxnListener struct {
 	mu sync.RWMutex
 }
 
-type MetaTxnReceiptResult struct {
+type ReceiptResult struct {
 	MetaTxnID  MetaTxnID
 	Status     MetaTxnStatus
 	TxnReceipt *types.Receipt
 }
 
-type BlockOfReceipts []*MetaTxnReceiptResult
+type BlockOfReceipts []*ReceiptResult
 
 type subscriber struct {
-	ch          chan *MetaTxnReceiptResult
+	ch          chan *ReceiptResult
 	done        chan struct{}
 	unsubscribe func()
 }
 
-func NewMetaTxnListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*MetaTxnListener, error) {
-	return &MetaTxnListener{
+func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*ReceiptListener, error) {
+	return &ReceiptListener{
 		log:          log.With().Str("ps", "ReceiptListener").Logger(),
 		provider:     provider,
 		monitor:      monitor,
@@ -53,7 +53,7 @@ func NewMetaTxnListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *
 	}, nil
 }
 
-func (l *MetaTxnListener) Run(ctx context.Context) error {
+func (l *ReceiptListener) Run(ctx context.Context) error {
 	sub := l.monitor.Subscribe()
 	defer sub.Unsubscribe()
 
@@ -93,7 +93,7 @@ func (l *MetaTxnListener) Run(ctx context.Context) error {
 	}
 }
 
-func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) error {
+func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) error {
 	blockOfReceipts := BlockOfReceipts{}
 
 	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
@@ -157,7 +157,7 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 				continue // unknown, skip
 			}
 
-			result := &MetaTxnReceiptResult{
+			result := &ReceiptResult{
 				MetaTxnID:  metaTxnID,
 				Status:     status,
 				TxnReceipt: tx,
@@ -204,12 +204,12 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 	return nil
 }
 
-func (l *MetaTxnListener) subscribe() *subscriber {
+func (l *ReceiptListener) subscribe() *subscriber {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	subscriber := &subscriber{
-		ch:   make(chan *MetaTxnReceiptResult, 1),
+		ch:   make(chan *ReceiptResult, 1),
 		done: make(chan struct{}),
 	}
 
@@ -231,7 +231,7 @@ func (l *MetaTxnListener) subscribe() *subscriber {
 	return subscriber
 }
 
-func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
+func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
 	var cancel context.CancelFunc
@@ -274,7 +274,7 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	defer sub.unsubscribe()
 
 	// Wait for receipt or context deadline
-	var receipt *MetaTxnReceiptResult
+	var receipt *ReceiptResult
 	var err error
 
 	var wg sync.WaitGroup
@@ -297,6 +297,9 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 					return
 				}
 
+			case <-sub.done:
+				return
+
 			case receipt = <-sub.ch:
 				if receipt.MetaTxnID == metaTxnID {
 					return
@@ -310,5 +313,8 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	if err != nil {
 		return 0, nil, err
 	}
-	return receipt.Status, receipt.TxnReceipt, nil
+	if receipt != nil {
+		return receipt.Status, receipt.TxnReceipt, nil
+	}
+	return 0, nil, nil
 }
