@@ -39,6 +39,7 @@ type BlockOfReceipts []*MetaTxnReceiptResult
 
 type subscriber struct {
 	ch          chan *MetaTxnReceiptResult
+	done        chan struct{}
 	unsubscribe func()
 }
 
@@ -58,12 +59,15 @@ func (l *MetaTxnListener) Run(ctx context.Context) error {
 
 	for {
 		select {
+
 		case <-ctx.Done():
 			l.log.Debug().Msgf("parent signaled to cancel - receipt listener is quitting")
 			return nil
+
 		case <-sub.Done():
 			l.log.Info().Msgf("receipt listener is stopped because monitor signaled its stopping")
 			return nil
+
 		case blocks := <-sub.Blocks():
 			block := blocks.LatestBlock().Block
 			if block == nil {
@@ -126,35 +130,35 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 		// We could see multiple metaTxns on the same transaction
 		for _, txLog := range tx.Logs {
 			var status MetaTxnStatus
-			var metaTxnId MetaTxnID
+			var metaTxnID MetaTxnID
 
 			// Success transactions have no topics and the metaTxId is the data
 			// we can't really know if this is a metaTxn or not, but we assume it is
 			// if it isn't is just going to get ignored
 			if len(txLog.Topics) == 0 && len(txLog.Data) == 32 {
 				status = MetaTxnExecuted
-				metaTxnId = MetaTxnID(common.Bytes2Hex(txLog.Data))
+				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data))
 
 				l.log.Debug().
 					Str("tx", tx.TxHash.Hex()).
-					Str("meta-tx", string(metaTxnId)).
+					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found succeed meta-tx")
 
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
 			} else if len(txLog.Topics) == 1 && txLog.Topics[0] == TxFailedEventSig && len(txLog.Data) >= 32 {
 				status = MetaTxnExecuted
-				metaTxnId = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
+				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
 
 				l.log.Debug().
 					Str("tx", tx.TxHash.Hex()).
-					Str("meta-tx", string(metaTxnId)).
+					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found failed meta-tx")
 			} else {
 				continue // unknown, skip
 			}
 
 			result := &MetaTxnReceiptResult{
-				MetaTxnID:  metaTxnId,
+				MetaTxnID:  metaTxnID,
 				Status:     status,
 				TxnReceipt: tx,
 			}
@@ -164,14 +168,23 @@ func (l *MetaTxnListener) handleBlock(ctx context.Context, block *types.Block) e
 		}
 	}
 
+	// Nothing to record, skipping.
+	if len(blockOfReceipts) == 0 {
+		return nil
+	}
+
+	// Publish to subscribers
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// Tell subscribers
 	for _, result := range blockOfReceipts {
 		for _, sub := range l.subscribers {
-			sub.ch <- result
-			// TODO: can we do a timeout thing here..?
+			select {
+			case <-sub.done:
+			case sub.ch <- result:
+			case <-time.After(2 * time.Second):
+				l.log.Warn().Msgf("channel publisher is blocked by a slow subscriber")
+			}
 		}
 	}
 
@@ -196,16 +209,18 @@ func (l *MetaTxnListener) subscribe() *subscriber {
 	defer l.mu.Unlock()
 
 	subscriber := &subscriber{
-		ch: make(chan *MetaTxnReceiptResult),
+		ch:   make(chan *MetaTxnReceiptResult, 1),
+		done: make(chan struct{}),
 	}
 
 	subscriber.unsubscribe = func() {
 		l.mu.Lock()
 		defer l.mu.Unlock()
+		close(subscriber.done)
+		close(subscriber.ch)
 		for i, sub := range l.subscribers {
 			if sub == subscriber {
 				l.subscribers = append(l.subscribers[:i], l.subscribers[i+1:]...)
-				close(subscriber.ch)
 				return
 			}
 		}
@@ -229,10 +244,6 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 			defer cancel()
 		}
 	}
-
-	// Listen for new receipts
-	sub := l.subscribe()
-	defer sub.unsubscribe()
 
 	// See if metaTxn has been seen in past blocks
 	l.mu.RLock()
@@ -258,23 +269,46 @@ func (l *MetaTxnListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 		Str("meta-tx", string(metaTxnID)).
 		Msgf("Receipt not found among past receipts. Now listening..")
 
-	// Wait for receipt or
-	// context deadline
-	for {
-		select {
-		case <-ctx.Done():
-			err := ctx.Err()
-			if errors.Is(err, context.DeadlineExceeded) {
-				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
-			} else if err != nil {
-				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
-			} else {
-				return 0, nil, nil
-			}
-		case receipt := <-sub.ch:
-			if receipt.MetaTxnID == metaTxnID {
-				return receipt.Status, receipt.TxnReceipt, nil
+	// Listen for new receipts
+	sub := l.subscribe()
+	defer sub.unsubscribe()
+
+	// Wait for receipt or context deadline
+	var receipt *MetaTxnReceiptResult
+	var err error
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func(ctx context.Context) {
+		defer wg.Done()
+		for {
+			select {
+
+			case <-ctx.Done():
+				err := ctx.Err()
+				if errors.Is(err, context.DeadlineExceeded) {
+					err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
+					return
+				} else if err != nil {
+					err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
+					return
+				} else {
+					return
+				}
+
+			case receipt = <-sub.ch:
+				if receipt.MetaTxnID == metaTxnID {
+					return
+				}
 			}
 		}
+	}(ctx)
+
+	wg.Wait()
+
+	if err != nil {
+		return 0, nil, err
 	}
+	return receipt.Status, receipt.TxnReceipt, nil
 }
