@@ -214,10 +214,10 @@ func (l *ReceiptListener) subscribe() *subscriber {
 	}
 
 	subscriber.unsubscribe = func() {
-		l.mu.Lock()
-		defer l.mu.Unlock()
 		close(subscriber.done)
 		close(subscriber.ch)
+		l.mu.Lock()
+		defer l.mu.Unlock()
 		for i, sub := range l.subscribers {
 			if sub == subscriber {
 				l.subscribers = append(l.subscribers[:i], l.subscribers[i+1:]...)
