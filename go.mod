@@ -3,7 +3,7 @@ module github.com/0xsequence/go-sequence
 go 1.16
 
 require (
-	github.com/0xsequence/ethkit v1.6.5
+	github.com/0xsequence/ethkit v1.6.8
 	github.com/0xsequence/go-ethauth v0.7.1
 	github.com/goware/breaker v0.0.2
 	github.com/goware/cachestore v0.0.1

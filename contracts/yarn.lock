@@ -22,10 +22,10 @@
     "@0xsequence/erc-1155" "^3.0.4"
     "@0xsequence/erc20-meta-token" "^3.0.5"
 
-"@0xsequence/wallet-contracts@1.9.4":
-  version "1.9.4"
-  resolved "https://registry.yarnpkg.com/@0xsequence/wallet-contracts/-/wallet-contracts-1.9.4.tgz#e3e6250f523ddc8136f3a2cf953b6677c2450b86"
-  integrity sha512-ARM1U9wJ7yAJX+FXn/hSX5rFp61rvzKlZo4ahlRJq1miNf2tg9G9mGmcTxPcJQW1eUOBGIjVpB+jpp5JXT2NTg==
+"@0xsequence/wallet-contracts@1.9.5":
+  version "1.9.5"
+  resolved "https://registry.yarnpkg.com/@0xsequence/wallet-contracts/-/wallet-contracts-1.9.5.tgz#f92e12d851da3fda1fd6014c64e98c350e300c3e"
+  integrity sha512-EOfbG9y7NEICcb6wAkKbyI9ZyKN4mCjirTZdO4zOe7JnZ4eYCgh8Wf4I9J0MuMSvOVVuQi03xVZpcH5K6qRzqg==
   optionalDependencies:
     ethers "^5.0.32"
 
@@ -368,10 +368,10 @@
     "@ethersproject/properties" "^5.3.0"
     "@ethersproject/strings" "^5.3.0"
 
-"@openzeppelin/contracts@4.2.0":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.2.0.tgz#260d921d99356e48013d9d760caaa6cea35dc642"
-  integrity sha512-LD4NnkKpHHSMo5z9MvFsG4g1xxZUDqV3A3Futu3nvyfs4wPwXxqOgMaxOoa2PeyGL2VNeSlbxT54enbQzGcgJQ==
+"@openzeppelin/contracts@4.3.1":
+  version "4.3.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.1.tgz#c01f791ce6c9d3989ac1a643267501dbe336b9e3"
+  integrity sha512-QjgbPPlmDK2clK1hzjw2ROfY8KA5q+PfhDUUxZFEBCZP9fi6d5FuNoh/Uq0oCTMEKPmue69vhX2jcl0N/tFKGw==
 
 aes-js@3.0.0:
   version "3.0.0"
