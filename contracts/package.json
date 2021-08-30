@@ -17,6 +17,6 @@
     "@0xsequence/niftyswap": "^3.0.2",
     "@0xsequence/erc-1155": "^3.0.4",
     "@0xsequence/wallet-contracts": "1.9.4",
-    "@openzeppelin/contracts": "4.2.0"
+    "@openzeppelin/contracts": "4.3.1"
   }
 }
