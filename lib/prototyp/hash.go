@@ -2,6 +2,7 @@ package prototyp
 
 import (
 	"database/sql/driver"
+	"encoding/hex"
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -13,6 +14,14 @@ type Hash string
 
 func HashFromString(s string) Hash {
 	return Hash(strings.ToLower(s))
+}
+
+type Hexer interface {
+	Hex() string
+}
+
+func ToHash(h Hexer) Hash {
+	return HashFromString(h.Hex())
 }
 
 func (h Hash) ToAddress() common.Address {
@@ -36,11 +45,17 @@ func (h *Hash) UnmarshalText(src []byte) error {
 }
 
 func (h Hash) String() string {
-	return strings.ToLower(string(h))
+	return string(h)
 }
 
 func (h Hash) IsZeroValue() bool {
+	if h.String() == "" {
+		return true
+	}
 	if h.String() == "0x" {
+		return true
+	}
+	if h.String() == "0x00000000" {
 		return true
 	}
 	if h.String() == "0x0000000000000000000000000000000000000000" {
@@ -77,10 +92,18 @@ func (h *Hash) Hash() common.Hash {
 }
 
 func (h *Hash) Scan(src interface{}) error {
-	*h = Hash(src.(string))
+	*h = ByteToHash(src.([]byte))
 	return nil
 }
 
 func (h Hash) Value() (driver.Value, error) {
-	return h.String(), nil
+	s := h.String()
+	if len(s) < 2 {
+		return []byte{}, nil
+	}
+	return hex.DecodeString(s[2:])
+}
+
+func ByteToHash(src []byte) Hash {
+	return Hash("0x" + hex.EncodeToString(src))
 }
