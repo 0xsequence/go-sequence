@@ -39,8 +39,7 @@ func (h *Hash) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (h *Hash) UnmarshalText(src []byte) error {
-	*h = Hash(strings.ToLower(string(src)))
-
+	*h = HashFromString(string(src))
 	return nil
 }
 
@@ -91,11 +90,6 @@ func (h *Hash) Hash() common.Hash {
 	return common.HexToHash(h.String())
 }
 
-func (h *Hash) Scan(src interface{}) error {
-	*h = ByteToHash(src.([]byte))
-	return nil
-}
-
 func (h Hash) Value() (driver.Value, error) {
 	s := h.String()
 	if len(s) < 2 {
@@ -104,6 +98,14 @@ func (h Hash) Value() (driver.Value, error) {
 	return hex.DecodeString(s[2:])
 }
 
-func ByteToHash(src []byte) Hash {
+func (h *Hash) Scan(src interface{}) error {
+	// NOTE: the 'scany' package we use is unable to scan values of
+	// *string, aka *prototyp.Hash, when needing to have a nullable Hash
+	// please use the HashMaybe type instead.
+	*h = BytesToHash(src.([]byte))
+	return nil
+}
+
+func BytesToHash(src []byte) Hash {
 	return Hash("0x" + hex.EncodeToString(src))
 }
