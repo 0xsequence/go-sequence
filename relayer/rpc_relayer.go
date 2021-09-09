@@ -9,7 +9,6 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
-	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -42,63 +41,33 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-// ..
 func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
-	// NOTE: this is a stub
-	// TODO: replace this impl with the new impl or call to the server, etc.
-
 	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
 	if err != nil {
 		return nil, err
 	}
 
-	provider := r.GetProvider()
-
-	isWalletDeployed, err := sequence.IsWalletDeployed(provider, walletAddress)
+	requestData, err := txns.EncodeRaw()
 	if err != nil {
 		return nil, err
 	}
 
-	defaultGasLimit := int64(800_000)
-
-	for _, txn := range txns {
-		// Respect gasLimit request of the transaction (as long as its not 0)
-		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
-			continue
-		}
-
-		// Fee can't be estimated locally for delegateCalls
-		if txn.DelegateCall {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
-			continue
-		}
-
-		// Fee can't be estimated for self-called if wallet hasn't been deployed
-		if txn.To == walletAddress && !isWalletDeployed {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
-			continue
-		}
-
-		// Estimate with eth_estimate call
-		callMsg := ethereum.CallMsg{
-			From:  walletAddress,
-			Gas:   0, // estimating this value
-			Value: txn.Value,
-			Data:  txn.Data,
-		}
-		zeroAddress := common.Address{}
-		if txn.To != zeroAddress {
-			callMsg.To = &txn.To
-		}
-
-		gasLimit, err := provider.EstimateGas(ctx, callMsg)
-		if err != nil {
-			return nil, fmt.Errorf("ethtxn: %w", err)
-		}
-		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
+	config, err := r.protoConfig(ctx, &walletConfig, walletAddress)
+	if err != nil {
+		return nil, err
 	}
 
-	return txns, nil
+	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), config, hexutil.Encode(requestData))
+	if err != nil {
+		return nil, err
+	}
+
+	responseData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return sequence.DecodeRawTransactions(responseData)
 }
 
 // NOTE: nonce space is 160 bits wide
@@ -184,4 +153,27 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 // ..
 func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, optTimeout...)
+}
+
+func (r *RpcRelayer) protoConfig(ctx context.Context, config *sequence.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
+	var signers []*proto.WalletSigner
+	for _, signer := range config.Signers {
+		signers = append(signers, &proto.WalletSigner{
+			Address: signer.Address.Hex(),
+			Weight:  signer.Weight,
+		})
+	}
+
+	result, err := r.provider.ChainID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	chainID := result.Uint64()
+
+	return &proto.WalletConfig{
+		Address:   walletAddress.Hex(),
+		Signers:   signers,
+		Threshold: config.Threshold,
+		ChainId:   &chainID,
+	}, nil
 }
