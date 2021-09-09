@@ -11,49 +11,46 @@ import (
 // Hash is a type alias for common.Hash used for data normalization
 // with JSON/Database marshalling.
 //
-// NOTE: when used with a db like postgres, the column type must be a `bytea`
-type Hash string
+// NOTE: when used with a db like postgres, the column type must be a `varchar`,
+// `text` or string equivalent.
+type HashText string
 
-func HashFromString(s string) Hash {
-	return Hash(strings.ToLower(s))
+func HashTextFromString(s string) HashText {
+	return HashText(strings.ToLower(s))
 }
 
-func HashFromBytes(src []byte) Hash {
-	return Hash("0x" + hex.EncodeToString(src))
+func HashTextFromBytes(src []byte) HashText {
+	return HashText("0x" + hex.EncodeToString(src))
 }
 
-type Hexer interface {
-	Hex() string
+func ToHashText(h Hexer) HashText {
+	return HashTextFromString(h.Hex())
 }
 
-func ToHash(h Hexer) Hash {
-	return HashFromString(h.Hex())
-}
-
-func (h Hash) ToAddress() common.Address {
+func (h HashText) ToAddress() common.Address {
 	return common.HexToAddress(string(h))
 }
 
-func (h Hash) ToHash() common.Hash {
+func (h HashText) ToHash() common.Hash {
 	return common.HexToHash(string(h))
 }
 
 // UnmarshalText implements encoding.TextMarshaler.
-func (h *Hash) MarshalText() ([]byte, error) {
+func (h *HashText) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (h *Hash) UnmarshalText(src []byte) error {
-	*h = HashFromString(string(src))
+func (h *HashText) UnmarshalText(src []byte) error {
+	*h = HashTextFromString(string(src))
 	return nil
 }
 
-func (h Hash) String() string {
+func (h HashText) String() string {
 	return string(h)
 }
 
-func (h Hash) IsZeroValue() bool {
+func (h HashText) IsZeroValue() bool {
 	if h.String() == "" {
 		return true
 	}
@@ -72,7 +69,7 @@ func (h Hash) IsZeroValue() bool {
 	return false
 }
 
-func (h Hash) IsValidAddress() bool {
+func (h HashText) IsValidAddress() bool {
 	if h[0:2] != "0x" {
 		return false
 	}
@@ -82,7 +79,7 @@ func (h Hash) IsValidAddress() bool {
 	return true
 }
 
-func (h Hash) IsValidTxnHash() bool {
+func (h HashText) IsValidTxnHash() bool {
 	if h[0:2] != "0x" {
 		return false
 	}
@@ -92,22 +89,18 @@ func (h Hash) IsValidTxnHash() bool {
 	return true
 }
 
-func (h *Hash) Hash() common.Hash {
+func (h *HashText) Hash() common.Hash {
 	return common.HexToHash(h.String())
 }
 
-func (h Hash) Value() (driver.Value, error) {
-	s := h.String()
-	if len(s) < 2 {
-		return []byte{}, nil
-	}
-	return hex.DecodeString(s[2:])
+func (h HashText) Value() (driver.Value, error) {
+	return h.String(), nil
 }
 
-func (h *Hash) Scan(src interface{}) error {
+func (h *HashText) Scan(src interface{}) error {
 	// NOTE: the 'scany' package we use is unable to scan values of
 	// *string, aka *prototyp.Hash, when needing to have a nullable Hash
 	// please use the HashMaybe type instead.
-	*h = HashFromBytes(src.([]byte))
+	*h = HashText(src.(string))
 	return nil
 }

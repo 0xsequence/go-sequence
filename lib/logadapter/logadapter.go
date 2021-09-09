@@ -10,6 +10,8 @@ import (
 // Wraps a zerolog.Logger to provide common Logger and StdLogger interfaces
 
 type Logger interface {
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
 	Info(v ...interface{})
 	Infof(format string, v ...interface{})
 	Warn(v ...interface{})
@@ -39,6 +41,14 @@ func Wrap(log zerolog.Logger) *LogAdapter {
 
 type LogAdapter struct {
 	log zerolog.Logger
+}
+
+func (s *LogAdapter) Debug(v ...interface{}) {
+	s.log.Debug().Msg(fmt.Sprint(v...))
+}
+
+func (s *LogAdapter) Debugf(format string, v ...interface{}) {
+	s.log.Debug().Msg(fmt.Sprintf(format, v...))
 }
 
 func (s *LogAdapter) Info(v ...interface{}) {

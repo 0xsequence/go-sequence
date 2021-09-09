@@ -24,6 +24,16 @@ func HashMaybeFromString(s string) HashMaybe {
 	}
 }
 
+func (h HashMaybe) SetValue(hash Hash) {
+	h.Hash = hash
+	h.IsAssigned = true
+}
+
+func (h HashMaybe) SetNil() {
+	h.Hash = ""
+	h.IsAssigned = false
+}
+
 // UnmarshalText implements encoding.TextMarshaler.
 func (h HashMaybe) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
@@ -56,7 +66,7 @@ func (h *HashMaybe) Scan(src interface{}) error {
 		return nil
 	}
 
-	h.Hash = BytesToHash(src.([]byte))
+	h.Hash = HashFromBytes(src.([]byte))
 	h.IsAssigned = true
 	return nil
 }
