@@ -385,7 +385,9 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	sender := testChain.GetRelayerWallet()
 	guestAddress := testChain.SequenceContext().GuestModuleAddress
 	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
-		To: &guestAddress, Data: execdata,
+		To:       &guestAddress,
+		Data:     execdata,
+		GasLimit: 1000000, // TODO: compute gas limit
 	})
 	assert.NoError(t, err)
 
