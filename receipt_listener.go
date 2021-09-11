@@ -57,6 +57,8 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 	sub := l.monitor.Subscribe()
 	defer sub.Unsubscribe()
 
+	br := breaker.New(logadapter.Wrap(l.log), 1*time.Second, 2, 10)
+
 	for {
 		select {
 
@@ -75,9 +77,9 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 				continue
 			}
 
-			err := breaker.ExpBackoffRetry(ctx, func(ctx context.Context) error {
+			err := br.Do(ctx, func() error {
 				return l.handleBlock(ctx, block)
-			}, logadapter.Wrap(l.log), 1*time.Second, 2, 10)
+			})
 
 			if err != nil {
 				if errors.Is(err, breaker.ErrHitMaxRetries) {
