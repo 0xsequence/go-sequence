@@ -296,7 +296,7 @@ var (
 	TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,bytes)")
 
 	// TxExecutedEventSig is the signature of the event emitted in a successful transaction
-	// ........
+	// 0x0639b0b186d373976f8bb98f9f7226ba8070f10cb6c7f9bd5086d3933f169a25
 	TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32)")
 )
 
