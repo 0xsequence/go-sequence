@@ -4,6 +4,7 @@
 package walletfactory
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var (
+	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
@@ -26,20 +28,31 @@ var (
 	_ = event.NewSubscription
 )
 
+// WalletFactoryMetaData contains all meta data concerning the WalletFactory contract.
+var WalletFactoryMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_mainModule\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"_salt\",\"type\":\"bytes32\"}],\"name\":\"deploy\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"_contract\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b506101c8806100206000396000f3fe60806040526004361061001e5760003560e01c806332c02a1414610023575b600080fd5b61005c6004803603604081101561003957600080fd5b5073ffffffffffffffffffffffffffffffffffffffff8135169060200135610085565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b60008060405180606001604052806028815260200161016b602891398473ffffffffffffffffffffffffffffffffffffffff166040516020018083805190602001908083835b6020831061010857805182527fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe090920191602091820191016100cb565b51815160209384036101000a7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0180199092169116179052920193845250604080518085038152938201905282519294508693508401905034f594935050505056fe603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3a26469706673582212209b0bce93afab3297b9ebf4e58fa642ef123d74bcbd3bdb4e48b662eb12b430ca64736f6c63430007060033",
+}
+
 // WalletFactoryABI is the input ABI used to generate the binding from.
-const WalletFactoryABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_mainModule\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"_salt\",\"type\":\"bytes32\"}],\"name\":\"deploy\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"_contract\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}]"
+// Deprecated: Use WalletFactoryMetaData.ABI instead.
+var WalletFactoryABI = WalletFactoryMetaData.ABI
 
 // WalletFactoryBin is the compiled bytecode used for deploying new contracts.
-const WalletFactoryBin = "0x608060405234801561001057600080fd5b506101c8806100206000396000f3fe60806040526004361061001e5760003560e01c806332c02a1414610023575b600080fd5b61005c6004803603604081101561003957600080fd5b5073ffffffffffffffffffffffffffffffffffffffff8135169060200135610085565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b60008060405180606001604052806028815260200161016b602891398473ffffffffffffffffffffffffffffffffffffffff166040516020018083805190602001908083835b6020831061010857805182527fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe090920191602091820191016100cb565b51815160209384036101000a7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0180199092169116179052920193845250604080518085038152938201905282519294508693508401905034f594935050505056fe603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3a26469706673582212209b0bce93afab3297b9ebf4e58fa642ef123d74bcbd3bdb4e48b662eb12b430ca64736f6c63430007060033"
+// Deprecated: Use WalletFactoryMetaData.Bin instead.
+var WalletFactoryBin = WalletFactoryMetaData.Bin
 
 // DeployWalletFactory deploys a new Ethereum contract, binding an instance of WalletFactory to it.
 func DeployWalletFactory(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *WalletFactory, error) {
-	parsed, err := abi.JSON(strings.NewReader(WalletFactoryABI))
+	parsed, err := WalletFactoryMetaData.GetAbi()
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+	if parsed == nil {
+		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+	}
 
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(WalletFactoryBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(WalletFactoryBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
