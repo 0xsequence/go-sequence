@@ -14,13 +14,14 @@
   dependencies:
     "@0xsequence/erc-1155" "^3.0.4"
 
-"@0xsequence/niftyswap@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@0xsequence/niftyswap/-/niftyswap-3.0.2.tgz#abdcca75d9c70a178945df73750e292b18cc1307"
-  integrity sha512-BKJA55CRGfCacHLuahAoW26K7pSRaMWG7GnwH3vPuld5A9w2xNvD50/XrImWgetFVJiftz24AZXvd1Le1NTymg==
+"@0xsequence/niftyswap@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@0xsequence/niftyswap/-/niftyswap-4.0.0.tgz#99286d3bbc612490397eac4293f1ca0fcdbfca61"
+  integrity sha512-XD4eMpPdTgHSVZlHkx6eEHfZSaTjV65X5YNcGE1VHj9Zm+jeGIYl+/zLmAASEO6Nn6mnKJJLCAXiexSCwv4dqQ==
   dependencies:
     "@0xsequence/erc-1155" "^3.0.4"
     "@0xsequence/erc20-meta-token" "^3.0.5"
+    "@uniswap/lib" "^4.0.1-alpha"
 
 "@0xsequence/wallet-contracts@1.9.5":
   version "1.9.5"
@@ -372,6 +373,11 @@
   version "4.3.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.2.tgz#ff80affd6d352dbe1bbc5b4e1833c41afd6283b6"
   integrity sha512-AybF1cesONZStg5kWf6ao9OlqTZuPqddvprc0ky7lrUVOjXeKpmQ2Y9FK+6ygxasb+4aic4O5pneFBfwVsRRRg==
+
+"@uniswap/lib@^4.0.1-alpha":
+  version "4.0.1-alpha"
+  resolved "https://registry.yarnpkg.com/@uniswap/lib/-/lib-4.0.1-alpha.tgz#2881008e55f075344675b3bca93f020b028fbd02"
+  integrity sha512-f6UIliwBbRsgVLxIaBANF6w09tYqc6Y/qXdsrbEmXHyFA7ILiKrIwRFXe1yOg8M3cksgVsO9N7yuL2DdCGQKBA==
 
 aes-js@3.0.0:
   version "3.0.0"

@@ -14,8 +14,8 @@
     "generate": "go generate ./gen"
   },
   "devDependencies": {
-    "@0xsequence/niftyswap": "^3.0.2",
     "@0xsequence/erc-1155": "^3.0.4",
+    "@0xsequence/niftyswap": "^4.0.0",
     "@0xsequence/wallet-contracts": "1.9.5",
     "@openzeppelin/contracts": "4.3.2"
   }
