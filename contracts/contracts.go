@@ -31,6 +31,7 @@ var (
 	IERC20,
 	IERC721,
 	IERC1155,
+	IERC20Wrapper,
 	NiftyswapExchange,
 	NiftyswapFactory,
 	WrapAndNiftyswap,
@@ -56,6 +57,7 @@ func init() {
 	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
 	IERC1155 = artifact("IERC1155", tokens.IERC1155ABI, "")
+	IERC20Wrapper = artifact("IERC20Wrapper", tokens.IERC20WrapperABI, "")
 
 	NiftyswapExchange = artifact("NIFTYSWAP_EXCHANGE", niftyswap.NiftyswapExchangeABI, niftyswap.NiftyswapFactoryBin)
 	NiftyswapFactory = artifact("NIFTYSWAP_FACTORY", niftyswap.NiftyswapFactoryABI, niftyswap.NiftyswapFactoryBin)
