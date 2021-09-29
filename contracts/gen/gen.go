@@ -25,10 +25,12 @@
 // niftyswap
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapExchange --outFile=niftyswap/iniftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapExchange.sol/INiftyswapExchange.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapExchange20 --outFile=niftyswap/iniftyswap_exchange_20.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapExchange20.sol/INiftyswapExchange20.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapFactory --outFile=niftyswap/iniftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapFactory.sol/INiftyswapFactory.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapExchange --outFile=niftyswap/niftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapExchange.sol/NiftyswapExchange.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapFactory --outFile=niftyswap/niftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapFactory.sol/NiftyswapFactory.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=IWrapAndNiftyswap --outFile=niftyswap/iwrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/IWrapAndNiftyswap.sol/IWrapAndNiftyswap.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapExchange --outFile=niftyswap/niftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapExchange.sol/NiftyswapExchange.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapExchange20 --outFile=niftyswap/niftyswap_exchange_20.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapExchange20.sol/NiftyswapExchange20.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=NiftyswapFactory --outFile=niftyswap/niftyswap_factory.gen.go --artifactsFile=../artifacts/niftyswap/exchange/NiftyswapFactory.sol/NiftyswapFactory.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=WrapAndNiftyswap --outFile=niftyswap/wrap_and_niftyswap.gen.go --artifactsFile=../artifacts/niftyswap/utils/WrapAndNiftyswap.sol/WrapAndNiftyswap.json
 
 //
