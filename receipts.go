@@ -54,11 +54,9 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 }
 
 func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider) ([]*Receipt, []*types.Log, error) {
-	transaction, isPending, err := provider.TransactionByHash(ctx, receipt.TxHash)
+	transaction, _, err := provider.TransactionByHash(ctx, receipt.TxHash)
 	if err != nil {
 		return nil, nil, err
-	} else if isPending {
-		return nil, nil, fmt.Errorf("transaction %v is pending", receipt.TxHash.Hex())
 	}
 
 	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
