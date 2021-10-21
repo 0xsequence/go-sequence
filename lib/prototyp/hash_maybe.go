@@ -24,12 +24,12 @@ func HashMaybeFromString(s string) HashMaybe {
 	}
 }
 
-func (h HashMaybe) SetValue(hash Hash) {
+func (h *HashMaybe) SetValue(hash Hash) {
 	h.Hash = hash
 	h.IsAssigned = true
 }
 
-func (h HashMaybe) SetNil() {
+func (h *HashMaybe) SetNil() {
 	h.Hash = ""
 	h.IsAssigned = false
 }

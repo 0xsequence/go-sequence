@@ -73,7 +73,7 @@ func (h Hash) IsZeroValue() bool {
 }
 
 func (h Hash) IsValidAddress() bool {
-	if h[0:2] != "0x" {
+	if len(h) <= 2 || h[0:2] != "0x" {
 		return false
 	}
 	if len(h) != 42 {
