@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-ethauth"
+	"github.com/goware/breaker"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
@@ -38,19 +40,23 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 		// must hash the message as first argument to isValidSignature
 		// messageHash := ethcoder.Keccak256(messageDigest)
 
-		valid, err := IsValidSignature(
-			common.HexToAddress(proof.Address),
-			common.BytesToHash(messageDigest),
-			ethcoder.MustHexDecode(proof.Signature),
-			WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
-			chainID,
-			provider,
-		)
-		if err != nil {
-			return false, "", err
-		}
-		if !valid {
-			return false, "", nil
+		// Auto-retry validation a number of times as it make take a node to sync with the latest state
+		var valid bool
+
+		err = breaker.Do(ctx, func() error {
+			valid, err = IsValidSignature(
+				common.HexToAddress(proof.Address),
+				common.BytesToHash(messageDigest),
+				ethcoder.MustHexDecode(proof.Signature),
+				WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
+				chainID,
+				provider,
+			)
+			return err
+		}, nil, 1*time.Second, 1.5, 4)
+
+		if !valid || err != nil {
+			return false, "", fmt.Errorf("failed to validate")
 		}
 
 		return true, proof.Address, nil
