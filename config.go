@@ -97,6 +97,16 @@ func ImageHashOfWalletConfigBytes(walletConfig WalletConfig) ([]byte, error) {
 	return imageHash, nil
 }
 
+func ImageHashOfWalletConfigBytes32(walletConfig WalletConfig) ([32]byte, error) {
+	imageHash, err := ImageHashOfWalletConfigBytes(walletConfig)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	ih := [32]byte{}
+	copy(ih[:], imageHash)
+	return ih, nil
+}
+
 func SortWalletConfig(walletConfig WalletConfig) error {
 	signers := walletConfig.Signers
 	sort.Sort(signers) // Sort the signers
