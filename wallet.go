@@ -255,12 +255,19 @@ func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
 
 // func (w *Wallet) SignTypedData() // TODO
 
-func (w *Wallet) SignDigest(digest common.Hash) ([]byte, *Signature, error) {
-	if w.chainID == nil {
+func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error) {
+	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
 
-	subDigest, err := SubDigest(w.chainID, w.Address(), digest)
+	var chainID *big.Int
+	if optChainID != nil && len(optChainID) > 0 {
+		chainID = optChainID[0]
+	} else {
+		chainID = w.chainID
+	}
+
+	subDigest, err := SubDigest(chainID, w.Address(), digest)
 	if err != nil {
 		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}

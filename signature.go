@@ -81,7 +81,7 @@ func (s *Signature) Encode() ([]byte, error) {
 			)
 
 		default:
-			return nil, fmt.Errorf("known signer type")
+			return nil, fmt.Errorf("unknown signer type")
 		}
 
 		if err != nil {
