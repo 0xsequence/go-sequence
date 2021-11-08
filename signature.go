@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -44,15 +45,15 @@ func (a SignatureParts) Less(i, j int) bool {
 func (a SignatureParts) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 const (
-	sigPartTypeEOA     uint8 = iota // 0
-	sigPartTypeAddress              // 1
-	sigPartTypeDynamic              // 2
+	SignaturePartTypeEOA     uint8 = iota // 0
+	SignaturePartTypeAddress              // 1
+	SignaturePartTypeDynamic              // 2
 )
 
 const (
-	sigTypeEip712  uint8 = iota + 1 // 1
-	sigTypeEthSign                  // 2
-	sigTypeEip1271                  // 3
+	SignatureTypeEip712  uint8 = iota + 1 // 1
+	SignatureTypeEthSign                  // 2
+	SignatureTypeEip1271                  // 3
 )
 
 // Encode returns encoded sequence signature bytes of all signatures in the Signers set
@@ -64,17 +65,17 @@ func (s *Signature) Encode() ([]byte, error) {
 		var err error
 
 		switch signer.Type {
-		case sigPartTypeAddress:
+		case SignaturePartTypeAddress:
 			pack, err = ethcoder.SolidityPack(
 				[]string{"uint8", "uint8", "address"},
-				[]interface{}{sigPartTypeAddress, signer.Weight, signer.Address},
+				[]interface{}{SignaturePartTypeAddress, signer.Weight, signer.Address},
 			)
-		case sigPartTypeEOA:
+		case SignaturePartTypeEOA:
 			pack, err = ethcoder.SolidityPack(
 				[]string{"uint8", "uint8", "bytes"},
 				[]interface{}{signer.Type, signer.Weight, signer.Value},
 			)
-		case sigPartTypeDynamic:
+		case SignaturePartTypeDynamic:
 			pack, err = ethcoder.SolidityPack(
 				[]string{"uint8", "uint8", "address", "uint16", "bytes"},
 				[]interface{}{signer.Type, signer.Weight, signer.Address, big.NewInt(int64(len(signer.Value))), signer.Value},
@@ -150,7 +151,7 @@ func (p *SignaturePart) Recover(msg []byte) (common.Address, error) {
 
 	sigType := uint8(p.Value[len(p.Value)-1])
 
-	if sigType != sigTypeEthSign {
+	if sigType != SignatureTypeEthSign {
 		return common.Address{}, fmt.Errorf("signature type not implemented %d", sigType)
 	}
 
@@ -200,6 +201,157 @@ func (s *Signature) Copy() *Signature {
 		Threshold: s.Threshold,
 		Signers:   parts,
 	}
+}
+
+const (
+	eoaCost     = 3000 + 65*16
+	addressCost = 20 * 16
+)
+
+// Minimizes the cost of a signature's encoding while keeping it valid
+func (s *Signature) Reduce(msg []byte) error {
+	var signers SignatureParts
+	var weights []int
+	var costs []int
+	var weight int
+
+	addresses := make([]common.Address, len(s.Signers))
+
+	for i, signer := range s.Signers {
+		switch signer.Type {
+		case SignaturePartTypeEOA:
+			var err error
+			addresses[i], err = signer.Recover(msg)
+			if err == nil {
+				signers = append(signers, signer)
+				weights = append(weights, int(signer.Weight))
+				costs = append(costs, eoaCost)
+				weight += int(signer.Weight)
+			} else {
+				// never prune an EOA signature that cannot be recovered
+				signers = append(signers, signer)
+				weights = append(weights, math.MaxInt32)
+				costs = append(costs, eoaCost)
+				weight += int(signer.Weight)
+			}
+
+		case SignaturePartTypeAddress:
+			signers = append(signers, signer)
+			weights = append(weights, math.MaxInt32)
+			costs = append(costs, addressCost)
+
+		case SignaturePartTypeDynamic:
+			signature, err := DecodeSignature(signer.Value[:len(signer.Value)-1])
+			if err != nil {
+				return err
+			}
+
+			err = signature.Reduce(msg)
+			if err != nil {
+				return err
+			}
+
+			cost, err := signature.cost()
+			if err != nil {
+				return err
+			}
+
+			value, err := signature.Encode()
+			if err != nil {
+				return err
+			}
+			value = append(value, SignaturePartTypeDynamic)
+
+			signers = append(signers, &SignaturePart{
+				Weight:  signer.Weight,
+				Address: signer.Address,
+				Type:    signer.Type,
+				Value:   value,
+			})
+			weights = append(weights, int(signer.Weight))
+			costs = append(costs, cost)
+			weight += int(signer.Weight)
+		}
+	}
+
+	if weight > int(s.Threshold) {
+		// This signature possesses more weight than is necessary to meet the threshold.
+		// Solve the knapsack problem to find the optimal sub-signatures to prune.
+		_, redundant := knapsack(weight-int(s.Threshold), weights, costs)
+		for _, i := range redundant {
+			if signers[i].Type == SignaturePartTypeEOA {
+				signers[i].Address = addresses[i]
+			}
+
+			signers[i].Type = SignaturePartTypeAddress
+			signers[i].Value = nil
+		}
+	}
+
+	s.Signers = signers
+
+	return nil
+}
+
+// Solves the knapsack problem
+func knapsack(capacity int, weights []int, values []int) (int, []int) {
+	// m[i][j] = maximum value achievable using only first i items up to capacity j
+	m := [][]int{make([]int, capacity+1)}
+	for range weights {
+		m = append(m, make([]int, capacity+1))
+	}
+
+	for i, w := range weights {
+		for j := 0; j <= capacity; j++ {
+			m[i+1][j] = m[i][j]
+			if j >= w && m[i+1][j] < m[i][j-w]+values[i] {
+				m[i+1][j] = m[i][j-w] + values[i]
+			}
+		}
+	}
+
+	var s []int
+	j := capacity
+	for i := len(weights) - 1; i >= 0; i-- {
+		if m[i+1][j] != m[i][j] {
+			s = append(s, i)
+			j -= weights[i]
+		}
+	}
+
+	return m[len(weights)][capacity], s
+}
+
+// Estimates the gas needed to encode and validate this signature
+func (s *Signature) cost() (int, error) {
+	var cost int
+
+	for _, signer := range s.Signers {
+		switch signer.Type {
+		case SignaturePartTypeEOA:
+			cost += eoaCost
+
+		case SignaturePartTypeAddress:
+			cost += addressCost
+
+		case SignaturePartTypeDynamic:
+			signature, err := DecodeSignature(signer.Value[:len(signer.Value)-1])
+			if err != nil {
+				return 0, err
+			}
+
+			dynamicCost, err := signature.cost()
+			if err != nil {
+				return 0, err
+			}
+
+			cost += dynamicCost
+		}
+	}
+
+	cost++ // perturb the cost ever so slightly to bias against nesting
+
+	return cost, nil
 }
 
 // JoinTwo signatures, saves the aggregated one into s1
@@ -275,10 +427,10 @@ func (p *SignaturePart) IsValid(digest [32]byte, provider *ethrpc.Provider) (boo
 
 	switch {
 
-	case sigType == sigTypeEip712:
+	case sigType == SignatureTypeEip712:
 		return false, fmt.Errorf("signature eip 712 not implemented")
 
-	case sigType == sigTypeEthSign:
+	case sigType == SignatureTypeEthSign:
 		// Recover address and compare with the one in the part
 		recovered, err := p.Recover(digest[:])
 		if err != nil {
@@ -287,7 +439,7 @@ func (p *SignaturePart) IsValid(digest [32]byte, provider *ethrpc.Provider) (boo
 
 		return recovered == p.Address, nil
 
-	case sigType == sigTypeEip1271:
+	case sigType == SignatureTypeEip1271:
 		// Call EIP1271 contract to validate it's siganture
 		// NOTE: the wallet must be deployed, it doesn't support counter-factual sigantures
 		erc1271, err := ierc1271.NewIERC1271(p.Address, provider)
@@ -342,7 +494,7 @@ func DecodeSignature(sequenceSignature []byte) (*Signature, error) {
 		// Process corresponding type
 		switch {
 
-		case t == sigPartTypeEOA:
+		case t == SignaturePartTypeEOA:
 			// Read signature
 			ni := i + 66
 			if s < ni {
@@ -358,7 +510,7 @@ func DecodeSignature(sequenceSignature []byte) (*Signature, error) {
 				Type:   t,
 			}
 
-		case t == sigPartTypeAddress:
+		case t == SignaturePartTypeAddress:
 			// Read address
 			ni := i + 20
 			if s < ni {
@@ -374,7 +526,7 @@ func DecodeSignature(sequenceSignature []byte) (*Signature, error) {
 				Type:    t,
 			}
 
-		case t == sigPartTypeDynamic:
+		case t == SignaturePartTypeDynamic:
 			// Read address
 			ni := i + 20
 			if s < ni {

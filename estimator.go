@@ -332,7 +332,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 				parts[i] = &SignaturePart{
 					Weight:  s.Weight,
 					Address: s.Address,
-					Type:    sigPartTypeEOA,
+					Type:    SignaturePartTypeEOA,
 					Value:   sig,
 				}
 			} else {
@@ -359,7 +359,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 				parts[i] = &SignaturePart{
 					Weight:  s.Weight,
 					Address: s.Address,
-					Type:    sigPartTypeDynamic,
+					Type:    SignaturePartTypeDynamic,
 					Value:   sig,
 				}
 			}
@@ -367,7 +367,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 			parts[i] = &SignaturePart{
 				Weight:  s.Weight,
 				Address: s.Address,
-				Type:    sigPartTypeAddress,
+				Type:    SignaturePartTypeAddress,
 			}
 		}
 	}

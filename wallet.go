@@ -284,7 +284,7 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 			// signer isn't available, just include the config value of address
 			// without it's signature
 			sig.Signers = append(sig.Signers, &SignaturePart{
-				Type: sigPartTypeAddress, Weight: signerInfo.Weight, Address: signerInfo.Address,
+				Type: SignaturePartTypeAddress, Weight: signerInfo.Weight, Address: signerInfo.Address,
 			})
 			continue
 		}
@@ -296,10 +296,10 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 		if err != nil {
 			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 		}
-		sigValue = append(sigValue, sigTypeEthSign)
+		sigValue = append(sigValue, SignatureTypeEthSign)
 
 		sig.Signers = append(sig.Signers, &SignaturePart{
-			Type: sigPartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
+			Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
 		})
 	}
 
