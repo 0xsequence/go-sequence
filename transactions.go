@@ -91,6 +91,45 @@ func (t *Transaction) IsBundle() bool {
 	return len(t.Transactions) != 0
 }
 
+func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
+	if err := t.IsValid(); err != nil {
+		return err
+	}
+
+	if len(t.Signature) != 0 {
+		signature, err := DecodeSignature(t.Signature)
+		if err != nil {
+			return err
+		}
+
+		_, metaTxnID, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
+		if err != nil {
+			return err
+		}
+
+		err = signature.Reduce(metaTxnID[:])
+		if err != nil {
+			return err
+		}
+
+		encoded, err := signature.Encode()
+		if err != nil {
+			return err
+		}
+
+		t.Signature = encoded
+	}
+
+	for _, transaction := range t.Transactions {
+		err := transaction.ReduceSignatures(chainID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (t *Transaction) Execdata() ([]byte, error) {
 	if err := t.IsValid(); err != nil {
 		return nil, err
@@ -380,6 +419,26 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, wallet
 	}
 
 	return nonceResult, nil
+}
+
+func ReduceExecdataSignatures(chainID *big.Int, data []byte) ([]byte, error) {
+	transactions, nonce, signature, err := DecodeExecdata(data)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode execdata: %w", err)
+	}
+
+	transaction := Transaction{
+		Transactions: transactions,
+		Nonce:        nonce,
+		Signature:    signature,
+	}
+
+	err = transaction.ReduceSignatures(chainID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to reduce signatures: %w", err)
+	}
+
+	return transaction.Execdata()
 }
 
 func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
