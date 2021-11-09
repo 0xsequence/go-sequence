@@ -14,7 +14,7 @@ import (
 
 - MetaTxnID
   = SubDigest(walletAddress, chainID, MainModule.execute digest)
-  = keccak256(chainID, walletAddress, MainModule.execute digest)
+  = keccak256("\x19\x01", chainID, walletAddress, MainModule.execute digest)
 
 - MainModule.selfExecute digest
   = SubDigest(walletAddress, chainID, keccak256("self:", transactions))
@@ -23,7 +23,6 @@ import (
 - GuestModule.execute digest
   = SubDigest(guestModuleAddress, chainID, keccak256("guest:", transactions))
   = keccak256("\x19\x01", chainID, guestModuleAddress, keccak256("guest:", transactions))
-
 
 - the digest that is actually signed (eth_sign)
   = keccak256("\x19Ethereum Signed Message:\n32", MetaTxnID)
