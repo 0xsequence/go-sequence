@@ -144,14 +144,14 @@ func (s *Signature) Recover(msg []byte, provider *ethrpc.Provider) error {
 
 // Recover signature part
 func (p *SignaturePart) Recover(msg []byte) (common.Address, error) {
+	if len(p.Value) != 65 && len(p.Value) != 66 {
+		return common.Address{}, fmt.Errorf("bad length, expected 65 or 66 but found %d", len(p.Value))
+	}
+
 	sigType := uint8(p.Value[len(p.Value)-1])
 
 	if sigType != sigTypeEthSign {
 		return common.Address{}, fmt.Errorf("signature type not implemented %d", sigType)
-	}
-
-	if len(p.Value) != 65 && len(p.Value) != 66 {
-		return common.Address{}, fmt.Errorf("bad length, expected 65 or 66 but found %d", len(p.Value))
 	}
 
 	m := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msg), msg)
