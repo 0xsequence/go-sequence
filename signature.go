@@ -260,7 +260,7 @@ func (s *Signature) Reduce(msg []byte) error {
 			if err != nil {
 				return err
 			}
-			value = append(value, SignaturePartTypeDynamic)
+			value = append(value, SignatureTypeEip1271)
 
 			signers = append(signers, &SignaturePart{
 				Weight:  signer.Weight,
