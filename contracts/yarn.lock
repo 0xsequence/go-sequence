@@ -7,6 +7,11 @@
   resolved "https://registry.yarnpkg.com/@0xsequence/erc-1155/-/erc-1155-3.0.4.tgz#38b1a548d97fbe8cc21f96f5bae0ede4dbfb0f0f"
   integrity sha512-Bm5abCWp1ZXPB7AhxhP6Rj1UTLi/OyNfoTy/HD76QmA6ysz9dw0VoK3EFLK5HeUbfXZTu/Fg9PmgG9uJ0c6Urw==
 
+"@0xsequence/erc-1155@^3.0.7":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@0xsequence/erc-1155/-/erc-1155-3.1.0.tgz#0e3b4ccf23afee38db490c9084fa248461ebfea7"
+  integrity sha512-nJqCN0MY+hboHF74p5RXv4MR702beMDv2Wh69I8yjvUXk8XUlgy7qyKVnXUSlWIUNIGYL05yASpIeKmMNs2Z6A==
+
 "@0xsequence/erc20-meta-token@^3.0.5":
   version "3.0.5"
   resolved "https://registry.yarnpkg.com/@0xsequence/erc20-meta-token/-/erc20-meta-token-3.0.5.tgz#67291d0ee4dd9a7161714a612dc9f982e773bc3b"
@@ -14,12 +19,12 @@
   dependencies:
     "@0xsequence/erc-1155" "^3.0.4"
 
-"@0xsequence/niftyswap@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@0xsequence/niftyswap/-/niftyswap-4.0.0.tgz#99286d3bbc612490397eac4293f1ca0fcdbfca61"
-  integrity sha512-XD4eMpPdTgHSVZlHkx6eEHfZSaTjV65X5YNcGE1VHj9Zm+jeGIYl+/zLmAASEO6Nn6mnKJJLCAXiexSCwv4dqQ==
+"@0xsequence/niftyswap@^4.2.0":
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/@0xsequence/niftyswap/-/niftyswap-4.2.0.tgz#bd8716c13de6fbf1613e84b668fe2a06a1458ae0"
+  integrity sha512-jwFAJQKwwmCp10Xi9lO++V2Yqlal4JQAVKf4Mp+EmNtcz8Z7flIFSKH9UdaPJAb93Fo/3BeEcwa5NHC7PM+gNA==
   dependencies:
-    "@0xsequence/erc-1155" "^3.0.4"
+    "@0xsequence/erc-1155" "^3.0.7"
     "@0xsequence/erc20-meta-token" "^3.0.5"
     "@uniswap/lib" "^4.0.1-alpha"
 

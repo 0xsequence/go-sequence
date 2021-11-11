@@ -30,7 +30,7 @@ var (
 
 // INiftyswapExchange20MetaData contains all meta data concerning the INiftyswapExchange20 contract.
 var INiftyswapExchange20MetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"buyer\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensSoldIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensSoldAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyBoughtAmounts\",\"type\":\"uint256[]\"}],\"name\":\"CurrencyPurchase\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"provider\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyAmounts\",\"type\":\"uint256[]\"}],\"name\":\"LiquidityAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"provider\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyAmounts\",\"type\":\"uint256[]\"}],\"name\":\"LiquidityRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"buyer\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensBoughtIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensBoughtAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencySoldAmounts\",\"type\":\"uint256[]\"}],\"name\":\"TokensPurchase\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_tokenIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensBoughtAmounts\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256\",\"name\":\"_maxCurrency\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"buyTokens\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_assetBoughtAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getBuyPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCurrencyInfo\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"}],\"name\":\"getCurrencyReserves\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFactoryAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensBought\",\"type\":\"uint256[]\"}],\"name\":\"getPrice_currencyToToken\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensSold\",\"type\":\"uint256[]\"}],\"name\":\"getPrice_tokenToCurrency\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_assetSoldAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getSellPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTokenAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"}],\"name\":\"getTotalSupply\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"onERC1155BatchReceived\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"\",\"type\":\"bytes4\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"onERC1155Received\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"\",\"type\":\"bytes4\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"buyer\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensSoldIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensSoldAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyBoughtAmounts\",\"type\":\"uint256[]\"}],\"name\":\"CurrencyPurchase\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"provider\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyAmounts\",\"type\":\"uint256[]\"}],\"name\":\"LiquidityAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"provider\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencyAmounts\",\"type\":\"uint256[]\"}],\"name\":\"LiquidityRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"royaltyRecipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"royaltyFee\",\"type\":\"uint256\"}],\"name\":\"RoyaltyChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"buyer\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensBoughtIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokensBoughtAmounts\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"currencySoldAmounts\",\"type\":\"uint256[]\"}],\"name\":\"TokensPurchase\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_tokenIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensBoughtAmounts\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256\",\"name\":\"_maxCurrency\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_deadline\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"address[]\",\"name\":\"_extraFeeRecipients\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_extraFeeAmounts\",\"type\":\"uint256[]\"}],\"name\":\"buyTokens\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_assetBoughtAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getBuyPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getBuyPriceWithRoyalty\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCurrencyInfo\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"}],\"name\":\"getCurrencyReserves\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFactoryAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getGlobalRoyaltyFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getGlobalRoyaltyRecipient\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensBought\",\"type\":\"uint256[]\"}],\"name\":\"getPrice_currencyToToken\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_tokensSold\",\"type\":\"uint256[]\"}],\"name\":\"getPrice_tokenToCurrency\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_royaltyRecipient\",\"type\":\"address\"}],\"name\":\"getRoyalties\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_assetSoldAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getSellPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetSoldReserve\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_assetBoughtReserve\",\"type\":\"uint256\"}],\"name\":\"getSellPriceWithRoyalty\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTokenAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"}],\"name\":\"getTotalSupply\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"onERC1155BatchReceived\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"\",\"type\":\"bytes4\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"onERC1155Received\",\"outputs\":[{\"internalType\":\"bytes4\",\"name\":\"\",\"type\":\"bytes4\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_royaltyRecipient\",\"type\":\"address\"}],\"name\":\"sendRoyalties\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // INiftyswapExchange20ABI is the input ABI used to generate the binding from.
@@ -210,6 +210,37 @@ func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetBuyPrice(_ass
 	return _INiftyswapExchange20.Contract.GetBuyPrice(&_INiftyswapExchange20.CallOpts, _assetBoughtAmount, _assetSoldReserve, _assetBoughtReserve)
 }
 
+// GetBuyPriceWithRoyalty is a free data retrieval call binding the contract method 0xaeaad208.
+//
+// Solidity: function getBuyPriceWithRoyalty(uint256 _tokenId, uint256 _assetBoughtAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20Caller) GetBuyPriceWithRoyalty(opts *bind.CallOpts, _tokenId *big.Int, _assetBoughtAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	var out []interface{}
+	err := _INiftyswapExchange20.contract.Call(opts, &out, "getBuyPriceWithRoyalty", _tokenId, _assetBoughtAmount, _assetSoldReserve, _assetBoughtReserve)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// GetBuyPriceWithRoyalty is a free data retrieval call binding the contract method 0xaeaad208.
+//
+// Solidity: function getBuyPriceWithRoyalty(uint256 _tokenId, uint256 _assetBoughtAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetBuyPriceWithRoyalty(_tokenId *big.Int, _assetBoughtAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetBuyPriceWithRoyalty(&_INiftyswapExchange20.CallOpts, _tokenId, _assetBoughtAmount, _assetSoldReserve, _assetBoughtReserve)
+}
+
+// GetBuyPriceWithRoyalty is a free data retrieval call binding the contract method 0xaeaad208.
+//
+// Solidity: function getBuyPriceWithRoyalty(uint256 _tokenId, uint256 _assetBoughtAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetBuyPriceWithRoyalty(_tokenId *big.Int, _assetBoughtAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetBuyPriceWithRoyalty(&_INiftyswapExchange20.CallOpts, _tokenId, _assetBoughtAmount, _assetSoldReserve, _assetBoughtReserve)
+}
+
 // GetCurrencyInfo is a free data retrieval call binding the contract method 0x46adf5ca.
 //
 // Solidity: function getCurrencyInfo() view returns(address)
@@ -303,6 +334,68 @@ func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetFactoryAddres
 	return _INiftyswapExchange20.Contract.GetFactoryAddress(&_INiftyswapExchange20.CallOpts)
 }
 
+// GetGlobalRoyaltyFee is a free data retrieval call binding the contract method 0x008e09d8.
+//
+// Solidity: function getGlobalRoyaltyFee() view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20Caller) GetGlobalRoyaltyFee(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _INiftyswapExchange20.contract.Call(opts, &out, "getGlobalRoyaltyFee")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// GetGlobalRoyaltyFee is a free data retrieval call binding the contract method 0x008e09d8.
+//
+// Solidity: function getGlobalRoyaltyFee() view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetGlobalRoyaltyFee() (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetGlobalRoyaltyFee(&_INiftyswapExchange20.CallOpts)
+}
+
+// GetGlobalRoyaltyFee is a free data retrieval call binding the contract method 0x008e09d8.
+//
+// Solidity: function getGlobalRoyaltyFee() view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetGlobalRoyaltyFee() (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetGlobalRoyaltyFee(&_INiftyswapExchange20.CallOpts)
+}
+
+// GetGlobalRoyaltyRecipient is a free data retrieval call binding the contract method 0xe523d3fc.
+//
+// Solidity: function getGlobalRoyaltyRecipient() view returns(address)
+func (_INiftyswapExchange20 *INiftyswapExchange20Caller) GetGlobalRoyaltyRecipient(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _INiftyswapExchange20.contract.Call(opts, &out, "getGlobalRoyaltyRecipient")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetGlobalRoyaltyRecipient is a free data retrieval call binding the contract method 0xe523d3fc.
+//
+// Solidity: function getGlobalRoyaltyRecipient() view returns(address)
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetGlobalRoyaltyRecipient() (common.Address, error) {
+	return _INiftyswapExchange20.Contract.GetGlobalRoyaltyRecipient(&_INiftyswapExchange20.CallOpts)
+}
+
+// GetGlobalRoyaltyRecipient is a free data retrieval call binding the contract method 0xe523d3fc.
+//
+// Solidity: function getGlobalRoyaltyRecipient() view returns(address)
+func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetGlobalRoyaltyRecipient() (common.Address, error) {
+	return _INiftyswapExchange20.Contract.GetGlobalRoyaltyRecipient(&_INiftyswapExchange20.CallOpts)
+}
+
 // GetPriceCurrencyToToken is a free data retrieval call binding the contract method 0xbe571468.
 //
 // Solidity: function getPrice_currencyToToken(uint256[] _ids, uint256[] _tokensBought) view returns(uint256[])
@@ -365,6 +458,37 @@ func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetPriceTokenToC
 	return _INiftyswapExchange20.Contract.GetPriceTokenToCurrency(&_INiftyswapExchange20.CallOpts, _ids, _tokensSold)
 }
 
+// GetRoyalties is a free data retrieval call binding the contract method 0x14556a56.
+//
+// Solidity: function getRoyalties(address _royaltyRecipient) view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20Caller) GetRoyalties(opts *bind.CallOpts, _royaltyRecipient common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _INiftyswapExchange20.contract.Call(opts, &out, "getRoyalties", _royaltyRecipient)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// GetRoyalties is a free data retrieval call binding the contract method 0x14556a56.
+//
+// Solidity: function getRoyalties(address _royaltyRecipient) view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetRoyalties(_royaltyRecipient common.Address) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetRoyalties(&_INiftyswapExchange20.CallOpts, _royaltyRecipient)
+}
+
+// GetRoyalties is a free data retrieval call binding the contract method 0x14556a56.
+//
+// Solidity: function getRoyalties(address _royaltyRecipient) view returns(uint256)
+func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetRoyalties(_royaltyRecipient common.Address) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetRoyalties(&_INiftyswapExchange20.CallOpts, _royaltyRecipient)
+}
+
 // GetSellPrice is a free data retrieval call binding the contract method 0x6ee8e134.
 //
 // Solidity: function getSellPrice(uint256 _assetSoldAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) pure returns(uint256)
@@ -394,6 +518,37 @@ func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetSellPrice(_assetSol
 // Solidity: function getSellPrice(uint256 _assetSoldAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) pure returns(uint256)
 func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetSellPrice(_assetSoldAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
 	return _INiftyswapExchange20.Contract.GetSellPrice(&_INiftyswapExchange20.CallOpts, _assetSoldAmount, _assetSoldReserve, _assetBoughtReserve)
+}
+
+// GetSellPriceWithRoyalty is a free data retrieval call binding the contract method 0xa7380f6e.
+//
+// Solidity: function getSellPriceWithRoyalty(uint256 _tokenId, uint256 _assetSoldAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20Caller) GetSellPriceWithRoyalty(opts *bind.CallOpts, _tokenId *big.Int, _assetSoldAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	var out []interface{}
+	err := _INiftyswapExchange20.contract.Call(opts, &out, "getSellPriceWithRoyalty", _tokenId, _assetSoldAmount, _assetSoldReserve, _assetBoughtReserve)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// GetSellPriceWithRoyalty is a free data retrieval call binding the contract method 0xa7380f6e.
+//
+// Solidity: function getSellPriceWithRoyalty(uint256 _tokenId, uint256 _assetSoldAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) GetSellPriceWithRoyalty(_tokenId *big.Int, _assetSoldAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetSellPriceWithRoyalty(&_INiftyswapExchange20.CallOpts, _tokenId, _assetSoldAmount, _assetSoldReserve, _assetBoughtReserve)
+}
+
+// GetSellPriceWithRoyalty is a free data retrieval call binding the contract method 0xa7380f6e.
+//
+// Solidity: function getSellPriceWithRoyalty(uint256 _tokenId, uint256 _assetSoldAmount, uint256 _assetSoldReserve, uint256 _assetBoughtReserve) view returns(uint256 price)
+func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetSellPriceWithRoyalty(_tokenId *big.Int, _assetSoldAmount *big.Int, _assetSoldReserve *big.Int, _assetBoughtReserve *big.Int) (*big.Int, error) {
+	return _INiftyswapExchange20.Contract.GetSellPriceWithRoyalty(&_INiftyswapExchange20.CallOpts, _tokenId, _assetSoldAmount, _assetSoldReserve, _assetBoughtReserve)
 }
 
 // GetTokenAddress is a free data retrieval call binding the contract method 0x10fe9ae8.
@@ -458,25 +613,25 @@ func (_INiftyswapExchange20 *INiftyswapExchange20CallerSession) GetTotalSupply(_
 	return _INiftyswapExchange20.Contract.GetTotalSupply(&_INiftyswapExchange20.CallOpts, _ids)
 }
 
-// BuyTokens is a paid mutator transaction binding the contract method 0xa7220bec.
+// BuyTokens is a paid mutator transaction binding the contract method 0xd93e8aaa.
 //
-// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient) returns(uint256[])
-func (_INiftyswapExchange20 *INiftyswapExchange20Transactor) BuyTokens(opts *bind.TransactOpts, _tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address) (*types.Transaction, error) {
-	return _INiftyswapExchange20.contract.Transact(opts, "buyTokens", _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient)
+// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient, address[] _extraFeeRecipients, uint256[] _extraFeeAmounts) returns(uint256[])
+func (_INiftyswapExchange20 *INiftyswapExchange20Transactor) BuyTokens(opts *bind.TransactOpts, _tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address, _extraFeeRecipients []common.Address, _extraFeeAmounts []*big.Int) (*types.Transaction, error) {
+	return _INiftyswapExchange20.contract.Transact(opts, "buyTokens", _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient, _extraFeeRecipients, _extraFeeAmounts)
 }
 
-// BuyTokens is a paid mutator transaction binding the contract method 0xa7220bec.
+// BuyTokens is a paid mutator transaction binding the contract method 0xd93e8aaa.
 //
-// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient) returns(uint256[])
-func (_INiftyswapExchange20 *INiftyswapExchange20Session) BuyTokens(_tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address) (*types.Transaction, error) {
-	return _INiftyswapExchange20.Contract.BuyTokens(&_INiftyswapExchange20.TransactOpts, _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient)
+// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient, address[] _extraFeeRecipients, uint256[] _extraFeeAmounts) returns(uint256[])
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) BuyTokens(_tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address, _extraFeeRecipients []common.Address, _extraFeeAmounts []*big.Int) (*types.Transaction, error) {
+	return _INiftyswapExchange20.Contract.BuyTokens(&_INiftyswapExchange20.TransactOpts, _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient, _extraFeeRecipients, _extraFeeAmounts)
 }
 
-// BuyTokens is a paid mutator transaction binding the contract method 0xa7220bec.
+// BuyTokens is a paid mutator transaction binding the contract method 0xd93e8aaa.
 //
-// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient) returns(uint256[])
-func (_INiftyswapExchange20 *INiftyswapExchange20TransactorSession) BuyTokens(_tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address) (*types.Transaction, error) {
-	return _INiftyswapExchange20.Contract.BuyTokens(&_INiftyswapExchange20.TransactOpts, _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient)
+// Solidity: function buyTokens(uint256[] _tokenIds, uint256[] _tokensBoughtAmounts, uint256 _maxCurrency, uint256 _deadline, address _recipient, address[] _extraFeeRecipients, uint256[] _extraFeeAmounts) returns(uint256[])
+func (_INiftyswapExchange20 *INiftyswapExchange20TransactorSession) BuyTokens(_tokenIds []*big.Int, _tokensBoughtAmounts []*big.Int, _maxCurrency *big.Int, _deadline *big.Int, _recipient common.Address, _extraFeeRecipients []common.Address, _extraFeeAmounts []*big.Int) (*types.Transaction, error) {
+	return _INiftyswapExchange20.Contract.BuyTokens(&_INiftyswapExchange20.TransactOpts, _tokenIds, _tokensBoughtAmounts, _maxCurrency, _deadline, _recipient, _extraFeeRecipients, _extraFeeAmounts)
 }
 
 // OnERC1155BatchReceived is a paid mutator transaction binding the contract method 0xbc197c81.
@@ -519,6 +674,27 @@ func (_INiftyswapExchange20 *INiftyswapExchange20Session) OnERC1155Received(_ope
 // Solidity: function onERC1155Received(address _operator, address _from, uint256 _id, uint256 _amount, bytes _data) returns(bytes4)
 func (_INiftyswapExchange20 *INiftyswapExchange20TransactorSession) OnERC1155Received(_operator common.Address, _from common.Address, _id *big.Int, _amount *big.Int, _data []byte) (*types.Transaction, error) {
 	return _INiftyswapExchange20.Contract.OnERC1155Received(&_INiftyswapExchange20.TransactOpts, _operator, _from, _id, _amount, _data)
+}
+
+// SendRoyalties is a paid mutator transaction binding the contract method 0xa6313875.
+//
+// Solidity: function sendRoyalties(address _royaltyRecipient) returns()
+func (_INiftyswapExchange20 *INiftyswapExchange20Transactor) SendRoyalties(opts *bind.TransactOpts, _royaltyRecipient common.Address) (*types.Transaction, error) {
+	return _INiftyswapExchange20.contract.Transact(opts, "sendRoyalties", _royaltyRecipient)
+}
+
+// SendRoyalties is a paid mutator transaction binding the contract method 0xa6313875.
+//
+// Solidity: function sendRoyalties(address _royaltyRecipient) returns()
+func (_INiftyswapExchange20 *INiftyswapExchange20Session) SendRoyalties(_royaltyRecipient common.Address) (*types.Transaction, error) {
+	return _INiftyswapExchange20.Contract.SendRoyalties(&_INiftyswapExchange20.TransactOpts, _royaltyRecipient)
+}
+
+// SendRoyalties is a paid mutator transaction binding the contract method 0xa6313875.
+//
+// Solidity: function sendRoyalties(address _royaltyRecipient) returns()
+func (_INiftyswapExchange20 *INiftyswapExchange20TransactorSession) SendRoyalties(_royaltyRecipient common.Address) (*types.Transaction, error) {
+	return _INiftyswapExchange20.Contract.SendRoyalties(&_INiftyswapExchange20.TransactOpts, _royaltyRecipient)
 }
 
 // INiftyswapExchange20CurrencyPurchaseIterator is returned from FilterCurrencyPurchase and is used to iterate over the raw logs and unpacked data for CurrencyPurchase events raised by the INiftyswapExchange20 contract.
@@ -965,6 +1141,151 @@ func (_INiftyswapExchange20 *INiftyswapExchange20Filterer) WatchLiquidityRemoved
 func (_INiftyswapExchange20 *INiftyswapExchange20Filterer) ParseLiquidityRemoved(log types.Log) (*INiftyswapExchange20LiquidityRemoved, error) {
 	event := new(INiftyswapExchange20LiquidityRemoved)
 	if err := _INiftyswapExchange20.contract.UnpackLog(event, "LiquidityRemoved", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// INiftyswapExchange20RoyaltyChangedIterator is returned from FilterRoyaltyChanged and is used to iterate over the raw logs and unpacked data for RoyaltyChanged events raised by the INiftyswapExchange20 contract.
+type INiftyswapExchange20RoyaltyChangedIterator struct {
+	Event *INiftyswapExchange20RoyaltyChanged // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *INiftyswapExchange20RoyaltyChangedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(INiftyswapExchange20RoyaltyChanged)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(INiftyswapExchange20RoyaltyChanged)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *INiftyswapExchange20RoyaltyChangedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *INiftyswapExchange20RoyaltyChangedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// INiftyswapExchange20RoyaltyChanged represents a RoyaltyChanged event raised by the INiftyswapExchange20 contract.
+type INiftyswapExchange20RoyaltyChanged struct {
+	RoyaltyRecipient common.Address
+	RoyaltyFee       *big.Int
+	Raw              types.Log // Blockchain specific contextual infos
+}
+
+// FilterRoyaltyChanged is a free log retrieval operation binding the contract event 0x02365318429bf1d603e8383b62068288a077545c5c9e709201d563b3f56ce2b3.
+//
+// Solidity: event RoyaltyChanged(address indexed royaltyRecipient, uint256 royaltyFee)
+func (_INiftyswapExchange20 *INiftyswapExchange20Filterer) FilterRoyaltyChanged(opts *bind.FilterOpts, royaltyRecipient []common.Address) (*INiftyswapExchange20RoyaltyChangedIterator, error) {
+
+	var royaltyRecipientRule []interface{}
+	for _, royaltyRecipientItem := range royaltyRecipient {
+		royaltyRecipientRule = append(royaltyRecipientRule, royaltyRecipientItem)
+	}
+
+	logs, sub, err := _INiftyswapExchange20.contract.FilterLogs(opts, "RoyaltyChanged", royaltyRecipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return &INiftyswapExchange20RoyaltyChangedIterator{contract: _INiftyswapExchange20.contract, event: "RoyaltyChanged", logs: logs, sub: sub}, nil
+}
+
+// WatchRoyaltyChanged is a free log subscription operation binding the contract event 0x02365318429bf1d603e8383b62068288a077545c5c9e709201d563b3f56ce2b3.
+//
+// Solidity: event RoyaltyChanged(address indexed royaltyRecipient, uint256 royaltyFee)
+func (_INiftyswapExchange20 *INiftyswapExchange20Filterer) WatchRoyaltyChanged(opts *bind.WatchOpts, sink chan<- *INiftyswapExchange20RoyaltyChanged, royaltyRecipient []common.Address) (event.Subscription, error) {
+
+	var royaltyRecipientRule []interface{}
+	for _, royaltyRecipientItem := range royaltyRecipient {
+		royaltyRecipientRule = append(royaltyRecipientRule, royaltyRecipientItem)
+	}
+
+	logs, sub, err := _INiftyswapExchange20.contract.WatchLogs(opts, "RoyaltyChanged", royaltyRecipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(INiftyswapExchange20RoyaltyChanged)
+				if err := _INiftyswapExchange20.contract.UnpackLog(event, "RoyaltyChanged", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseRoyaltyChanged is a log parse operation binding the contract event 0x02365318429bf1d603e8383b62068288a077545c5c9e709201d563b3f56ce2b3.
+//
+// Solidity: event RoyaltyChanged(address indexed royaltyRecipient, uint256 royaltyFee)
+func (_INiftyswapExchange20 *INiftyswapExchange20Filterer) ParseRoyaltyChanged(log types.Log) (*INiftyswapExchange20RoyaltyChanged, error) {
+	event := new(INiftyswapExchange20RoyaltyChanged)
+	if err := _INiftyswapExchange20.contract.UnpackLog(event, "RoyaltyChanged", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
