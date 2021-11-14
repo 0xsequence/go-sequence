@@ -28,10 +28,10 @@
     "@0xsequence/erc20-meta-token" "^3.0.5"
     "@uniswap/lib" "^4.0.1-alpha"
 
-"@0xsequence/wallet-contracts@1.9.5":
-  version "1.9.5"
-  resolved "https://registry.yarnpkg.com/@0xsequence/wallet-contracts/-/wallet-contracts-1.9.5.tgz#f92e12d851da3fda1fd6014c64e98c350e300c3e"
-  integrity sha512-EOfbG9y7NEICcb6wAkKbyI9ZyKN4mCjirTZdO4zOe7JnZ4eYCgh8Wf4I9J0MuMSvOVVuQi03xVZpcH5K6qRzqg==
+"@0xsequence/wallet-contracts@1.9.6":
+  version "1.9.6"
+  resolved "https://registry.yarnpkg.com/@0xsequence/wallet-contracts/-/wallet-contracts-1.9.6.tgz#3324c0f79b1672e5d6342e6176225646060f27ac"
+  integrity sha512-4moMFG4k7Vm38/7LaYu03W3zL+gYIM1PhPiyTSiau7ZSkjBqT8Dpk92fYNmeJMjes6yi5uXpUzlauBfE2x//Mg==
   optionalDependencies:
     ethers "^5.0.32"
 
