@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
 )
@@ -58,6 +59,8 @@ type Estimator struct {
 
 	cache cachestore.Store
 }
+
+type SimulateResult walletgasestimator.MainModuleGasEstimationSimulateResult
 
 var defaultEstimator = &Estimator{
 	BaseCost:     21000,
@@ -456,4 +459,60 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	}
 
 	return estimates[len(estimates)-1].Uint64(), nil
+}
+
+func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	if block == "" {
+		block = "latest"
+	}
+
+	encoded, err := transactions.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	callData, err := contracts.WalletGasEstimator.Encode("simulateExecute", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	type ethCallParams struct {
+		To   common.Address `json:"to"`
+		Data string         `json:"data"`
+	}
+
+	params := ethCallParams{
+		To:   wallet,
+		Data: hexutil.Encode(callData),
+	}
+
+	allOverrides := map[common.Address]*CallOverride{
+		wallet: {Code: walletGasEstimatorCode},
+	}
+	for address, override := range overrides {
+		if address == wallet {
+			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
+		}
+
+		allOverrides[address] = override
+	}
+
+	var response string
+	err = provider.RPC.Call(&response, "eth_call", params, block, allOverrides)
+	if err != nil {
+		return nil, err
+	}
+
+	resultsData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SimulateResult
+	err = contracts.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
