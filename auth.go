@@ -40,6 +40,11 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 		// must hash the message as first argument to isValidSignature
 		// messageHash := ethcoder.Keccak256(messageDigest)
 
+		sig, err := ethcoder.HexDecode(proof.Signature)
+		if err != nil {
+			return false, "", fmt.Errorf("sig is invalid")
+		}
+
 		// Auto-retry validation a number of times as it make take a node to sync with the latest state
 		var valid bool
 
@@ -47,7 +52,7 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 			valid, err = IsValidSignature(
 				common.HexToAddress(proof.Address),
 				common.BytesToHash(messageDigest),
-				ethcoder.MustHexDecode(proof.Signature),
+				sig,
 				WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
 				chainID,
 				provider,
