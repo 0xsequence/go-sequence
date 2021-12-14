@@ -195,11 +195,11 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 
 	if !success {
 		if len(result) <= 68 {
-			return gas, fmt.Errorf("error calling restimate: UNKNOWN_REASON")
+			return gas, fmt.Errorf("error calling estimate: UNKNOWN_REASON")
 		}
 
 		reason := string(result[68 : len(result)-1])
-		return gas, fmt.Errorf("error calling restimate: " + reason)
+		return gas, fmt.Errorf("error calling estimate: " + reason)
 	}
 
 	return gas, nil
