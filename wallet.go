@@ -315,13 +315,9 @@ func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*Signed
 	return w.SignTransactions(ctx, Transactions{txn})
 }
 
-func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions, optionalNonce ...*big.Int) (*SignedTransactions, error) {
+func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
 	if len(txns) == 0 {
 		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
-	if len(optionalNonce) > 1 {
-		return nil, fmt.Errorf("only one nonce per transaction batch allowed")
 	}
 
 	var err error
@@ -342,20 +338,19 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions, option
 		}
 	}
 
-	// get next nonce for this wallet
-	var nonce *big.Int
+	// load nonce from transactions
+	nonce, err := txns.Nonce()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
+	}
 
-	if len(optionalNonce) == 1 {
-		nonce = optionalNonce[0]
-	} else {
+	// if nonce is undefined
+	// load latest nonce from wallet
+	if nonce == nil {
 		nonce, err = w.GetNonce()
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	if nonce == nil {
-		return nil, fmt.Errorf("readNonce is invalid")
 	}
 
 	bundle := Transaction{

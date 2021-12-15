@@ -73,6 +73,24 @@ func (t *Transaction) Bundle() Transactions {
 	return Transactions{t}
 }
 
+func (t Transactions) Nonce() (*big.Int, error) {
+	var cand *big.Int
+
+	for _, transaction := range t {
+		if transaction.Nonce != nil {
+			if cand == nil {
+				cand = new(big.Int).Set(transaction.Nonce)
+			} else {
+				if cand.Cmp(transaction.Nonce) != 0 {
+					return nil, fmt.Errorf("multiple nonces found")
+				}
+			}
+		}
+	}
+
+	return cand, nil
+}
+
 func (t *Transaction) IsValid() error {
 	// invariant 1: calldata and execdata are mutually exclusive
 	if t.Data != nil && (t.Transactions != nil || t.Nonce != nil || t.Signature != nil) {
