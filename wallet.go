@@ -338,13 +338,19 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		}
 	}
 
-	// get next nonce for this wallet
-	nonce, err := w.GetNonce()
+	// load nonce from transactions
+	nonce, err := txns.Nonce()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
 	}
+
+	// if nonce is undefined
+	// load latest nonce from wallet
 	if nonce == nil {
-		return nil, fmt.Errorf("readNonce is invalid")
+		nonce, err = w.GetNonce()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bundle := Transaction{
