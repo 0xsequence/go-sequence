@@ -63,9 +63,8 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata,
-			Nonce: testChain.RandomNonce(),
+			To:   callmockContract.Address,
+			Data: calldata,
 		},
 	}
 
@@ -119,9 +118,8 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata,
-			Nonce: testChain.RandomNonce(),
+			To:   callmockContract.Address,
+			Data: calldata,
 		},
 	}
 
@@ -185,9 +183,8 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata,
-			Nonce: testChain.RandomNonce(),
+			To:   callmockContract.Address,
+			Data: calldata,
 		},
 	}
 
@@ -239,9 +236,8 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata,
-			Nonce: testChain.RandomNonce(),
+			To:   callmockContract.Address,
+			Data: calldata,
 		},
 	}
 
@@ -292,18 +288,14 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 	calldata2, err := callmockContract.Encode("testCall", big.NewInt(6), ethcoder.MustHexDecode("0x223344"))
 	assert.NoError(t, err)
 
-	nonce := testChain.RandomNonce()
-
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata1,
-			Nonce: nonce,
+			To:   callmockContract.Address,
+			Data: calldata1,
 		},
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata2,
-			Nonce: nonce,
+			To:   callmockContract.Address,
+			Data: calldata2,
 		},
 	}
 
@@ -393,9 +385,8 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 	txs := sequence.Transactions{
 		&sequence.Transaction{
-			To:    callmockContract.Address,
-			Data:  calldata,
-			Nonce: testChain.RandomNonce(),
+			To:   callmockContract.Address,
+			Data: calldata,
 		},
 	}
 
