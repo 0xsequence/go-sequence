@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-ethauth"
-	"github.com/goware/breaker"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
@@ -45,11 +44,12 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 			return false, "", fmt.Errorf("sig is invalid")
 		}
 
-		// Auto-retry validation a number of times as it make take a node to sync with the latest state
+		// Auto-retry validation a number of times as it might take a node to sync with the latest state
 		var valid bool
+		numAttempts := 4
 
-		err = breaker.Do(ctx, func() error {
-			valid, err = IsValidSignature(
+		for i := 1; i <= numAttempts; i++ {
+			valid, _ = IsValidSignature(
 				common.HexToAddress(proof.Address),
 				common.BytesToHash(messageDigest),
 				sig,
@@ -57,10 +57,13 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 				chainID,
 				provider,
 			)
-			return err
-		}, nil, 1*time.Second, 1.5, 4)
+			if valid {
+				break
+			}
+			time.Sleep(time.Duration(i) * 1500 * time.Millisecond)
+		}
 
-		if !valid || err != nil {
+		if !valid {
 			return false, "", fmt.Errorf("failed to validate")
 		}
 
