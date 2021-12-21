@@ -20,6 +20,9 @@ type WalletOptions struct {
 	// Context is the WalletContext of deployed wallet-contract modules for the Smart Wallet.
 	// NOTE: if a WalletContext is not provided, then `SequenceContext()` value is used.
 	Context *WalletContext
+
+	// Skips config sorting and keeps signers order as-is
+	SkipSortSigners bool
 }
 
 func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wallet, error) {
@@ -28,13 +31,15 @@ func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wall
 		context = *walletOptions.Context
 	}
 
-	walletConfig := walletOptions.Config
-	err := SortWalletConfig(walletConfig)
-	if err != nil {
-		return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+	walletConfig := walletOptions.Config.Clone()
+	if !walletOptions.SkipSortSigners {
+		err := SortWalletConfig(walletConfig)
+		if err != nil {
+			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+		}
 	}
 
-	_, err = IsWalletConfigUsable(walletConfig)
+	_, err := IsWalletConfigUsable(walletConfig)
 	if err != nil {
 		return nil, fmt.Errorf("sequence.NewWallet: %w", err)
 	}
