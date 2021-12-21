@@ -2,6 +2,7 @@ package sequence_test
 
 import (
 	"math/big"
+	"sort"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -117,6 +118,8 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		},
 	}
 
+	sequence.SortWalletConfig(walletConfig)
+
 	wallet, err := sequence.NewWallet(sequence.WalletOptions{
 		Config: walletConfig,
 	}, eoa1)
@@ -140,4 +143,66 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 	assert.NoError(t, err)
 	assert.Equal(t, wallet.Address(), address)
+}
+
+func TestShouldNotSideEffectWalletConfig(t *testing.T) {
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	// Inverse-sort signers
+	signers := sequence.WalletConfigSigners{
+		{Weight: 2, Address: eoa1.Address()},
+		{Weight: 5, Address: eoa2.Address()},
+	}
+
+	sort.Sort(sort.Reverse(signers))
+
+	walletConfig := sequence.WalletConfig{
+		Threshold: 3,
+		Signers:   signers,
+	}
+
+	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+		Config: walletConfig,
+	}, eoa1)
+	assert.NoError(t, err)
+
+	// Wallet config should be sorted
+	// but signers should not be affected
+	assert.Equal(t, signers[0].Address, wallet.GetWalletConfig().Signers[1].Address)
+	assert.Equal(t, signers[1].Address, wallet.GetWalletConfig().Signers[0].Address)
+}
+
+func TestShouldIgnoreConfigSort(t *testing.T) {
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	// Inverse-sort signers
+	signers := sequence.WalletConfigSigners{
+		{Weight: 2, Address: eoa1.Address()},
+		{Weight: 5, Address: eoa2.Address()},
+	}
+
+	sort.Sort(sort.Reverse(signers))
+
+	walletConfig := sequence.WalletConfig{
+		Threshold: 3,
+		Signers:   signers,
+	}
+
+	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+		Config:          walletConfig,
+		SkipSortSigners: true,
+	}, eoa1)
+	assert.NoError(t, err)
+
+	// Wallet config should remain the same
+	assert.Equal(t, signers[0].Address, wallet.GetWalletConfig().Signers[0].Address)
+	assert.Equal(t, signers[1].Address, wallet.GetWalletConfig().Signers[1].Address)
 }

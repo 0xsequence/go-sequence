@@ -21,6 +21,15 @@ type WalletConfigSigner struct {
 
 type WalletConfigSigners []WalletConfigSigner
 
+func (s WalletConfig) Clone() WalletConfig {
+	signers := make(WalletConfigSigners, len(s.Signers))
+	copy(signers, s.Signers)
+	return WalletConfig{
+		Threshold: s.Threshold,
+		Signers:   signers,
+	}
+}
+
 func (s WalletConfigSigners) Len() int { return len(s) }
 func (s WalletConfigSigners) Less(i, j int) bool {
 	return s[i].Address.Hash().Big().Cmp(s[j].Address.Hash().Big()) < 0
