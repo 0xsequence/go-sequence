@@ -23,6 +23,10 @@ type WalletOptions struct {
 
 	// Skips config sorting and keeps signers order as-is
 	SkipSortSigners bool
+
+	// Address used for the wallet
+	// if this value is defined, the address derived from the sequence config is ignored
+	Address common.Address
 }
 
 func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wallet, error) {
@@ -44,8 +48,25 @@ func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wall
 		return nil, fmt.Errorf("sequence.NewWallet: %w", err)
 	}
 
+	// Generate address
+	address := walletOptions.Address
+	if address == (common.Address{}) {
+		hs, err := ImageHashOfWalletConfig(walletConfig)
+		if err != nil {
+			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+		}
+
+		address, err = AddressFromImageHash(hs, context)
+		if err != nil {
+			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+		}
+	}
+
 	w := &Wallet{
-		config: walletConfig, context: context,
+		config:          walletConfig,
+		context:         context,
+		address:         address,
+		skipSortSigners: walletOptions.SkipSortSigners,
 	}
 	w.signers = signers
 
@@ -76,6 +97,9 @@ type Wallet struct {
 
 	provider *ethrpc.Provider
 	relayer  Relayer
+	address  common.Address
+
+	skipSortSigners bool
 
 	chainID *big.Int
 }
@@ -88,8 +112,12 @@ var (
 
 func (w *Wallet) UseConfig(config WalletConfig) (*Wallet, error) {
 	ww, err := NewWallet(WalletOptions{
-		Config: config, Context: &w.context,
+		Config:          config,
+		Context:         &w.context,
+		SkipSortSigners: w.skipSortSigners,
+		Address:         w.address,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("sequence.Wallet#UseConfig: %w", err)
 	}
@@ -110,8 +138,12 @@ func (w *Wallet) UseConfig(config WalletConfig) (*Wallet, error) {
 
 func (w *Wallet) UseSigners(signers ...*ethwallet.Wallet) (*Wallet, error) {
 	ww, err := NewWallet(WalletOptions{
-		Config: w.config, Context: &w.context,
+		Config:          w.config,
+		Context:         &w.context,
+		SkipSortSigners: w.skipSortSigners,
+		Address:         w.address,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("sequence.Wallet#UseSigners: %w", err)
 	}
@@ -185,15 +217,7 @@ func (w *Wallet) GetWalletConfig() WalletConfig {
 }
 
 func (w *Wallet) Address() common.Address {
-	hs, err := ImageHashOfWalletConfig(w.config)
-	if err != nil {
-		return common.Address{}
-	}
-	as, err := AddressFromImageHash(hs, w.context)
-	if err != nil {
-		return common.Address{}
-	}
-	return as
+	return w.address
 }
 
 func (w *Wallet) ImageHash() (common.Hash, error) {
