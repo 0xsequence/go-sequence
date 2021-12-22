@@ -206,3 +206,62 @@ func TestShouldIgnoreConfigSort(t *testing.T) {
 	assert.Equal(t, signers[0].Address, wallet.GetWalletConfig().Signers[0].Address)
 	assert.Equal(t, signers[1].Address, wallet.GetWalletConfig().Signers[1].Address)
 }
+
+func TestWalletWithNonDeterministicConfig(t *testing.T) {
+	rw, _ := ethwallet.NewWalletFromRandomEntropy()
+	randomAddr := rw.Address()
+
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	walletConfig := sequence.WalletConfig{
+		Threshold: 3,
+		Signers: sequence.WalletConfigSigners{
+			{Weight: 2, Address: eoa1.Address()},
+			{Weight: 5, Address: eoa2.Address()},
+		},
+	}
+
+	sequence.SortWalletConfig(walletConfig)
+
+	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+		Config:  walletConfig,
+		Address: randomAddr,
+	}, eoa1)
+	assert.NoError(t, err)
+
+	assert.Equal(t, wallet.Address(), randomAddr)
+	assert.Equal(t, wallet.GetWalletConfig(), walletConfig)
+
+	// Should maintain properties after updating config
+	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	newConfig := sequence.WalletConfig{
+		Threshold: 3,
+		Signers: sequence.WalletConfigSigners{
+			{Weight: 2, Address: eoa3.Address()},
+			{Weight: 5, Address: eoa2.Address()},
+		},
+	}
+
+	// Use config with wallet
+	nwallet, err := wallet.UseConfig(newConfig)
+	assert.NoError(t, err)
+
+	assert.Equal(t, nwallet.Address(), randomAddr)
+	assert.Equal(t, nwallet.GetWalletConfig(), newConfig)
+
+	// Should maintain properties after updating signers
+	eoa4, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	nwallet, err = nwallet.UseSigners(eoa4)
+	assert.NoError(t, err)
+
+	assert.Equal(t, nwallet.Address(), randomAddr)
+	assert.Equal(t, nwallet.GetWalletConfig(), newConfig)
+}
