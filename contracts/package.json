@@ -19,6 +19,6 @@
     "@0xsequence/erc20-meta-token": "^3.0.5",
     "@0xsequence/niftyswap": "^4.2.0",
     "@0xsequence/wallet-contracts": "1.9.6",
-    "@openzeppelin/contracts": "4.3.3"
+    "@openzeppelin/contracts": "4.4.2"
   }
 }
