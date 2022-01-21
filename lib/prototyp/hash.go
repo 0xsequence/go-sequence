@@ -49,6 +49,13 @@ func (h *Hash) UnmarshalText(src []byte) error {
 	return nil
 }
 
+// UnmarshalText implements json.Unmarshal.
+// Json Array of bytes
+func (h *Hash) UnmarshalJSON(src []byte) error {
+	*h = HashFromBytes(src)
+	return nil
+}
+
 func (h Hash) String() string {
 	return string(h)
 }
