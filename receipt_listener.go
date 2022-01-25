@@ -148,7 +148,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) e
 
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
 			} else if len(txLog.Topics) == 1 && txLog.Topics[0] == TxFailedEventSig && len(txLog.Data) >= 32 {
-				status = MetaTxnExecuted
+				status = MetaTxnFailed
 				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
 
 				l.log.Debug().
