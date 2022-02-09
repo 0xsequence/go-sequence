@@ -228,8 +228,9 @@ func TestWalletWithNonDeterministicConfig(t *testing.T) {
 	sequence.SortWalletConfig(walletConfig)
 
 	wallet, err := sequence.NewWallet(sequence.WalletOptions{
-		Config:  walletConfig,
-		Address: randomAddr,
+		Config:          walletConfig,
+		Address:         randomAddr,
+		SkipSortSigners: true,
 	}, eoa1)
 	assert.NoError(t, err)
 
