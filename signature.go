@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
@@ -16,6 +17,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
+
+	proto "github.com/0xsequence/go-sequence/lib/sessions"
 )
 
 func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
@@ -614,28 +617,123 @@ func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext,
 	return wc, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	// Try to do it first with ethereum sign signature format
-	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
-	if err == nil {
-		return ok, nil
+func FetchImageHashOfWallet(walletAddress common.Address, provider *ethrpc.Provider, chainId *big.Int, configTracker proto.Sessions) ([]byte, error) {
+	// The imageHash should be the storage slot of the wallet's address/address
+	cand, err := provider.StorageAt(context.Background(), walletAddress, common.HexToHash("0xea7157fa25e3aa17d0ae2d5280fa4e24d421c61842aa85e45194e1145aa72bf8"), nil)
+	if err != nil {
+		return nil, err
 	}
 
+	// If we don't have a configTracker defined, we can't do anything else
+	if configTracker == nil {
+		return cand, nil
+	}
+
+	// TODO: We are fully trust configTracker to return good information
+	// we should implement a client of config tracer that validates all received info
+
+	// If the cand is empty, configTracker may have an imageHash for this wallet
+	if len(cand) != 32 || bytes.Equal(cand, make([]byte, 32)) {
+		// Ignore errors here
+		imageHash, _ := configTracker.ImageHashForWallet(context.Background(), walletAddress.String())
+
+		// Find imageHash that matches config
+		for _, h := range imageHash {
+			if h.Context.Factory == sequenceContext.FactoryAddress.String() && h.Context.MainModule == sequenceContext.MainModuleAddress.String() {
+				cand = common.Hex2Bytes(strings.TrimPrefix(h.ImageHash, "0x"))
+				break
+			}
+		}
+	}
+
+	// If imageHash is still empty, we can't do anything else
+	if len(cand) != 32 || bytes.Equal(cand, make([]byte, 32)) {
+		return nil, nil
+	}
+
+	// Now that we have the current imageHash, we can look for the latest lazy-config
+	presigned, err := configTracker.PresignedRouteForWallet(
+		context.Background(),
+		common.Bytes2Hex(cand),
+		walletAddress.String(),
+		chainId.String(),
+		nil,
+		nil,
+		false,
+		"",
+	)
+	if err != nil || len(presigned) == 0 {
+		return nil, err
+	}
+
+	// The last imageHash is the one defined by the last tx
+	return common.Hex2Bytes(strings.TrimPrefix(presigned[len(presigned)-1].Tx.NewImageHash, "0x")), nil
+}
+
+func IsValidERC1271Signature(walletAddress common.Address, digest common.Hash, signature []byte, provider *ethrpc.Provider) (bool, error) {
 	code, err := provider.CodeAt(context.Background(), walletAddress, nil)
 	if err != nil {
 		return false, err
 	}
 
 	if len(code) == 0 {
-		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
-		subDigest, err := SubDigest(chainID, walletAddress, digest)
-		if err != nil {
-			return false, err
-		}
-		recoveredWalletConfig, err := RecoverWalletConfigFromDigest(subDigest, seqSig, walletContext, chainID, nil)
-		if err != nil {
-			return false, err
-		}
+		return false, nil
+	}
+
+	// See if signature is valid ERC1271 signature
+	erc1271, err := ierc1271.NewIERC1271(walletAddress, provider)
+	if err != nil {
+		return false, err
+	}
+
+	// NOTE: we expect digest to be ready for ERC1271 call, so digest must be fully encoded as expected
+	res, err := erc1271.IsValidSignature(&bind.CallOpts{From: common.Address{0x1}}, digest, signature)
+	if err != nil {
+		return false, err
+	}
+
+	if ierc1271.IsValidSignatureBytes32_MagicReturnValue != hexutil.Encode(res[:]) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider, configTracker proto.Sessions) (bool, error) {
+	// Try to do it first with ethereum sign signature format
+	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
+	if err == nil {
+		return ok, nil
+	}
+
+	// Try to do see if it's a valid ERC1271 signature
+	// but ignored any errors, because it may be a lazy-octopus signature
+	ok, _ = IsValidERC1271Signature(walletAddress, digest, seqSig, provider)
+	if ok {
+		return true, nil
+	}
+
+	// Get latest imageHash
+	imageHash, err := FetchImageHashOfWallet(walletAddress, provider, chainID, configTracker)
+	fmt.Println("got imageHash", imageHash, err)
+	if err != nil {
+		return false, err
+	}
+
+	// Recover the config from the signature
+	subDigest, err := SubDigest(chainID, walletAddress, digest)
+	if err != nil {
+		return false, err
+	}
+
+	recoveredWalletConfig, err := RecoverWalletConfigFromDigest(subDigest, seqSig, walletContext, chainID, nil)
+	if err != nil {
+		return false, err
+	}
+
+	// If imageHash is empty ot null, we can only
+	// validate an undeployed wallet
+	if len(imageHash) != 32 || bytes.Equal(imageHash, make([]byte, 32)) {
 		recoveredAddress, err := AddressFromWalletConfig(recoveredWalletConfig, walletContext)
 		if err != nil {
 			return false, err
@@ -644,25 +742,16 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 			return false, fmt.Errorf("failed to validate")
 		}
 
-	} else {
-		// Smart wallet is deployed, query erc1271 method to check signature
-		erc1271, err := ierc1271.NewIERC1271(walletAddress, provider)
-		if err != nil {
-			return false, err
-		}
-
-		// NOTE: we expect digest to be ready for ERC1271 call, so digest must be fully encoded as expected
-		res, err := erc1271.IsValidSignature(&bind.CallOpts{From: common.Address{0x1}}, digest, seqSig)
-		if err != nil {
-			return false, err
-		}
-
-		if ierc1271.IsValidSignatureBytes32_MagicReturnValue != hexutil.Encode(res[:]) {
-			return false, fmt.Errorf("failed to validate")
-		}
+		return true, nil
 	}
 
-	return true, nil
+	// Compare imageHash against the recovered config
+	rih, err := ImageHashOfWalletConfig(recoveredWalletConfig)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Equal(common.Hex2Bytes(strings.TrimPrefix(rih, "0x")), imageHash), nil
 }
 
 func MessageDigest(message []byte) common.Hash {

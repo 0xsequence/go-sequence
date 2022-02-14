@@ -10,16 +10,18 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-ethauth"
+
+	proto "github.com/0xsequence/go-sequence/lib/sessions"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
 // as ethauth proofs and verifable on a Go backend.
 
-func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
-	return ValidateSequenceAccountProofWith(sequenceContext.FactoryAddress, sequenceContext.MainModuleAddress)
+func ValidateSequenceAccountProof(configTracker proto.Sessions) ethauth.ValidatorFunc {
+	return ValidateSequenceAccountProofWith(sequenceContext.FactoryAddress, sequenceContext.MainModuleAddress, configTracker)
 }
 
-func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethauth.ValidatorFunc {
+func ValidateSequenceAccountProofWith(factory, mainModule common.Address, configTracker proto.Sessions) ethauth.ValidatorFunc {
 	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
 		if provider == nil {
 			return false, "", fmt.Errorf("ValidateContractAccountToken failed. provider is nil")
@@ -51,6 +53,7 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 				WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
 				chainID,
 				provider,
+				configTracker,
 			)
 			if valid {
 				break

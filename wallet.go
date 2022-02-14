@@ -436,7 +436,9 @@ func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, e
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
-	return IsValidSignature(w.Address(), digest, signature, w.context, w.chainID, w.provider)
+
+	// TODO: Pass configTracker
+	return IsValidSignature(w.Address(), digest, signature, w.context, w.chainID, w.provider, nil)
 }
 
 func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (bool, error) {
