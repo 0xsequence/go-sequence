@@ -34,11 +34,6 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 			return false, "", fmt.Errorf("ValidateEOAToken failed. Unable to compute token message digest, because %w", err)
 		}
 
-		// TODO: do we need a subdigest of this message?... or shall we remove below..?
-		// confirm with a test..
-		// must hash the message as first argument to isValidSignature
-		// messageHash := ethcoder.Keccak256(messageDigest)
-
 		sig, err := ethcoder.HexDecode(proof.Signature)
 		if err != nil {
 			return false, "", fmt.Errorf("sig is invalid")
