@@ -148,7 +148,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) e
 
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
 			} else if len(txLog.Topics) == 1 && txLog.Topics[0] == TxFailedEventSig && len(txLog.Data) >= 32 {
-				status = MetaTxnExecuted
+				status = MetaTxnFailed
 				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
 
 				l.log.Debug().
@@ -276,38 +276,25 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	var receipt *ReceiptResult
 	var err error
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	for done := false; !done; {
+		select {
+		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, ctx.Err())
+			} else if ctx.Err() != nil {
+				err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, ctx.Err())
+			}
+			done = true
 
-	go func(ctx context.Context) {
-		defer wg.Done()
-		for {
-			select {
+		case <-sub.done:
+			done = true
 
-			case <-ctx.Done():
-				err := ctx.Err()
-				if errors.Is(err, context.DeadlineExceeded) {
-					err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
-					return
-				} else if err != nil {
-					err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
-					return
-				} else {
-					return
-				}
-
-			case <-sub.done:
-				return
-
-			case receipt = <-sub.ch:
-				if receipt.MetaTxnID == metaTxnID {
-					return
-				}
+		case receipt = <-sub.ch:
+			if receipt.MetaTxnID == metaTxnID {
+				done = true
 			}
 		}
-	}(ctx)
-
-	wg.Wait()
+	}
 
 	if err != nil {
 		return 0, nil, err
