@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethmonitor"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/lib/logadapter"
@@ -44,6 +42,10 @@ type subscriber struct {
 }
 
 func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*ReceiptListener, error) {
+	if !monitor.Options().WithLogs {
+		return nil, fmt.Errorf("ReceiptListener needs a monitor with WithLogs enabled to function")
+	}
+
 	return &ReceiptListener{
 		log:          log.With().Str("ps", "ReceiptListener").Logger(),
 		provider:     provider,
@@ -71,58 +73,53 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 			return nil
 
 		case blocks := <-sub.Blocks():
-			block := blocks.LatestBlock().Block
-			if block == nil {
-				l.log.Warn().Msgf("monitor return latestblock of nil, unexpected but skipping..")
-				continue
-			}
-
-			err := br.Do(ctx, func() error {
-				return l.handleBlock(ctx, block)
-			})
-
-			if err != nil {
-				if errors.Is(err, breaker.ErrHitMaxRetries) {
-					l.log.Err(err).Msgf("failed to handle block %d after many retries", block.NumberU64())
-					continue
-				} else {
-					l.log.Err(err).Msgf("failed to handle block %d", block.NumberU64())
+			for _, block := range blocks {
+				if block.Event != ethmonitor.Added {
 					continue
 				}
-			}
 
+				err := br.Do(ctx, func() error {
+					return l.handleBlock(ctx, block)
+				})
+				if err != nil {
+					if errors.Is(err, breaker.ErrHitMaxRetries) {
+						l.log.Err(err).Msgf("failed to handle block %d after many retries", block.NumberU64())
+					} else {
+						l.log.Err(err).Msgf("failed to handle block %d", block.NumberU64())
+					}
+				}
+			}
 		}
 	}
 }
 
-func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) error {
+func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) error {
 	blockOfReceipts := BlockOfReceipts{}
+	transactionLogs := map[common.Hash][]*types.Log{}
+	var nonceChangeTransactionHashes []common.Hash
 
-	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
-	query := ethereum.FilterQuery{
-		FromBlock: block.Number(),
-		ToBlock:   new(big.Int).Add(block.Number(), common.Big1),
-		Topics:    nonceChangedTopics,
-	}
+	// categorize logs by transaction hash
+	// also note transactions with NonceChange events
+	for i := range block.Logs {
+		log := &block.Logs[i]
+		transactionLogs[log.TxHash] = append(transactionLogs[log.TxHash], log)
 
-	// Find all nonce change events
-	logs, err := l.provider.FilterLogs(ctx, query)
-	if err != nil {
-		return err
+		if len(log.Topics) == 1 && log.Topics[0] == NonceChangeEventSig {
+			nonceChangeTransactionHashes = append(nonceChangeTransactionHashes, log.TxHash)
+		}
 	}
 
 	l.log.Debug().
 		Uint64("block", block.NumberU64()).
-		Int("logs", len(logs)).
+		Int("logs", len(block.Logs)).
 		Msgf("Found logs")
 
-	for _, log := range logs {
-		// We need to find the metaTxnIds
-		tx, err := l.provider.TransactionReceipt(ctx, log.TxHash)
-		if err != nil {
+	for _, txHash := range nonceChangeTransactionHashes {
+		tx, err := l.provider.TransactionReceipt(ctx, txHash)
+		if tx == nil || err != nil {
 			l.log.Warn().
 				Uint64("block", block.NumberU64()).
-				Str("tx", log.TxHash.Hex()).
+				Str("tx", txHash.Hex()).
 				Err(err).
 				Msgf("Error retrieving tx receipt")
 
@@ -130,7 +127,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) e
 		}
 
 		// We could see multiple metaTxns on the same transaction
-		for _, txLog := range tx.Logs {
+		for _, txLog := range transactionLogs[txHash] {
 			var status MetaTxnStatus
 			var metaTxnID MetaTxnID
 
@@ -142,7 +139,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) e
 				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data))
 
 				l.log.Debug().
-					Str("tx", tx.TxHash.Hex()).
+					Str("tx", txHash.Hex()).
 					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found succeed meta-tx")
 
@@ -152,7 +149,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *types.Block) e
 				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
 
 				l.log.Debug().
-					Str("tx", tx.TxHash.Hex()).
+					Str("tx", txHash.Hex()).
 					Str("meta-tx", string(metaTxnID)).
 					Msgf("Found failed meta-tx")
 			} else {
