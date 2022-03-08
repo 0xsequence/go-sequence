@@ -16,27 +16,42 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	maxConcurrentFetchReceipts = 30
+	pastReceiptsBufSize        = 4096
+)
+
 type ReceiptListener struct {
 	log      zerolog.Logger
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
+	br       *breaker.Breaker
 
-	pastReceipts []BlockOfReceipts
-	subscribers  []*subscriber
+	receiptsSem chan struct{}
 
-	mu sync.Mutex
+	pastReceipts   []BlockOfReceipts
+	muPastReceipts sync.Mutex
+
+	subscribers   []*subscriber
+	muSubscribers sync.Mutex
 }
 
 type ReceiptResult struct {
 	MetaTxnID  MetaTxnID
-	Status     MetaTxnStatus
+	Results    []*MetaTxnResult
 	TxnReceipt *types.Receipt
 }
 
-type BlockOfReceipts []*ReceiptResult
+type MetaTxnResult struct {
+	Status MetaTxnStatus
+	Reason string
+}
+
+type BlockOfReceipts []ReceiptResult
 
 type subscriber struct {
-	ch          chan *ReceiptResult
+	ch          <-chan ReceiptResult
+	sendCh      chan<- ReceiptResult
 	done        chan struct{}
 	unsubscribe func()
 }
@@ -46,10 +61,14 @@ func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *
 		return nil, fmt.Errorf("ReceiptListener needs a monitor with WithLogs enabled to function")
 	}
 
+	log = log.With().Str("ps", "ReceiptListener").Logger()
+
 	return &ReceiptListener{
-		log:          log.With().Str("ps", "ReceiptListener").Logger(),
+		log:          log,
 		provider:     provider,
 		monitor:      monitor,
+		br:           breaker.New(logadapter.Wrap(log), time.Second, 2, 10),
+		receiptsSem:  make(chan struct{}, maxConcurrentFetchReceipts),
 		pastReceipts: make([]BlockOfReceipts, 0),
 		subscribers:  make([]*subscriber, 0),
 	}, nil
@@ -58,8 +77,6 @@ func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *
 func (l *ReceiptListener) Run(ctx context.Context) error {
 	sub := l.monitor.Subscribe()
 	defer sub.Unsubscribe()
-
-	br := breaker.New(logadapter.Wrap(l.log), 1*time.Second, 2, 10)
 
 	for {
 		select {
@@ -74,149 +91,168 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 
 		case blocks := <-sub.Blocks():
 			for _, block := range blocks {
-				if block.Event != ethmonitor.Added {
+				l.handleBlock(ctx, block)
+			}
+		}
+	}
+}
+
+func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) {
+	if block.Event != ethmonitor.Added {
+		return
+	}
+
+	// txHashes: the set of native transactions with at least one NonceChange event
+	// txLogs: block's logs indexed by native transaction hash
+
+	txHashes := map[common.Hash]struct{}{}
+	txLogs := map[common.Hash][]*types.Log{}
+
+	for i := range block.Logs {
+		log := &block.Logs[i]
+
+		txLogs[log.TxHash] = append(txLogs[log.TxHash], log)
+
+		if len(log.Topics) == 1 && log.Topics[0] == NonceChangeEventSig {
+			txHashes[log.TxHash] = struct{}{}
+		}
+	}
+
+	// receipts: meta transaction receipts indexed by native transaction hash
+	// receipts will have their TxnReceipt fields populated in a different goroutine
+
+	receipts := make(map[common.Hash][]ReceiptResult, len(txHashes))
+
+	for txHash := range txHashes {
+		logs := txLogs[txHash]
+
+		// metaTxnReceipts: meta transaction receipts indexed by meta transaction ID
+		// receipt: gets the current receipt for a given meta transaction ID
+
+		// these get mutated and must be *ReceiptResult
+		metaTxnReceipts := map[common.Hash]*ReceiptResult{}
+
+		receipt := func(metaTxnID common.Hash) *ReceiptResult {
+			result := metaTxnReceipts[metaTxnID]
+			if result == nil {
+				result = &ReceiptResult{MetaTxnID: MetaTxnID(metaTxnID.Hex()[2:])}
+				metaTxnReceipts[metaTxnID] = result
+			}
+			return result
+		}
+
+		// assuming block.Logs is sorted
+		for _, log := range logs {
+			if len(log.Topics) == 0 && len(log.Data) == 32 {
+				// possible TxExecuted event
+
+				r := receipt(common.BytesToHash(log.Data))
+				r.Results = append(r.Results, &MetaTxnResult{
+					Status: MetaTxnExecuted,
+				})
+			} else if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig {
+				// definite TxFailed event
+
+				metaTxnID, reason, err := DecodeTxFailedEvent(log)
+				if err != nil {
+					l.log.Err(err).Msgf("unable to decode TxFailed event: topics=%v data=%v", log.Topics, log.Data)
 					continue
 				}
 
-				err := br.Do(ctx, func() error {
-					return l.handleBlock(ctx, block)
+				r := receipt(metaTxnID)
+				r.Results = append(r.Results, &MetaTxnResult{
+					Status: MetaTxnFailed,
+					Reason: reason,
 				})
-				if err != nil {
-					if errors.Is(err, breaker.ErrHitMaxRetries) {
-						l.log.Err(err).Msgf("failed to handle block %d after many retries", block.NumberU64())
-					} else {
-						l.log.Err(err).Msgf("failed to handle block %d", block.NumberU64())
-					}
+			}
+		}
+
+		receipts[txHash] = make([]ReceiptResult, 0, len(metaTxnReceipts))
+		for _, receipt := range metaTxnReceipts {
+			receipts[txHash] = append(receipts[txHash], *receipt)
+		}
+	}
+
+	for txHash, txReceipts := range receipts {
+		l.handleReceipts(ctx, txHash, txReceipts)
+	}
+}
+
+func (l *ReceiptListener) handleReceipts(ctx context.Context, txHash common.Hash, txReceipts []ReceiptResult) {
+	if len(txReceipts) == 0 {
+		return
+	}
+
+	// handle receipts in an independent goroutine so that node failures don't stall the block handler
+	go func() {
+		err := l.br.Do(ctx, func() error {
+			l.receiptsSem <- struct{}{}
+			defer func() {
+				<-l.receiptsSem
+			}()
+
+			receipt, err := l.provider.TransactionReceipt(ctx, txHash)
+			if err != nil {
+				return fmt.Errorf("unable to fetch receipt for %v: %w", txHash.Hex(), err)
+			} else if receipt == nil {
+				return fmt.Errorf("unable to fetch receipt for %v", txHash.Hex())
+			}
+
+			// populate TxnReceipt field
+			for _, txReceipt := range txReceipts {
+				txReceipt.TxnReceipt = receipt
+			}
+
+			return nil
+		})
+		if err != nil {
+			l.log.Warn().Err(err).Msgf("failed to fetch receipt after several tries")
+		}
+
+		l.pushReceipts(txReceipts)
+
+		l.muSubscribers.Lock()
+		defer l.muSubscribers.Unlock()
+
+		// broadcast receipts
+		for _, txReceipt := range txReceipts {
+			for _, sub := range l.subscribers {
+				select {
+				case <-sub.done:
+				case sub.sendCh <- txReceipt:
 				}
 			}
 		}
-	}
+	}()
 }
 
-func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) error {
-	blockOfReceipts := BlockOfReceipts{}
-	transactionLogs := map[common.Hash][]*types.Log{}
-	var nonceChangeTransactionHashes []common.Hash
+func (l *ReceiptListener) pushReceipts(txReceipts []ReceiptResult) {
+	l.muPastReceipts.Lock()
+	defer l.muPastReceipts.Unlock()
 
-	// categorize logs by transaction hash
-	// also note transactions with NonceChange events
-	for i := range block.Logs {
-		log := &block.Logs[i]
-		transactionLogs[log.TxHash] = append(transactionLogs[log.TxHash], log)
-
-		if len(log.Topics) == 1 && log.Topics[0] == NonceChangeEventSig {
-			nonceChangeTransactionHashes = append(nonceChangeTransactionHashes, log.TxHash)
-		}
-	}
-
-	l.log.Debug().
-		Uint64("block", block.NumberU64()).
-		Int("logs", len(block.Logs)).
-		Msgf("Found logs")
-
-	for _, txHash := range nonceChangeTransactionHashes {
-		tx, err := l.provider.TransactionReceipt(ctx, txHash)
-		if tx == nil || err != nil {
-			l.log.Warn().
-				Uint64("block", block.NumberU64()).
-				Str("tx", txHash.Hex()).
-				Err(err).
-				Msgf("Error retrieving tx receipt")
-
-			return err
-		}
-
-		// We could see multiple metaTxns on the same transaction
-		for _, txLog := range transactionLogs[txHash] {
-			var status MetaTxnStatus
-			var metaTxnID MetaTxnID
-
-			// Success transactions have no topics and the metaTxId is the data
-			// we can't really know if this is a metaTxn or not, but we assume it is
-			// if it isn't is just going to get ignored
-			if len(txLog.Topics) == 0 && len(txLog.Data) == 32 {
-				status = MetaTxnExecuted
-				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data))
-
-				l.log.Debug().
-					Str("tx", txHash.Hex()).
-					Str("meta-tx", string(metaTxnID)).
-					Msgf("Found succeed meta-tx")
-
-				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-			} else if len(txLog.Topics) == 1 && txLog.Topics[0] == TxFailedEventSig && len(txLog.Data) >= 32 {
-				status = MetaTxnFailed
-				metaTxnID = MetaTxnID(common.Bytes2Hex(txLog.Data[:32]))
-
-				l.log.Debug().
-					Str("tx", txHash.Hex()).
-					Str("meta-tx", string(metaTxnID)).
-					Msgf("Found failed meta-tx")
-			} else {
-				continue // unknown, skip
-			}
-
-			result := &ReceiptResult{
-				MetaTxnID:  metaTxnID,
-				Status:     status,
-				TxnReceipt: tx,
-			}
-
-			// Add found result to block of receipts
-			blockOfReceipts = append(blockOfReceipts, result)
-		}
-	}
-
-	// Nothing to record, skipping.
-	if len(blockOfReceipts) == 0 {
-		return nil
-	}
-
-	// Publish to subscribers
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	for _, result := range blockOfReceipts {
-		for _, sub := range l.subscribers {
-			select {
-			case <-sub.done:
-			case sub.ch <- result:
-			case <-time.After(2 * time.Second):
-				l.log.Warn().Msgf("channel publisher is blocked by a slow subscriber")
-			}
-		}
-	}
-
-	l.log.Debug().
-		Int("past-block-entries", len(l.pastReceipts)).
-		Int("new-entries", len(blockOfReceipts)).
-		Msgf("Push into past receipts")
-
-	if len(l.pastReceipts) < 1024 {
-		// Append at the end of slice
-		l.pastReceipts = append(l.pastReceipts, blockOfReceipts)
+	if len(l.pastReceipts) < pastReceiptsBufSize {
+		l.pastReceipts = append(l.pastReceipts, txReceipts)
 	} else {
-		// Append value but also pop the queue
-		l.pastReceipts = append(l.pastReceipts[1:], blockOfReceipts)
+		l.pastReceipts = append(l.pastReceipts[1:], txReceipts)
 	}
-
-	return nil
 }
 
 func (l *ReceiptListener) subscribe() *subscriber {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.muSubscribers.Lock()
+	defer l.muSubscribers.Unlock()
 
+	ch := make(chan ReceiptResult)
 	subscriber := &subscriber{
-		ch:   make(chan *ReceiptResult, 1),
-		done: make(chan struct{}),
+		ch:     ch,
+		sendCh: makeUnboundedBuffered(ch, logadapter.Wrap(l.log), 100),
+		done:   make(chan struct{}),
 	}
 
 	subscriber.unsubscribe = func() {
 		close(subscriber.done)
-		l.mu.Lock()
-		defer l.mu.Unlock()
-		close(subscriber.ch)
+		l.muSubscribers.Lock()
+		defer l.muSubscribers.Unlock()
+		close(subscriber.sendCh)
 		for i, sub := range l.subscribers {
 			if sub == subscriber {
 				l.subscribers = append(l.subscribers[:i], l.subscribers[i+1:]...)
@@ -230,7 +266,46 @@ func (l *ReceiptListener) subscribe() *subscriber {
 	return subscriber
 }
 
-func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
+// converts a blocking unbuffered send channel into a non-blocking unbounded buffered one
+// inspired by https://medium.com/capital-one-tech/building-an-unbounded-channel-in-go-789e175cd2cd
+func makeUnboundedBuffered(sendCh chan<- ReceiptResult, log logadapter.Logger, bufferLimitWarning int) chan<- ReceiptResult {
+	ch := make(chan ReceiptResult)
+
+	go func() {
+		var buffer []ReceiptResult
+
+		for {
+			if len(buffer) == 0 {
+				if message, ok := <-ch; ok {
+					buffer = append(buffer, message)
+					if len(buffer) > bufferLimitWarning {
+						log.Warnf("channel buffer holds %v > %v messages", len(buffer), bufferLimitWarning)
+					}
+				} else {
+					close(sendCh)
+					break
+				}
+			} else {
+				select {
+				case sendCh <- buffer[0]:
+					buffer = buffer[1:]
+
+				case message, ok := <-ch:
+					if ok {
+						buffer = append(buffer, message)
+						if len(buffer) > bufferLimitWarning {
+							log.Warnf("channel buffer holds %v > %v messages", len(buffer), bufferLimitWarning)
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	return ch
+}
+
+func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*MetaTxnResult, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
 	var cancel context.CancelFunc
@@ -249,30 +324,38 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	defer sub.unsubscribe()
 
 	// See if metaTxn has been seen in past blocks
-	totalInspected := 0
-	for _, bol := range l.pastReceipts {
-		for _, receipt := range bol {
-			totalInspected++
-			if receipt.MetaTxnID == metaTxnID {
-				l.log.Debug().
-					Int("inspected", totalInspected).
-					Str("meta-tx", string(metaTxnID)).
-					Msgf("Found receipt among past receipts")
+	receipt := func() *ReceiptResult {
+		l.muPastReceipts.Lock()
+		defer l.muPastReceipts.Unlock()
 
-				return receipt.Status, receipt.TxnReceipt, nil
+		totalInspected := 0
+		for _, bol := range l.pastReceipts {
+			for _, receipt := range bol {
+				totalInspected++
+				if receipt.MetaTxnID == metaTxnID {
+					l.log.Debug().
+						Int("inspected", totalInspected).
+						Str("meta-tx", string(metaTxnID)).
+						Msgf("Found receipt among past receipts")
+
+					return &receipt
+				}
 			}
 		}
+
+		l.log.Debug().
+			Int("inspected", totalInspected).
+			Str("meta-tx", string(metaTxnID)).
+			Msgf("Receipt not found among past receipts. Now listening..")
+
+		return nil
+	}()
+	if receipt != nil {
+		return receipt.Results, receipt.TxnReceipt, nil
 	}
 
-	l.log.Debug().
-		Int("inspected", totalInspected).
-		Str("meta-tx", string(metaTxnID)).
-		Msgf("Receipt not found among past receipts. Now listening..")
-
 	// Wait for receipt or context deadline
-	var receipt *ReceiptResult
 	var err error
-
 	for done := false; !done; {
 		select {
 		case <-ctx.Done():
@@ -286,18 +369,18 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 		case <-sub.done:
 			done = true
 
-		case receipt = <-sub.ch:
-			if receipt.MetaTxnID == metaTxnID {
+		case r := <-sub.ch:
+			if r.MetaTxnID == metaTxnID {
+				receipt = &r
 				done = true
 			}
 		}
 	}
-
 	if err != nil {
-		return 0, nil, err
+		return nil, nil, err
 	}
 	if receipt != nil {
-		return receipt.Status, receipt.TxnReceipt, nil
+		return receipt.Results, receipt.TxnReceipt, nil
 	}
-	return 0, nil, nil
+	return nil, nil, nil
 }
