@@ -97,6 +97,86 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 	}
 }
 
+func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*MetaTxnResult, *types.Receipt, error) {
+	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
+	// set a default timeout of 120 seconds.
+	var cancel context.CancelFunc
+	if len(optTimeout) > 0 {
+		ctx, cancel = context.WithTimeout(ctx, optTimeout[0])
+		defer cancel()
+	} else {
+		if _, ok := ctx.Deadline(); !ok {
+			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
+			defer cancel()
+		}
+	}
+
+	// Listen for new receipts
+	sub := l.subscribe()
+	defer sub.unsubscribe()
+
+	// See if metaTxn has been seen in past blocks
+	receipt := func() *ReceiptResult {
+		l.muPastReceipts.Lock()
+		defer l.muPastReceipts.Unlock()
+
+		totalInspected := 0
+		for _, bol := range l.pastReceipts {
+			for _, receipt := range bol {
+				totalInspected++
+				if receipt.MetaTxnID == metaTxnID {
+					l.log.Debug().
+						Int("inspected", totalInspected).
+						Str("meta-tx", string(metaTxnID)).
+						Msgf("Found receipt among past receipts")
+
+					return &receipt
+				}
+			}
+		}
+
+		l.log.Debug().
+			Int("inspected", totalInspected).
+			Str("meta-tx", string(metaTxnID)).
+			Msgf("Receipt not found among past receipts. Now listening..")
+
+		return nil
+	}()
+	if receipt != nil {
+		return receipt.Results, receipt.TxnReceipt, nil
+	}
+
+	// Wait for receipt or context deadline
+	var err error
+	for done := false; !done; {
+		select {
+		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, ctx.Err())
+			} else if ctx.Err() != nil {
+				err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, ctx.Err())
+			}
+			done = true
+
+		case <-sub.done:
+			done = true
+
+		case r := <-sub.ch:
+			if r.MetaTxnID == metaTxnID {
+				receipt = &r
+				done = true
+			}
+		}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if receipt != nil {
+		return receipt.Results, receipt.TxnReceipt, nil
+	}
+	return nil, nil, nil
+}
+
 func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) {
 	if block.Event != ethmonitor.Added {
 		return
@@ -303,84 +383,4 @@ func makeUnboundedBuffered(sendCh chan<- ReceiptResult, log logadapter.Logger, b
 	}()
 
 	return ch
-}
-
-func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*MetaTxnResult, *types.Receipt, error) {
-	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
-	// set a default timeout of 120 seconds.
-	var cancel context.CancelFunc
-	if len(optTimeout) > 0 {
-		ctx, cancel = context.WithTimeout(ctx, optTimeout[0])
-		defer cancel()
-	} else {
-		if _, ok := ctx.Deadline(); !ok {
-			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
-			defer cancel()
-		}
-	}
-
-	// Listen for new receipts
-	sub := l.subscribe()
-	defer sub.unsubscribe()
-
-	// See if metaTxn has been seen in past blocks
-	receipt := func() *ReceiptResult {
-		l.muPastReceipts.Lock()
-		defer l.muPastReceipts.Unlock()
-
-		totalInspected := 0
-		for _, bol := range l.pastReceipts {
-			for _, receipt := range bol {
-				totalInspected++
-				if receipt.MetaTxnID == metaTxnID {
-					l.log.Debug().
-						Int("inspected", totalInspected).
-						Str("meta-tx", string(metaTxnID)).
-						Msgf("Found receipt among past receipts")
-
-					return &receipt
-				}
-			}
-		}
-
-		l.log.Debug().
-			Int("inspected", totalInspected).
-			Str("meta-tx", string(metaTxnID)).
-			Msgf("Receipt not found among past receipts. Now listening..")
-
-		return nil
-	}()
-	if receipt != nil {
-		return receipt.Results, receipt.TxnReceipt, nil
-	}
-
-	// Wait for receipt or context deadline
-	var err error
-	for done := false; !done; {
-		select {
-		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				err = fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, ctx.Err())
-			} else if ctx.Err() != nil {
-				err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, ctx.Err())
-			}
-			done = true
-
-		case <-sub.done:
-			done = true
-
-		case r := <-sub.ch:
-			if r.MetaTxnID == metaTxnID {
-				receipt = &r
-				done = true
-			}
-		}
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	if receipt != nil {
-		return receipt.Results, receipt.TxnReceipt, nil
-	}
-	return nil, nil, nil
 }
