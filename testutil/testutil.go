@@ -182,18 +182,18 @@ func (c *TestChain) MustFundAddress(addr common.Address) error {
 		return err
 	}
 
-	time.Sleep(2 * time.Second)
-
-	balance, err = c.Provider.BalanceAt(context.Background(), addr, nil)
-	if err != nil {
-		return err
+	for i := 0; i < 5; i++ {
+		time.Sleep(2 * time.Second)
+		balance, err = c.Provider.BalanceAt(context.Background(), addr, nil)
+		if err != nil {
+			return err
+		}
+		if balance.Cmp(min) != -1 {
+			return nil
+		}
 	}
 
-	if balance.Cmp(min) == -1 {
-		return fmt.Errorf("Test wallet has no balance")
-	}
-
-	return nil
+	return fmt.Errorf("test wallet has no balance")
 }
 
 func (c *TestChain) GetDeployWallet() *ethwallet.Wallet {
