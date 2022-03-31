@@ -156,6 +156,11 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 			} else if ctx.Err() != nil {
 				err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, ctx.Err())
 			}
+
+			// flush subscriber.ch so that the makeUnboundedBuffered goroutine exits
+			for ok := true; ok; _, ok = <-sub.ch {
+			}
+
 			done = true
 
 		case r, ok := <-sub.ch:
