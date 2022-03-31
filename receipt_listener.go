@@ -158,12 +158,13 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 			}
 			done = true
 
-		case <-sub.done:
-			done = true
-
-		case r := <-sub.ch:
-			if r.MetaTxnID == metaTxnID {
-				receipt = &r
+		case r, ok := <-sub.ch:
+			if ok {
+				if r.MetaTxnID == metaTxnID {
+					receipt = &r
+					done = true
+				}
+			} else {
 				done = true
 			}
 		}
