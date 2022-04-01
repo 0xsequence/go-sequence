@@ -156,11 +156,6 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 			} else if ctx.Err() != nil {
 				err = fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, ctx.Err())
 			}
-
-			// flush subscriber.ch so that the makeUnboundedBuffered goroutine exits
-			for ok := true; ok; _, ok = <-sub.ch {
-			}
-
 			done = true
 
 		case r, ok := <-sub.ch:
@@ -339,6 +334,11 @@ func (l *ReceiptListener) subscribe() *subscriber {
 		l.muSubscribers.Lock()
 		defer l.muSubscribers.Unlock()
 		close(subscriber.sendCh)
+
+		// flush subscriber.ch so that the makeUnboundedBuffered goroutine exits
+		for ok := true; ok; _, ok = <-subscriber.ch {
+		}
+
 		for i, sub := range l.subscribers {
 			if sub == subscriber {
 				l.subscribers = append(l.subscribers[:i], l.subscribers[i+1:]...)
