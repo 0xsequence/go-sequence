@@ -57,7 +57,7 @@ type Estimator struct {
 	DataOneCost  uint64
 	DataZeroCost uint64
 
-	cache cachestore.Store
+	cache cachestore.Store[[]byte]
 }
 
 type SimulateResult walletgasestimator.MainModuleGasEstimationSimulateResult
@@ -72,7 +72,7 @@ var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
-	defaultCache, _ := memlru.NewWithSize(defaultEstimatorCacheSize)
+	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
 	return &Estimator{
 		BaseCost:     defaultEstimator.BaseCost,
 		DataZeroCost: defaultEstimator.DataZeroCost,
@@ -81,7 +81,7 @@ func NewEstimator() *Estimator {
 	}
 }
 
-func (e *Estimator) SetCache(cache cachestore.Store) *Estimator {
+func (e *Estimator) SetCache(cache cachestore.Store[[]byte]) *Estimator {
 	e.cache = cache
 	return e
 }
