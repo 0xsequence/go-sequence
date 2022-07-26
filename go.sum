@@ -108,8 +108,8 @@ github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWm
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/goware/breaker v0.1.1 h1:UtjZksASdDrZJhjeHI+rl+i1wQA03lz4hLdeyvPUnzI=
 github.com/goware/breaker v0.1.1/go.mod h1:uDrZq4Rz2F/ehyuEJDcR6LJZHkS7vi7w8bnxc7hfrj4=
-github.com/goware/cachestore v0.1.0 h1:znOH9OwaxT2qM+tatQlxA4VjQhIe6FmFkY8OJIwFjcA=
-github.com/goware/cachestore v0.1.0/go.mod h1:LELXz95onVm+azQaulnMCyGMgr0vHQXKyz43y1bMr28=
+github.com/goware/cachestore v0.2.0 h1:4fkEtjbWei6Yd8klf49chlipVsOgQ+p2LaWeF56Mt5Q=
+github.com/goware/cachestore v0.2.0/go.mod h1:LELXz95onVm+azQaulnMCyGMgr0vHQXKyz43y1bMr28=
 github.com/goware/modvendor v0.3.0/go.mod h1:rtogeSlPLJT6MlypJyGp24o/vnHvF+ebCoTQrDX6oGY=
 github.com/goware/pp v0.0.3/go.mod h1:shID9y83CUGdg/BfO0SrVhchPpIAcT3ArfLVkq3x7tQ=
 github.com/goware/superr v0.0.2 h1:71xI6ojd+YXyq2RamI8lMpkYTNoErI5Uyrv8vFAPr1U=

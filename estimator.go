@@ -251,7 +251,7 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 
 	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
 
-	if val, _ := e.cache.Get(ctx, key); val != nil {
+	if val, exists, _ := e.cache.Get(ctx, key); exists {
 		// we have recorded data for this key, let's use it
 		return val[0] == cachedTrue, nil
 	}
