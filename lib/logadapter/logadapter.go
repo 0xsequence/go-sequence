@@ -7,6 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// TODO: deprecate this and use https://github.com/goware/logadapter-zerolog
+
 // Wraps a zerolog.Logger to provide common Logger and StdLogger interfaces
 
 type Logger interface {
