@@ -6,7 +6,7 @@ Sequence Wallet client written in Go.
 
 ## Usage
 
-TODO: add docs.. etc. examples, etc.
+For documentation on sequence, please see our [docs](https://docs.sequence.xyz) page.
 
 ## Developing the go-sequence library
 
