@@ -38,20 +38,20 @@ func (k Key) Value() (driver.Value, error) {
 	return k[:], nil
 }
 
-func (n *Key) ExtensionType() int8 {
+func (k *Key) ExtensionType() int8 {
 	return 13
 }
 
-func (n *Key) Len() int {
+func (k *Key) Len() int {
 	return 16
 }
 
-func (n *Key) MarshalBinaryTo(b []byte) error {
-	copy(b, n[:])
+func (k *Key) MarshalBinaryTo(b []byte) error {
+	copy(b, k[:])
 	return nil
 }
 
-func (n *Key) UnmarshalBinary(b []byte) error {
-	copy(n[:], b)
+func (k *Key) UnmarshalBinary(b []byte) error {
+	copy(k[:], b)
 	return nil
 }

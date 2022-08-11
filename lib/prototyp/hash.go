@@ -49,21 +49,21 @@ func (h *Hash) UnmarshalText(src []byte) error {
 	return nil
 }
 
-func (n *Hash) ExtensionType() int8 {
+func (h *Hash) ExtensionType() int8 {
 	return 10
 }
 
-func (n *Hash) Len() int {
-	return len(n.String())
+func (h *Hash) Len() int {
+	return len(h.String())
 }
 
-func (n *Hash) MarshalBinaryTo(b []byte) error {
-	copy(b[:], n.String())
+func (h *Hash) MarshalBinaryTo(b []byte) error {
+	copy(b[:], h.String())
 	return nil
 }
 
-func (n *Hash) UnmarshalBinary(b []byte) error {
-	*n = HashFromString(string(b))
+func (h *Hash) UnmarshalBinary(b []byte) error {
+	*h = HashFromString(string(b))
 	return nil
 }
 

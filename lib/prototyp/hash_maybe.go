@@ -71,21 +71,21 @@ func (h *HashMaybe) Scan(src interface{}) error {
 	return nil
 }
 
-func (n *HashMaybe) ExtensionType() int8 {
+func (h *HashMaybe) ExtensionType() int8 {
 	return 11
 }
 
-func (n *HashMaybe) Len() int {
-	return len(n.Hash.String())
+func (h *HashMaybe) Len() int {
+	return len(h.Hash.String())
 }
 
-func (n *HashMaybe) MarshalBinaryTo(b []byte) error {
-	copy(b[:], n.Hash.String())
+func (h *HashMaybe) MarshalBinaryTo(b []byte) error {
+	copy(b[:], h.Hash.String())
 	return nil
 }
 
-func (n *HashMaybe) UnmarshalBinary(b []byte) error {
-	*n = HashMaybeFromString(string(b))
+func (h *HashMaybe) UnmarshalBinary(b []byte) error {
+	*h = HashMaybeFromString(string(b))
 	return nil
 }
 
