@@ -616,7 +616,7 @@ func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext,
 
 func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	// Try to do it first with ethereum sign signature format
-	ok, err := ethwallet.IsValidEOASignature(walletAddress, digest[:], seqSig)
+	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
 	if err == nil {
 		return ok, nil
 	}
