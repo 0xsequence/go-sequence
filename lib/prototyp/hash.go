@@ -49,6 +49,24 @@ func (h *Hash) UnmarshalText(src []byte) error {
 	return nil
 }
 
+func (h *Hash) ExtensionType() int8 {
+	return 10
+}
+
+func (h *Hash) Len() int {
+	return len(h.String())
+}
+
+func (h *Hash) MarshalBinaryTo(b []byte) error {
+	copy(b[:], h.String())
+	return nil
+}
+
+func (h *Hash) UnmarshalBinary(b []byte) error {
+	*h = HashFromString(string(b))
+	return nil
+}
+
 func (h Hash) String() string {
 	return string(h)
 }
