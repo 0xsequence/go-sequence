@@ -37,3 +37,21 @@ func (k *Key) Scan(src interface{}) error {
 func (k Key) Value() (driver.Value, error) {
 	return k[:], nil
 }
+
+func (n *Key) ExtensionType() int8 {
+	return 13
+}
+
+func (n *Key) Len() int {
+	return 16
+}
+
+func (n *Key) MarshalBinaryTo(b []byte) error {
+	copy(b, n[:])
+	return nil
+}
+
+func (n *Key) UnmarshalBinary(b []byte) error {
+	copy(n[:], b)
+	return nil
+}

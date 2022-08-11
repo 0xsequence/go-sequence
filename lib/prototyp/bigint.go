@@ -185,3 +185,22 @@ func (b *BigInt) Scan(src interface{}) error {
 
 	return nil
 }
+
+func (n *BigInt) ExtensionType() int8 {
+	return 12
+}
+
+func (n *BigInt) Len() int {
+	nb, _ := n.MarshalText()
+	return len(nb)
+}
+
+func (n *BigInt) MarshalBinaryTo(b []byte) error {
+	nb, _ := n.MarshalText()
+	copy(b, nb)
+	return nil
+}
+
+func (n *BigInt) UnmarshalBinary(b []byte) error {
+	return n.UnmarshalText(b)
+}

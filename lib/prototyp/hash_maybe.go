@@ -71,6 +71,24 @@ func (h *HashMaybe) Scan(src interface{}) error {
 	return nil
 }
 
+func (n *HashMaybe) ExtensionType() int8 {
+	return 11
+}
+
+func (n *HashMaybe) Len() int {
+	return len(n.Hash.String())
+}
+
+func (n *HashMaybe) MarshalBinaryTo(b []byte) error {
+	copy(b[:], n.Hash.String())
+	return nil
+}
+
+func (n *HashMaybe) UnmarshalBinary(b []byte) error {
+	*n = HashMaybeFromString(string(b))
+	return nil
+}
+
 func ToHashMaybe(h Hexer) HashMaybe {
 	return HashMaybeFromString(h.Hex())
 }
