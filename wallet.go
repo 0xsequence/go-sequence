@@ -351,19 +351,23 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 
 	var err error
 
-	// If a transaction has 0 gasLimit and not revertOnError
-	// compute all new gas limits
 	estimateGas := false
 	for _, txn := range txns {
-		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
+		if txn.GasLimit == nil {
 			estimateGas = true
 			break
 		}
 	}
 	if estimateGas {
-		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
+		results, err := w.relayer.Simulate(ctx, w.address, txns)
 		if err != nil {
-			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
+			return nil, fmt.Errorf("unable to simulate before signing: %w", err)
+		}
+
+		for i, txn := range txns {
+			if txn.GasLimit == nil {
+				txn.GasLimit = new(big.Int).SetUint64(uint64(results[i].GasLimit))
+			}
 		}
 	}
 
