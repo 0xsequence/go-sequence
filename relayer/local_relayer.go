@@ -37,12 +37,7 @@ func (r *LocalRelayer) GetProvider() *ethrpc.Provider {
 	return r.Sender.GetProvider()
 }
 
-func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *LocalRelayer) Simulate(ctx context.Context, walletAddress common.Address, txns sequence.Transactions) ([]sequence.SimulateResult, error) {
 	provider := r.GetProvider()
 
 	isWalletDeployed, err := sequence.IsWalletDeployed(provider, walletAddress)
@@ -57,23 +52,32 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 		return nil, err
 	}
 
+	results := make([]sequence.SimulateResult, len(encodedTxns))
+
 	for i := range encodedTxns {
 		txn := &encodedTxns[i]
 
+		results[i] = sequence.SimulateResult{
+			Executed:  true,
+			Succeeded: true,
+			GasUsed:   uint(defaultGasLimit),
+			GasLimit:  uint(defaultGasLimit),
+		}
+
 		// Respect gasLimit request of the transaction (as long as its not 0)
 		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
+			results[i].GasUsed = uint(txn.GasLimit.Uint64())
+			results[i].GasLimit = uint(txn.GasLimit.Uint64())
 			continue
 		}
 
 		// Fee can't be estimated locally for delegateCalls
 		if txn.DelegateCall {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
 			continue
 		}
 
 		// Fee can't be estimated for self-called if wallet hasn't been deployed
 		if txn.To == walletAddress && !isWalletDeployed {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
 			continue
 		}
 
@@ -91,18 +95,13 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 
 		gasLimit, err := provider.EstimateGas(ctx, callMsg)
 		if err != nil {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
 			continue
 		}
-		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
+		results[i].GasUsed = uint(gasLimit)
+		results[i].GasLimit = uint(gasLimit)
 	}
 
-	// update gasLimit on original transactions
-	for i, txn := range txns {
-		txn.GasLimit = encodedTxns[i].GasLimit
-	}
-
-	return txns, nil
+	return results, nil
 }
 
 func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {

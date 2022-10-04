@@ -20,11 +20,11 @@ type Relayer interface {
 	// ..
 	GetProvider() *ethrpc.Provider
 
-	// ..
-	EstimateGasLimits(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
-
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
+
+	// Simulate simulates multiple requested transactions as a specific wallet.
+	Simulate(ctx context.Context, walletAddress common.Address, txns Transactions) ([]SimulateResult, error)
 
 	// Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
