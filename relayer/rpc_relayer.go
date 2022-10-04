@@ -41,23 +41,33 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-func (r *RpcRelayer) Simulate(ctx context.Context, walletAddress common.Address, txns sequence.Transactions) ([]sequence.SimulateResult, error) {
+func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
+	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
+	if err != nil {
+		return nil, err
+	}
+
 	requestData, err := txns.EncodeRaw()
 	if err != nil {
 		return nil, err
 	}
 
-	protoResults, err := r.Service.Simulate(ctx, walletAddress.Hex(), hexutil.Encode(requestData))
+	config, err := r.protoConfig(ctx, &walletConfig, walletAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]sequence.SimulateResult, len(protoResults))
-	for i := range results {
-		results[i] = sequence.SimulateResult(*protoResults[i])
+	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), config, hexutil.Encode(requestData))
+	if err != nil {
+		return nil, err
 	}
 
-	return results, nil
+	responseData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return sequence.DecodeRawTransactions(responseData)
 }
 
 // NOTE: nonce space is 160 bits wide
@@ -119,7 +129,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, nil)
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call)
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}

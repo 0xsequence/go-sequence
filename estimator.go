@@ -13,12 +13,10 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
-	"github.com/0xsequence/go-sequence/relayer/proto"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
 )
@@ -62,7 +60,7 @@ type Estimator struct {
 	cache cachestore.Store[[]byte]
 }
 
-type SimulateResult proto.SimulateResult
+type SimulateResult walletgasestimator.MainModuleGasEstimationSimulateResult
 
 var defaultEstimator = &Estimator{
 	BaseCost:     21000,
@@ -510,41 +508,10 @@ func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Tra
 		return nil, err
 	}
 
-	var rawResults []walletgasestimator.MainModuleGasEstimationSimulateResult
-	err = contracts.WalletGasEstimator.Decode(&rawResults, "simulateExecute", resultsData)
+	var results []SimulateResult
+	err = contracts.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
 	if err != nil {
 		return nil, err
-	}
-
-	results := make([]SimulateResult, 0, len(rawResults))
-	for _, rawResult := range rawResults {
-		var result, reason *string
-		if rawResult.Executed && !rawResult.Succeeded {
-			revert, err := abi.UnpackRevert(rawResult.Result)
-			if err == nil {
-				reason = &revert
-			}
-		}
-		if reason == nil {
-			resultHex := hexutil.Encode(rawResult.Result)
-			result = &resultHex
-		}
-
-		gasUsed := uint(rawResult.GasUsed.Uint64())
-
-		// Assuming a maximum call depth of 16, we should expect that a
-		// unit of gas at that depth requires us to allocate at least
-		// (64/63)^16 < 4/3 units of gas at the top-most level.
-		gasLimit := (gasUsed*4 + 2) / 3
-
-		results = append(results, SimulateResult{
-			Executed:  rawResult.Executed,
-			Succeeded: rawResult.Succeeded,
-			Result:    result,
-			Reason:    reason,
-			GasUsed:   gasUsed,
-			GasLimit:  gasLimit,
-		})
 	}
 
 	return results, nil
