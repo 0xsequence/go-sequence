@@ -201,6 +201,10 @@ func (b *BigInt) MarshalBinaryTo(buff []byte) error {
 	return nil
 }
 
+func (b *BigInt) MarshalBinary() (data []byte, err error) {
+	return b.MarshalText()
+}
+
 func (b *BigInt) UnmarshalBinary(buff []byte) error {
 	return b.UnmarshalText(buff)
 }
