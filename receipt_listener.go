@@ -11,8 +11,9 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/go-sequence/lib/logadapter"
 	"github.com/goware/breaker"
+	"github.com/goware/logadapter-zerolog"
+	"github.com/goware/logger"
 	"github.com/rs/zerolog"
 )
 
@@ -67,7 +68,7 @@ func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *
 		log:          log,
 		provider:     provider,
 		monitor:      monitor,
-		br:           breaker.New(logadapter.Wrap(log), time.Second, 2, 10),
+		br:           breaker.New(logadapter.LogAdapter(log), time.Second, 2, 10),
 		receiptsSem:  make(chan struct{}, maxConcurrentFetchReceipts),
 		pastReceipts: make([]BlockOfReceipts, 0),
 		subscribers:  make([]*subscriber, 0),
@@ -325,7 +326,7 @@ func (l *ReceiptListener) subscribe() *subscriber {
 	ch := make(chan ReceiptResult)
 	subscriber := &subscriber{
 		ch:     ch,
-		sendCh: makeUnboundedBuffered(ch, logadapter.Wrap(l.log), 100),
+		sendCh: makeUnboundedBuffered(ch, logadapter.LogAdapter(l.log), 100),
 		done:   make(chan struct{}),
 	}
 
@@ -354,7 +355,7 @@ func (l *ReceiptListener) subscribe() *subscriber {
 
 // converts a blocking unbuffered send channel into a non-blocking unbounded buffered one
 // inspired by https://medium.com/capital-one-tech/building-an-unbounded-channel-in-go-789e175cd2cd
-func makeUnboundedBuffered(sendCh chan<- ReceiptResult, log logadapter.Logger, bufferLimitWarning int) chan<- ReceiptResult {
+func makeUnboundedBuffered(sendCh chan<- ReceiptResult, log logger.Logger, bufferLimitWarning int) chan<- ReceiptResult {
 	ch := make(chan ReceiptResult)
 
 	go func() {

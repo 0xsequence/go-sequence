@@ -7,7 +7,9 @@ require (
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.4.0
-	github.com/rs/zerolog v1.23.0
+	github.com/goware/logadapter-zerolog v0.1.0
+	github.com/goware/logger v0.1.0
+	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1
 )
 
@@ -24,6 +26,8 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/goware/superr v0.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
