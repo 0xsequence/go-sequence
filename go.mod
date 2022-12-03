@@ -5,10 +5,10 @@ go 1.18
 require (
 	github.com/0xsequence/ethkit v1.14.3
 	github.com/0xsequence/go-ethauth v0.13.0
-	github.com/goware/breaker v0.1.1
-	github.com/goware/cachestore v0.3.1
+	github.com/goware/breaker v0.1.2
+	github.com/goware/cachestore v0.4.0
 	github.com/rs/zerolog v1.23.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/goware/superr v0.0.2 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
