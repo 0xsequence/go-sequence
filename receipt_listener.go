@@ -184,10 +184,10 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Blo
 		return
 	}
 
-	// txHashes: the set of native transactions with at least one NonceChange event
-	// txLogs: block's logs indexed by native transaction hash
-
+	// txHashes is the set of native transactions with at least one NonceChange event
 	txHashes := map[common.Hash]struct{}{}
+
+	// txLogs is the block's logs indexed by native transaction hash
 	txLogs := map[common.Hash][]*types.Log{}
 
 	for i := range block.Logs {
@@ -200,20 +200,18 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Blo
 		}
 	}
 
-	// receipts: meta transaction receipts indexed by native transaction hash
+	// receipts are the meta transaction receipts indexed by native transaction hash
 	// receipts will have their TxnReceipt fields populated in a different goroutine
-
 	receipts := make(map[common.Hash][]ReceiptResult, len(txHashes))
 
 	for txHash := range txHashes {
 		logs := txLogs[txHash]
 
-		// metaTxnReceipts: meta transaction receipts indexed by meta transaction ID
-		// receipt: gets the current receipt for a given meta transaction ID
-
+		// metaTxnReceipts are meta transaction receipts indexed by meta transaction ID
 		// these get mutated and must be *ReceiptResult
 		metaTxnReceipts := map[common.Hash]*ReceiptResult{}
 
+		// receipt gets the current receipt for a given meta transaction ID
 		receipt := func(metaTxnID common.Hash) *ReceiptResult {
 			result := metaTxnReceipts[metaTxnID]
 			if result == nil {
