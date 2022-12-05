@@ -3,7 +3,7 @@ module github.com/0xsequence/go-sequence
 go 1.18
 
 require (
-	github.com/0xsequence/ethkit v1.14.3
+	github.com/0xsequence/ethkit v1.16.0
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.4.0
@@ -14,9 +14,9 @@ require (
 )
 
 require (
-	github.com/btcsuite/btcd v0.23.1 // indirect
+	github.com/btcsuite/btcd v0.23.4 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
-	github.com/btcsuite/btcd/btcutil v1.1.2 // indirect
+	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
@@ -33,7 +33,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
