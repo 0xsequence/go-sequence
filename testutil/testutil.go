@@ -56,7 +56,7 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 		return nil, err
 	}
 
-	// connect to the test-chain or error out if fail to communicate
+	// connect to the testchain or error out if fail to communicate
 	if err := tc.connect(); err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *TestChain) connect() error {
 		c.chainID = chainID
 	}
 	if c.chainID == nil {
-		return fmt.Errorf("testutil: unable to connect to test-chain")
+		return fmt.Errorf("testutil: unable to connect to testchain")
 	}
 	return nil
 }

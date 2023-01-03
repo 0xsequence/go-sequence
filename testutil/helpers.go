@@ -94,7 +94,7 @@ func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *seque
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
 	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
-	// NOTE: if you start test chain with `make start-test-chain-verbose`, you will see the metaTxnID above
+	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above
 	// correctly logged..
 
 	return err
@@ -127,7 +127,7 @@ func BatchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, 
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
 	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
-	// NOTE: if you start test chain with `make start-test-chain-verbose`, you will see the metaTxnID above
+	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above
 	// correctly logged..
 
 	return err
