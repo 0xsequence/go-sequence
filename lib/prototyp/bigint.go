@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -19,9 +20,21 @@ func NewBigInt(n int64) BigInt {
 	return BigInt(*b)
 }
 
+func NewBigIntFromNumberString(hs string) BigInt {
+	return NewBigIntFromString(hs, 10)
+}
+
+func NewBigIntFromHexString(hs string) BigInt {
+	return NewBigIntFromString(hs, 16)
+}
+
 func NewBigIntFromString(s string, base int) BigInt {
 	b := big.NewInt(0)
-	b, _ = b.SetString(s, base)
+	b, ok := b.SetString(s, base)
+	if !ok {
+		n, _ := ParseNumberString(s, base)
+		b = big.NewInt(n)
+	}
 	return BigInt(*b)
 }
 
@@ -207,4 +220,41 @@ func (b *BigInt) MarshalBinary() (data []byte, err error) {
 
 func (b *BigInt) UnmarshalBinary(buff []byte) error {
 	return b.UnmarshalText(buff)
+}
+
+func ParseNumberString(s string, base int) (int64, bool) {
+	var ns strings.Builder
+	if base == 10 {
+		for _, char := range s {
+			if char >= 48 && char <= 57 {
+				ns.WriteRune(char)
+			}
+		}
+		s = ns.String()
+	} else if base == 16 {
+		for _, char := range s {
+			if (char >= 48 && char <= 57) || (char == 120) || (char >= 65 && char <= 70) || (char >= 97 && char <= 102) {
+				ns.WriteRune(char)
+			}
+		}
+		s = ns.String()
+		s = strings.TrimPrefix(s, "0x")
+	} else {
+		return 0, false
+	}
+
+	n, err := strconv.ParseInt(s, base, 64)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
+
+func IsValidNumberString(s string) bool {
+	for _, char := range s {
+		if char < 48 || char > 57 {
+			return false
+		}
+	}
+	return true
 }

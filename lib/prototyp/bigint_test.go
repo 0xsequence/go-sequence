@@ -56,3 +56,17 @@ func TestBigIntScan(t *testing.T) {
 	assert.Error(t, b.Scan("1x"))
 	assert.Error(t, b.Scan("1."))
 }
+
+func TestBigIntInvalidInput(t *testing.T) {
+	b := NewBigIntFromNumberString("1234")
+	assert.Equal(t, int64(1234), b.Int64())
+
+	// if invalid, it will parse out the number
+	b = NewBigIntFromNumberString("/1234")
+	assert.Equal(t, int64(1234), b.Int64())
+
+	// if invalid, it will parse out the number
+	b = NewBigIntFromHexString("/0xaBc-$$2Efg")
+	assert.Equal(t, int64(0xaBc2Ef), b.Int64())
+
+}
