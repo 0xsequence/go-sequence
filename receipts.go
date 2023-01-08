@@ -81,6 +81,12 @@ func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 0 && bytes.Equal(log.Data, hash[:])
 }
 
+func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
+	return len(log.Topics) == 1 &&
+		bytes.Equal(log.Topics[0].Bytes(), TxFailedEventSig.Bytes()) &&
+		bytes.HasPrefix(log.Data, hash[:])
+}
+
 func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
 	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSig {
 		return common.Hash{}, "", fmt.Errorf("not a TxFailed event")
