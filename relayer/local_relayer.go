@@ -2,9 +2,11 @@ package relayer
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -18,16 +20,20 @@ import (
 // meta transactions locally. This should only be used for testing / debugging,
 // and never seriously in a real app.
 type LocalRelayer struct {
-	Sender *ethwallet.Wallet
+	Sender          *ethwallet.Wallet
+	receiptListener *ethreceipts.ReceiptListener
 }
 
 var _ sequence.Relayer = &LocalRelayer{}
 
-func NewLocalRelayer(sender *ethwallet.Wallet) (*LocalRelayer, error) {
+func NewLocalRelayer(sender *ethwallet.Wallet, receiptListener *ethreceipts.ReceiptListener) (*LocalRelayer, error) {
 	if sender.GetProvider() == nil {
 		return nil, sequence.ErrProviderNotSet
 	}
-	return &LocalRelayer{Sender: sender}, nil
+	return &LocalRelayer{
+		Sender:          sender,
+		receiptListener: receiptListener,
+	}, nil
 }
 
 func (r *LocalRelayer) GetProvider() *ethrpc.Provider {
@@ -161,5 +167,16 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 }
 
 func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
-	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, optTimeout...)
+	if r.receiptListener == nil {
+		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
+	}
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	if err != nil {
+		return 0, nil, err
+	}
+	var status sequence.MetaTxnStatus
+	if result != nil {
+		status = result.Status
+	}
+	return status, receipt.Receipt(), nil
 }

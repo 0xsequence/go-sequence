@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/0xsequence/ethkit/ethcontract"
+	"github.com/0xsequence/ethkit/ethmonitor"
+	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -19,6 +21,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
+	"github.com/goware/logger"
 )
 
 type TestChain struct {
@@ -27,6 +30,9 @@ type TestChain struct {
 	chainID        *big.Int         // chainID determined by the test chain
 	walletMnemonic string           // test wallet mnemonic parsed from package.json
 	Provider       *ethrpc.Provider // provider rpc to the test chain
+
+	Monitor         *ethmonitor.Monitor
+	ReceiptListener *ethreceipts.ReceiptListener
 
 	RpcRelayer *relayer.RpcRelayer // helper to track RpcRelayer client
 }
@@ -44,7 +50,7 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	tc := &TestChain{}
 
 	// set options
-	if opts != nil && len(opts) > 0 {
+	if len(opts) > 0 {
 		tc.options = opts[0]
 	} else {
 		tc.options = DefaultTestChainOptions
@@ -56,6 +62,48 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 		return nil, err
 	}
 
+	// TODO: move monitor / receipts in a Connect() and Disconnect()
+
+	// monitor
+	var monitor *ethmonitor.Monitor
+	monitorOptions := ethmonitor.DefaultOptions
+	// monitorOptions.Logger = logger.NewLogger(logger.LogLevel_INFO)
+	monitorOptions.StartBlockNumber = nil                                   // track the head
+	monitorOptions.PollingInterval = time.Duration(1000 * time.Millisecond) // default poll for new block once per second
+	monitorOptions.BlockRetentionLimit = 400                                // keep high number of blocks to query history
+	monitorOptions.WithLogs = true                                          // receipt listener needs logs from monitor
+
+	monitor, err = ethmonitor.NewMonitor(tc.Provider, monitorOptions)
+	if err != nil {
+		return nil, err
+	}
+	tc.Monitor = monitor
+
+	go func() {
+		err := tc.Monitor.Run(context.Background())
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	// receipt listener
+	receiptsOptions := ethreceipts.DefaultOptions
+	receiptsOptions.NumBlocksToFinality = 10
+	receiptsOptions.FilterMaxWaitNumBlocks = 15
+
+	receipts, err := ethreceipts.NewReceiptListener(logger.NewLogger(logger.LogLevel_INFO), tc.Provider, monitor, receiptsOptions)
+	if err != nil {
+		return nil, err
+	}
+	tc.ReceiptListener = receipts
+
+	go func() {
+		err := receipts.Run(context.Background())
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	// connect to the testchain or error out if fail to communicate
 	if err := tc.connect(); err != nil {
 		return nil, err
@@ -63,6 +111,8 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 
 	return tc, nil
 }
+
+// TODO: add Connect() and Disconnect() methods..? for the monitor..?
 
 func (c *TestChain) connect() error {
 	numAttempts := 6
@@ -89,7 +139,7 @@ func (c *TestChain) SequenceContext() sequence.WalletContext {
 }
 
 func (c *TestChain) SetRpcRelayer(relayerURL string) error {
-	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, relayerURL, http.DefaultClient)
+	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, c.ReceiptListener, relayerURL, http.DefaultClient)
 	if err != nil {
 		return err
 	}
@@ -378,7 +428,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 	}
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet())
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptListener)
 	if err != nil {
 		return nil, err
 	}

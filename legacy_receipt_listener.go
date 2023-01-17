@@ -44,11 +44,11 @@ type LegacyReceiptListener struct {
 
 type ReceiptResult struct {
 	MetaTxnID  MetaTxnID
-	Results    []*MetaTxnResult
+	Results    []*LegacyMetaTxnResult
 	TxnReceipt *types.Receipt
 }
 
-type MetaTxnResult struct {
+type LegacyMetaTxnResult struct {
 	Status MetaTxnStatus
 	Reason string
 }
@@ -103,7 +103,7 @@ func (l *LegacyReceiptListener) Run(ctx context.Context) error {
 	}
 }
 
-func (l *LegacyReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*MetaTxnResult, *types.Receipt, error) {
+func (l *LegacyReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*LegacyMetaTxnResult, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
 	var cancel context.CancelFunc
@@ -232,7 +232,7 @@ func (l *LegacyReceiptListener) handleBlock(ctx context.Context, block *ethmonit
 				// possible TxExecuted event
 
 				r := receipt(common.BytesToHash(log.Data))
-				r.Results = append(r.Results, &MetaTxnResult{
+				r.Results = append(r.Results, &LegacyMetaTxnResult{
 					Status: MetaTxnExecuted,
 				})
 			} else if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig {
@@ -245,7 +245,7 @@ func (l *LegacyReceiptListener) handleBlock(ctx context.Context, block *ethmonit
 				}
 
 				r := receipt(metaTxnID)
-				r.Results = append(r.Results, &MetaTxnResult{
+				r.Results = append(r.Results, &LegacyMetaTxnResult{
 					Status: MetaTxnFailed,
 					Reason: reason,
 				})

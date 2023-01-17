@@ -77,16 +77,9 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, w
 	return walletAddress, execdata, nil
 }
 
-// TODO: this method is horribly inefficient and we need to rethink how such a method should be designed.
-//
-// TOOD: first, we can start by making it use a cachestore for receipts.. that will help at least..
-// but it should be used very sparingly in all cases.
-// TODO...... remove......
-
-// TODO: lets review it.. but, i think we can make a new ReceiptWatcher, for Sequence..
-// or.. ReceiptStreamer ... or ReceiptCacher .. and, we just listen on all sequence txns with ethreceipts
-
-func WaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
+// DEPRECATED
+// this method is horribly inefficient and we now have the new receipt_fetcher.go impl.
+func LegacyWaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
 	var cancel context.CancelFunc

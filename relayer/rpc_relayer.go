@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -17,13 +18,14 @@ import (
 )
 
 type RpcRelayer struct {
-	provider *ethrpc.Provider
-	Service  proto.Relayer
+	provider        *ethrpc.Provider
+	receiptListener *ethreceipts.ReceiptListener
+	Service         proto.Relayer
 }
 
 var _ sequence.Relayer = &RpcRelayer{}
 
-func NewRpcRelayer(provider *ethrpc.Provider, rpcRelayerURL string, httpClient proto.HTTPClient) (*RpcRelayer, error) {
+func NewRpcRelayer(provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptListener, rpcRelayerURL string, httpClient proto.HTTPClient) (*RpcRelayer, error) {
 	_, err := url.Parse(rpcRelayerURL)
 	if err != nil {
 		return nil, fmt.Errorf("rpcRelayerURL is invalid: %w", err)
@@ -32,8 +34,9 @@ func NewRpcRelayer(provider *ethrpc.Provider, rpcRelayerURL string, httpClient p
 	service := proto.NewRelayerClient(rpcRelayerURL, httpClient)
 
 	return &RpcRelayer{
-		provider: provider,
-		Service:  service,
+		provider:        provider,
+		receiptListener: receiptListener,
+		Service:         service,
 	}, nil
 }
 
@@ -150,9 +153,24 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 	return sequence.MetaTxnID(metaTxnID), nil, waitReceipt, nil
 }
 
-// ..
+// ....
 func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
-	return sequence.WaitForMetaTxn(ctx, r.GetProvider(), metaTxnID, optTimeout...)
+	if r.receiptListener == nil {
+		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
+	}
+
+	// TODO: call rpcRelayer host RPC method GetMetaTxnReceipt()
+	// which in the future will be renamed to WaitTransactionReceipt()
+
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	if err != nil {
+		return 0, nil, err
+	}
+	var status sequence.MetaTxnStatus
+	if result != nil {
+		status = result.Status
+	}
+	return status, receipt.Receipt(), nil
 }
 
 func (r *RpcRelayer) protoConfig(ctx context.Context, config *sequence.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
