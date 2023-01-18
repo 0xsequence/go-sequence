@@ -78,7 +78,15 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 }
 
 func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
-	return len(log.Topics) == 0 && bytes.Equal(log.Data, hash[:])
+	return len(log.Topics) == 0 &&
+		len(log.Data) == 32 &&
+		bytes.Equal(log.Data, hash[:])
+}
+
+func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
+	return len(log.Topics) == 1 &&
+		log.Topics[0] == TxFailedEventSig &&
+		bytes.HasPrefix(log.Data, hash[:])
 }
 
 func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {

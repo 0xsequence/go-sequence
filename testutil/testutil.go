@@ -3,12 +3,15 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethcontract"
+	"github.com/0xsequence/ethkit/ethmonitor"
+	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -19,6 +22,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
+	"github.com/goware/logger"
 )
 
 type TestChain struct {
@@ -28,7 +32,13 @@ type TestChain struct {
 	walletMnemonic string           // test wallet mnemonic parsed from package.json
 	Provider       *ethrpc.Provider // provider rpc to the test chain
 
+	Monitor          *ethmonitor.Monitor
+	ReceiptsListener *ethreceipts.ReceiptsListener
+
 	RpcRelayer *relayer.RpcRelayer // helper to track RpcRelayer client
+
+	runCtx     context.Context
+	runCtxStop context.CancelFunc
 }
 
 type TestChainOptions struct {
@@ -44,7 +54,7 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	tc := &TestChain{}
 
 	// set options
-	if opts != nil && len(opts) > 0 {
+	if len(opts) > 0 {
 		tc.options = opts[0]
 	} else {
 		tc.options = DefaultTestChainOptions
@@ -56,15 +66,39 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 		return nil, err
 	}
 
-	// connect to the testchain or error out if fail to communicate
-	if err := tc.connect(); err != nil {
+	// monitor
+	var monitor *ethmonitor.Monitor
+	monitorOptions := ethmonitor.DefaultOptions
+	// monitorOptions.Logger = logger.NewLogger(logger.LogLevel_INFO)
+	monitorOptions.StartBlockNumber = nil                                   // track the head
+	monitorOptions.PollingInterval = time.Duration(1000 * time.Millisecond) // default poll for new block once per second
+	monitorOptions.BlockRetentionLimit = 400                                // keep high number of blocks to query history
+	monitorOptions.WithLogs = true                                          // receipt listener needs logs from monitor
+
+	monitor, err = ethmonitor.NewMonitor(tc.Provider, monitorOptions)
+	if err != nil {
 		return nil, err
 	}
+	tc.Monitor = monitor
+
+	// receipts listener
+	receiptsOptions := ethreceipts.DefaultOptions
+	receiptsOptions.NumBlocksToFinality = 10
+	receiptsOptions.FilterMaxWaitNumBlocks = 15
+
+	receipts, err := ethreceipts.NewReceiptsListener(logger.NewLogger(logger.LogLevel_INFO), tc.Provider, monitor, receiptsOptions)
+	if err != nil {
+		return nil, err
+	}
+	tc.ReceiptsListener = receipts
 
 	return tc, nil
 }
 
-func (c *TestChain) connect() error {
+func (c *TestChain) Connect() error {
+	c.runCtx, c.runCtxStop = context.WithCancel(context.Background())
+
+	// connect to the testchain or error out if fail to communicate
 	numAttempts := 6
 	for i := 0; i < numAttempts; i++ {
 		chainID, err := c.Provider.ChainID(context.Background())
@@ -77,11 +111,40 @@ func (c *TestChain) connect() error {
 	if c.chainID == nil {
 		return fmt.Errorf("testutil: unable to connect to testchain")
 	}
+
+	// start the monitor
+	go func() {
+		err := c.Monitor.Run(c.runCtx)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// start the receipts listener
+	go func() {
+		err := c.ReceiptsListener.Run(c.runCtx)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	return nil
 }
 
+func (c *TestChain) Disconnect() {
+	if c.runCtxStop == nil {
+		return
+	}
+	c.runCtxStop()
+	c.runCtx = nil
+}
+
 func (c *TestChain) ChainID() *big.Int {
-	return c.chainID
+	if c.chainID == nil {
+		return big.NewInt(0)
+	} else {
+		return c.chainID
+	}
 }
 
 func (c *TestChain) SequenceContext() sequence.WalletContext {
@@ -89,7 +152,7 @@ func (c *TestChain) SequenceContext() sequence.WalletContext {
 }
 
 func (c *TestChain) SetRpcRelayer(relayerURL string) error {
-	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, relayerURL, http.DefaultClient)
+	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, c.ReceiptsListener, relayerURL, http.DefaultClient)
 	if err != nil {
 		return err
 	}
@@ -378,7 +441,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 	}
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet())
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptsListener)
 	if err != nil {
 		return nil, err
 	}

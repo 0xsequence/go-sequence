@@ -40,15 +40,16 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnId)
+	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnExecuted, status)
+	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)
 }
 
 func TestGetReceiptOfErrorTransaction(t *testing.T) {
@@ -86,15 +87,16 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get transactions digest
-	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnId)
+	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnFailed, status)
+	assert.Equal(t, sequence.MetaTxnFailed, result.Status)
 }
 
 func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
@@ -169,16 +171,17 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnId)
+	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status) // native txn was successful
-	assert.Equal(t, sequence.MetaTxnFailed, status)                // meta txn failed
+	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status()) // native txn was successful
+	assert.Equal(t, sequence.MetaTxnFailed, result.Status)           // meta txn failed
 }
 
 func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
@@ -228,13 +231,14 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	}
 
 	// Get transactions digest
-	metaTxnId, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnId)
+	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
+	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnExecuted, status)
+	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)
 }

@@ -18,11 +18,16 @@ import (
 )
 
 const (
-	maxConcurrentFetchReceipts = 30
-	pastReceiptsBufSize        = 4096
+	legacyMaxConcurrentFetchReceipts = 30
+	legacyPastReceiptsBufSize        = 4096
 )
 
-type ReceiptListener struct {
+// NOTE: LegacyReceiptListener is older implementation of ReceiptListener,
+// see ethkit/ethreceipts for new implementation and use the new FilterMetaTransactionID and
+// FilterMetaTransactionAny with a ethreceipts.ReceiptsListener.
+//
+// DEPRECATED, but leaving here in case we want for some testing.
+type LegacyReceiptListener struct {
 	log      zerolog.Logger
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
@@ -39,11 +44,11 @@ type ReceiptListener struct {
 
 type ReceiptResult struct {
 	MetaTxnID  MetaTxnID
-	Results    []*MetaTxnResult
+	Results    []*LegacyMetaTxnResult
 	TxnReceipt *types.Receipt
 }
 
-type MetaTxnResult struct {
+type LegacyMetaTxnResult struct {
 	Status MetaTxnStatus
 	Reason string
 }
@@ -57,25 +62,25 @@ type subscriber struct {
 	unsubscribe func()
 }
 
-func NewReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*ReceiptListener, error) {
+func NewLegacyReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*LegacyReceiptListener, error) {
 	if !monitor.Options().WithLogs {
 		return nil, fmt.Errorf("ReceiptListener needs a monitor with WithLogs enabled to function")
 	}
 
 	log = log.With().Str("ps", "ReceiptListener").Logger()
 
-	return &ReceiptListener{
+	return &LegacyReceiptListener{
 		log:          log,
 		provider:     provider,
 		monitor:      monitor,
 		br:           breaker.New(logadapter.LogAdapter(log), time.Second, 2, 10),
-		receiptsSem:  make(chan struct{}, maxConcurrentFetchReceipts),
+		receiptsSem:  make(chan struct{}, legacyMaxConcurrentFetchReceipts),
 		pastReceipts: make([]BlockOfReceipts, 0),
 		subscribers:  make([]*subscriber, 0),
 	}, nil
 }
 
-func (l *ReceiptListener) Run(ctx context.Context) error {
+func (l *LegacyReceiptListener) Run(ctx context.Context) error {
 	sub := l.monitor.Subscribe()
 	defer sub.Unsubscribe()
 
@@ -98,7 +103,7 @@ func (l *ReceiptListener) Run(ctx context.Context) error {
 	}
 }
 
-func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*MetaTxnResult, *types.Receipt, error) {
+func (l *LegacyReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) ([]*LegacyMetaTxnResult, *types.Receipt, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 120 seconds.
 	var cancel context.CancelFunc
@@ -179,7 +184,7 @@ func (l *ReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID MetaTxnI
 	return nil, nil, nil
 }
 
-func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) {
+func (l *LegacyReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Block) {
 	if block.Event != ethmonitor.Added {
 		return
 	}
@@ -227,7 +232,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Blo
 				// possible TxExecuted event
 
 				r := receipt(common.BytesToHash(log.Data))
-				r.Results = append(r.Results, &MetaTxnResult{
+				r.Results = append(r.Results, &LegacyMetaTxnResult{
 					Status: MetaTxnExecuted,
 				})
 			} else if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig {
@@ -240,7 +245,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Blo
 				}
 
 				r := receipt(metaTxnID)
-				r.Results = append(r.Results, &MetaTxnResult{
+				r.Results = append(r.Results, &LegacyMetaTxnResult{
 					Status: MetaTxnFailed,
 					Reason: reason,
 				})
@@ -258,7 +263,7 @@ func (l *ReceiptListener) handleBlock(ctx context.Context, block *ethmonitor.Blo
 	}
 }
 
-func (l *ReceiptListener) handleReceipts(ctx context.Context, txHash common.Hash, txReceipts []ReceiptResult) {
+func (l *LegacyReceiptListener) handleReceipts(ctx context.Context, txHash common.Hash, txReceipts []ReceiptResult) {
 	if len(txReceipts) == 0 {
 		return
 	}
@@ -306,18 +311,18 @@ func (l *ReceiptListener) handleReceipts(ctx context.Context, txHash common.Hash
 	}()
 }
 
-func (l *ReceiptListener) pushReceipts(txReceipts []ReceiptResult) {
+func (l *LegacyReceiptListener) pushReceipts(txReceipts []ReceiptResult) {
 	l.muPastReceipts.Lock()
 	defer l.muPastReceipts.Unlock()
 
-	if len(l.pastReceipts) < pastReceiptsBufSize {
+	if len(l.pastReceipts) < legacyPastReceiptsBufSize {
 		l.pastReceipts = append(l.pastReceipts, txReceipts)
 	} else {
 		l.pastReceipts = append(l.pastReceipts[1:], txReceipts)
 	}
 }
 
-func (l *ReceiptListener) subscribe() *subscriber {
+func (l *LegacyReceiptListener) subscribe() *subscriber {
 	l.muSubscribers.Lock()
 	defer l.muSubscribers.Unlock()
 
