@@ -17,6 +17,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	if err := testChain.Connect(); err != nil {
+		panic(err)
+	}
 	testChain.MustDeploySequenceContext()
 }
 

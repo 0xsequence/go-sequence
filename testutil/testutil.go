@@ -3,6 +3,7 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"testing"
@@ -35,6 +36,9 @@ type TestChain struct {
 	ReceiptsListener *ethreceipts.ReceiptsListener
 
 	RpcRelayer *relayer.RpcRelayer // helper to track RpcRelayer client
+
+	runCtx     context.Context
+	runCtxStop context.CancelFunc
 }
 
 type TestChainOptions struct {
@@ -62,8 +66,6 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 		return nil, err
 	}
 
-	// TODO: move monitor / receipts in a Connect() and Disconnect()
-
 	// monitor
 	var monitor *ethmonitor.Monitor
 	monitorOptions := ethmonitor.DefaultOptions
@@ -79,13 +81,6 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	}
 	tc.Monitor = monitor
 
-	go func() {
-		err := tc.Monitor.Run(context.Background())
-		if err != nil {
-			panic(err)
-		}
-	}()
-
 	// receipts listener
 	receiptsOptions := ethreceipts.DefaultOptions
 	receiptsOptions.NumBlocksToFinality = 10
@@ -97,24 +92,13 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	}
 	tc.ReceiptsListener = receipts
 
-	go func() {
-		err := receipts.Run(context.Background())
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	// connect to the testchain or error out if fail to communicate
-	if err := tc.connect(); err != nil {
-		return nil, err
-	}
-
 	return tc, nil
 }
 
-// TODO: add Connect() and Disconnect() methods..? for the monitor..?
+func (c *TestChain) Connect() error {
+	c.runCtx, c.runCtxStop = context.WithCancel(context.Background())
 
-func (c *TestChain) connect() error {
+	// connect to the testchain or error out if fail to communicate
 	numAttempts := 6
 	for i := 0; i < numAttempts; i++ {
 		chainID, err := c.Provider.ChainID(context.Background())
@@ -127,7 +111,32 @@ func (c *TestChain) connect() error {
 	if c.chainID == nil {
 		return fmt.Errorf("testutil: unable to connect to testchain")
 	}
+
+	// start the monitor
+	go func() {
+		err := c.Monitor.Run(c.runCtx)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// start the receipts listener
+	go func() {
+		err := c.ReceiptsListener.Run(c.runCtx)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	return nil
+}
+
+func (c *TestChain) Disconnect() {
+	if c.runCtxStop == nil {
+		return
+	}
+	c.runCtxStop()
+	c.runCtx = nil
 }
 
 func (c *TestChain) ChainID() *big.Int {
