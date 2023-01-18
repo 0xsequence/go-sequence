@@ -16,7 +16,7 @@ type MetaTxnResult struct {
 	Reason    string
 }
 
-func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceipts.ReceiptListener, metaTxnID MetaTxnID, optTimeout ...time.Duration) (*MetaTxnResult, *ethreceipts.Receipt, ethreceipts.WaitReceiptFinalityFunc, error) {
+func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceipts.ReceiptsListener, metaTxnID MetaTxnID, optTimeout ...time.Duration) (*MetaTxnResult, *ethreceipts.Receipt, ethreceipts.WaitReceiptFinalityFunc, error) {
 	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
 	// set a default timeout of 200 seconds.
 	var cancel context.CancelFunc

@@ -21,12 +21,12 @@ import (
 // and never seriously in a real app.
 type LocalRelayer struct {
 	Sender          *ethwallet.Wallet
-	receiptListener *ethreceipts.ReceiptListener
+	receiptListener *ethreceipts.ReceiptsListener
 }
 
 var _ sequence.Relayer = &LocalRelayer{}
 
-func NewLocalRelayer(sender *ethwallet.Wallet, receiptListener *ethreceipts.ReceiptListener) (*LocalRelayer, error) {
+func NewLocalRelayer(sender *ethwallet.Wallet, receiptListener *ethreceipts.ReceiptsListener) (*LocalRelayer, error) {
 	if sender.GetProvider() == nil {
 		return nil, sequence.ErrProviderNotSet
 	}

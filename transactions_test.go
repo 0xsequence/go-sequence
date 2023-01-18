@@ -410,7 +410,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.Equal(t, "2255", ret[0])
 
 	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptListener, metaTxnID)
+	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID)
 	assert.NoError(t, err)
 	assert.True(t, result.Status == sequence.MetaTxnExecuted)

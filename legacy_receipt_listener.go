@@ -24,7 +24,7 @@ const (
 
 // NOTE: LegacyReceiptListener is older implementation of ReceiptListener,
 // see ethkit/ethreceipts for new implementation and use the new FilterMetaTransactionID and
-// FilterMetaTransactionAny with a ethreceipts.ReceiptListener.
+// FilterMetaTransactionAny with a ethreceipts.ReceiptsListener.
 //
 // DEPRECATED, but leaving here in case we want for some testing.
 type LegacyReceiptListener struct {

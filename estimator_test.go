@@ -354,7 +354,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := relayer.NewLocalRelayer(testChain.GetRelayerWallet(), testChain.ReceiptListener)
+	localRelayer, err := relayer.NewLocalRelayer(testChain.GetRelayerWallet(), testChain.ReceiptsListener)
 	assert.NoError(t, err)
 	err = wallet.SetRelayer(localRelayer)
 	assert.NoError(t, err)
@@ -444,7 +444,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := relayer.NewLocalRelayer(testChain.GetRelayerWallet(), testChain.ReceiptListener)
+	localRelayer, err := relayer.NewLocalRelayer(testChain.GetRelayerWallet(), testChain.ReceiptsListener)
 	assert.NoError(t, err)
 	err = wallet.SetRelayer(localRelayer)
 	assert.NoError(t, err)

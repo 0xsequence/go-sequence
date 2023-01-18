@@ -31,8 +31,8 @@ type TestChain struct {
 	walletMnemonic string           // test wallet mnemonic parsed from package.json
 	Provider       *ethrpc.Provider // provider rpc to the test chain
 
-	Monitor         *ethmonitor.Monitor
-	ReceiptListener *ethreceipts.ReceiptListener
+	Monitor          *ethmonitor.Monitor
+	ReceiptsListener *ethreceipts.ReceiptsListener
 
 	RpcRelayer *relayer.RpcRelayer // helper to track RpcRelayer client
 }
@@ -86,16 +86,16 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 		}
 	}()
 
-	// receipt listener
+	// receipts listener
 	receiptsOptions := ethreceipts.DefaultOptions
 	receiptsOptions.NumBlocksToFinality = 10
 	receiptsOptions.FilterMaxWaitNumBlocks = 15
 
-	receipts, err := ethreceipts.NewReceiptListener(logger.NewLogger(logger.LogLevel_INFO), tc.Provider, monitor, receiptsOptions)
+	receipts, err := ethreceipts.NewReceiptsListener(logger.NewLogger(logger.LogLevel_INFO), tc.Provider, monitor, receiptsOptions)
 	if err != nil {
 		return nil, err
 	}
-	tc.ReceiptListener = receipts
+	tc.ReceiptsListener = receipts
 
 	go func() {
 		err := receipts.Run(context.Background())
@@ -139,7 +139,7 @@ func (c *TestChain) SequenceContext() sequence.WalletContext {
 }
 
 func (c *TestChain) SetRpcRelayer(relayerURL string) error {
-	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, c.ReceiptListener, relayerURL, http.DefaultClient)
+	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, c.ReceiptsListener, relayerURL, http.DefaultClient)
 	if err != nil {
 		return err
 	}
@@ -428,7 +428,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 	}
 
 	// Set relayer on sequence wallet, which is used when the wallet sends transactions
-	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptListener)
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptsListener)
 	if err != nil {
 		return nil, err
 	}

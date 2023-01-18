@@ -19,13 +19,13 @@ import (
 
 type RpcRelayer struct {
 	provider        *ethrpc.Provider
-	receiptListener *ethreceipts.ReceiptListener
+	receiptListener *ethreceipts.ReceiptsListener
 	Service         proto.Relayer
 }
 
 var _ sequence.Relayer = &RpcRelayer{}
 
-func NewRpcRelayer(provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptListener, rpcRelayerURL string, httpClient proto.HTTPClient) (*RpcRelayer, error) {
+func NewRpcRelayer(provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, rpcRelayerURL string, httpClient proto.HTTPClient) (*RpcRelayer, error) {
 	_, err := url.Parse(rpcRelayerURL)
 	if err != nil {
 		return nil, fmt.Errorf("rpcRelayerURL is invalid: %w", err)
