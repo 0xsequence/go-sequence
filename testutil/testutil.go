@@ -140,7 +140,11 @@ func (c *TestChain) Disconnect() {
 }
 
 func (c *TestChain) ChainID() *big.Int {
-	return c.chainID
+	if c.chainID == nil {
+		return big.NewInt(0)
+	} else {
+		return c.chainID
+	}
 }
 
 func (c *TestChain) SequenceContext() sequence.WalletContext {
