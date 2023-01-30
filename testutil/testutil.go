@@ -220,7 +220,8 @@ func (c *TestChain) MustFundAddress(addr common.Address) error {
 	}
 
 	var accounts []common.Address
-	err = c.Provider.RPC.CallContext(context.Background(), &accounts, "eth_accounts")
+	rpcCall := ethrpc.NewCallBuilder[[]common.Address]("eth_accounts", nil)
+	err = c.Provider.Do(context.Background(), rpcCall.Into(&accounts))
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,8 @@ func (c *TestChain) MustFundAddress(addr common.Address) error {
 		Value: "0x" + diff.Text(16),
 	}
 
-	err = c.Provider.RPC.CallContext(context.Background(), nil, "eth_sendTransaction", tx)
+	// err = c.Provider.RPC.CallContext(context.Background(), nil, "eth_sendTransaction", tx)
+	err = c.Provider.Do(context.Background(), ethrpc.NewCall("eth_sendTransaction", tx))
 	if err != nil {
 		return err
 	}

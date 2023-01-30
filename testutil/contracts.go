@@ -53,7 +53,7 @@ func ContractCall(provider *ethrpc.Provider, contractAddress common.Address, con
 }
 
 func ContractQuery(provider *ethrpc.Provider, contractAddress common.Address, inputExpr, outputExpr string, args []string) ([]string, error) {
-	return provider.QueryContract(context.Background(), contractAddress.Hex(), inputExpr, outputExpr, args)
+	return provider.ContractQuery(context.Background(), contractAddress.Hex(), inputExpr, outputExpr, args)
 }
 
 func ContractTransact(signer *ethwallet.Wallet, contractAddress common.Address, contractABI abi.ABI, method string, args ...interface{}) (*types.Receipt, error) {

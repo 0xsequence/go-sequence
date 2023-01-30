@@ -176,7 +176,8 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	}
 
 	var res string
-	err = provider.RPC.Call(&res, "eth_call", estimateCall, blockTag, finalOverrides)
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, estimateCall, blockTag, finalOverrides)
+	err = provider.Do(context.Background(), rpcCall.Into(&res))
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +250,12 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
 
-	key := fmt.Sprintf("isEOA::%d::%v", provider.Config.ChaindID, address)
+	chainID, err := provider.ChainID(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	key := fmt.Sprintf("isEOA::%d::%v", chainID, address)
 
 	if val, exists, _ := e.cache.Get(ctx, key); exists {
 		// we have recorded data for this key, let's use it
@@ -498,7 +504,8 @@ func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Tra
 	}
 
 	var response string
-	err = provider.RPC.Call(&response, "eth_call", params, block, allOverrides)
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	err = provider.Do(context.Background(), rpcCall.Into(&response))
 	if err != nil {
 		return nil, err
 	}
