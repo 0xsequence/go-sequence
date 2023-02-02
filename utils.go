@@ -8,7 +8,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/lib/prototyp"
 )
 
 var zeroAddress = common.Address{}
@@ -73,14 +72,4 @@ func DecodeRevertReason(logs []*types.Log) []string {
 		reasons = append(reasons, reason)
 	}
 	return reasons
-}
-
-func BlockShortHash(blockHash prototyp.Hash) prototyp.Hash {
-	// return short-hash if already is len(0x12345678) == 10
-	if len(blockHash) == 10 {
-		return blockHash
-	}
-	// return short-hash as 0x plus first 8 bytes of the blockHash,
-	// which assumes the blockHash will always have 0x prefix.
-	return blockHash[0:10]
 }

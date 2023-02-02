@@ -38,6 +38,16 @@ func (h Hash) ToHash() common.Hash {
 	return common.HexToHash(string(h))
 }
 
+func (h Hash) ToShortHash() Hash {
+	// return short-hash if already is len(0x12345678) == 10
+	if len(h) == 10 {
+		return h
+	}
+	// return short-hash as 0x plus first 8 bytes of the blockHash,
+	// which assumes the blockHash will always have 0x prefix.
+	return h[0:10]
+}
+
 // UnmarshalText implements encoding.TextMarshaler.
 func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
