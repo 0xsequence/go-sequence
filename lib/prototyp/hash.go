@@ -39,6 +39,10 @@ func (h Hash) ToHash() common.Hash {
 }
 
 func (h Hash) ToShortHash() Hash {
+	// in case hash is shorter then we expect, return just its value
+	if len(h) < 10 {
+		return h
+	}
 	// return short-hash if already is len(0x12345678) == 10
 	if len(h) == 10 {
 		return h
