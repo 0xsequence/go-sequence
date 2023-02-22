@@ -16,10 +16,10 @@ import (
 // as ethauth proofs and verifable on a Go backend.
 
 func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
-	return ValidateSequenceAccountProofWith(sequenceContext.FactoryAddress, sequenceContext.MainModuleAddress)
+	return ValidateSequenceAccountProofWith(SequenceContexts())
 }
 
-func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethauth.ValidatorFunc {
+func ValidateSequenceAccountProofWith(walletContexts WalletContexts) ethauth.ValidatorFunc {
 	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
 		if provider == nil {
 			return false, "", fmt.Errorf("ValidateContractAccountToken failed. provider is nil")
@@ -48,7 +48,7 @@ func ValidateSequenceAccountProofWith(factory, mainModule common.Address) ethaut
 				common.HexToAddress(proof.Address),
 				common.BytesToHash(messageDigest),
 				sig,
-				WalletContext{FactoryAddress: factory, MainModuleAddress: mainModule},
+				walletContexts,
 				chainID,
 				provider,
 			)

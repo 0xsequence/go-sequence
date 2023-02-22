@@ -436,7 +436,13 @@ func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, e
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
-	return IsValidSignature(w.Address(), digest, signature, w.context, w.chainID, w.provider)
+
+	// Assume that this context if for a v1 wallet, so we bundle the context in a mapping
+	// with a single key of (1)
+	contexts := make(map[uint16]WalletContext)
+	contexts[1] = w.context
+
+	return IsValidSignature(w.Address(), digest, signature, contexts, w.chainID, w.provider)
 }
 
 func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (bool, error) {

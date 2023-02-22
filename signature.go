@@ -622,7 +622,7 @@ func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext,
 	return wc, weight, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	// Try to do it first with ethereum sign signature format
 	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
 	if err == nil {
@@ -638,7 +638,7 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
 		// first we try for a v2 wallet, assuming that the context is a valid v2 wallet context
 		// if it's not then we can safely assume that it's a v1 wallet context (or invalid)
-		res2, err2 := IsValidV2UndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+		res2, err2 := IsValidV2UndeployedSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
 		if err2 == nil && res2 {
 			return true, nil
 		}
@@ -648,7 +648,7 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 			return false, err
 		}
 
-		res1, err1 := IsValidV1UndeployedSignature(walletAddress, subDigest, seqSig, walletContext, chainID, provider)
+		res1, err1 := IsValidV1UndeployedSignature(walletAddress, subDigest, seqSig, walletContexts[1], chainID, provider)
 		if err1 == nil && res1 {
 			return true, nil
 		}

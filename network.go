@@ -17,6 +17,9 @@ type WalletContext struct {
 	UtilsAddress                common.Address `json:"utils" toml:"utils_address"`
 }
 
+// A map of a wallet context for each version
+type WalletContexts map[uint16]WalletContext
+
 type NetworkConfig struct {
 	Name       string
 	ChainID    big.Int
@@ -53,8 +56,26 @@ var sequenceContext = WalletContext{
 	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
 }
 
+var sequenceContextV2 = WalletContext{
+	FactoryAddress:              common.HexToAddress("0x0D7604Bdf2cAcc2943b6388e1c26c3C33213f673"),
+	MainModuleAddress:           common.HexToAddress("0xA507eF52f3fd34dd54566bf3055fA66bdabE2ef3"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x13Cc7b579e1acfDc8aD1F9996dd38ff744818a34"),
+	GuestModuleAddress:          common.HexToAddress("0xCcB6cA914c20fAde6F2be5827eE40d899076ac2A"),
+}
+
 // SequenceContext returns copy of the package-level internal variable, to prevent change
 // by other packages.
 func SequenceContext() WalletContext {
 	return sequenceContext
+}
+
+func SequenceContextV2() WalletContext {
+	return sequenceContextV2
+}
+
+func SequenceContexts() WalletContexts {
+	return WalletContexts{
+		1: sequenceContext,
+		2: sequenceContextV2,
+	}
 }
