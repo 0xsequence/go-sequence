@@ -16,6 +16,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
+	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/core/v2"
 )
 
 func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
@@ -633,20 +635,25 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	}
 
 	if len(code) == 0 {
+		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
+		// first we try for a v2 wallet, assuming that the context is a valid v2 wallet context
+		// if it's not then we can safely assume that it's a v1 wallet context (or invalid)
+		res2, err2 := IsValidV2UndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+		if err2 == nil && res2 {
+			return true, nil
+		}
+
 		subDigest, err := SubDigest(chainID, walletAddress, digest)
 		if err != nil {
 			return false, err
 		}
 
-		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
-		// first we try for a v1 wallet, assuming that the context is a valid v1 wallet context
-		// if it's not then we can safely assume that it's a v2 wallet context
 		res1, err1 := IsValidV1UndeployedSignature(walletAddress, subDigest, seqSig, walletContext, chainID, provider)
 		if err1 == nil && res1 {
 			return true, nil
 		}
 
-		return false, err1
+		return false, fmt.Errorf("failed to validate: %v, %v", err1, err2)
 
 	} else {
 		// Smart wallet is deployed, query erc1271 method to check signature
@@ -669,6 +676,7 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	return true, nil
 }
 
+// TODO: Use core methods
 func IsValidV1UndeployedSignature(walletAddress common.Address, subDigest []byte, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	recoveredWalletConfig, weight, err := RecoverWalletConfigFromDigest(subDigest, seqSig, walletContext, chainID, provider)
 	if err != nil {
@@ -681,6 +689,30 @@ func IsValidV1UndeployedSignature(walletAddress common.Address, subDigest []byte
 	}
 
 	if recoveredAddress != walletAddress || weight < uint(recoveredWalletConfig.Threshold) {
+		return false, fmt.Errorf("failed to validate")
+	}
+
+	return true, nil
+}
+
+func IsValidV2UndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	decoded, err := v2.Core.DecodeSignature(seqSig)
+	if err != nil {
+		return false, err
+	}
+
+	recovered, weight, err := decoded.Recover(context.Background(), core.Digest{Hash: digest}, walletAddress, chainID, provider)
+	if err != nil {
+		return false, err
+	}
+
+	imageHash := recovered.ImageHash()
+	address, err := AddressFromImageHash(imageHash.Hex(), walletContext)
+	if err != nil {
+		return false, err
+	}
+
+	if address != walletAddress || weight.Uint64() < uint64(recovered.Threshold_) {
 		return false, fmt.Errorf("failed to validate")
 	}
 
