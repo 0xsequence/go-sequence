@@ -69,8 +69,9 @@ func TestTransactionVerbose(t *testing.T) {
 	txSubDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), signedTx.Digest)
 	assert.NoError(t, err)
 
-	walletConfig, err := sequence.RecoverWalletConfigFromDigest(txSubDigest, signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
+	walletConfig, weight, err := sequence.RecoverWalletConfigFromDigest(txSubDigest, signedTx.Signature, testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
 	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, weight, uint(walletConfig.Threshold))
 
 	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, testutil.SequenceContext())
 	assert.NoError(t, err)

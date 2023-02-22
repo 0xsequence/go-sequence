@@ -591,27 +591,33 @@ func JoinSignatures(sigs ...*Signature) (*Signature, error) {
 	}
 }
 
-func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext, chainID *big.Int, provider *ethrpc.Provider) (WalletConfig, error) {
+func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext, chainID *big.Int, provider *ethrpc.Provider) (WalletConfig, uint, error) {
 	decoded, err := DecodeSignature(seqSig)
 	if err != nil {
-		return WalletConfig{}, err
+		return WalletConfig{}, 0, err
 	}
 
 	err = decoded.Recover(digest, provider)
 	if err != nil {
-		return WalletConfig{}, err
+		return WalletConfig{}, 0, err
 	}
 
 	wc := WalletConfig{Threshold: decoded.Threshold}
 
+	weight := uint(0)
+
 	for _, signer := range decoded.Signers {
+		if signer.Type == SignaturePartTypeEOA || (signer.Type == SignaturePartTypeDynamic && provider != nil) {
+			weight += uint(signer.Weight)
+		}
+
 		wc.Signers = append(wc.Signers, WalletConfigSigner{
 			Weight:  signer.Weight,
 			Address: signer.Address,
 		})
 	}
 
-	return wc, nil
+	return wc, weight, nil
 }
 
 func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
@@ -627,22 +633,20 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	}
 
 	if len(code) == 0 {
-		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
 		subDigest, err := SubDigest(chainID, walletAddress, digest)
 		if err != nil {
 			return false, err
 		}
-		recoveredWalletConfig, err := RecoverWalletConfigFromDigest(subDigest, seqSig, walletContext, chainID, nil)
-		if err != nil {
-			return false, err
+
+		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
+		// first we try for a v1 wallet, assuming that the context is a valid v1 wallet context
+		// if it's not then we can safely assume that it's a v2 wallet context
+		res1, err1 := IsValidV1UndeployedSignature(walletAddress, subDigest, seqSig, walletContext, chainID, provider)
+		if err1 == nil && res1 {
+			return true, nil
 		}
-		recoveredAddress, err := AddressFromWalletConfig(recoveredWalletConfig, walletContext)
-		if err != nil {
-			return false, err
-		}
-		if recoveredAddress != walletAddress {
-			return false, fmt.Errorf("failed to validate")
-		}
+
+		return false, err1
 
 	} else {
 		// Smart wallet is deployed, query erc1271 method to check signature
@@ -660,6 +664,24 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 		if ierc1271.IsValidSignatureBytes32_MagicReturnValue != hexutil.Encode(res[:]) {
 			return false, fmt.Errorf("failed to validate")
 		}
+	}
+
+	return true, nil
+}
+
+func IsValidV1UndeployedSignature(walletAddress common.Address, subDigest []byte, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	recoveredWalletConfig, weight, err := RecoverWalletConfigFromDigest(subDigest, seqSig, walletContext, chainID, provider)
+	if err != nil {
+		return false, err
+	}
+
+	recoveredAddress, err := AddressFromWalletConfig(recoveredWalletConfig, walletContext)
+	if err != nil {
+		return false, err
+	}
+
+	if recoveredAddress != walletAddress || weight < uint(recoveredWalletConfig.Threshold) {
+		return false, fmt.Errorf("failed to validate")
 	}
 
 	return true, nil

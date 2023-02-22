@@ -92,10 +92,11 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
 	assert.NoError(t, err)
 
-	recoveredWalletConfig, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+	recoveredWalletConfig, weight, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold)
+	assert.GreaterOrEqual(t, weight, uint(recoveredWalletConfig.Threshold))
 	assert.Len(t, recoveredWalletConfig.Signers, 1)
 
 	address, err := sequence.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
@@ -134,10 +135,11 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
 	assert.NoError(t, err)
 
-	recoveredWalletConfig, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+	recoveredWalletConfig, weight, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 	assert.NoError(t, err)
 
 	assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold)
+	assert.Equal(t, uint(2), weight)
 	assert.Len(t, recoveredWalletConfig.Signers, 2)
 
 	address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
