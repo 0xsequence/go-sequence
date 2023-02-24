@@ -1,0 +1,97 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IModuleAuth",
+  "sourceName": "contracts/modules/commons/interfaces/IModuleAuth.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "ImageHashIsZero",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes1",
+          "name": "_type",
+          "type": "bytes1"
+        }
+      ],
+      "name": "InvalidSignatureType",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "newImageHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ImageHashUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_digest",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "signatureRecovery",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "threshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "weight",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "imageHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "subdigest",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "checkpoint",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_imageHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "updateImageHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

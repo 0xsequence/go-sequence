@@ -1,0 +1,163 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SequenceChainedSig",
+  "sourceName": "contracts/modules/commons/submodules/auth/SequenceChainedSig.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "ImageHashIsZero",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes1",
+          "name": "_type",
+          "type": "bytes1"
+        }
+      ],
+      "name": "InvalidSignatureType",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "threshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_weight",
+          "type": "uint256"
+        }
+      ],
+      "name": "LowWeightChainedSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sender",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_self",
+          "type": "address"
+        }
+      ],
+      "name": "OnlySelfAuth",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_current",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_prev",
+          "type": "uint256"
+        }
+      ],
+      "name": "WrongChainedCheckpointOrder",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "newImageHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ImageHashUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "SET_IMAGE_HASH_TYPE_HASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_digest",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "signatureRecovery",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "threshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "weight",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "imageHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "subdigest",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "checkpoint",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_imageHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "updateImageHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

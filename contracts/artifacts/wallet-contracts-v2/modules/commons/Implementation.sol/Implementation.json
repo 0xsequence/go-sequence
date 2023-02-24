@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Implementation",
+  "sourceName": "contracts/modules/commons/Implementation.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212203b7171d353041344d97bfa62976322ade9881839c8d8fc0a436ff620f6adfa2164736f6c63430008120033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212203b7171d353041344d97bfa62976322ade9881839c8d8fc0a436ff620f6adfa2164736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

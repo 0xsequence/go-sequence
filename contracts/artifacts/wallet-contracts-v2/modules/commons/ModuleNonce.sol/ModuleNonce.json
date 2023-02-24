@@ -1,0 +1,83 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ModuleNonce",
+  "sourceName": "contracts/modules/commons/ModuleNonce.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_space",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_provided",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_current",
+          "type": "uint256"
+        }
+      ],
+      "name": "BadNonce",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_space",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_newNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "NonceChange",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "nonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_space",
+          "type": "uint256"
+        }
+      ],
+      "name": "readNonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b50610158806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80638c3f55631461003b578063affed0e014610060575b600080fd5b61004e610049366004610109565b610068565b60405190815260200160405180910390f35b61004e61009a565b60006100947f8d0bf1fd623d628c741362c1289948e57b3e2905218c676d3e69abee36d6ae2e836100ab565b92915050565b60006100a66000610068565b905090565b60008083836040516020016100ca929190918252602082015260400190565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0818403018152919052805160209091012054949350505050565b60006020828403121561011b57600080fd5b503591905056fea2646970667358221220276108bfada85685e5b2ba2c176c5241ca541b716a3a8df414f11517fae53bd764736f6c63430008120033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100365760003560e01c80638c3f55631461003b578063affed0e014610060575b600080fd5b61004e610049366004610109565b610068565b60405190815260200160405180910390f35b61004e61009a565b60006100947f8d0bf1fd623d628c741362c1289948e57b3e2905218c676d3e69abee36d6ae2e836100ab565b92915050565b60006100a66000610068565b905090565b60008083836040516020016100ca929190918252602082015260400190565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0818403018152919052805160209091012054949350505050565b60006020828403121561011b57600080fd5b503591905056fea2646970667358221220276108bfada85685e5b2ba2c176c5241ca541b716a3a8df414f11517fae53bd764736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

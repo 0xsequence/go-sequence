@@ -1,0 +1,122 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "LibBytesPointerImpl",
+  "sourceName": "contracts/mocks/LibBytesPointerImpl.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "readFirstUint16",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "a",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newPointer",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "readUint16",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "a",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newPointer",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "readUint24",
+      "outputs": [
+        {
+          "internalType": "uint24",
+          "name": "a",
+          "type": "uint24"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newPointer",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "readUint64",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "a",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newPointer",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5061024d806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063285badc214610051578063a23ccef614610083578063a98917a714610096578063aa277f28146100c9575b600080fd5b61006461005f366004610189565b6100f7565b6040805161ffff90931683526020830191909152015b60405180910390f35b6100646100913660046101cb565b610106565b6100a96100a43660046101cb565b610121565b6040805167ffffffffffffffff909316835260208301919091520161007a565b6100dc6100d73660046101cb565b610134565b6040805162ffffff909316835260208301919091520161007a565b813560f01c60025b9250929050565b6000808285013560f01c600284015b91509150935093915050565b6000808285013560c01c60088401610115565b6000808285013560e81c60038401610115565b60008083601f84011261015957600080fd5b50813567ffffffffffffffff81111561017157600080fd5b6020830191508360208285010111156100ff57600080fd5b6000806020838503121561019c57600080fd5b823567ffffffffffffffff8111156101b357600080fd5b6101bf85828601610147565b90969095509350505050565b6000806000604084860312156101e057600080fd5b833567ffffffffffffffff8111156101f757600080fd5b61020386828701610147565b90979096506020959095013594935050505056fea264697066735822122081185d6d667d20f2874bf0aaac09441665888a1d6bc4c923e42d8c46053a5ce964736f6c63430008120033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c8063285badc214610051578063a23ccef614610083578063a98917a714610096578063aa277f28146100c9575b600080fd5b61006461005f366004610189565b6100f7565b6040805161ffff90931683526020830191909152015b60405180910390f35b6100646100913660046101cb565b610106565b6100a96100a43660046101cb565b610121565b6040805167ffffffffffffffff909316835260208301919091520161007a565b6100dc6100d73660046101cb565b610134565b6040805162ffffff909316835260208301919091520161007a565b813560f01c60025b9250929050565b6000808285013560f01c600284015b91509150935093915050565b6000808285013560c01c60088401610115565b6000808285013560e81c60038401610115565b60008083601f84011261015957600080fd5b50813567ffffffffffffffff81111561017157600080fd5b6020830191508360208285010111156100ff57600080fd5b6000806020838503121561019c57600080fd5b823567ffffffffffffffff8111156101b357600080fd5b6101bf85828601610147565b90969095509350505050565b6000806000604084860312156101e057600080fd5b833567ffffffffffffffff8111156101f757600080fd5b61020386828701610147565b90979096506020959095013594935050505056fea264697066735822122081185d6d667d20f2874bf0aaac09441665888a1d6bc4c923e42d8c46053a5ce964736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

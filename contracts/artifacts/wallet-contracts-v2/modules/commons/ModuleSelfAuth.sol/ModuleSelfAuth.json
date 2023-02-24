@@ -1,0 +1,27 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ModuleSelfAuth",
+  "sourceName": "contracts/modules/commons/ModuleSelfAuth.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sender",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_self",
+          "type": "address"
+        }
+      ],
+      "name": "OnlySelfAuth",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220caabd715757d0c669e6583be5fe5d515ba9d8cde71ce64e3022d9c4df0d4213764736f6c63430008120033",
+  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220caabd715757d0c669e6583be5fe5d515ba9d8cde71ce64e3022d9c4df0d4213764736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
