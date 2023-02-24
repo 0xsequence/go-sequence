@@ -10,6 +10,12 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
+	walletfactory2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletfactory"
+	walletgasestimator2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletgasestimator"
+	walletguest2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletguest"
+	walletmain2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletmain"
+	walletupgradable2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletupgradable"
+	walletutils2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletutils"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletguest"
@@ -42,6 +48,15 @@ var (
 	_ ethartifact.Artifact
 )
 
+var V2 struct {
+	WalletFactory              ethartifact.Artifact
+	WalletMainModule           ethartifact.Artifact
+	WalletMainModuleUpgradable ethartifact.Artifact
+	WalletGuestModule          ethartifact.Artifact
+	WalletUtils                ethartifact.Artifact
+	WalletGasEstimator         ethartifact.Artifact
+}
+
 var (
 	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
@@ -55,6 +70,14 @@ func init() {
 	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
 	WalletRequireFreshSigner = artifact("WALLET_REQUIRE_FRESH_SIGNER", walletutils.WalletRequireFreshSignerABI, walletutils.WalletRequireFreshSignerBin)
 	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin, walletgasestimator.WalletGasEstimatorDeployedBin)
+
+	V2.WalletFactory = artifact("WALLET_FACTORY", walletfactory2.WalletFactoryABI, walletfactory2.WalletFactoryBin)
+	V2.WalletMainModule = artifact("WALLET_MAIN", walletmain2.WalletMainABI, walletmain2.WalletMainBin)
+	V2.WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable2.WalletUpgradableABI, walletupgradable2.WalletUpgradableBin)
+	V2.WalletGuestModule = artifact("WALLET_GUEST", walletguest2.WalletGuestABI, walletguest2.WalletGuestBin)
+	V2.WalletUtils = artifact("WALLET_UTILS", walletutils2.WalletUtilsABI, walletutils2.WalletUtilsBin)
+	V2.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
+
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
 	IERC1271 = artifact("IERC1271", ierc1271.IERC1271ABI, "")
