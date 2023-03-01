@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -195,12 +196,12 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	gas.Add(gas, big.NewInt(int64(e.CalldataCost(call.Data))))
 
 	if !success {
-		if len(result) <= 68 {
-			return gas, fmt.Errorf("error calling estimate: UNKNOWN_REASON")
+		reason, err := abi.UnpackRevert(result)
+		if err == nil {
+			return gas, fmt.Errorf("gas usage simulation failed: %v", reason)
+		} else {
+			return gas, fmt.Errorf("gas usage simulation failed: %v", hexutil.Encode(result))
 		}
-
-		reason := string(result[68 : len(result)-1])
-		return gas, fmt.Errorf("error calling estimate: " + reason)
 	}
 
 	return gas, nil
