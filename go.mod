@@ -5,7 +5,7 @@ go 1.18
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.19.8
+	github.com/0xsequence/ethkit v1.19.12
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.5.0
