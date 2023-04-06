@@ -57,10 +57,10 @@ var sequenceContext = WalletContext{
 }
 
 var sequenceContextV2 = WalletContext{
-	FactoryAddress:              common.HexToAddress("0x0D7604Bdf2cAcc2943b6388e1c26c3C33213f673"),
-	MainModuleAddress:           common.HexToAddress("0xA507eF52f3fd34dd54566bf3055fA66bdabE2ef3"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x13Cc7b579e1acfDc8aD1F9996dd38ff744818a34"),
-	GuestModuleAddress:          common.HexToAddress("0xCcB6cA914c20fAde6F2be5827eE40d899076ac2A"),
+	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
+	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
+	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
 }
 
 // SequenceContext returns copy of the package-level internal variable, to prevent change
