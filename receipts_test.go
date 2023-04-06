@@ -142,14 +142,14 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[1].Data))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[2].Data))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[3].Data))
-	hash, _, err := sequence.DecodeTxFailedEvent(logs[4])
+	hash, _, err := sequence.DecodeTxFailedEventV1(logs[4])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
-	hash, _, err = sequence.DecodeTxFailedEvent(logs[5])
+	hash, _, err = sequence.DecodeTxFailedEventV1(logs[5])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[6].Data))
-	hash, _, err = sequence.DecodeTxFailedEvent(logs[7])
+	hash, _, err = sequence.DecodeTxFailedEventV1(logs[7])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[8].Data))
@@ -170,7 +170,7 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Len(t, receipts[7].Logs, 1)
 
 	// check that sequence.DecodeTxFailedEvent can decode TxFailed events
-	_, reason, err := sequence.DecodeTxFailedEvent(receipts[2].Logs[1])
+	_, reason, err := sequence.DecodeTxFailedEventV1(receipts[2].Logs[1])
 	assert.NoError(t, err)
 	assert.Equal(t, reason, receipts[2].Receipts[1].Reason)
 

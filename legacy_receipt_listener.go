@@ -235,10 +235,10 @@ func (l *LegacyReceiptListener) handleBlock(ctx context.Context, block *ethmonit
 				r.Results = append(r.Results, &LegacyMetaTxnResult{
 					Status: MetaTxnExecuted,
 				})
-			} else if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSig {
+			} else if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSigV1 {
 				// definite TxFailed event
 
-				metaTxnID, reason, err := DecodeTxFailedEvent(log)
+				metaTxnID, reason, err := DecodeTxFailedEventV1(log)
 				if err != nil {
 					l.log.Err(err).Msgf("unable to decode TxFailed event: topics=%v data=%v", log.Topics, log.Data)
 					continue

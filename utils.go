@@ -68,7 +68,11 @@ func EncodeWalletDeployment(walletConfig WalletConfig, walletContext WalletConte
 func DecodeRevertReason(logs []*types.Log) []string {
 	reasons := []string{}
 	for _, log := range logs {
-		_, reason, _ := DecodeTxFailedEvent(log)
+		_, reason, err := DecodeTxFailedEventV1(log)
+		if err != nil {
+			_, reason, _, _ = DecodeTxFailedEventV2(log)
+		}
+
 		reasons = append(reasons, reason)
 	}
 	return reasons

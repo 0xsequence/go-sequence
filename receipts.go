@@ -77,20 +77,32 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 	return receipts, logs, nil
 }
 
-func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
+func IsTxExecutedEventV1(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 0 &&
 		len(log.Data) == 32 &&
 		bytes.Equal(log.Data, hash[:])
 }
 
-func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
+func IsTxFailedEventV1(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 1 &&
-		log.Topics[0] == TxFailedEventSig &&
+		log.Topics[0] == TxFailedEventSigV1 &&
 		bytes.HasPrefix(log.Data, hash[:])
 }
 
-func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
-	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSig {
+func IsTxExecutedEventV2(log *types.Log, hash common.Hash) bool {
+	return len(log.Topics) == 2 &&
+		log.Topics[0] == TxExecutedEventSigV2 &&
+		bytes.Equal(log.Topics[1][:], hash[:])
+}
+
+func IsTxFailedEventV2(log *types.Log, hash common.Hash) bool {
+	return len(log.Topics) == 2 &&
+		log.Topics[0] == TxFailedEventSigV2 &&
+		bytes.Equal(log.Topics[1][:], hash[:])
+}
+
+func DecodeTxFailedEventV1(log *types.Log) (common.Hash, string, error) {
+	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSigV1 {
 		return common.Hash{}, "", fmt.Errorf("not a TxFailed event")
 	}
 
@@ -106,6 +118,27 @@ func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
 	}
 
 	return hash, reason, nil
+}
+
+func DecodeTxFailedEventV2(log *types.Log) (common.Hash, string, uint, error) {
+	if len(log.Topics) != 2 || log.Topics[0] != TxFailedEventSigV2 {
+		return common.Hash{}, "", 0, fmt.Errorf("not a TxFailed event")
+	}
+
+	hash := common.BytesToHash(log.Topics[1][:])
+
+	var index uint
+	var revert []byte
+	if err := ethcoder.AbiDecoder([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
+		return common.Hash{}, "", 0, err
+	}
+
+	reason, err := abi.UnpackRevert(revert)
+	if err != nil {
+		return common.Hash{}, "", 0, err
+	}
+
+	return hash, reason, index, nil
 }
 
 func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
@@ -166,8 +199,12 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := IsTxExecutedEvent(log, hash)
-			failedHash, failedReason, err := DecodeTxFailedEvent(log)
+			isTxExecuted := IsTxExecutedEventV1(log, hash) || IsTxExecutedEventV2(log, hash)
+			failedHash, failedReason, err := DecodeTxFailedEventV1(log)
+			if err != nil {
+				failedHash, failedReason, _, err = DecodeTxFailedEventV2(log)
+			}
+
 			isTxFailed := err == nil && failedHash == hash
 
 			if isTxExecuted || isTxFailed {
