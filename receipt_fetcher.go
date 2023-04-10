@@ -33,75 +33,73 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 	var result *MetaTxnResult
 
 	metaTxnHash := common.HexToHash(string(metaTxnID))
-	receipt, waitFinality, err := receiptListener.FetchTransactionReceiptWithFilter(ctx, FilterMetaTransactionIDv2(metaTxnHash).LimitOne(true).SearchCache(true))
-	if err == nil {
-		// found v2, decode v2
-		result = &MetaTxnResult{
-			MetaTxnID: metaTxnID,
+	receipt, waitFinality, err := receiptListener.FetchTransactionReceiptWithFilter(ctx, FilterMetaTransactionID(metaTxnHash).LimitOne(true).SearchCache(true))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	result = &MetaTxnResult{
+		MetaTxnID: metaTxnID,
+	}
+
+	var isV2 bool
+
+	for _, log := range receipt.Logs() {
+		isTxExecutedV1 := IsTxExecutedEventV1(log, metaTxnHash)
+		isTxFailedV1 := IsTxFailedEventV1(log, metaTxnHash)
+		isTxExecutedV2 := IsTxExecutedEventV2(log, metaTxnHash)
+		isTxFailedV2 := IsTxFailedEventV2(log, metaTxnHash)
+
+		if isTxExecutedV1 || isTxFailedV1 {
+			isV2 = false
+			break
+		} else if isTxExecutedV2 || isTxFailedV2 {
+			isV2 = true
+			break
 		}
+	}
 
-		for _, log := range receipt.Logs() {
-			isTxExecuted := IsTxExecutedEventV2(log, metaTxnHash)
-			isTxFailed := IsTxFailedEventV2(log, metaTxnHash)
+	for _, log := range receipt.Logs() {
+		var isTxExecuted, isTxFailed bool
+		var reason string
 
-			if isTxExecuted {
-				result.Status = MetaTxnExecuted
-				break
-			} else if isTxFailed {
-				result.Status = MetaTxnFailed
-				_, reason, _, _ := DecodeTxFailedEventV2(log)
-				result.Reason = reason
+		if isV2 {
+			isTxExecuted = IsTxExecutedEventV2(log, metaTxnHash)
+			isTxFailed = IsTxFailedEventV2(log, metaTxnHash)
+
+			if isTxFailed {
+				_, reason, _, _ = DecodeTxFailedEventV2(log)
+			}
+		} else {
+			isTxExecuted = IsTxExecutedEventV1(log, metaTxnHash)
+			isTxFailed = IsTxFailedEventV1(log, metaTxnHash)
+
+			if isTxFailed {
+				_, reason, _ = DecodeTxFailedEventV1(log)
 			}
 		}
 
-	} else {
-		// fallback to v1
-		receipt, waitFinality, err = receiptListener.FetchTransactionReceiptWithFilter(ctx, FilterMetaTransactionIDv1(metaTxnHash).LimitOne(true).SearchCache(true))
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		result = &MetaTxnResult{
-			MetaTxnID: metaTxnID,
-		}
-
-		for _, log := range receipt.Logs() {
-			isTxExecuted := IsTxExecutedEventV1(log, metaTxnHash)
-			isTxFailed := IsTxFailedEventV1(log, metaTxnHash)
-			if isTxExecuted {
-				result.Status = MetaTxnExecuted
-				break
-			} else if isTxFailed {
-				result.Status = MetaTxnFailed
-				_, reason, _ := DecodeTxFailedEventV1(log)
-				result.Reason = reason
-			}
+		if isTxExecuted {
+			result.Status = MetaTxnExecuted
+			break
+		} else if isTxFailed {
+			result.Status = MetaTxnFailed
+			result.Reason = reason
 		}
 	}
 
 	return result, receipt, waitFinality, nil
 }
 
-func FilterMetaTransactionIDv1(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
+func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 	return ethreceipts.FilterLogs(func(logs []*types.Log) bool {
 		for _, log := range logs {
-			isTxExecuted := IsTxExecutedEventV1(log, metaTxnID)
-			isTxFailed := IsTxFailedEventV1(log, metaTxnID)
-			if isTxExecuted || isTxFailed {
-				// found the sequence meta txn
-				return true
-			}
-		}
-		return false
-	})
-}
+			isTxExecutedV1 := IsTxExecutedEventV1(log, metaTxnID)
+			isTxFailedV1 := IsTxFailedEventV1(log, metaTxnID)
+			isTxExecutedV2 := IsTxExecutedEventV2(log, metaTxnID)
+			isTxFailedV2 := IsTxFailedEventV2(log, metaTxnID)
 
-func FilterMetaTransactionIDv2(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
-	return ethreceipts.FilterLogs(func(logs []*types.Log) bool {
-		for _, log := range logs {
-			isTxExecuted := IsTxExecutedEventV2(log, metaTxnID)
-			isTxFailed := IsTxFailedEventV2(log, metaTxnID)
-			if isTxExecuted || isTxFailed {
+			if isTxExecutedV1 || isTxFailedV1 || isTxExecutedV2 || isTxFailedV2 {
 				// found the sequence meta txn
 				return true
 			}
