@@ -20,6 +20,18 @@ import (
 	"github.com/0xsequence/go-sequence/core/v2"
 )
 
+type SignerEOA interface {
+	SignMessage(msg []byte) ([]byte, error)
+}
+
+type SignerSequence interface {
+	SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
+}
+
+type Signer interface {
+	Address() common.Address
+}
+
 func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
 	return wallet.SignDigest(input)
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
-	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 )
@@ -29,7 +28,7 @@ type WalletOptions struct {
 	Address common.Address
 }
 
-func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wallet, error) {
+func NewWallet(walletOptions WalletOptions, signers ...Signer) (*Wallet, error) {
 	context := sequenceContext
 	if walletOptions.Context != nil {
 		context = *walletOptions.Context
@@ -73,7 +72,7 @@ func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wall
 	return w, nil
 }
 
-func NewWalletSingleOwner(owner *ethwallet.Wallet, optContext ...WalletContext) (*Wallet, error) {
+func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet, error) {
 	context := sequenceContext
 	if len(optContext) > 0 {
 		context = optContext[0]
@@ -93,7 +92,7 @@ func NewWalletSingleOwner(owner *ethwallet.Wallet, optContext ...WalletContext) 
 type Wallet struct {
 	context WalletContext
 	config  WalletConfig
-	signers []*ethwallet.Wallet // NOTE: only supports EOA signers at this time
+	signers []Signer
 
 	provider *ethrpc.Provider
 	relayer  Relayer
@@ -136,7 +135,7 @@ func (w *Wallet) UseConfig(config WalletConfig) (*Wallet, error) {
 	return ww, nil
 }
 
-func (w *Wallet) UseSigners(signers ...*ethwallet.Wallet) (*Wallet, error) {
+func (w *Wallet) UseSigners(signers ...Signer) (*Wallet, error) {
 	ww, err := NewWallet(WalletOptions{
 		Config:          w.config,
 		Context:         &w.context,
@@ -241,7 +240,7 @@ func (w *Wallet) IsSignerAvailable(address common.Address) bool {
 	return ok
 }
 
-func (w *Wallet) GetSigner(address common.Address) (*ethwallet.Wallet, bool) {
+func (w *Wallet) GetSigner(address common.Address) (Signer, bool) {
 	for _, s := range w.signers {
 		if s.Address() == address {
 			return s, true
@@ -296,11 +295,6 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 		chainID = w.chainID
 	}
 
-	subDigest, err := SubDigest(chainID, w.Address(), digest)
-	if err != nil {
-		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
-	}
-
 	sig := &Signature{
 		Threshold: w.config.Threshold,
 		Signers:   SignatureParts{},
@@ -318,18 +312,33 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 			continue
 		}
 
-		// TODO: in future add support for Sequence Signers, right now we only support EOA
 		// signers in go-sequence
+		if eoaSigner, ok := signer.(SignerEOA); ok {
+			subDigest, err := SubDigest(chainID, w.Address(), digest)
+			if err != nil {
+				return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
+			}
 
-		sigValue, err := signer.SignMessage(subDigest)
-		if err != nil {
-			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			sigValue, err := eoaSigner.SignMessage(subDigest)
+			if err != nil {
+				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			}
+			sigValue = append(sigValue, SignatureTypeEthSign)
+
+			sig.Signers = append(sig.Signers, &SignaturePart{
+				Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
+			})
+		} else if seqSigner, ok := signer.(SignerSequence); ok {
+			_, seqSign, err := seqSigner.SignDigest(digest, optChainID...)
+			if err != nil {
+				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			}
+
+			sig.Signers = append(sig.Signers, seqSign.Signers...)
+		} else {
+			return nil, nil, fmt.Errorf("signer is not supported")
 		}
-		sigValue = append(sigValue, SignatureTypeEthSign)
 
-		sig.Signers = append(sig.Signers, &SignaturePart{
-			Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
-		})
 	}
 
 	encodedSig, err := sig.Encode()
