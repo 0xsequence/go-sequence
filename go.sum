@@ -1,5 +1,5 @@
-github.com/0xsequence/ethkit v1.20.1 h1:RCvwsidWJYthp0nV4kS4An6UN4C5fWfy5m1EiKn8UrE=
-github.com/0xsequence/ethkit v1.20.1/go.mod h1:VYl7KyEwQC8h/pl/7yImJdLnMdGNYC5MPSxrK7JIBGE=
+github.com/0xsequence/ethkit v1.20.22 h1:Z0znZ/f3Mt/FZUPsP+7RX9KvJvqL/0XUR6OnXkqdBPA=
+github.com/0xsequence/ethkit v1.20.22/go.mod h1:VYl7KyEwQC8h/pl/7yImJdLnMdGNYC5MPSxrK7JIBGE=
 github.com/0xsequence/go-ethauth v0.13.0 h1:ZaqFEEqy574A2b1P7vjpcy5tb4W/izn+A3swwOYi9wA=
 github.com/0xsequence/go-ethauth v0.13.0/go.mod h1:f3kx39S9F+W+qvZEB6bkKKbpUstmyB7goUntO3wvlhg=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
