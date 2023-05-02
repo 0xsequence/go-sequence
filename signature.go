@@ -21,10 +21,12 @@ import (
 )
 
 type SignerEOA interface {
+	Signer
 	SignMessage(msg []byte) ([]byte, error)
 }
 
 type SignerSequence interface {
+	Signer
 	SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
 }
 
@@ -641,9 +643,12 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 		return ok, nil
 	}
 
-	code, err := provider.CodeAt(context.Background(), walletAddress, nil)
-	if err != nil {
-		return false, err
+	var code []byte
+	if provider != nil {
+		code, err = provider.CodeAt(context.Background(), walletAddress, nil)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	if len(code) == 0 {

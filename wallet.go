@@ -158,6 +158,13 @@ func (w *Wallet) UseSigners(signers ...Signer) (*Wallet, error) {
 			return nil, fmt.Errorf("sequence.Wallet#UseSigners connect: %w", err)
 		}
 	}
+	for _, signer := range signers {
+		_, isSignerEOA := signer.(SignerEOA)
+		_, isSignerSequence := signer.(SignerSequence)
+		if !isSignerSequence && !isSignerEOA {
+			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+		}
+	}
 	ww.signers = signers
 	return ww, nil
 }
@@ -329,7 +336,7 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 				Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
 			})
 		} else if seqSigner, ok := signer.(SignerSequence); ok {
-			_, seqSign, err := seqSigner.SignDigest(digest, optChainID...)
+			_, seqSign, err := seqSigner.SignDigest(digest, chainID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
