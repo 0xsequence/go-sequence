@@ -61,6 +61,15 @@ func NewWallet(walletOptions WalletOptions, signers ...Signer) (*Wallet, error) 
 		}
 	}
 
+	// Check signers
+	for _, signer := range signers {
+		_, canSignMessage := signer.(MessageSigner)
+		_, canSignDigest := signer.(DigestSigner)
+		if !canSignMessage && !canSignDigest {
+			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+		}
+	}
+
 	w := &Wallet{
 		config:          walletConfig,
 		context:         context,
@@ -76,6 +85,12 @@ func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet, e
 	context := sequenceContext
 	if len(optContext) > 0 {
 		context = optContext[0]
+	}
+
+	_, canSignMessage := owner.(MessageSigner)
+	_, canSignDigest := owner.(DigestSigner)
+	if !canSignMessage && !canSignDigest {
+		return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
 	}
 
 	return NewWallet(WalletOptions{
@@ -159,9 +174,9 @@ func (w *Wallet) UseSigners(signers ...Signer) (*Wallet, error) {
 		}
 	}
 	for _, signer := range signers {
-		_, isSignerEOA := signer.(SignerEOA)
-		_, isSignerSequence := signer.(SignerSequence)
-		if !isSignerSequence && !isSignerEOA {
+		_, canSignMessage := signer.(MessageSigner)
+		_, canSignDigest := signer.(DigestSigner)
+		if !canSignMessage && !canSignDigest {
 			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
 		}
 	}
@@ -320,7 +335,7 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 		}
 
 		// signers in go-sequence
-		if eoaSigner, ok := signer.(SignerEOA); ok {
+		if eoaSigner, ok := signer.(MessageSigner); ok {
 			subDigest, err := SubDigest(chainID, w.Address(), digest)
 			if err != nil {
 				return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
@@ -330,12 +345,12 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
-			sigValue = append(sigValue, SignatureTypeEthSign)
+			sigValue = append(sigValue, uint8(SignatureTypeEthSign))
 
 			sig.Signers = append(sig.Signers, &SignaturePart{
 				Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
 			})
-		} else if seqSigner, ok := signer.(SignerSequence); ok {
+		} else if seqSigner, ok := signer.(DigestSigner); ok {
 			_, seqSign, err := seqSigner.SignDigest(digest, chainID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)

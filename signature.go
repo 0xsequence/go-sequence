@@ -20,13 +20,11 @@ import (
 	"github.com/0xsequence/go-sequence/core/v2"
 )
 
-type SignerEOA interface {
-	Signer
+type MessageSigner interface {
 	SignMessage(msg []byte) ([]byte, error)
 }
 
-type SignerSequence interface {
-	Signer
+type DigestSigner interface {
 	SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
 }
 
