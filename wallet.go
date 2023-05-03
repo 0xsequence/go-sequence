@@ -459,6 +459,34 @@ func (w *Wallet) IsDeployed() (bool, error) {
 	return IsWalletDeployed(w.provider, w.Address())
 }
 
+func (w *Wallet) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	if w.relayer == nil {
+		return "", nil, nil, ErrRelayerNotSet
+	}
+
+	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeployment(w.config, w.context)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	if w.address != (common.Address{}) && w.address != walletAddress {
+		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
+	}
+
+	var txn = &Transaction{
+		RevertOnError: true,
+		To:            walletFactoryAddress,
+		Data:          deploymentData,
+	}
+
+	signerTxn, err := w.SignTransaction(context.Background(), txn)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	return w.relayer.Relay(ctx, signerTxn)
+}
+
 // func (w *Wallet) UpdateConfig() // TODO in future
 
 // func (w *Wallet) PublishConfig() // TODO in future
