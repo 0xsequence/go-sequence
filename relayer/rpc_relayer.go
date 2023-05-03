@@ -124,6 +124,13 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		return "", nil, nil, err
 	}
 
+	// send to guest module if factory address is the recipient (in order to deploy wallet)
+	for _, txn := range signedTxs.Transactions {
+		if txn.To == signedTxs.WalletContext.FactoryAddress {
+			to = signedTxs.WalletContext.GuestModuleAddress
+		}
+	}
+
 	call := &proto.MetaTxn{
 		Contract:      to.Hex(),
 		Input:         hexutil.Encode(execdata),
