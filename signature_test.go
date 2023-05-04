@@ -488,11 +488,11 @@ func toSequenceSignature(s *signature) *sequence.Signature {
 		if signer.Signature != nil {
 			part.Type = sequence.SignaturePartTypeDynamic
 			part.Value, _ = toSequenceSignature(signer.Signature).Encode()
-			part.Value = append(part.Value, uint8(sequence.SignatureTypeEip1271))
+			part.Value = append(part.Value, sequence.SignatureTypeEip1271)
 		} else if signer.Type == sequence.SignaturePartTypeEOA {
 			wallet, _ := ethwallet.NewWalletFromRandomEntropy()
 			part.Value, _ = wallet.SignMessage([]byte(message))
-			part.Value = append(part.Value, uint8(sequence.SignatureTypeEthSign))
+			part.Value = append(part.Value, sequence.SignatureTypeEthSign)
 		}
 
 		signers = append(signers, &part)
