@@ -322,6 +322,11 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 		Signers:   SignatureParts{},
 	}
 
+	subDigest, err := SubDigest(chainID, w.Address(), digest)
+	if err != nil {
+		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
+	}
+
 	for _, signerInfo := range w.config.Signers {
 		signer, _ := w.GetSigner(signerInfo.Address)
 
@@ -336,22 +341,17 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 
 		// signers in go-sequence
 		if eoaSigner, ok := signer.(MessageSigner); ok {
-			subDigest, err := SubDigest(chainID, w.Address(), digest)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
-			}
-
 			sigValue, err := eoaSigner.SignMessage(subDigest)
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
-			sigValue = append(sigValue, uint8(SignatureTypeEthSign))
+			sigValue = append(sigValue, SignatureTypeEthSign)
 
 			sig.Signers = append(sig.Signers, &SignaturePart{
 				Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
 			})
 		} else if seqSigner, ok := signer.(DigestSigner); ok {
-			_, seqSign, err := seqSigner.SignDigest(digest, chainID)
+			_, seqSign, err := seqSigner.SignDigest(common.BytesToHash(subDigest), chainID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}

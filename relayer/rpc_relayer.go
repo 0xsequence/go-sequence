@@ -125,6 +125,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 	}
 
 	// send to guest module if factory address is the recipient (in order to deploy wallet)
+	// todo: split wallet create and other transactions
 	for _, txn := range signedTxs.Transactions {
 		if txn.To == signedTxs.WalletContext.FactoryAddress {
 			to = signedTxs.WalletContext.GuestModuleAddress
