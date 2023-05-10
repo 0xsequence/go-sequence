@@ -25,7 +25,7 @@ type MessageSigner interface {
 }
 
 type DigestSigner interface {
-	SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
+	SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
 }
 
 type Signer interface {
@@ -33,7 +33,7 @@ type Signer interface {
 }
 
 func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
-	return wallet.SignDigest(input)
+	return wallet.SignDigest(context.Background(), input)
 }
 
 // Signature for sequence message

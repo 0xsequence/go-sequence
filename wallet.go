@@ -300,12 +300,12 @@ func (w *Wallet) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) 
 }
 
 func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
-	return w.SignDigest(MessageDigest(msg))
+	return w.SignDigest(context.Background(), MessageDigest(msg))
 }
 
 // func (w *Wallet) SignTypedData() // TODO
 
-func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error) {
+func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -351,7 +351,7 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 				Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
 			})
 		} else if seqSigner, ok := signer.(DigestSigner); ok {
-			_, seqSign, err := seqSigner.SignDigest(common.BytesToHash(subDigest), chainID)
+			_, seqSign, err := seqSigner.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
@@ -425,7 +425,7 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 	}
 
 	// Sign the transactions
-	sig, _, err := w.SignDigest(digest)
+	sig, _, err := w.SignDigest(ctx, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +479,7 @@ func (w *Wallet) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, eth
 		Data:          deploymentData,
 	}
 
-	signerTxn, err := w.SignTransaction(context.Background(), txn)
+	signerTxn, err := w.SignTransaction(ctx, txn)
 	if err != nil {
 		return "", nil, nil, err
 	}
