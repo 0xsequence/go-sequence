@@ -299,8 +299,8 @@ func (w *Wallet) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) 
 	return w.GetNonce(optBlockNum...)
 }
 
-func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
-	return w.SignDigest(context.Background(), MessageDigest(msg))
+func (w *Wallet) SignMessage(ctx context.Context, msg []byte) ([]byte, *Signature, error) {
+	return w.SignDigest(ctx, MessageDigest(msg))
 }
 
 // func (w *Wallet) SignTypedData() // TODO

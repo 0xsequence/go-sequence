@@ -1,6 +1,7 @@
 package sequence_test
 
 import (
+	"context"
 	"math/big"
 	"sort"
 	"testing"
@@ -44,7 +45,7 @@ func TestWalletSignMessage(t *testing.T) {
 
 	message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-	sig, _, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
+	sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
 	assert.NoError(t, err)
 
 	expectedSig := "0x00010001a0fb306480bc3027c04d33a16370f4618b29f2d5b89464f526045c94802bc9d1525389c364b75daf58e859ed0d6105aac6b3718e4659814c7793c626653edb871b02"
@@ -65,7 +66,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 
 	message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-	sig, _, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
+	sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
 	assert.NoError(t, err)
 
 	expectedSig := "0x00010001aea46cf46662768aa0287f04788afeaf84ed12eda6dd759bdb500db113b289b20cbc85a8dbb040e14082b401b081e33f16a9685993b168212a1a0f4e686cb8b31c02"
@@ -86,7 +87,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	wallet.SetChainID(big.NewInt(3))
 
 	message := "Hi! this is a test message"
-	sig, _, err := wallet.SignMessage([]byte(message))
+	sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
 	assert.NoError(t, err)
 
 	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
@@ -129,7 +130,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	wallet.SetChainID(big.NewInt(3))
 
 	message := "Hi! this is a test message"
-	sig, _, err := wallet.SignMessage([]byte(message))
+	sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
 	assert.NoError(t, err)
 
 	subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
