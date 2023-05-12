@@ -20,18 +20,6 @@ import (
 	"github.com/0xsequence/go-sequence/core/v2"
 )
 
-type MessageSigner interface {
-	SignMessage(msg []byte) ([]byte, error)
-}
-
-type DigestSigner interface {
-	SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
-}
-
-type Signer interface {
-	Address() common.Address
-}
-
 func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
 	return wallet.SignDigest(context.Background(), input)
 }
