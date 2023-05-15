@@ -333,6 +333,7 @@ func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID 
 		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
 
+	var guardSigner SignerGuardSigner
 	for _, signerInfo := range w.config.Signers {
 		signer, _ := w.GetSigner(signerInfo.Address)
 
@@ -363,10 +364,32 @@ func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID 
 			}
 
 			sig.Signers = append(sig.Signers, seqSign.Signers...)
+		} else if seqSigner, ok := signer.(SignerGuardSigner); ok {
+			guardSigner = seqSigner
 		} else {
 			return nil, nil, fmt.Errorf("signer is not supported")
 		}
 
+	}
+
+	// guard sign if available
+	if guardSigner != nil {
+		auxData, err := AuxDataFromContext(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+		}
+
+		auxData.Sig, err = sig.Encode()
+		if err != nil {
+			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+		}
+
+		_, seqSign, err := guardSigner.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+		}
+
+		sig.Signers = append(sig.Signers, seqSign.Signers...)
 	}
 
 	encodedSig, err := sig.Encode()
@@ -430,7 +453,7 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		return nil, err
 	}
 
-	// Sign AuxData
+	// Sign AuxData (for signing services)
 	sCtx := ctx
 	if auxData := w.auxDataFromTransactionBundle(&bundle); auxData != nil {
 		sCtx = ContextWithAuxData(ctx, auxData)
@@ -517,6 +540,8 @@ func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, e
 }
 
 func (w *Wallet) auxDataFromTransactionBundle(bundle *Transaction) *AuxData {
+	bundle.Signature = []byte{}
+
 	msg, err := Transactions{bundle}.EncodeRaw()
 	if err != nil {
 		return nil
