@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -300,7 +301,12 @@ func (w *Wallet) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) 
 }
 
 func (w *Wallet) SignMessage(ctx context.Context, msg []byte) ([]byte, *Signature, error) {
-	return w.SignDigest(ctx, MessageDigest(msg))
+	sCtx := ContextWithAuxData(ctx, &AuxData{
+		ChainID: w.chainID,
+		Address: &w.address,
+		Msg:     msg,
+	})
+	return w.SignDigest(sCtx, MessageDigest(msg))
 }
 
 // func (w *Wallet) SignTypedData() // TODO
@@ -424,8 +430,14 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		return nil, err
 	}
 
+	// Sign AuxData
+	sCtx := ctx
+	if auxData := w.auxDataFromTransactionBundle(&bundle); auxData != nil {
+		sCtx = ContextWithAuxData(ctx, auxData)
+	}
+
 	// Sign the transactions
-	sig, _, err := w.SignDigest(ctx, digest)
+	sig, _, err := w.SignDigest(sCtx, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -504,6 +516,20 @@ func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, e
 	return IsValidSignature(w.Address(), digest, signature, contexts, w.chainID, w.provider)
 }
 
+func (w *Wallet) auxDataFromTransactionBundle(bundle *Transaction) *AuxData {
+	msg, err := Transactions{bundle}.EncodeRaw()
+	if err != nil {
+		return nil
+	}
+
+	return &AuxData{
+		Msg:     msg,
+		Sig:     nil,
+		ChainID: w.chainID,
+		Address: &w.address,
+	}
+}
+
 func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (bool, error) {
 	code, err := provider.CodeAt(context.Background(), walletAddress, nil)
 	if err != nil {
@@ -513,6 +539,33 @@ func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (
 		return true, nil
 	}
 	return false, nil
+}
+
+// AuxData is the data that is signed by the wallet
+type AuxData struct {
+	Msg     []byte
+	Sig     []byte
+	ChainID *big.Int
+	Address *common.Address
+}
+
+func (a *AuxData) Pack() ([]byte, error) {
+	return ethcoder.AbiCoder(
+		[]string{"address", "uint256", "bytes", "bytes"},
+		[]interface{}{a.Address, a.ChainID, &a.Msg, &a.Sig},
+	)
+}
+
+func ContextWithAuxData(ctx context.Context, auxData *AuxData) context.Context {
+	return context.WithValue(ctx, "auxData", auxData)
+}
+
+func AuxDataFromContext(ctx context.Context) (*AuxData, error) {
+	auxData, ok := ctx.Value("auxData").(*AuxData)
+	if !ok {
+		return nil, fmt.Errorf("auxData not found in context")
+	}
+	return auxData, nil
 }
 
 var (

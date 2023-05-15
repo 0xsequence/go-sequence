@@ -11,32 +11,6 @@ import (
 	"github.com/0xsequence/go-sequence/signing_service/proto"
 )
 
-type AuxData struct {
-	Msg     []byte
-	Sig     []byte
-	ChainID *big.Int
-	Address *common.Address
-}
-
-func (a *AuxData) Pack() ([]byte, error) {
-	return ethcoder.AbiCoder(
-		[]string{"address", "uint256", "bytes", "bytes"},
-		[]interface{}{a.Address, a.ChainID, &a.Msg, &a.Sig},
-	)
-}
-
-func ContextWithAuxData(ctx context.Context, auxData *AuxData) context.Context {
-	return context.WithValue(ctx, "auxData", auxData)
-}
-
-func AuxDataFromContext(ctx context.Context) (*AuxData, error) {
-	auxData, ok := ctx.Value("auxData").(*AuxData)
-	if !ok {
-		return nil, fmt.Errorf("auxData not found in context")
-	}
-	return auxData, nil
-}
-
 type SigningServiceParams struct {
 	SignerAddress common.Address
 	SignerWeight  uint8
@@ -66,7 +40,7 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 	}
 
 	var auxDataPacked []byte
-	if auxData, err := AuxDataFromContext(ctx); err == nil {
+	if auxData, err := sequence.AuxDataFromContext(ctx); err == nil {
 		auxDataPacked, err = auxData.Pack()
 		if err != nil {
 			return nil, nil, err
