@@ -59,7 +59,7 @@ type WalletConfig interface {
 	Checkpoint() uint32
 
 	// Signers is the set of signers in the wallet configuration.
-	Signers() map[common.Address]struct{}
+	Signers() map[common.Address]uint16
 }
 
 // A SignerSignatures object stores signer signatures indexed by signer and subdigest.

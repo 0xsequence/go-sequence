@@ -573,11 +573,11 @@ func (c *WalletConfig) Checkpoint() uint32 {
 	return 0
 }
 
-func (c *WalletConfig) Signers() map[common.Address]struct{} {
-	signers := map[common.Address]struct{}{}
+func (c *WalletConfig) Signers() map[common.Address]uint16 {
+	signers := map[common.Address]uint16{}
 
 	for _, signer := range c.Signers_ {
-		signers[signer.Address] = struct{}{}
+		signers[signer.Address] = uint16(signer.Weight)
 	}
 
 	return signers

@@ -1172,8 +1172,8 @@ func (c *WalletConfig) Checkpoint() uint32 {
 	return c.Checkpoint_
 }
 
-func (c *WalletConfig) Signers() map[common.Address]struct{} {
-	signers := map[common.Address]struct{}{}
+func (c *WalletConfig) Signers() map[common.Address]uint16 {
+	signers := map[common.Address]uint16{}
 	c.Tree.readSignersIntoMap(signers)
 	return signers
 }
@@ -1211,7 +1211,7 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 	}
 
 	signerSignatures := map[common.Address]signerSignature{}
-	signedSigners := map[common.Address]struct{}{}
+	signedSigners := map[common.Address]uint16{}
 	isValid := false
 
 	for range configSigners {
@@ -1219,7 +1219,7 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 
 		if signerSignature.signature != nil {
 			signerSignatures[signerSignature.signer] = signerSignature
-			signedSigners[signerSignature.signer] = struct{}{}
+			signedSigners[signerSignature.signer] = 0
 
 			weight := c.Tree.unverifiedWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
@@ -1257,7 +1257,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 	}
 
 	signerSignatures := map[common.Address]signerSignature{}
-	signedSigners := map[common.Address]struct{}{}
+	signedSigners := map[common.Address]uint16{}
 	isValid := false
 
 	for range configSigners {
@@ -1265,7 +1265,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 
 		if signerSignature.signature != nil {
 			signerSignatures[signerSignature.signer] = signerSignature
-			signedSigners[signerSignature.signer] = struct{}{}
+			signedSigners[signerSignature.signer] = 0
 
 			weight := c.Tree.unverifiedWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
@@ -1289,8 +1289,8 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 type WalletConfigTree interface {
 	core.ImageHashable
 
-	readSignersIntoMap(signers map[common.Address]struct{})
-	unverifiedWeight(signers map[common.Address]struct{}) *big.Int
+	readSignersIntoMap(signers map[common.Address]uint16)
+	unverifiedWeight(signers map[common.Address]uint16) *big.Int
 	buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree
 }
 
@@ -1357,12 +1357,12 @@ func (n *WalletConfigTreeNode) ImageHash() core.ImageHash {
 	}
 }
 
-func (n *WalletConfigTreeNode) readSignersIntoMap(signers map[common.Address]struct{}) {
+func (n *WalletConfigTreeNode) readSignersIntoMap(signers map[common.Address]uint16) {
 	n.Left.readSignersIntoMap(signers)
 	n.Right.readSignersIntoMap(signers)
 }
 
-func (n *WalletConfigTreeNode) unverifiedWeight(signers map[common.Address]struct{}) *big.Int {
+func (n *WalletConfigTreeNode) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
 	left, right := n.Left.unverifiedWeight(signers), n.Right.unverifiedWeight(signers)
 	return new(big.Int).Add(left, right)
 }
@@ -1418,11 +1418,11 @@ func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
 	return core.ImageHash{Hash: hash, Preimage: l}
 }
 
-func (l *WalletConfigTreeAddressLeaf) readSignersIntoMap(signers map[common.Address]struct{}) {
-	signers[l.Address] = struct{}{}
+func (l *WalletConfigTreeAddressLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
+	signers[l.Address] = uint16(l.Weight)
 }
 
-func (l *WalletConfigTreeAddressLeaf) unverifiedWeight(signers map[common.Address]struct{}) *big.Int {
+func (l *WalletConfigTreeAddressLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
 	_, ok := signers[l.Address]
 	if ok {
 		return new(big.Int).SetUint64(uint64(l.Weight))
@@ -1512,10 +1512,10 @@ func (l WalletConfigTreeNodeLeaf) ImageHash() core.ImageHash {
 	return l.Node
 }
 
-func (l WalletConfigTreeNodeLeaf) readSignersIntoMap(signers map[common.Address]struct{}) {
+func (l WalletConfigTreeNodeLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
 }
 
-func (l WalletConfigTreeNodeLeaf) unverifiedWeight(signers map[common.Address]struct{}) *big.Int {
+func (l WalletConfigTreeNodeLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
 	return new(big.Int)
 }
 
@@ -1585,11 +1585,11 @@ func (l *WalletConfigTreeNestedLeaf) ImageHash() core.ImageHash {
 	}
 }
 
-func (l *WalletConfigTreeNestedLeaf) readSignersIntoMap(signers map[common.Address]struct{}) {
+func (l *WalletConfigTreeNestedLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
 	l.Tree.readSignersIntoMap(signers)
 }
 
-func (l *WalletConfigTreeNestedLeaf) unverifiedWeight(signers map[common.Address]struct{}) *big.Int {
+func (l *WalletConfigTreeNestedLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
 	if l.Tree.unverifiedWeight(signers).Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
 		return new(big.Int).SetUint64(uint64(l.Weight))
 	} else {
@@ -1644,10 +1644,10 @@ func (l WalletConfigTreeSubdigestLeaf) ImageHash() core.ImageHash {
 	}
 }
 
-func (l WalletConfigTreeSubdigestLeaf) readSignersIntoMap(signers map[common.Address]struct{}) {
+func (l WalletConfigTreeSubdigestLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
 }
 
-func (l WalletConfigTreeSubdigestLeaf) unverifiedWeight(signers map[common.Address]struct{}) *big.Int {
+func (l WalletConfigTreeSubdigestLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
 	return new(big.Int).Set(maxUint256)
 }
 
