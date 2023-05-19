@@ -369,7 +369,7 @@ func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID 
 			return core.SignerSignatureTypeEthSign, sigValue, nil
 		} else if seqSigner, ok := signer.(DigestSigner); ok {
 			// todo: make sure that this is correct
-			_, seqSign, err := seqSigner.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+			_, seqSign, err := seqSigner.SignDigest(ctx, digest, chainID)
 			if err != nil {
 				return core.SignerSignatureTypeEIP1271, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
