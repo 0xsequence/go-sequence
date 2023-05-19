@@ -381,7 +381,7 @@ func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID 
 		}
 		return sigEnc, nil, nil
 	} else if config, ok := w.config.(*v1.WalletConfig); ok {
-		sig, err := config.BuildSignature(ctx, sign)
+		sig, err := config.BuildSignature(ctx, sign, false)
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
 		}
