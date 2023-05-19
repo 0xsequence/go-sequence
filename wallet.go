@@ -51,14 +51,14 @@ func NewWallet(walletOptions WalletOptions, signers ...Signer) (*Wallet, error) 
 		}
 
 		// Check if wallet config is usable
-		_, err := IsWalletConfigUsable(walletConfigV1)
-		if err != nil {
+		if err := walletConfigV1.IsUsable(); err != nil {
 			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
 		}
 
 		// Generate address
 		address := walletOptions.Address
 		if address == (common.Address{}) {
+			var err error
 			address, err = AddressFromImageHash(walletConfigV1.ImageHash().Hex(), seqContext)
 			if err != nil {
 				return nil, fmt.Errorf("sequence.NewWallet: %w", err)

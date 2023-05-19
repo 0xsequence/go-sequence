@@ -110,23 +110,6 @@ func SortWalletConfig(walletConfig *v1.WalletConfig) error {
 	return nil
 }
 
-// todo: move to core
-func IsWalletConfigUsable(walletConfig *v1.WalletConfig) (bool, error) {
-	// if walletConfig.Threshold.Cmp(big.NewInt(0)) == 0 {
-	if walletConfig.Threshold_ == 0 {
-		return false, fmt.Errorf("invalid wallet config - wallet threshold cannot be 0")
-	}
-	totalWeight := uint64(0)
-	for _, s := range walletConfig.Signers_ {
-		totalWeight += uint64(s.Weight)
-	}
-	// if walletConfig.Threshold.Cmp(big.NewInt(0).SetUint64(totalWeight)) > 0 {
-	if uint64(walletConfig.Threshold_) > totalWeight {
-		return false, fmt.Errorf("invalid wallet config - total weight of the wallet config is less than the threshold required")
-	}
-	return true, nil
-}
-
 func IsWalletConfigEqual(walletConfigA, walletConfigB core.WalletConfig) bool {
 	return walletConfigA.ImageHash().Hex() == walletConfigB.ImageHash().Hex()
 }

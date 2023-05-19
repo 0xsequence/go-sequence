@@ -85,9 +85,7 @@ func TestWalletIsWalletConfigUsableV1(t *testing.T) {
 			},
 		}
 
-		ok, err := sequence.IsWalletConfigUsable(wcGood)
-		assert.NoError(t, err)
-		assert.True(t, ok)
+		assert.NoError(t, wcGood.IsUsable())
 	}
 	{
 		wcBad := &v1.WalletConfig{
@@ -97,9 +95,7 @@ func TestWalletIsWalletConfigUsableV1(t *testing.T) {
 			},
 		}
 
-		ok, err := sequence.IsWalletConfigUsable(wcBad)
-		assert.Error(t, err)
-		assert.False(t, ok)
+		assert.Error(t, wcBad.IsUsable())
 	}
 	{
 		wcBad := &v1.WalletConfig{
@@ -109,8 +105,6 @@ func TestWalletIsWalletConfigUsableV1(t *testing.T) {
 			},
 		}
 
-		ok, err := sequence.IsWalletConfigUsable(wcBad)
-		assert.Error(t, err)
-		assert.False(t, ok)
+		assert.Error(t, wcBad.IsUsable())
 	}
 }

@@ -591,6 +591,22 @@ func (c *WalletConfig) Signers() map[common.Address]uint16 {
 	return signers
 }
 
+func (c *WalletConfig) IsUsable() error {
+	if c.Threshold_ == 0 {
+		return fmt.Errorf("threshold is 0")
+	}
+
+	var weight uint64
+	for _, signer := range c.Signers_ {
+		weight += uint64(signer.Weight)
+		if weight >= uint64(c.Threshold_) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("threshold %v exceeds maximum weight %v", c.Threshold_, weight)
+}
+
 func (c *WalletConfig) ImageHash() core.ImageHash {
 	imageHash := common.BigToHash(new(big.Int).SetUint64(uint64(c.Threshold_)))
 

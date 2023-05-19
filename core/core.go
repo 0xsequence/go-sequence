@@ -60,6 +60,9 @@ type WalletConfig interface {
 
 	// Signers is the set of signers in the wallet configuration.
 	Signers() map[common.Address]uint16
+
+	// IsUsable checks if it's possible to construct signatures that meet threshold.
+	IsUsable() error
 }
 
 // A SignerSignatures object stores signer signatures indexed by signer and subdigest.
