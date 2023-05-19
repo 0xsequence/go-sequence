@@ -11,6 +11,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -325,7 +326,7 @@ func (t Transactions) Clone() Transactions {
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
 	ChainID       *big.Int
-	WalletConfig  WalletConfig
+	WalletConfig  core.WalletConfig
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
@@ -415,7 +416,7 @@ func GenerateRandomNonce() (*big.Int, error) {
 	return nonce, nil
 }
 
-func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+func GetWalletNonce(provider *ethrpc.Provider, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	walletAddress, err := AddressFromWalletConfig(walletConfig, walletContext)
 	if err != nil {
 		return nil, err

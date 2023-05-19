@@ -14,6 +14,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -44,7 +47,7 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
+func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
 	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
 	if err != nil {
 		return nil, err
@@ -55,7 +58,7 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequenc
 		return nil, err
 	}
 
-	config, err := r.protoConfig(ctx, &walletConfig, walletAddress)
+	config, err := r.protoConfig(ctx, walletConfig, walletAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +77,7 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequenc
 }
 
 // NOTE: nonce space is 160 bits wide
-func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	if blockNum != nil {
 		return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 	}
@@ -182,25 +185,31 @@ func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, opt
 	return status, receipt.Receipt(), nil
 }
 
-func (r *RpcRelayer) protoConfig(ctx context.Context, config *sequence.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
-	var signers []*proto.WalletSigner
-	for _, signer := range config.Signers {
-		signers = append(signers, &proto.WalletSigner{
-			Address: signer.Address.Hex(),
-			Weight:  signer.Weight,
-		})
+func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
+	if walletConfigV1 := config.(*v1.WalletConfig); walletConfigV1 != nil {
+		var signers []*proto.WalletSigner
+		for _, signer := range walletConfigV1.Signers_ {
+			signers = append(signers, &proto.WalletSigner{
+				Address: signer.Address.Hex(),
+				Weight:  signer.Weight,
+			})
+		}
+
+		result, err := r.provider.ChainID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		chainID := result.Uint64()
+
+		return &proto.WalletConfig{
+			Address:   walletAddress.Hex(),
+			Signers:   signers,
+			Threshold: walletConfigV1.Threshold_,
+			ChainId:   &chainID,
+		}, nil
+	} else if walletConfigV2 := config.(*v2.WalletConfig); walletConfigV2 != nil {
+		// todo: implement v2
 	}
 
-	result, err := r.provider.ChainID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	chainID := result.Uint64()
-
-	return &proto.WalletConfig{
-		Address:   walletAddress.Hex(),
-		Signers:   signers,
-		Threshold: config.Threshold,
-		ChainId:   &chainID,
-	}, nil
+	return nil, fmt.Errorf("relayer: unknown wallet config version")
 }

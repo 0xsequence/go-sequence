@@ -560,9 +560,17 @@ func (l *signatureTreeDynamicSignatureLeaf) write(writer io.Writer) error {
 	return nil
 }
 
+type WalletConfigSigners []*WalletConfigSigner
+
+func (s WalletConfigSigners) Len() int { return len(s) }
+func (s WalletConfigSigners) Less(i, j int) bool {
+	return s[i].Address.Hash().Big().Cmp(s[j].Address.Hash().Big()) < 0
+}
+func (s WalletConfigSigners) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
 type WalletConfig struct {
-	Threshold_ uint16                `json:"threshold" toml:"threshold"`
-	Signers_   []*WalletConfigSigner `json:"signers" toml:"signers"`
+	Threshold_ uint16              `json:"threshold" toml:"threshold"`
+	Signers_   WalletConfigSigners `json:"signers" toml:"signers"`
 }
 
 func (c *WalletConfig) Threshold() uint16 {
@@ -657,6 +665,15 @@ func (c *WalletConfig) BuildSignature(ctx context.Context, sign core.SigningFunc
 		}, nil
 	} else {
 		return nil, fmt.Errorf("not enough signers to build signature")
+	}
+}
+
+func (c *WalletConfig) Clone() *WalletConfig {
+	signers := make(WalletConfigSigners, len(c.Signers_))
+	copy(signers, c.Signers_)
+	return &WalletConfig{
+		Threshold_: c.Threshold_,
+		Signers_:   signers,
 	}
 }
 

@@ -5,13 +5,14 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWalletConfig(t *testing.T) {
-	wc := sequence.WalletConfig{
-		Threshold: 4, //big.NewInt(4),
-		Signers: sequence.WalletConfigSigners{
+func TestWalletConfigV1(t *testing.T) {
+	wc := &v1.WalletConfig{
+		Threshold_: 4, //big.NewInt(4),
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: common.HexToAddress("def")},
 			{Weight: 2, Address: common.HexToAddress("abc")},
 			{Weight: 2, Address: common.HexToAddress("456")},
@@ -21,15 +22,15 @@ func TestWalletConfig(t *testing.T) {
 	err := sequence.SortWalletConfig(wc)
 	assert.NoError(t, err)
 
-	assert.Equal(t, common.HexToAddress("456"), wc.Signers[0].Address)
-	assert.Equal(t, common.HexToAddress("abc"), wc.Signers[1].Address)
-	assert.Equal(t, common.HexToAddress("def"), wc.Signers[2].Address)
+	assert.Equal(t, common.HexToAddress("456"), wc.Signers_[0].Address)
+	assert.Equal(t, common.HexToAddress("abc"), wc.Signers_[1].Address)
+	assert.Equal(t, common.HexToAddress("def"), wc.Signers_[2].Address)
 }
 
-func TestWalletConfigNoDupes(t *testing.T) {
-	wc := sequence.WalletConfig{
-		Threshold: 4, //big.NewInt(4),
-		Signers: sequence.WalletConfigSigners{
+func TestWalletConfigNoDupesV1(t *testing.T) {
+	wc := &v1.WalletConfig{
+		Threshold_: 4, //big.NewInt(4),
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: common.HexToAddress("def")},
 			{Weight: 2, Address: common.HexToAddress("abc")},
 			{Weight: 2, Address: common.HexToAddress("456")},
@@ -42,25 +43,23 @@ func TestWalletConfigNoDupes(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestWalletConfigImageHash(t *testing.T) {
-	wc := sequence.WalletConfig{
-		Threshold: 1, //big.NewInt(1),
-		Signers: sequence.WalletConfigSigners{
+func TestWalletConfigImageHashV1(t *testing.T) {
+	wc := &v1.WalletConfig{
+		Threshold_: 1, //big.NewInt(1),
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 1, Address: common.Address{}},
 		},
 	}
 
 	expected := "0xd5eb26a4673c3bf5bb325d407fe1544f0325b97d4b68afa6a28851b6dbbbd29f"
 
-	imageHash, err := sequence.ImageHashOfWalletConfig(wc)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, imageHash)
+	assert.Equal(t, expected, wc.ImageHash().Hex())
 }
 
-func TestWalletAddressFromWalletConfig(t *testing.T) {
-	wc := sequence.WalletConfig{
-		Threshold: 1, //big.NewInt(1),
-		Signers: sequence.WalletConfigSigners{
+func TestWalletAddressFromWalletConfigV1(t *testing.T) {
+	wc := &v1.WalletConfig{
+		Threshold_: 1, //big.NewInt(1),
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 		},
 	}
@@ -77,11 +76,11 @@ func TestWalletAddressFromWalletConfig(t *testing.T) {
 	assert.Equal(t, expected, address)
 }
 
-func TestWalletIsWalletConfigUsable(t *testing.T) {
+func TestWalletIsWalletConfigUsableV1(t *testing.T) {
 	{
-		wcGood := sequence.WalletConfig{
-			Threshold: 1, //big.NewInt(1),
-			Signers: sequence.WalletConfigSigners{
+		wcGood := &v1.WalletConfig{
+			Threshold_: 1, //big.NewInt(1),
+			Signers_: v1.WalletConfigSigners{
 				{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 			},
 		}
@@ -91,9 +90,9 @@ func TestWalletIsWalletConfigUsable(t *testing.T) {
 		assert.True(t, ok)
 	}
 	{
-		wcBad := sequence.WalletConfig{
-			Threshold: 0, //big.NewInt(0),
-			Signers: sequence.WalletConfigSigners{
+		wcBad := &v1.WalletConfig{
+			Threshold_: 0, //big.NewInt(0),
+			Signers_: v1.WalletConfigSigners{
 				{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 			},
 		}
@@ -103,9 +102,9 @@ func TestWalletIsWalletConfigUsable(t *testing.T) {
 		assert.False(t, ok)
 	}
 	{
-		wcBad := sequence.WalletConfig{
-			Threshold: 2, //big.NewInt(2),
-			Signers: sequence.WalletConfigSigners{
+		wcBad := &v1.WalletConfig{
+			Threshold_: 2, //big.NewInt(2),
+			Signers_: v1.WalletConfigSigners{
 				{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 			},
 		}

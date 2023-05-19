@@ -14,6 +14,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -43,7 +44,7 @@ func (r *LocalRelayer) GetProvider() *ethrpc.Provider {
 	return r.Sender.GetProvider()
 }
 
-func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
+func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
 	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig seque
 	return txns, nil
 }
 
-func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig sequence.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 

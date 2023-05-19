@@ -17,6 +17,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/0xsequence/go-sequence/core/v2"
 )
 
@@ -593,18 +594,18 @@ func JoinSignatures(sigs ...*Signature) (*Signature, error) {
 	}
 }
 
-func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext, chainID *big.Int, provider *ethrpc.Provider) (WalletConfig, uint, error) {
+func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v1.WalletConfig, uint, error) {
 	decoded, err := DecodeSignature(seqSig)
 	if err != nil {
-		return WalletConfig{}, 0, err
+		return nil, 0, err
 	}
 
 	err = decoded.Recover(digest, provider)
 	if err != nil {
-		return WalletConfig{}, 0, err
+		return nil, 0, err
 	}
 
-	wc := WalletConfig{Threshold: decoded.Threshold}
+	wc := &v1.WalletConfig{Threshold_: decoded.Threshold}
 
 	weight := uint(0)
 
@@ -613,7 +614,7 @@ func RecoverWalletConfigFromDigest(digest, seqSig []byte, context WalletContext,
 			weight += uint(signer.Weight)
 		}
 
-		wc.Signers = append(wc.Signers, WalletConfigSigner{
+		wc.Signers_ = append(wc.Signers_, &v1.WalletConfigSigner{
 			Weight:  signer.Weight,
 			Address: signer.Address,
 		})
@@ -691,7 +692,7 @@ func IsValidV1UndeployedSignature(walletAddress common.Address, subDigest []byte
 		return false, err
 	}
 
-	if recoveredAddress != walletAddress || weight < uint(recoveredWalletConfig.Threshold) {
+	if recoveredAddress != walletAddress || weight < uint(recoveredWalletConfig.Threshold_) {
 		return false, fmt.Errorf("failed to validate")
 	}
 

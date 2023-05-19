@@ -18,6 +18,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
 )
@@ -207,8 +209,8 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	return gas, nil
 }
 
-func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig) ([]bool, error) {
-	res := make([]bool, walletConfig.Signers.Len())
+func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig *v1.WalletConfig) ([]bool, error) {
+	res := make([]bool, walletConfig.Signers_.Len())
 
 	// Get non-eoa signers
 	// required for computing worse case scenario
@@ -217,7 +219,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	errCh := make(chan error)
 	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
 
-	for i := range walletConfig.Signers {
+	for i := range walletConfig.Signers_ {
 		wg.Add(1)
 
 		select {
@@ -240,7 +242,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 				errCh <- err
 				return
 			}
-		}(ctx, i, walletConfig.Signers[i].Address)
+		}(ctx, i, walletConfig.Signers_[i].Address)
 	}
 	wg.Wait()
 
@@ -278,18 +280,18 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 	return false, nil
 }
 
-func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, isEoa []bool) ([]bool, error) {
+func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConfig, isEoa []bool) ([]bool, error) {
 	type SortedSigner struct {
-		s WalletConfigSigner
+		s *v1.WalletConfigSigner
 		i int
 	}
 
 	// Create a copy of the signers array
 	// this will be sorted and used to pick the worst case scenario for the signers
-	sortedSigners := make([]SortedSigner, walletConfig.Signers.Len())
-	for i, _ := range walletConfig.Signers {
+	sortedSigners := make([]SortedSigner, walletConfig.Signers_.Len())
+	for i, _ := range walletConfig.Signers_ {
 		sortedSigners[i] = SortedSigner{
-			s: walletConfig.Signers[i],
+			s: walletConfig.Signers_[i],
 			i: i,
 		}
 	}
@@ -306,8 +308,8 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, 
 
 	// Define what signers are goint go be signing
 	// it should construct a worse case scenario for the signature
-	willSign := make([]bool, walletConfig.Signers.Len())
-	threshold := int(walletConfig.Threshold)
+	willSign := make([]bool, walletConfig.Signers_.Len())
+	threshold := int(walletConfig.Threshold_)
 
 	// Pick signers until we reach the threshold we stop
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
@@ -329,14 +331,14 @@ func stubAddress() common.Address {
 	return common.BytesToAddress(raw)
 }
 
-func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []bool, isEoa []bool) []byte {
-	parts := make(SignatureParts, walletConfig.Signers.Len())
+func (e *Estimator) BuildStubSignature(walletConfig *v1.WalletConfig, willSign []bool, isEoa []bool) []byte {
+	parts := make(SignatureParts, walletConfig.Signers_.Len())
 
 	// pre-determined signature, tailored for worse-case scenario in gas costs
 	// TODO: Compute average siganture and present a more likely scenario for a more close estimation
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
-	for i, s := range walletConfig.Signers {
+	for i, s := range walletConfig.Signers_ {
 		if willSign[i] {
 			if isEoa[i] {
 				parts[i] = &SignaturePart{
@@ -346,18 +348,18 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 					Value:   sig,
 				}
 			} else {
-				sig := e.BuildStubSignature(WalletConfig{
-					Threshold: 2,
-					Signers: WalletConfigSigners{
-						WalletConfigSigner{
+				sig := e.BuildStubSignature(&v1.WalletConfig{
+					Threshold_: 2,
+					Signers_: v1.WalletConfigSigners{
+						{
 							Address: stubAddress(),
 							Weight:  1,
 						},
-						WalletConfigSigner{
+						{
 							Address: stubAddress(),
 							Weight:  1,
 						},
-						WalletConfigSigner{
+						{
 							Address: stubAddress(),
 							Weight:  1,
 						},
@@ -383,7 +385,7 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 	}
 
 	signature := Signature{
-		Threshold: walletConfig.Threshold,
+		Threshold: walletConfig.Threshold_,
 		Signers:   parts,
 	}
 
@@ -398,18 +400,24 @@ func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []boo
 	return encoded
 }
 
-func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
-	isEOA, err := e.AreEOAs(ctx, provider, walletConfig)
+func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
+	walletConfigV1 := walletConfig.(*v1.WalletConfig)
+	if walletConfigV1 == nil {
+		// todo: support other versions
+		panic("wallet config is not v1")
+	}
+
+	isEOA, err := e.AreEOAs(ctx, provider, walletConfigV1)
 	if err != nil {
 		return 0, err
 	}
 
-	willSign, err := e.PickSigners(ctx, walletConfig, isEOA)
+	willSign, err := e.PickSigners(ctx, walletConfigV1, isEOA)
 	if err != nil {
 		return 0, err
 	}
 
-	signature := e.BuildStubSignature(walletConfig, willSign, isEOA)
+	signature := e.BuildStubSignature(walletConfigV1, willSign, isEOA)
 
 	overrides := map[common.Address]*CallOverride{
 		walletContext.MainModuleAddress:           {Code: walletGasEstimatorCode},

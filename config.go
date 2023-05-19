@@ -7,6 +7,8 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 )
 
 type WalletConfig struct {
@@ -45,12 +47,8 @@ func (s WalletConfigSigners) GetWeightByAddress(address common.Address) (uint8, 
 	return 0, false
 }
 
-func AddressFromWalletConfig(walletConfig WalletConfig, context WalletContext) (common.Address, error) {
-	imageHash, err := ImageHashOfWalletConfig(walletConfig)
-	if err != nil {
-		return common.Address{}, fmt.Errorf("sequence, AddressFromWalletConfig: %w", err)
-	}
-	return AddressFromImageHash(imageHash, context)
+func AddressFromWalletConfig(walletConfig core.WalletConfig, context WalletContext) (common.Address, error) {
+	return AddressFromImageHash(walletConfig.ImageHash().Hex(), context)
 }
 
 func AddressFromImageHash(imageHash string, context WalletContext) (common.Address, error) {
@@ -73,14 +71,6 @@ func AddressFromImageHash(imageHash string, context WalletContext) (common.Addre
 	hash := crypto.Keccak256(hashPack)[12:]
 
 	return common.BytesToAddress(hash), nil
-}
-
-func ImageHashOfWalletConfig(walletConfig WalletConfig) (string, error) {
-	imageHash, err := ImageHashOfWalletConfigBytes(walletConfig)
-	if err != nil {
-		return "", err
-	}
-	return ethcoder.HexEncode(imageHash), nil
 }
 
 func ImageHashOfWalletConfigBytes(walletConfig WalletConfig) ([]byte, error) {
@@ -106,18 +96,8 @@ func ImageHashOfWalletConfigBytes(walletConfig WalletConfig) ([]byte, error) {
 	return imageHash, nil
 }
 
-func ImageHashOfWalletConfigBytes32(walletConfig WalletConfig) ([32]byte, error) {
-	imageHash, err := ImageHashOfWalletConfigBytes(walletConfig)
-	if err != nil {
-		return [32]byte{}, err
-	}
-	ih := [32]byte{}
-	copy(ih[:], imageHash)
-	return ih, nil
-}
-
-func SortWalletConfig(walletConfig WalletConfig) error {
-	signers := walletConfig.Signers
+func SortWalletConfig(walletConfig *v1.WalletConfig) error {
+	signers := walletConfig.Signers_
 	sort.Sort(signers) // Sort the signers
 
 	// Ensure no duplicates
@@ -130,33 +110,25 @@ func SortWalletConfig(walletConfig WalletConfig) error {
 	return nil
 }
 
-func IsWalletConfigUsable(walletConfig WalletConfig) (bool, error) {
+// todo: move to core
+func IsWalletConfigUsable(walletConfig *v1.WalletConfig) (bool, error) {
 	// if walletConfig.Threshold.Cmp(big.NewInt(0)) == 0 {
-	if walletConfig.Threshold == 0 {
+	if walletConfig.Threshold_ == 0 {
 		return false, fmt.Errorf("invalid wallet config - wallet threshold cannot be 0")
 	}
 	totalWeight := uint64(0)
-	for _, s := range walletConfig.Signers {
+	for _, s := range walletConfig.Signers_ {
 		totalWeight += uint64(s.Weight)
 	}
 	// if walletConfig.Threshold.Cmp(big.NewInt(0).SetUint64(totalWeight)) > 0 {
-	if uint64(walletConfig.Threshold) > totalWeight {
+	if uint64(walletConfig.Threshold_) > totalWeight {
 		return false, fmt.Errorf("invalid wallet config - total weight of the wallet config is less than the threshold required")
 	}
 	return true, nil
 }
 
-func IsWalletConfigEqual(walletConfigA, walletConfigB WalletConfig) bool {
-	imageHashA, err := ImageHashOfWalletConfig(walletConfigA)
-	if err != nil {
-		return false
-	}
-	imageHashB, err := ImageHashOfWalletConfig(walletConfigB)
-	if err != nil {
-		return false
-	}
-
-	return imageHashA == imageHashB
+func IsWalletConfigEqual(walletConfigA, walletConfigB core.WalletConfig) bool {
+	return walletConfigA.ImageHash().Hex() == walletConfigB.ImageHash().Hex()
 }
 
 // TODO: can leave out for now

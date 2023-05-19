@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
@@ -154,10 +155,10 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 	assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 }
 
-func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
-	stubConfig := sequence.WalletConfig{
-		Threshold: 2,
-		Signers: sequence.WalletConfigSigners{
+func TestEstimateSimpleSequenceTransactionWithStubConfigV1(t *testing.T) {
+	stubConfig := &v1.WalletConfig{
+		Threshold_: 2,
+		Signers_: v1.WalletConfigSigners{
 			{
 				Address: common.HexToAddress("0x6d3A40AAA98DD6cF67a1e6C85807fCc1363935D5"),
 				Weight:  1,
@@ -325,7 +326,7 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 	assert.Equal(t, "6", ret[0])
 }
 
-func TestEstimateSequenceMultipleSigners(t *testing.T) {
+func TestEstimateSequenceMultipleSignersV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -335,9 +336,9 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers: sequence.WalletConfigSigners{
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: eoa1.Address()},
 			{Weight: 5, Address: eoa2.Address()},
 			{Weight: 1, Address: eoa3.Address()},
@@ -415,7 +416,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 	assert.Equal(t, "3333", ret[0])
 }
 
-func TestEstimateSequenceNestedSigners(t *testing.T) {
+func TestEstimateSequenceNestedSignersV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -425,9 +426,9 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers: sequence.WalletConfigSigners{
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: eoa1.Address()},
 			{Weight: 1, Address: wal2.Address()},
 			{Weight: 2, Address: eoa3.Address()},
@@ -506,7 +507,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 	assert.Equal(t, "3335", ret[0])
 }
 
-func TestPickLowestWeightForEstimation(t *testing.T) {
+func TestPickLowestWeightForEstimationV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -522,9 +523,9 @@ func TestPickLowestWeightForEstimation(t *testing.T) {
 	eoa5, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	config := sequence.WalletConfig{
-		Threshold: 4,
-		Signers: []sequence.WalletConfigSigner{
+	config := &v1.WalletConfig{
+		Threshold_: 4,
+		Signers_: v1.WalletConfigSigners{
 			{
 				Weight:  2,
 				Address: eoa2.Address(),
@@ -559,7 +560,7 @@ func TestPickLowestWeightForEstimation(t *testing.T) {
 	assert.Equal(t, pick[4], true)
 }
 
-func TestPickNonEOAsForEstimation(t *testing.T) {
+func TestPickNonEOAsForEstimationV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -575,9 +576,9 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 	eoa5, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	config := sequence.WalletConfig{
-		Threshold: 5,
-		Signers: []sequence.WalletConfigSigner{
+	config := &v1.WalletConfig{
+		Threshold_: 5,
+		Signers_: v1.WalletConfigSigners{
 			{
 				Weight:  2,
 				Address: eoa2.Address(),
@@ -612,7 +613,7 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 	assert.Equal(t, pick[4], false)
 }
 
-func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
+func TestPickNonEOAsLowestWeightForEstimationV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -628,9 +629,9 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 	eoa5, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	config := sequence.WalletConfig{
-		Threshold: 5,
-		Signers: []sequence.WalletConfigSigner{
+	config := &v1.WalletConfig{
+		Threshold_: 5,
+		Signers_: v1.WalletConfigSigners{
 			{
 				Weight:  2,
 				Address: eoa2.Address(),
@@ -666,21 +667,21 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 }
 
 func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
-	wallets := sequence.WalletConfigSigners{}
+	wallets := v1.WalletConfigSigners{}
 
 	for i := 0; i < 80; i++ {
 		randomWallet, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallets = append(wallets, sequence.WalletConfigSigner{
+		wallets = append(wallets, &v1.WalletConfigSigner{
 			Weight:  1,
 			Address: randomWallet.Address(),
 		})
 	}
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 2,
-		Signers:   wallets,
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 2,
+		Signers_:   wallets,
 	}
 
 	wallet, err := testChain.DummySequenceWallet(1)

@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,25 +97,25 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	recoveredWalletConfig, weight, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 	assert.NoError(t, err)
 
-	assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold)
-	assert.GreaterOrEqual(t, weight, uint(recoveredWalletConfig.Threshold))
-	assert.Len(t, recoveredWalletConfig.Signers, 1)
+	assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold_)
+	assert.GreaterOrEqual(t, weight, uint(recoveredWalletConfig.Threshold_))
+	assert.Len(t, recoveredWalletConfig.Signers_, 1)
 
 	address, err := sequence.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
 	assert.NoError(t, err)
 	assert.Equal(t, wallet.Address(), address)
 }
 
-func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
+func TestWalletSignAndRecoverConfigOfMultipleSignersV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
 	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers: sequence.WalletConfigSigners{
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: eoa1.Address()},
 			{Weight: 5, Address: eoa2.Address()},
 		},
@@ -139,16 +140,16 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 	recoveredWalletConfig, weight, err := sequence.RecoverWalletConfigFromDigest(subDigest, sig, wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 	assert.NoError(t, err)
 
-	assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold)
+	assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold_)
 	assert.Equal(t, uint(2), weight)
-	assert.Len(t, recoveredWalletConfig.Signers, 2)
+	assert.Len(t, recoveredWalletConfig.Signers_, 2)
 
 	address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 	assert.NoError(t, err)
 	assert.Equal(t, wallet.Address(), address)
 }
 
-func TestShouldNotSideEffectWalletConfig(t *testing.T) {
+func TestShouldNotSideEffectWalletConfigV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -156,16 +157,16 @@ func TestShouldNotSideEffectWalletConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Inverse-sort signers
-	signers := sequence.WalletConfigSigners{
+	signers := v1.WalletConfigSigners{
 		{Weight: 2, Address: eoa1.Address()},
 		{Weight: 5, Address: eoa2.Address()},
 	}
 
 	sort.Sort(sort.Reverse(signers))
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers:   signers,
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_:   signers,
 	}
 
 	wallet, err := sequence.NewWallet(sequence.WalletOptions{
@@ -175,11 +176,12 @@ func TestShouldNotSideEffectWalletConfig(t *testing.T) {
 
 	// Wallet config should be sorted
 	// but signers should not be affected
-	assert.Equal(t, signers[0].Address, wallet.GetWalletConfig().Signers[1].Address)
-	assert.Equal(t, signers[1].Address, wallet.GetWalletConfig().Signers[0].Address)
+	walletFromGet := wallet.GetWalletConfig().(*v1.WalletConfig)
+	assert.Equal(t, signers[0].Address, walletFromGet.Signers_[1].Address)
+	assert.Equal(t, signers[1].Address, walletFromGet.Signers_[0].Address)
 }
 
-func TestShouldIgnoreConfigSort(t *testing.T) {
+func TestShouldIgnoreConfigSortV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -187,16 +189,16 @@ func TestShouldIgnoreConfigSort(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Inverse-sort signers
-	signers := sequence.WalletConfigSigners{
+	signers := v1.WalletConfigSigners{
 		{Weight: 2, Address: eoa1.Address()},
 		{Weight: 5, Address: eoa2.Address()},
 	}
 
 	sort.Sort(sort.Reverse(signers))
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers:   signers,
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_:   signers,
 	}
 
 	wallet, err := sequence.NewWallet(sequence.WalletOptions{
@@ -206,11 +208,12 @@ func TestShouldIgnoreConfigSort(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Wallet config should remain the same
-	assert.Equal(t, signers[0].Address, wallet.GetWalletConfig().Signers[0].Address)
-	assert.Equal(t, signers[1].Address, wallet.GetWalletConfig().Signers[1].Address)
+	walletFromGet := wallet.GetWalletConfig().(*v1.WalletConfig)
+	assert.Equal(t, signers[0].Address, walletFromGet.Signers_[0].Address)
+	assert.Equal(t, signers[1].Address, walletFromGet.Signers_[1].Address)
 }
 
-func TestWalletWithNonDeterministicConfig(t *testing.T) {
+func TestWalletWithNonDeterministicConfigV1(t *testing.T) {
 	rw, _ := ethwallet.NewWalletFromRandomEntropy()
 	randomAddr := rw.Address()
 
@@ -220,9 +223,9 @@ func TestWalletWithNonDeterministicConfig(t *testing.T) {
 	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	walletConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers: sequence.WalletConfigSigners{
+	walletConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: eoa1.Address()},
 			{Weight: 5, Address: eoa2.Address()},
 		},
@@ -244,9 +247,9 @@ func TestWalletWithNonDeterministicConfig(t *testing.T) {
 	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	newConfig := sequence.WalletConfig{
-		Threshold: 3,
-		Signers: sequence.WalletConfigSigners{
+	newConfig := &v1.WalletConfig{
+		Threshold_: 3,
+		Signers_: v1.WalletConfigSigners{
 			{Weight: 2, Address: eoa3.Address()},
 			{Weight: 5, Address: eoa2.Address()},
 		},
