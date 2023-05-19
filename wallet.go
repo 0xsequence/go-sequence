@@ -356,8 +356,7 @@ func (w *Wallet) SignDigest(ctx context.Context, digest common.Hash, optChainID 
 		if signer == nil {
 			// signer isn't available, just include the config value of address
 			// without it's signature
-			// todo: what shall we do in that case? before we returned signer address and weight without signature
-			return core.SignerSignatureTypeEthSign, []byte{}, nil
+			return 0, nil, fmt.Errorf("no signature for %v", signerAddress)
 		}
 
 		if eoaSigner, ok := signer.(MessageSigner); ok {
