@@ -72,7 +72,7 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 	case sequence.SignatureTypeEip1271:
 		sigPartType = sequence.SignaturePartTypeDynamic
 	default:
-		return nil, nil, fmt.Errorf("invalid signature type: %d", encSig[65])
+		return nil, nil, fmt.Errorf("invalid signature type: %d", sig[len(sig)-1])
 	}
 
 	// add signature
