@@ -129,6 +129,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 	for _, txn := range signedTxs.Transactions {
 		if txn.To == signedTxs.WalletContext.FactoryAddress {
 			to = signedTxs.WalletContext.GuestModuleAddress
+			break
 		}
 	}
 
