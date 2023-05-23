@@ -139,8 +139,8 @@ func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet, e
 		return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
 	}
 
-	// new sequence v1 wallet
 	if seqContext == sequenceContext {
+		// new sequence v1 wallet
 		return NewWallet(WalletOptions{
 			Config: &v1.WalletConfig{
 				Threshold_: 1, //big.NewInt(1),
@@ -150,12 +150,23 @@ func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet, e
 			},
 			Context: &seqContext,
 		}, owner)
+	} else if seqContext == sequenceContextV2 {
+		// new sequence v2 wallet
+		return NewWallet(WalletOptions{
+			Config: &v2.WalletConfig{
+				Threshold_: 1, //big.NewInt(1),
+				Tree: &v2.WalletConfigTreeAddressLeaf{
+					Weight: 1, Address: owner.Address(),
+				},
+			},
+			Context: &seqContext,
+		}, owner)
 	}
 	return NewWallet(WalletOptions{
-		Config: &v2.WalletConfig{
+		Config: &v1.WalletConfig{
 			Threshold_: 1, //big.NewInt(1),
-			Tree: &v2.WalletConfigTreeAddressLeaf{
-				Weight: 1, Address: owner.Address(),
+			Signers_: v1.WalletConfigSigners{
+				{Weight: 1, Address: owner.Address()},
 			},
 		},
 		Context: &seqContext,
