@@ -65,7 +65,11 @@ func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext Wallet
 
 		return walletAddress, walletContext.FactoryAddress, deployData, nil
 	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-		// todo: implement
+		deployData, err := contracts.V2.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		if err != nil {
+			return common.Address{}, common.Address{}, nil, err
+		}
+		return walletAddress, walletContext.FactoryAddress, deployData, nil
 	}
 	return common.Address{}, common.Address{}, nil, fmt.Errorf("unsupported wallet config version")
 }

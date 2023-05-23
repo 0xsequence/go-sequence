@@ -33,7 +33,7 @@ type WalletOptions struct {
 }
 
 func NewWallet(walletOptions WalletOptions, signers ...Signer) (*Wallet, error) {
-	if walletConfigV1 := walletOptions.Config.(*v1.WalletConfig); walletConfigV1 != nil {
+	if walletConfigV1, ok := walletOptions.Config.(*v1.WalletConfig); ok {
 		seqContext := sequenceContext
 		if walletOptions.Context != nil {
 			seqContext = *walletOptions.Context
@@ -83,8 +83,45 @@ func NewWallet(walletOptions WalletOptions, signers ...Signer) (*Wallet, error) 
 		w.signers = signers
 
 		return w, nil
-	} else if walletConfigV2 := walletOptions.Config.(*v2.WalletConfig); walletConfigV2 != nil {
-		return nil, nil
+	} else if walletConfigV2, ok := walletOptions.Config.(*v2.WalletConfig); ok {
+		seqContext := sequenceContextV2
+		if walletOptions.Context != nil {
+			seqContext = *walletOptions.Context
+		}
+
+		// Check if wallet config is usable
+		if err := walletConfigV2.IsUsable(); err != nil {
+			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+		}
+
+		// Generate address
+		address := walletOptions.Address
+		if address == (common.Address{}) {
+			var err error
+			address, err = AddressFromImageHash(walletConfigV2.ImageHash().Hex(), seqContext)
+			if err != nil {
+				return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+			}
+		}
+
+		// Check signers
+		for _, signer := range signers {
+			_, canSignMessage := signer.(MessageSigner)
+			_, canSignDigest := signer.(DigestSigner)
+			if !canSignMessage && !canSignDigest {
+				return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+			}
+		}
+
+		w := &Wallet{
+			config:          walletConfigV2,
+			context:         seqContext,
+			address:         address,
+			skipSortSigners: walletOptions.SkipSortSigners,
+		}
+		w.signers = signers
+
+		return w, nil
 	}
 
 	return nil, fmt.Errorf("sequence.NewWallet: unsupported wallet config version")
@@ -103,11 +140,22 @@ func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet, e
 	}
 
 	// new sequence v1 wallet
+	if seqContext == sequenceContext {
+		return NewWallet(WalletOptions{
+			Config: &v1.WalletConfig{
+				Threshold_: 1, //big.NewInt(1),
+				Signers_: v1.WalletConfigSigners{
+					{Weight: 1, Address: owner.Address()},
+				},
+			},
+			Context: &seqContext,
+		}, owner)
+	}
 	return NewWallet(WalletOptions{
-		Config: &v1.WalletConfig{
+		Config: &v2.WalletConfig{
 			Threshold_: 1, //big.NewInt(1),
-			Signers_: v1.WalletConfigSigners{
-				{Weight: 1, Address: owner.Address()},
+			Tree: &v2.WalletConfigTreeAddressLeaf{
+				Weight: 1, Address: owner.Address(),
 			},
 		},
 		Context: &seqContext,
