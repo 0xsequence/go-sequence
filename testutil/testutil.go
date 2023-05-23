@@ -317,15 +317,75 @@ func (c *TestChain) DeploySequenceContext() (sequence.WalletContext, error) {
 	}, nil
 }
 
+func (c *TestChain) DeploySequenceContextV2() (sequence.WalletContext, error) {
+	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	ctx := context.Background()
+
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, 0, nil, 7000000)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModuleUpgradable.ABI, contracts.V2.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	mainModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModule.ABI, contracts.V2.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleUpgradableAddress)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletGuestModule.ABI, contracts.V2.WalletGuestModule.Bin, 0, nil, 7000000)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	utilsAddress, err := ud.Deploy(ctx, contracts.V2.WalletUtils.ABI, contracts.V2.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, DeploySequenceContext: %w", err)
+	}
+
+	return sequence.WalletContext{
+		FactoryAddress:              walletFactoryAddress,
+		MainModuleAddress:           mainModuleAddress,
+		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
+		GuestModuleAddress:          guestModuleAddress,
+		UtilsAddress:                utilsAddress,
+	}, nil
+}
+
 func (c *TestChain) MustDeploySequenceContext() sequence.WalletContext {
+	return c.MustDeploySequenceContexts()[1] // return the v1 context
+}
+
+func (c *TestChain) MustDeploySequenceContexts() map[uint8]sequence.WalletContext {
 	sc, err := c.DeploySequenceContext()
 	if err != nil {
 		panic(err)
 	}
+
+	sc2, err := c.DeploySequenceContextV2()
+	if err != nil {
+		panic(err)
+	}
+
 	if sc != sequenceContext {
 		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContext")
 	}
-	return sc
+
+	if sc2 != sequenceContextV2 {
+		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContextV2")
+	}
+
+	return map[uint8]sequence.WalletContext{
+		1: sc,
+		2: sc2,
+	}
 }
 
 // UniDeploy will deploy a contract registered in `Contracts` registry using the universal deployer. Multiple calls to UniDeploy

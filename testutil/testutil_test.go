@@ -34,14 +34,25 @@ func TestTestutil(t *testing.T) {
 	sequenceContext, err := testChain.DeploySequenceContext()
 	assert.NoError(t, err)
 
+	sequenceContextV2, err := testChain.DeploySequenceContextV2()
+	assert.NoError(t, err)
+
 	// Compare against "expexcted" testutil.SequenceContext
 	expectedContext := testutil.SequenceContext()
+
+	expectedContextV2 := testutil.SequenceContextV2()
 
 	assert.Equal(t, expectedContext.FactoryAddress, sequenceContext.FactoryAddress)
 	assert.Equal(t, expectedContext.MainModuleAddress, sequenceContext.MainModuleAddress)
 	assert.Equal(t, expectedContext.MainModuleUpgradableAddress, sequenceContext.MainModuleUpgradableAddress)
 	assert.Equal(t, expectedContext.GuestModuleAddress, sequenceContext.GuestModuleAddress)
 	assert.Equal(t, expectedContext.UtilsAddress, sequenceContext.UtilsAddress)
+
+	assert.Equal(t, expectedContextV2.FactoryAddress, sequenceContextV2.FactoryAddress)
+	assert.Equal(t, expectedContextV2.MainModuleAddress, sequenceContextV2.MainModuleAddress)
+	assert.Equal(t, expectedContextV2.MainModuleUpgradableAddress, sequenceContextV2.MainModuleUpgradableAddress)
+	assert.Equal(t, expectedContextV2.GuestModuleAddress, sequenceContextV2.GuestModuleAddress)
+	assert.Equal(t, expectedContextV2.UtilsAddress, sequenceContextV2.UtilsAddress)
 }
 
 func TestContractHelpers(t *testing.T) {

@@ -27,8 +27,27 @@ var sequenceContext = sequence.WalletContext{
 	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
 }
 
+var sequenceContextV2 = sequence.WalletContext{
+	FactoryAddress:              common.HexToAddress("0xAA4A319D9f7b43e197555d1c219F9195B80F0C8c"),
+	MainModuleAddress:           common.HexToAddress("0xc38D0b3faA48945059dfe60a98BC237F36233658"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x289157fe5f01e6d6Ca773cE013Cf113E0A570Ac6"),
+	GuestModuleAddress:          common.HexToAddress("0x510D161f15B0b3D7149B823978531B354c6E9Ef1"),
+	UtilsAddress:                common.HexToAddress("0xF8117F5EF3b375cE131089DA286BF061565C3D66"),
+}
+
 func SequenceContext() sequence.WalletContext {
 	return sequenceContext
+}
+
+func SequenceContextV2() sequence.WalletContext {
+	return sequenceContextV2
+}
+
+func SequenceContexts() map[uint8]sequence.WalletContext {
+	return map[uint8]sequence.WalletContext{
+		1: sequenceContext,
+		2: sequenceContextV2,
+	}
 }
 
 // parseTestWalletMnemonic parses the wallet mnemonic from ./package.json, the same
