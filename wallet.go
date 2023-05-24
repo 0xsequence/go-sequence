@@ -261,7 +261,7 @@ func (w *Wallet[C]) GetWalletContext() WalletContext {
 	return w.context
 }
 
-func (w *Wallet[C]) GetWalletConfig() core.WalletConfig {
+func (w *Wallet[C]) GetWalletConfig() C {
 	return w.config
 }
 
@@ -549,12 +549,35 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 		return false, ErrProviderNotSet
 	}
 
-	// Assume that this context if for a v1 wallet, so we bundle the context in a mapping
-	// with a single key of (1)
-	contexts := make(map[uint16]WalletContext)
-	contexts[1] = w.context
+	// todo: this is a hack to get around the fact that the signature verification is not available in WalletConfig
+	var generalWalletConfig core.WalletConfig = w.config
+	if _, ok := generalWalletConfig.(*v2.WalletConfig); ok {
+		sig, err := v2.Core.DecodeSignature(signature)
+		if err != nil {
+			return false, err
+		}
 
-	return IsValidSignature(w.Address(), digest, signature, contexts, w.chainID, w.provider)
+		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		if err != nil {
+			return false, err
+		} else {
+			return true, nil
+		}
+	} else if _, ok := generalWalletConfig.(*v1.WalletConfig); ok {
+		sig, err := v1.Core.DecodeSignature(signature)
+		if err != nil {
+			return false, err
+		}
+
+		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		if err != nil {
+			return false, err
+		} else {
+			return true, nil
+		}
+	} else {
+		return false, fmt.Errorf("unknown wallet config type")
+	}
 }
 
 func (w *Wallet[C]) auxDataFromTransactionBundle(bundle *Transaction) *AuxData {
