@@ -5,6 +5,9 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 )
 
 // WalletContext is the module addresses deployed on a network, aka the context / environment
@@ -78,4 +81,13 @@ func SequenceContexts() WalletContexts {
 		1: sequenceContext,
 		2: sequenceContextV2,
 	}
+}
+
+func SequenceContextForWalletConfig(walletConfig core.WalletConfig) WalletContext {
+	if _, ok := walletConfig.(*v1.WalletConfig); ok {
+		return sequenceContext
+	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
+		return sequenceContextV2
+	}
+	return WalletContext{}
 }

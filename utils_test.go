@@ -7,6 +7,8 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +20,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.NewWalletSingleOwner(eoa, testutil.SequenceContext())
+		wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](eoa, testutil.SequenceContext())
 		assert.NoError(t, err)
 
 		wallet.SetProvider(testChain.Provider)
@@ -55,7 +57,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.NewWalletSingleOwner(eoa, testutil.SequenceContextV2())
+		wallet, err := sequence.NewWalletSingleOwner[*v2.WalletConfig](eoa, testutil.SequenceContextV2())
 		assert.NoError(t, err)
 
 		wallet.SetProvider(testChain.Provider)

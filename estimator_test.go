@@ -345,7 +345,7 @@ func TestEstimateSequenceMultipleSignersV1(t *testing.T) {
 		},
 	}
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+	wallet, err := sequence.NewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
 		Config: walletConfig,
 	}, eoa1, eoa3)
 	assert.NoError(t, err)
@@ -435,7 +435,7 @@ func TestEstimateSequenceNestedSignersV1(t *testing.T) {
 		},
 	}
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+	wallet, err := sequence.NewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
 		Config: walletConfig,
 	}, eoa1, eoa3)
 	assert.NoError(t, err)

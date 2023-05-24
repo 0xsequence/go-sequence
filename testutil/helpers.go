@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +87,7 @@ func DummyPrivateKey(seed uint64) string {
 	return fmt.Sprintf("%064x", seed)
 }
 
-func SignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data []byte) error {
+func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
 	stx := &sequence.Transaction{
 		// DelegateCall:  false,
 		// RevertOnError: false,
@@ -99,7 +100,7 @@ func SignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *sequence.Transaction) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) error {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
@@ -119,7 +120,7 @@ func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *seque
 	return err
 }
 
-func BatchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data [][]byte) error {
+func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {
 	var stxs []*sequence.Transaction
 	for i := 0; i < len(data); i++ {
 		stxs = append(stxs, &sequence.Transaction{

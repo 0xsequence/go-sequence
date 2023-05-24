@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/signing_service/proto"
 )
 
@@ -33,7 +34,7 @@ func (r *SigningService) Address() common.Address {
 	return r.params.SignerAddress
 }
 
-func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, *sequence.Signature, error) {
+func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[core.WalletConfig], error) {
 	var chainId *big.Int
 	if len(optChainID) > 0 {
 		chainId = optChainID[0]
@@ -65,26 +66,7 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 
 	sig := common.FromHex(encSig)
 
-	var sigPartType uint8
-	switch sig[len(sig)-1] {
-	case sequence.SignatureTypeEthSign:
-		sigPartType = sequence.SignaturePartTypeEOA
-	case sequence.SignatureTypeEip1271:
-		sigPartType = sequence.SignaturePartTypeDynamic
-	default:
-		return nil, nil, fmt.Errorf("invalid signature type: %d", sig[len(sig)-1])
-	}
-
-	// add signature
-	var signatures sequence.Signature
-	signatures.Signers = append(signatures.Signers, &sequence.SignaturePart{
-		Weight:  r.params.SignerWeight,
-		Address: r.params.SignerAddress,
-		Type:    sigPartType,
-		Value:   sig,
-	})
-
-	return sig, &signatures, nil
+	return sig, nil, nil
 }
 
 var _ sequence.SignerDigestSigner = &SigningService{}

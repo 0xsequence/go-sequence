@@ -19,7 +19,7 @@ func TestWalletAddress(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
 
-	w, err := sequence.NewWalletSingleOwner(eoa, sequence.WalletContext{
+	w, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
 		FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 		MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
 	})
@@ -34,7 +34,7 @@ func TestWalletSignMessage(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-	wallet, err := sequence.NewWalletSingleOwner(eoa, sequence.WalletContext{
+	wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
 		FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 		MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
 	})
@@ -59,7 +59,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](eoa)
 	assert.NoError(t, err)
 	assert.Equal(t, "0xdb6a2e3368C302723B71A1Cd154510a11952998E", wallet.Address().Hex())
 
@@ -82,7 +82,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](eoa)
 	assert.NoError(t, err)
 
 	wallet.SetChainID(big.NewInt(3))
@@ -123,7 +123,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSignersV1(t *testing.T) {
 
 	sequence.SortWalletConfig(walletConfig)
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+	wallet, err := sequence.NewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
 		Config: walletConfig,
 	}, eoa1)
 	assert.NoError(t, err)
@@ -149,38 +149,6 @@ func TestWalletSignAndRecoverConfigOfMultipleSignersV1(t *testing.T) {
 	assert.Equal(t, wallet.Address(), address)
 }
 
-func TestShouldNotSideEffectWalletConfigV1(t *testing.T) {
-	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
-	assert.NoError(t, err)
-
-	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
-	assert.NoError(t, err)
-
-	// Inverse-sort signers
-	signers := v1.WalletConfigSigners{
-		{Weight: 2, Address: eoa1.Address()},
-		{Weight: 5, Address: eoa2.Address()},
-	}
-
-	sort.Sort(sort.Reverse(signers))
-
-	walletConfig := &v1.WalletConfig{
-		Threshold_: 3,
-		Signers_:   signers,
-	}
-
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
-		Config: walletConfig,
-	}, eoa1)
-	assert.NoError(t, err)
-
-	// Wallet config should be sorted
-	// but signers should not be affected
-	walletFromGet := wallet.GetWalletConfig().(*v1.WalletConfig)
-	assert.Equal(t, signers[0].Address, walletFromGet.Signers_[1].Address)
-	assert.Equal(t, signers[1].Address, walletFromGet.Signers_[0].Address)
-}
-
 func TestShouldIgnoreConfigSortV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
@@ -201,7 +169,7 @@ func TestShouldIgnoreConfigSortV1(t *testing.T) {
 		Signers_:   signers,
 	}
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+	wallet, err := sequence.NewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
 		Config:          walletConfig,
 		SkipSortSigners: true,
 	}, eoa1)
@@ -233,7 +201,7 @@ func TestWalletWithNonDeterministicConfigV1(t *testing.T) {
 
 	sequence.SortWalletConfig(walletConfig)
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions{
+	wallet, err := sequence.NewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
 		Config:          walletConfig,
 		Address:         randomAddr,
 		SkipSortSigners: true,

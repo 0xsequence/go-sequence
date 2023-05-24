@@ -20,6 +20,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/goware/logger"
@@ -460,8 +462,8 @@ func (c *TestChain) WaitMined(txn common.Hash) error {
 	return err
 }
 
-func (c *TestChain) DummySequenceWallets(nWallets uint64, startingSeed uint64) ([]*sequence.Wallet, error) {
-	var wallets []*sequence.Wallet
+func (c *TestChain) DummySequenceWallets(nWallets uint64, startingSeed uint64) ([]*sequence.Wallet[core.WalletConfig], error) {
+	var wallets []*sequence.Wallet[core.WalletConfig]
 
 	for i := uint64(0); i < nWallets; i++ {
 		wallet, err := c.DummySequenceWallet(startingSeed + i*1000)
@@ -485,13 +487,13 @@ func (c *TestChain) RandomNonce() *big.Int {
 	return encoded
 }
 
-func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet, error) {
+func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
 	if err != nil {
 		return nil, err
 	}
-	wallet, err := sequence.NewWalletSingleOwner(owner)
+	wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](owner)
 	if err != nil {
 		return nil, err
 	}
@@ -512,20 +514,22 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 		return nil, err
 	}
 
+	genericWallet := sequence.NewGenericWallet(wallet)
+
 	// Skip deploying the dummy wallet if specified
 	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {
-		return wallet, nil
+		return genericWallet, nil
 	}
 
-	err = c.DeploySequenceWallet(wallet)
+	err = c.DeploySequenceWallet(genericWallet)
 	if err != nil {
 		return nil, err
 	}
 
-	return wallet, nil
+	return genericWallet, nil
 }
 
-func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet) error {
+func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet[core.WalletConfig]) error {
 	// Check if wallet is already deployed, in which case we will return right away
 	ok, _ := wallet.IsDeployed()
 	if ok {

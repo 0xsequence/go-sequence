@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 type MessageSigner interface {
@@ -12,7 +13,7 @@ type MessageSigner interface {
 }
 
 type DigestSigner interface {
-	SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error)
+	SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[core.WalletConfig], error)
 }
 
 type GuardSigner interface {

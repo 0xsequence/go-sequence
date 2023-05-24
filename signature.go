@@ -21,7 +21,7 @@ import (
 	"github.com/0xsequence/go-sequence/core/v2"
 )
 
-func Sign(wallet *Wallet, input common.Hash) ([]byte, *Signature, error) {
+func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
 	return wallet.SignDigest(context.Background(), input)
 }
 
