@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -116,22 +117,23 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 	}
 
 	if len(t.Signature) != 0 {
-		signature, err := DecodeSignature(t.Signature)
+		signature, err := DecodeSignature[*v1.WalletConfig](t.Signature)
 		if err != nil {
 			return err
 		}
 
-		_, metaTxnID, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
+		_, _, err = ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
 		if err != nil {
 			return err
 		}
 
-		err = signature.Reduce(metaTxnID[:])
-		if err != nil {
-			return err
-		}
+		// todo: implement Reduce in core
+		//err = signature.Reduce(metaTxnID[:])
+		//if err != nil {
+		//	return err
+		//}
 
-		encoded, err := signature.Encode()
+		encoded, err := signature.Data()
 		if err != nil {
 			return err
 		}

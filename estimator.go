@@ -20,8 +20,10 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -209,8 +211,8 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	return gas, nil
 }
 
-func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig *v1.WalletConfig) ([]bool, error) {
-	res := make([]bool, walletConfig.Signers_.Len())
+func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig *v1.WalletConfig) (map[common.Address]bool, error) {
+	res := make(map[common.Address]bool, walletConfig.Signers_.Len())
 
 	// Get non-eoa signers
 	// required for computing worse case scenario
@@ -237,7 +239,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 			}()
 
 			var err error
-			res[i], err = e.isEOA(ctx, provider, address)
+			res[address], err = e.isEOA(ctx, provider, address)
 			if err != nil {
 				errCh <- err
 				return
@@ -280,7 +282,7 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 	return false, nil
 }
 
-func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConfig, isEoa []bool) ([]bool, error) {
+func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConfig, isEoa map[common.Address]bool) (map[common.Address]bool, error) {
 	type SortedSigner struct {
 		s *v1.WalletConfigSigner
 		i int
@@ -297,7 +299,7 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConf
 	}
 
 	sort.SliceStable(sortedSigners, func(a, b int) bool {
-		if !isEoa[sortedSigners[a].i] && isEoa[sortedSigners[b].i] {
+		if !isEoa[sortedSigners[a].s.Address] && isEoa[sortedSigners[b].s.Address] {
 			return true
 		}
 
@@ -308,14 +310,14 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConf
 
 	// Define what signers are goint go be signing
 	// it should construct a worse case scenario for the signature
-	willSign := make([]bool, walletConfig.Signers_.Len())
+	willSign := make(map[common.Address]bool, walletConfig.Signers_.Len())
 	threshold := int(walletConfig.Threshold_)
 
 	// Pick signers until we reach the threshold we stop
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
 	for _, s := range sortedSigners {
 		weightSum += int(s.s.Weight)
-		willSign[s.i] = true
+		willSign[s.s.Address] = true
 
 		if weightSum >= threshold {
 			break
@@ -331,73 +333,79 @@ func stubAddress() common.Address {
 	return common.BytesToAddress(raw)
 }
 
-func (e *Estimator) BuildStubSignature(walletConfig *v1.WalletConfig, willSign []bool, isEoa []bool) []byte {
-	parts := make(SignatureParts, walletConfig.Signers_.Len())
+func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign, isEoa map[common.Address]bool) []byte {
 
 	// pre-determined signature, tailored for worse-case scenario in gas costs
 	// TODO: Compute average siganture and present a more likely scenario for a more close estimation
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
-	for i, s := range walletConfig.Signers_ {
-		if willSign[i] {
-			if isEoa[i] {
-				parts[i] = &SignaturePart{
-					Weight:  s.Weight,
-					Address: s.Address,
-					Type:    SignaturePartTypeEOA,
-					Value:   sig,
-				}
-			} else {
-				sig := e.BuildStubSignature(&v1.WalletConfig{
-					Threshold_: 2,
-					Signers_: v1.WalletConfigSigners{
-						{
-							Address: stubAddress(),
-							Weight:  1,
-						},
-						{
-							Address: stubAddress(),
-							Weight:  1,
-						},
-						{
-							Address: stubAddress(),
-							Weight:  1,
+	if confV1, ok := walletConfig.(*v1.WalletConfig); ok {
+		var i int
+		sem := semaphore.NewWeighted(1)
+		sigV1, err := confV1.BuildSignature(context.Background(), func(ctx context.Context, signer common.Address) (core.SignerSignatureType, []byte, error) {
+			_ = sem.Acquire(ctx, 1)
+			defer sem.Release(1)
+			defer func() { i++ }()
+
+			if willSign[signer] {
+				if isEoa[signer] {
+					return core.SignerSignatureTypeEthSign, sig, nil
+				} else {
+					address1 := stubAddress()
+					address2 := stubAddress()
+					address3 := stubAddress()
+
+					sig := e.BuildStubSignature(&v1.WalletConfig{
+						Threshold_: 2,
+						Signers_: v1.WalletConfigSigners{
+							{
+								Address: address1,
+								Weight:  1,
+							},
+							{
+								Address: address2,
+								Weight:  1,
+							},
+							{
+								Address: address3,
+								Weight:  1,
+							},
 						},
 					},
-				}, []bool{false, true, true}, []bool{true, true, true})
+						map[common.Address]bool{address1: false, address2: true, address3: true},
+						map[common.Address]bool{address1: true, address2: true, address3: true})
 
-				sig = append(sig, 03)
-
-				parts[i] = &SignaturePart{
-					Weight:  s.Weight,
-					Address: s.Address,
-					Type:    SignaturePartTypeDynamic,
-					Value:   sig,
+					return core.SignerSignatureTypeEIP1271, sig, nil
 				}
+			} else {
+				return 0, nil, fmt.Errorf("no signature")
 			}
-		} else {
-			parts[i] = &SignaturePart{
-				Weight:  s.Weight,
-				Address: s.Address,
-				Type:    SignaturePartTypeAddress,
-			}
+		}, false)
+		if err != nil {
+			return nil
 		}
+
+		encoded, err := sigV1.Data()
+		if err != nil {
+			return nil
+		}
+		return encoded
+	} else if confV2, ok := walletConfig.(*v2.WalletConfig); ok {
+		sigV2, err := confV2.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address) (core.SignerSignatureType, []byte, error) {
+			return core.SignerSignatureTypeEthSign, sig, nil
+		})
+		if err != nil {
+			return nil
+		}
+
+		encoded, err := sigV2.Data()
+		if err != nil {
+			return nil
+		}
+		return encoded
+	} else {
+		return nil
 	}
-
-	signature := Signature{
-		Threshold: walletConfig.Threshold_,
-		Signers:   parts,
-	}
-
-	encoded, err := signature.Encode()
-
-	// This method builds a signature from scratch
-	// it should never faild to encode it
-	if err != nil {
-		panic(err)
-	}
-
-	return encoded
 }
 
 func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {

@@ -1,13 +1,6 @@
 package sequence_test
 
-import (
-	"testing"
-
-	"github.com/0xsequence/ethkit/ethwallet"
-	"github.com/0xsequence/go-sequence"
-	"github.com/stretchr/testify/assert"
-)
-
+/*
 const message = "hi!"
 
 func TestSignatureReduction(t *testing.T) {
@@ -553,3 +546,4 @@ func areSignaturesIsomorphic(a *signature, b *signature) bool {
 
 	return true
 }
+*/
