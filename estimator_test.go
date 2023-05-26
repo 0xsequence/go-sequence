@@ -507,8 +507,7 @@ func TestEstimateSequenceNestedSignersV1(t *testing.T) {
 	assert.Equal(t, "3335", ret[0])
 }
 
-// todo: fix this test
-/*func TestPickLowestWeightForEstimationV1(t *testing.T) {
+func TestPickLowestWeightForEstimationV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
@@ -550,15 +549,22 @@ func TestEstimateSequenceNestedSignersV1(t *testing.T) {
 		},
 	}
 
-	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config, []bool{true, true, true, true, true})
+	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
+		map[common.Address]bool{
+			eoa2.Address(): true,
+			eoa1.Address(): true,
+			eoa5.Address(): true,
+			eoa4.Address(): true,
+			eoa3.Address(): true,
+		})
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(pick), 5)
-	assert.Equal(t, pick[0], true)
-	assert.Equal(t, pick[1], true)
-	assert.Equal(t, pick[2], false)
-	assert.Equal(t, pick[3], false)
-	assert.Equal(t, pick[4], true)
+	assert.Equal(t, pick[eoa2.Address()], true)
+	assert.Equal(t, pick[eoa1.Address()], true)
+	assert.Equal(t, pick[eoa5.Address()], false)
+	assert.Equal(t, pick[eoa4.Address()], false)
+	assert.Equal(t, pick[eoa3.Address()], true)
 }
 
 func TestPickNonEOAsForEstimationV1(t *testing.T) {
@@ -603,15 +609,22 @@ func TestPickNonEOAsForEstimationV1(t *testing.T) {
 		},
 	}
 
-	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config, []bool{true, true, true, false, true})
+	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
+		map[common.Address]bool{
+			eoa2.Address(): true,
+			eoa1.Address(): true,
+			eoa5.Address(): true,
+			eoa4.Address(): false,
+			eoa3.Address(): true,
+		})
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(pick), 5)
-	assert.Equal(t, pick[0], false)
-	assert.Equal(t, pick[1], true)
-	assert.Equal(t, pick[2], false)
-	assert.Equal(t, pick[3], true)
-	assert.Equal(t, pick[4], false)
+	assert.Equal(t, pick[eoa2.Address()], false)
+	assert.Equal(t, pick[eoa1.Address()], true)
+	assert.Equal(t, pick[eoa5.Address()], false)
+	assert.Equal(t, pick[eoa4.Address()], true)
+	assert.Equal(t, pick[eoa3.Address()], false)
 }
 
 func TestPickNonEOAsLowestWeightForEstimationV1(t *testing.T) {
@@ -656,15 +669,22 @@ func TestPickNonEOAsLowestWeightForEstimationV1(t *testing.T) {
 		},
 	}
 
-	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config, []bool{false, false, false, false, false})
+	pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
+		map[common.Address]bool{
+			eoa2.Address(): false,
+			eoa1.Address(): false,
+			eoa5.Address(): false,
+			eoa4.Address(): false,
+			eoa3.Address(): false,
+		})
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(pick), 5)
-	assert.Equal(t, pick[0], true)
-	assert.Equal(t, pick[1], true)
-	assert.Equal(t, pick[2], false)
-	assert.Equal(t, pick[3], false)
-	assert.Equal(t, pick[4], true)
+	assert.Equal(t, pick[eoa2.Address()], true)
+	assert.Equal(t, pick[eoa1.Address()], true)
+	assert.Equal(t, pick[eoa5.Address()], false)
+	assert.Equal(t, pick[eoa4.Address()], false)
+	assert.Equal(t, pick[eoa3.Address()], true)
 }
 
 func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
@@ -715,4 +735,3 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 	}
 }
-*/

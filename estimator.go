@@ -23,7 +23,6 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -221,6 +220,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	errCh := make(chan error)
 	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
 
+	var mutex sync.Mutex
 	for i := range walletConfig.Signers_ {
 		wg.Add(1)
 
@@ -239,11 +239,15 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 			}()
 
 			var err error
-			res[address], err = e.isEOA(ctx, provider, address)
+			isEOA, err := e.isEOA(ctx, provider, address)
 			if err != nil {
 				errCh <- err
 				return
 			}
+
+			mutex.Lock()
+			res[address] = isEOA
+			mutex.Unlock()
 		}(ctx, i, walletConfig.Signers_[i].Address)
 	}
 	wg.Wait()
@@ -316,11 +320,11 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig *v1.WalletConf
 	// Pick signers until we reach the threshold we stop
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
 	for _, s := range sortedSigners {
-		weightSum += int(s.s.Weight)
-		willSign[s.s.Address] = true
-
 		if weightSum >= threshold {
-			break
+			willSign[s.s.Address] = false
+		} else {
+			weightSum += int(s.s.Weight)
+			willSign[s.s.Address] = true
 		}
 	}
 
@@ -340,13 +344,7 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
 	if confV1, ok := walletConfig.(*v1.WalletConfig); ok {
-		var i int
-		sem := semaphore.NewWeighted(1)
 		sigV1, err := confV1.BuildSignature(context.Background(), func(ctx context.Context, signer common.Address) (core.SignerSignatureType, []byte, error) {
-			_ = sem.Acquire(ctx, 1)
-			defer sem.Release(1)
-			defer func() { i++ }()
-
 			if willSign[signer] {
 				if isEoa[signer] {
 					return core.SignerSignatureTypeEthSign, sig, nil
