@@ -625,10 +625,10 @@ func (c *WalletConfig) ImageHash() core.ImageHash {
 	return core.ImageHash{Hash: imageHash, Preimage: c}
 }
 
-func (c *WalletConfig) BuildSignature(ctx context.Context, sign core.SigningFunction, validateSignature ...bool) (core.Signature[*WalletConfig], error) {
+func (c *WalletConfig) BuildSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
 	isValid := false
-	if len(validateSignature) > 0 {
-		isValid = !validateSignature[0]
+	if len(validateSigningPower) > 0 {
+		isValid = !validateSigningPower[0]
 	}
 
 	signerWeights := map[common.Address]*big.Int{}

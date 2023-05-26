@@ -392,7 +392,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	// todo: add to core.WalletConfig? so this trickery is not needed?
 	var coreWalletConfig core.WalletConfig = w.config
 	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
-		sig, err := config.BuildRegularSignature(ctx, sign)
+		sig, err := config.BuildRegularSignature(ctx, sign, false)
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
 		}

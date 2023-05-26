@@ -1209,7 +1209,12 @@ func (c *WalletConfig) ImageHash() core.ImageHash {
 	}
 }
 
-func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction) (core.Signature[*WalletConfig], error) {
+func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
+	isValid := false
+	if len(validateSigningPower) > 0 {
+		isValid = !validateSigningPower[0]
+	}
+
 	configSigners := c.Signers()
 
 	signerSignatureCh := make(chan signerSignature)
@@ -1226,7 +1231,6 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 
 	signerSignatures := map[common.Address]signerSignature{}
 	signedSigners := map[common.Address]uint16{}
-	isValid := false
 
 	for range configSigners {
 		signerSignature := <-signerSignatureCh
