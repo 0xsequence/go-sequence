@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/BurntSushi/toml"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -76,4 +77,26 @@ func TestWalletConfigTOML(t *testing.T) {
 	assert.NoError(t, err)
 
 	spew.Dump(config_)
+}
+
+func TestReduceSignature(t *testing.T) {
+	signature := "0x0200050000000a0102aa79283d0206aba8c14a2a30df589648c54490e7020314327739c49f93a04c38623b54a4a75b49e6f646000062020001000000000001fde94c874698620141d895ddd82dc36898bd03b2dd2dd6b970e25fbabc54fd6e65eaf44b207f28dd282e0e8661196d9d4c112c12f4798ac7ac46c8d814df79571b020101b1f69536d293ee3764ce9881894a68029666a851030400005a00034d2c18410daf9379ce00b4ef13330a18b8677c1b95e814c8859ce1159668cf2a5180c7a5b809a746574ed14403dd5f78828c718a8aaac8924a7dfab22a5d85a11b020102cae521702a655832403bf3f751dce0be2fe8af2a0400005c0102b02b38d317751d4b7864097800a82b4f2090b2f70102b53dafe1716b3a7c5ee2072c6881658447fe465a0400002c0102254f1e583509980fe791fb12a0471d7c59c06ad50102ef86b8b2e0cf2ff0660840031f45adc50abd734c0102080aa40b944885f166dedade5f4d5fa4a13cbfad"
+
+	decodedSignature, err := Core.DecodeSignature(hexutil.MustDecode(signature))
+	assert.NoErrorf(t, err, "unable to decode signature")
+
+	spew.Dump(decodedSignature)
+
+	reducedSignature := decodedSignature.Reduce(core.Subdigest{})
+
+	spew.Dump(reducedSignature)
+
+	reEncodedSignature, err := reducedSignature.Data()
+	assert.NoErrorf(t, err, "unable to re-encode reduced signature")
+
+	fmt.Printf("original signature:           %v\n", signature)
+	fmt.Printf("re-encoded reduced signature: %v\n", hexutil.Encode(reEncodedSignature))
+	fmt.Println()
+
+	assert.LessOrEqual(t, len(hexutil.Encode(reEncodedSignature)), len(signature))
 }

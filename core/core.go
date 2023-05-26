@@ -56,6 +56,9 @@ type Signature[C WalletConfig] interface {
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
 	Recover(ctx context.Context, digest Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
+	// Reduce returns an equivalent optimized signature.
+	Reduce(subdigest Subdigest) Signature[C]
+
 	// Data is the raw signature data.
 	Data() ([]byte, error)
 

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -174,6 +175,154 @@ func (s *signature) Recover(ctx context.Context, digest core.Digest, wallet comm
 		Threshold_: s.threshold,
 		Signers_:   signers,
 	}, &total, nil
+}
+
+const (
+	eoaCost     = 3000 + 65*16
+	addressCost = 20 * 16
+)
+
+func (s *signature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
+	var leaves []signatureLeaf
+	var weights []int
+	var costs []int
+	var weight int
+
+	addresses := make([]common.Address, len(s.leaves))
+
+	for i, leaf := range s.leaves {
+		switch leaf := leaf.(type) {
+		case *signatureTreeECDSASignatureLeaf:
+			var err error
+			addresses[i], err = ecrecover(subdigest, leaf.signature[:])
+			if err == nil {
+				leaves = append(leaves, leaf)
+				weights = append(weights, int(leaf.weight))
+				costs = append(costs, eoaCost)
+				weight += int(leaf.weight)
+			} else {
+				// never prune an EOA signature that cannot be recovered
+				leaves = append(leaves, leaf)
+				weights = append(weights, math.MaxInt32)
+				costs = append(costs, eoaCost)
+				weight += int(leaf.weight)
+			}
+
+		case *signatureTreeAddressLeaf:
+			leaves = append(leaves, leaf)
+			weights = append(weights, math.MaxInt32)
+			costs = append(costs, addressCost)
+
+		case *signatureTreeDynamicSignatureLeaf:
+			value, cost := leaf.signature, eoaCost
+			if subsignature, err := Core.DecodeSignature(leaf.signature); err == nil {
+				subsignature = subsignature.Reduce(subdigest)
+				if cost, err = subsignature.(*signature).cost(); err == nil {
+					value, _ = subsignature.Data()
+				}
+			}
+
+			leaves = append(leaves, &signatureTreeDynamicSignatureLeaf{
+				weight:    leaf.weight,
+				address:   leaf.address,
+				type_:     leaf.type_,
+				signature: value,
+			})
+			weights = append(weights, int(leaf.weight))
+			costs = append(costs, cost)
+			weight += int(leaf.weight)
+		}
+	}
+
+	if weight > int(s.threshold) {
+		// This signature possesses more weight than is necessary to meet the threshold.
+		// Solve the knapsack problem to find the optimal sub-signatures to prune.
+		_, redundant := knapsack(weight-int(s.threshold), weights, costs)
+		for _, i := range redundant {
+			switch leaf := leaves[i].(type) {
+			case *signatureTreeECDSASignatureLeaf:
+				leaves[i] = &signatureTreeAddressLeaf{
+					weight:  leaf.weight,
+					address: addresses[i],
+				}
+
+			case *signatureTreeAddressLeaf:
+				panic("address leaf is redundant")
+
+			case *signatureTreeDynamicSignatureLeaf:
+				leaves[i] = &signatureTreeAddressLeaf{
+					weight:  leaf.weight,
+					address: leaf.address,
+				}
+			}
+		}
+	}
+
+	return &signature{
+		threshold: s.threshold,
+		leaves:    leaves,
+	}
+}
+
+// Estimates the gas needed to encode and validate this signature
+func (s *signature) cost() (int, error) {
+	var cost int
+
+	for _, leaf := range s.leaves {
+		switch leaf := leaf.(type) {
+		case *signatureTreeECDSASignatureLeaf:
+			cost += eoaCost
+
+		case *signatureTreeAddressLeaf:
+			cost += addressCost
+
+		case *signatureTreeDynamicSignatureLeaf:
+			subsignature, err := Core.DecodeSignature(leaf.signature)
+			if err != nil {
+				return 0, err
+			}
+
+			dynamicCost, err := subsignature.(*signature).cost()
+			if err != nil {
+				return 0, err
+			}
+
+			cost += dynamicCost
+		}
+	}
+
+	cost++ // perturb the cost ever so slightly to bias against nesting
+
+	return cost, nil
+}
+
+// Solves the knapsack problem
+func knapsack(capacity int, weights []int, values []int) (int, []int) {
+	// m[i][j] = maximum value achievable using only first i items up to capacity j
+	m := [][]int{make([]int, capacity+1)}
+	for range weights {
+		m = append(m, make([]int, capacity+1))
+	}
+
+	for i, w := range weights {
+		for j := 0; j <= capacity; j++ {
+			m[i+1][j] = m[i][j]
+			if j >= w && m[i+1][j] < m[i][j-w]+values[i] {
+				m[i+1][j] = m[i][j-w] + values[i]
+			}
+		}
+	}
+
+	var s []int
+	j := capacity
+	for i := len(weights) - 1; i >= 0; i-- {
+		if m[i+1][j] != m[i][j] {
+			s = append(s, i)
+			j -= weights[i]
+		}
+	}
+
+	return m[len(weights)][capacity], s
 }
 
 func (s *signature) Data() ([]byte, error) {

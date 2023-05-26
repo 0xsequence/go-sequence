@@ -188,6 +188,15 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 	}, weight, nil
 }
 
+func (s *regularSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
+	return &regularSignature{
+		isRegular:  s.isRegular,
+		threshold:  s.threshold,
+		checkpoint: s.checkpoint,
+		tree:       s.tree.reduce(),
+	}
+}
+
 func (s *regularSignature) Data() ([]byte, error) {
 	var buffer bytes.Buffer
 
@@ -289,6 +298,14 @@ func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wa
 		Checkpoint_: s.checkpoint,
 		Tree:        tree,
 	}, weight, nil
+}
+
+func (s *noChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
+	return &noChainIDSignature{
+		threshold:  s.threshold,
+		checkpoint: s.checkpoint,
+		tree:       s.tree.reduce(),
+	}
 }
 
 func (s *noChainIDSignature) Data() ([]byte, error) {
@@ -419,6 +436,14 @@ func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, walle
 	return config, weight, nil
 }
 
+func (s chainedSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
+	subsignatures := make(chainedSignature, 0, len(s))
+	for _, subsignature := range s {
+		subsignatures = append(subsignatures, subsignature.Reduce(subdigest))
+	}
+	return subsignatures
+}
+
 func (s chainedSignature) Data() ([]byte, error) {
 	var buffer bytes.Buffer
 
@@ -463,6 +488,8 @@ func (s chainedSignature) String() string {
 
 type signatureTree interface {
 	recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error)
+	reduce() signatureTree
+	reduceImageHash() (core.ImageHash, error)
 	write(writer io.Writer) error
 }
 
@@ -546,6 +573,31 @@ func (n *signatureTreeNode) recover(ctx context.Context, subdigest core.Subdiges
 	}
 
 	return &WalletConfigTreeNode{left, right}, new(big.Int).Add(leftWeight, rightWeight), nil
+}
+
+func (n *signatureTreeNode) reduce() signatureTree {
+	if imageHash, err := n.reduceImageHash(); err == nil {
+		return signatureTreeNodeLeaf{imageHash}
+	} else {
+		return &signatureTreeNode{
+			left:  n.left.reduce(),
+			right: n.right.reduce(),
+		}
+	}
+}
+
+func (n *signatureTreeNode) reduceImageHash() (core.ImageHash, error) {
+	if leftImageHash, err := n.left.reduceImageHash(); err == nil {
+		if rightImageHash, err := n.right.reduceImageHash(); err == nil {
+			node := WalletConfigTreeNode{
+				Left:  WalletConfigTreeNodeLeaf{leftImageHash},
+				Right: WalletConfigTreeNodeLeaf{rightImageHash},
+			}
+			return node.ImageHash(), nil
+		}
+	}
+
+	return core.ImageHash{}, fmt.Errorf("node might have signing power")
 }
 
 func (n *signatureTreeNode) write(writer io.Writer) error {
@@ -680,6 +732,14 @@ func (l *signatureTreeECDSASignatureLeaf) recover(ctx context.Context, subdigest
 	}, new(big.Int).SetUint64(uint64(l.weight)), nil
 }
 
+func (l *signatureTreeECDSASignatureLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l *signatureTreeECDSASignatureLeaf) reduceImageHash() (core.ImageHash, error) {
+	return core.ImageHash{}, fmt.Errorf("ecdsa signature leaf has signing power")
+}
+
 func (l *signatureTreeECDSASignatureLeaf) write(writer io.Writer) error {
 	_, err := writer.Write([]byte{byte(signatureLeafTypeECDSASignature)})
 	if err != nil {
@@ -738,6 +798,18 @@ func (l *signatureTreeAddressLeaf) recover(ctx context.Context, subdigest core.S
 		Weight:  l.weight,
 		Address: l.address,
 	}, new(big.Int), nil
+}
+
+func (l *signatureTreeAddressLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l *signatureTreeAddressLeaf) reduceImageHash() (core.ImageHash, error) {
+	leaf := WalletConfigTreeAddressLeaf{
+		Weight:  l.weight,
+		Address: l.address,
+	}
+	return leaf.ImageHash(), nil
 }
 
 func (l *signatureTreeAddressLeaf) write(writer io.Writer) error {
@@ -907,6 +979,22 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 	}
 }
 
+func (l *signatureTreeDynamicSignatureLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l *signatureTreeDynamicSignatureLeaf) reduceImageHash() (core.ImageHash, error) {
+	if l.weight == 0 {
+		leaf := WalletConfigTreeAddressLeaf{
+			Weight:  l.weight,
+			Address: l.address,
+		}
+		return leaf.ImageHash(), nil
+	}
+
+	return core.ImageHash{}, fmt.Errorf("dynamic signature leaf might have signing power")
+}
+
 func (l *signatureTreeDynamicSignatureLeaf) write(writer io.Writer) error {
 	_, err := writer.Write([]byte{byte(signatureLeafTypeDynamicSignature)})
 	if err != nil {
@@ -967,6 +1055,14 @@ func (l signatureTreeNodeLeaf) recover(ctx context.Context, subdigest core.Subdi
 	leaf := WalletConfigTreeNodeLeaf{core.ImageHash{Hash: l.ImageHash.Hash}}
 	leaf.Node.Preimage = &leaf
 	return leaf, new(big.Int), nil
+}
+
+func (l signatureTreeNodeLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l signatureTreeNodeLeaf) reduceImageHash() (core.ImageHash, error) {
+	return WalletConfigTreeNodeLeaf{l.ImageHash}.ImageHash(), nil
 }
 
 func (l signatureTreeNodeLeaf) write(writer io.Writer) error {
@@ -1050,6 +1146,14 @@ func (l signatureTreeSubdigestLeaf) recover(ctx context.Context, subdigest core.
 	}
 }
 
+func (l signatureTreeSubdigestLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l signatureTreeSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
+	return WalletConfigTreeSubdigestLeaf{l.Subdigest}.ImageHash(), nil
+}
+
 func (l signatureTreeSubdigestLeaf) write(writer io.Writer) error {
 	_, err := writer.Write([]byte{byte(signatureLeafTypeSubdigest)})
 	if err != nil {
@@ -1125,6 +1229,29 @@ func (l *signatureTreeNestedLeaf) recover(ctx context.Context, subdigest core.Su
 	} else {
 		return tree, new(big.Int), nil
 	}
+}
+
+func (l *signatureTreeNestedLeaf) reduce() signatureTree {
+	return &signatureTreeNestedLeaf{
+		weight:    l.weight,
+		threshold: l.threshold,
+		tree:      l.tree.reduce(),
+	}
+}
+
+func (l *signatureTreeNestedLeaf) reduceImageHash() (core.ImageHash, error) {
+	if l.weight == 0 {
+		if imageHash, err := l.tree.reduceImageHash(); err == nil {
+			leaf := WalletConfigTreeNestedLeaf{
+				Weight:    l.weight,
+				Threshold: l.threshold,
+				Tree:      WalletConfigTreeNodeLeaf{imageHash},
+			}
+			return leaf.ImageHash(), nil
+		}
+	}
+
+	return core.ImageHash{}, fmt.Errorf("nested leaf might have signing power")
 }
 
 func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {

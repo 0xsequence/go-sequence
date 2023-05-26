@@ -122,16 +122,11 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 			return err
 		}
 
-		_, _, err = ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
+		_, subdigest, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
 		if err != nil {
 			return err
 		}
-
-		// todo: implement Reduce in core
-		//err = signature.Reduce(metaTxnID[:])
-		//if err != nil {
-		//	return err
-		//}
+		signature = signature.Reduce(core.Subdigest{Hash: subdigest})
 
 		encoded, err := signature.Data()
 		if err != nil {
