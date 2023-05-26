@@ -1334,6 +1334,45 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 	}
 }
 
+func WalletConfigTreeNodes(nodes ...WalletConfigTree) WalletConfigTree {
+	if len(nodes) == 0 {
+		return nil
+	} else if len(nodes) == 1 {
+		return nodes[0]
+	} else {
+		numberOfNodes := len(nodes)/2 + len(nodes)%2
+		for numberOfNodes > 1 {
+			newNodes := make([]WalletConfigTree, numberOfNodes)
+			for i := 0; i < numberOfNodes; i++ {
+				var left, right WalletConfigTree
+				if i*2 < len(nodes) {
+					left = nodes[i*2]
+				}
+				if i*2+1 < len(nodes) {
+					right = nodes[i*2+1]
+				}
+
+				if right == nil {
+					newNodes[i] = left
+				} else {
+					newNodes[i] = &WalletConfigTreeNode{
+						Left:  left,
+						Right: right,
+					}
+				}
+			}
+
+			nodes = newNodes
+			numberOfNodes = len(nodes)/2 + len(nodes)%2
+		}
+
+		return &WalletConfigTreeNode{
+			Left:  nodes[0],
+			Right: nodes[1],
+		}
+	}
+}
+
 type WalletConfigTreeNode struct {
 	Left  WalletConfigTree `json:"left" toml:"left"`
 	Right WalletConfigTree `json:"right" toml:"right"`
