@@ -10,16 +10,39 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-ethauth"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
 // as ethauth proofs and verifable on a Go backend.
 
-func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
-	return ValidateSequenceAccountProofWith(SequenceContexts())
+func ValidateSequenceAccountProof[C core.WalletConfig]() ethauth.ValidatorFunc {
+	var walletConfig C
+	return ValidateSequenceAccountProofWith[C](SequenceContextForWalletConfig(walletConfig))
 }
 
-func ValidateSequenceAccountProofWith(walletContexts WalletContexts) ethauth.ValidatorFunc {
+func ValidateSequenceAccountProofG() ethauth.ValidatorFunc {
+	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
+		validatorFuncV1 := ValidateSequenceAccountProof[*v1.WalletConfig]()
+		validatorFuncV2 := ValidateSequenceAccountProof[*v2.WalletConfig]()
+
+		valid1, address1, err1 := validatorFuncV2(ctx, provider, chainID, proof)
+		if valid1 && err1 == nil {
+			return valid1, address1, nil
+		}
+
+		valid2, address2, err2 := validatorFuncV1(ctx, provider, chainID, proof)
+		if valid2 && err2 == nil {
+			return valid2, address2, nil
+		}
+
+		return false, "", fmt.Errorf("ValidateSequenceAccountProof failed. %v, %v", err1, err2)
+	}
+}
+
+func ValidateSequenceAccountProofWith[C core.WalletConfig](walletContexts WalletContext) ethauth.ValidatorFunc {
 	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
 		if provider == nil {
 			return false, "", fmt.Errorf("ValidateContractAccountToken failed. provider is nil")
@@ -44,7 +67,7 @@ func ValidateSequenceAccountProofWith(walletContexts WalletContexts) ethauth.Val
 		numAttempts := 4
 
 		for i := 1; i <= numAttempts; i++ {
-			valid, _ = IsValidSignature(
+			valid, _ = IsValidSignature[C](
 				common.HexToAddress(proof.Address),
 				common.BytesToHash(messageDigest),
 				sig,
@@ -63,5 +86,24 @@ func ValidateSequenceAccountProofWith(walletContexts WalletContexts) ethauth.Val
 		}
 
 		return true, proof.Address, nil
+	}
+}
+
+func ValidateSequenceAccountProofWithContextG(walletContexts WalletContexts) ethauth.ValidatorFunc {
+	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
+		validatorFuncV1 := ValidateSequenceAccountProofWith[*v1.WalletConfig](walletContexts[1])
+		validatorFuncV2 := ValidateSequenceAccountProofWith[*v2.WalletConfig](walletContexts[2])
+
+		valid1, address1, err1 := validatorFuncV2(ctx, provider, chainID, proof)
+		if valid1 && err1 == nil {
+			return valid1, address1, nil
+		}
+
+		valid2, address2, err2 := validatorFuncV1(ctx, provider, chainID, proof)
+		if valid2 && err2 == nil {
+			return valid2, address2, nil
+		}
+
+		return false, "", fmt.Errorf("ValidateSequenceAccountProof failed. %v, %v", err1, err2)
 	}
 }

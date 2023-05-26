@@ -29,6 +29,10 @@ var isValidSignatureMagicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
 
 var Core core.Core[*WalletConfig, core.Signature[*WalletConfig]] = v2Core{}
 
+func init() {
+	core.RegisterCore(Core)
+}
+
 type v2Core struct{}
 
 func (v2Core) DecodeSignature(data []byte) (core.Signature[*WalletConfig], error) {

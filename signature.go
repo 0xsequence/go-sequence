@@ -14,41 +14,10 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/core"
-	v1 "github.com/0xsequence/go-sequence/core/v1"
-	"github.com/0xsequence/go-sequence/core/v2"
 )
 
 func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
 	return wallet.SignDigest(context.Background(), input)
-}
-
-// Solves the knapsack problem
-func knapsack(capacity int, weights []int, values []int) (int, []int) {
-	// m[i][j] = maximum value achievable using only first i items up to capacity j
-	m := [][]int{make([]int, capacity+1)}
-	for range weights {
-		m = append(m, make([]int, capacity+1))
-	}
-
-	for i, w := range weights {
-		for j := 0; j <= capacity; j++ {
-			m[i+1][j] = m[i][j]
-			if j >= w && m[i+1][j] < m[i][j-w]+values[i] {
-				m[i+1][j] = m[i][j-w] + values[i]
-			}
-		}
-	}
-
-	var s []int
-	j := capacity
-	for i := len(weights) - 1; i >= 0; i-- {
-		if m[i+1][j] != m[i][j] {
-			s = append(s, i)
-			j -= weights[i]
-		}
-	}
-
-	return m[len(weights)][capacity], s
 }
 
 // DecodeSignature sequence into individual parts
@@ -60,23 +29,16 @@ func DecodeSignature[C core.WalletConfig](sequenceSignature []byte) (core.Signat
 		return nil, fmt.Errorf("sequence: invalid signature, out-of-bounds threshold")
 	}
 
-	var typeOfConfig C
-	var generalTypeOfConfig core.WalletConfig = typeOfConfig
-	if _, ok := generalTypeOfConfig.(*v2.WalletConfig); ok {
-		decodedSignature, err := v2.Core.DecodeSignature(sig)
-		if err != nil {
-			return nil, fmt.Errorf("sequence: invalid signature, %v", err)
-		}
-		return decodedSignature.(core.Signature[C]), nil
-	} else if _, ok := generalTypeOfConfig.(*v1.WalletConfig); ok {
-		decodedSignature, err := v1.Core.DecodeSignature(sig)
-		if err != nil {
-			return nil, fmt.Errorf("sequence: invalid signature, %v", err)
-		}
-		return decodedSignature.(core.Signature[C]), nil
-	} else {
-		return nil, fmt.Errorf("sequence: unknown config type")
+	c, err := core.GetCoreForWalletConfig[C]()
+	if err != nil {
+		return nil, fmt.Errorf("sequence: failed to get core implementation, %v", err)
 	}
+
+	decodedSignature, err := c.DecodeSignature(sig)
+	if err != nil {
+		return nil, fmt.Errorf("sequence: invalid signature, %v", err)
+	}
+	return decodedSignature, nil
 }
 
 func RecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (C, *big.Int, error) {
@@ -99,7 +61,7 @@ func RecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, w
 	return wc, weight, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func IsValidSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	// Try to do it first with ethereum sign signature format
 	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
 	if err == nil {
@@ -115,26 +77,12 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	}
 
 	if len(code) == 0 {
-		// It may be a signature from a non-deployed sequence wallet, check and attempt to validate
-		// first we try for a v2 wallet, assuming that the context is a valid v2 wallet context
-		// if it's not then we can safely assume that it's a v1 wallet context (or invalid)
-		res2, err2 := IsValidV2UndeployedSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
-		if err2 == nil && res2 {
+		res, err := IsValidUndeployedSignature[C](walletAddress, digest, seqSig, walletContext, chainID, provider)
+		if err == nil && res {
 			return true, nil
 		}
 
-		subDigest, err := SubDigest(chainID, walletAddress, digest)
-		if err != nil {
-			return false, err
-		}
-
-		res1, err1 := IsValidV1UndeployedSignature(walletAddress, subDigest, seqSig, walletContexts[1], chainID, provider)
-		if err1 == nil && res1 {
-			return true, nil
-		}
-
-		return false, fmt.Errorf("failed to validate: %v, %v", err1, err2)
-
+		return false, fmt.Errorf("failed to validate: %v", err)
 	} else {
 		// Smart wallet is deployed, query erc1271 method to check signature
 		erc1271, err := ierc1271.NewIERC1271(walletAddress, provider)
@@ -156,27 +104,13 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	return true, nil
 }
 
-// TODO: Use core methods
-func IsValidV1UndeployedSignature(walletAddress common.Address, subDigest []byte, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	recoveredWalletConfig, weight, err := RecoverWalletConfigFromDigest[*v1.WalletConfig](subDigest, seqSig, walletAddress, walletContext, chainID, provider)
+func IsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	c, err := core.GetCoreForWalletConfig[C]()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("sequence: failed to get core implementation, %v", err)
 	}
 
-	recoveredAddress, err := AddressFromWalletConfig(recoveredWalletConfig, walletContext)
-	if err != nil {
-		return false, err
-	}
-
-	if recoveredAddress != walletAddress || weight.Cmp(big.NewInt(int64(recoveredWalletConfig.Threshold()))) < 0 {
-		return false, fmt.Errorf("failed to validate")
-	}
-
-	return true, nil
-}
-
-func IsValidV2UndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	decoded, err := v2.Core.DecodeSignature(seqSig)
+	decoded, err := c.DecodeSignature(seqSig)
 	if err != nil {
 		return false, err
 	}
@@ -192,7 +126,7 @@ func IsValidV2UndeployedSignature(walletAddress common.Address, digest common.Ha
 		return false, err
 	}
 
-	if address != walletAddress || weight.Uint64() < uint64(recovered.Threshold_) {
+	if address != walletAddress || weight.Uint64() < uint64(recovered.Threshold()) {
 		return false, fmt.Errorf("failed to validate")
 	}
 

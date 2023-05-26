@@ -18,6 +18,21 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
+var cores []any
+
+func RegisterCore[C WalletConfig, S Signature[C]](core Core[C, S]) {
+	cores = append(cores, core)
+}
+
+func GetCoreForWalletConfig[C WalletConfig]() (Core[C, Signature[C]], error) {
+	for _, core := range cores {
+		if core, ok := core.(Core[C, Signature[C]]); ok {
+			return core, nil
+		}
+	}
+	return nil, fmt.Errorf("sequence: core not found")
+}
+
 type Core[C WalletConfig, S Signature[C]] interface {
 	// DecodeSignature takes raw signature data and returns a Signature that can Recover a WalletConfig.
 	DecodeSignature(data []byte) (S, error)

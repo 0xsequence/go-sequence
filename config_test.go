@@ -106,7 +106,7 @@ func TestWalletConfigImageHash(t *testing.T) {
 	})
 }
 
-func TestWalletAddressFromWalletConfigV1(t *testing.T) {
+func TestWalletAddressFromWalletConfig(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
 		wc := &v1.WalletConfig{
 			Threshold_: 1, //big.NewInt(1),
@@ -148,7 +148,7 @@ func TestWalletAddressFromWalletConfigV1(t *testing.T) {
 	})
 }
 
-func TestWalletIsWalletConfigUsableV1(t *testing.T) {
+func TestWalletIsWalletConfigUsable(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
 		{
 			wcGood := &v1.WalletConfig{
