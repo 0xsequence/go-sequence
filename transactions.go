@@ -117,7 +117,7 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 	}
 
 	if len(t.Signature) != 0 {
-		signature, err := DecodeSignature[*v1.WalletConfig](t.Signature)
+		signature, err := GenericDecodeSignature[*v1.WalletConfig](t.Signature)
 		if err != nil {
 			return err
 		}

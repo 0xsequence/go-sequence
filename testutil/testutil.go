@@ -493,7 +493,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 	if err != nil {
 		return nil, err
 	}
-	wallet, err := sequence.NewWalletSingleOwner[*v1.WalletConfig](owner)
+	wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](owner)
 	if err != nil {
 		return nil, err
 	}
@@ -514,7 +514,7 @@ func (c *TestChain) DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*se
 		return nil, err
 	}
 
-	genericWallet := sequence.NewGenericWallet(wallet)
+	genericWallet := sequence.GenericNewWalletWithCoreWalletConfig(wallet)
 
 	// Skip deploying the dummy wallet if specified
 	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {

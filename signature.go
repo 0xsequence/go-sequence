@@ -14,14 +14,16 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 )
 
 func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
 	return wallet.SignDigest(context.Background(), input)
 }
 
-// DecodeSignature sequence into individual parts
-func DecodeSignature[C core.WalletConfig](sequenceSignature []byte) (core.Signature[C], error) {
+// GenericDecodeSignature sequence into individual parts
+func GenericDecodeSignature[C core.WalletConfig](sequenceSignature []byte) (core.Signature[C], error) {
 	sig := sequenceSignature
 
 	s := len(sig)
@@ -41,14 +43,22 @@ func DecodeSignature[C core.WalletConfig](sequenceSignature []byte) (core.Signat
 	return decodedSignature, nil
 }
 
-func RecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (C, *big.Int, error) {
+func V1DecodeSignature(sequenceSignature []byte) (core.Signature[*v1.WalletConfig], error) {
+	return GenericDecodeSignature[*v1.WalletConfig](sequenceSignature)
+}
+
+func DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
+	return GenericDecodeSignature[*v2.WalletConfig](sequenceSignature)
+}
+
+func GenericRecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (C, *big.Int, error) {
 	var (
 		wc     C
 		weight *big.Int
 		err    error
 	)
 
-	decoded, err := DecodeSignature[C](seqSig)
+	decoded, err := GenericDecodeSignature[C](seqSig)
 	if err != nil {
 		return wc, weight, err
 	}
@@ -61,7 +71,15 @@ func RecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, w
 	return wc, weight, nil
 }
 
-func IsValidSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func V1RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v1.WalletConfig, *big.Int, error) {
+	return GenericRecoverWalletConfigFromDigest[*v1.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
+}
+
+func RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
+	return GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
+}
+
+func GenericIsValidSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	// Try to do it first with ethereum sign signature format
 	ok, err := ethwallet.IsValid191Signature(walletAddress, digest[:], seqSig)
 	if err == nil {
@@ -77,7 +95,7 @@ func IsValidSignature[C core.WalletConfig](walletAddress common.Address, digest 
 	}
 
 	if len(code) == 0 {
-		res, err := IsValidUndeployedSignature[C](walletAddress, digest, seqSig, walletContext, chainID, provider)
+		res, err := GenericIsValidUndeployedSignature[C](walletAddress, digest, seqSig, walletContext, chainID, provider)
 		if err == nil && res {
 			return true, nil
 		}
@@ -104,7 +122,15 @@ func IsValidSignature[C core.WalletConfig](walletAddress common.Address, digest 
 	return true, nil
 }
 
-func IsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func V1IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidSignature[*v1.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	c, err := core.GetCoreForWalletConfig[C]()
 	if err != nil {
 		return false, fmt.Errorf("sequence: failed to get core implementation, %v", err)
@@ -131,6 +157,14 @@ func IsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Addres
 	}
 
 	return true, nil
+}
+
+func V1IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidUndeployedSignature[*v1.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidUndeployedSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
 func MessageDigest(message []byte) common.Hash {

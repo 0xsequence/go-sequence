@@ -21,7 +21,7 @@ func TestWalletConfig(t *testing.T) {
 			},
 		}
 
-		err := sequence.SortWalletConfig(wc)
+		err := sequence.V1SortWalletConfig(wc)
 		assert.NoError(t, err)
 
 		assert.Equal(t, common.HexToAddress("456"), wc.Signers_[0].Address)
@@ -58,7 +58,7 @@ func TestWalletConfigNoDupes(t *testing.T) {
 		}
 
 		// expect dupe error
-		err := sequence.SortWalletConfig(wc)
+		err := sequence.V1SortWalletConfig(wc)
 		assert.Error(t, err)
 	})
 

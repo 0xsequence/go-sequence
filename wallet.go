@@ -21,7 +21,7 @@ type WalletOptions[C core.WalletConfig] struct {
 	Config C
 
 	// Context is the WalletContext of deployed wallet-contract modules for the Smart Wallet.
-	// NOTE: if a WalletContext is not provided, then `SequenceContext()` value is used.
+	// NOTE: if a WalletContext is not provided, then `V1SequenceContext()` value is used.
 	Context *WalletContext
 
 	// Skips config sorting and keeps signers order as-is
@@ -32,7 +32,7 @@ type WalletOptions[C core.WalletConfig] struct {
 	Address common.Address
 }
 
-func NewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...Signer) (*Wallet[C], error) {
+func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...Signer) (*Wallet[C], error) {
 	seqContext := SequenceContextForWalletConfig(walletOptions.Config)
 	if walletOptions.Context != nil {
 		seqContext = *walletOptions.Context
@@ -40,7 +40,7 @@ func NewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...S
 
 	// Check if wallet config is usable
 	if err := walletOptions.Config.IsUsable(); err != nil {
-		return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+		return nil, fmt.Errorf("sequence.GenericNewWallet: %w", err)
 	}
 
 	// Generate address
@@ -49,7 +49,7 @@ func NewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...S
 		var err error
 		address, err = AddressFromImageHash(walletOptions.Config.ImageHash().Hex(), seqContext)
 		if err != nil {
-			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+			return nil, fmt.Errorf("sequence.GenericNewWallet: %w", err)
 		}
 	}
 
@@ -73,7 +73,15 @@ func NewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...S
 	return w, nil
 }
 
-func NewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...WalletContext) (*Wallet[C], error) {
+func V1NewWallet(walletOptions WalletOptions[*v1.WalletConfig], signers ...Signer) (*Wallet[*v1.WalletConfig], error) {
+	return GenericNewWallet[*v1.WalletConfig](walletOptions, signers...)
+}
+
+func NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
+	return GenericNewWallet[*v2.WalletConfig](walletOptions, signers...)
+}
+
+func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...WalletContext) (*Wallet[C], error) {
 	var typeOfWallet C
 	seqContext := SequenceContextForWalletConfig(typeOfWallet)
 	if len(optContext) > 0 {
@@ -96,7 +104,7 @@ func NewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...Walle
 		}
 
 		// new sequence v1 wallet
-		return NewWallet[C](WalletOptions[C]{
+		return GenericNewWallet[C](WalletOptions[C]{
 			Config:  config.(C),
 			Context: &seqContext,
 		}, owner)
@@ -110,16 +118,50 @@ func NewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...Walle
 		}
 
 		// new sequence v2 wallet
-		return NewWallet[C](WalletOptions[C]{
+		return GenericNewWallet[C](WalletOptions[C]{
 			Config:  config.(C),
 			Context: &seqContext,
 		}, owner)
 	} else {
-		return nil, fmt.Errorf("sequence.NewWalletSingleOwner: unsupported wallet config type")
+		return nil, fmt.Errorf("sequence.GenericNewWalletSingleOwner: unsupported wallet config type")
 	}
 }
 
-func NewGenericWallet[C core.WalletConfig](wallet *Wallet[C]) *Wallet[core.WalletConfig] {
+func V1NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v1.WalletConfig], error) {
+	return GenericNewWalletSingleOwner[*v1.WalletConfig](owner, optContext...)
+}
+
+func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
+	return GenericNewWalletSingleOwner[*v2.WalletConfig](owner, optContext...)
+}
+
+func GenericNewWalletWithCoreWalletConfig[C core.WalletConfig](wallet *Wallet[C]) *Wallet[core.WalletConfig] {
+	return &Wallet[core.WalletConfig]{
+		context:         wallet.context,
+		config:          wallet.config,
+		signers:         wallet.signers,
+		provider:        wallet.provider,
+		relayer:         wallet.relayer,
+		address:         wallet.address,
+		skipSortSigners: wallet.skipSortSigners,
+		chainID:         wallet.chainID,
+	}
+}
+
+func V1NewWalletWithCoreWalletConfig(wallet *Wallet[*v1.WalletConfig]) *Wallet[core.WalletConfig] {
+	return &Wallet[core.WalletConfig]{
+		context:         wallet.context,
+		config:          wallet.config,
+		signers:         wallet.signers,
+		provider:        wallet.provider,
+		relayer:         wallet.relayer,
+		address:         wallet.address,
+		skipSortSigners: wallet.skipSortSigners,
+		chainID:         wallet.chainID,
+	}
+}
+
+func NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
 	return &Wallet[core.WalletConfig]{
 		context:         wallet.context,
 		config:          wallet.config,
@@ -153,7 +195,7 @@ var (
 )
 
 func (w *Wallet[C]) UseConfig(config C) (*Wallet[C], error) {
-	ww, err := NewWallet(WalletOptions[C]{
+	ww, err := GenericNewWallet(WalletOptions[C]{
 		Config:          config,
 		Context:         &w.context,
 		SkipSortSigners: w.skipSortSigners,
@@ -179,7 +221,7 @@ func (w *Wallet[C]) UseConfig(config C) (*Wallet[C], error) {
 }
 
 func (w *Wallet[C]) UseSigners(signers ...Signer) (*Wallet[C], error) {
-	ww, err := NewWallet(WalletOptions[C]{
+	ww, err := GenericNewWallet(WalletOptions[C]{
 		Config:          w.config,
 		Context:         &w.context,
 		SkipSortSigners: w.skipSortSigners,

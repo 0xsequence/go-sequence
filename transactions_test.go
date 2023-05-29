@@ -70,7 +70,7 @@ func TestTransactionVerbose(t *testing.T) {
 	//txSubDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), signedTx.Digest)
 	//assert.NoError(t, err)
 
-	walletConfig, weight, err := sequence.RecoverWalletConfigFromDigest[*v1.WalletConfig](signedTx.Digest.Bytes(), signedTx.Signature, wallet.Address(), testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
+	walletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v1.WalletConfig](signedTx.Digest.Bytes(), signedTx.Signature, wallet.Address(), testutil.SequenceContext(), testChain.ChainID(), testChain.Provider)
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, weight.Cmp(big.NewInt(int64(walletConfig.Threshold()))), 0)
 

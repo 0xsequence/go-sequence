@@ -506,7 +506,7 @@ func fromSequenceSignature(s *sequence.Signature) *signature {
 		}
 
 		if signer.Type == sequence.SignaturePartTypeDynamic {
-			sig, _ := sequence.DecodeSignature(signer.Value[:len(signer.Value)-1])
+			sig, _ := sequence.GenericDecodeSignature(signer.Value[:len(signer.Value)-1])
 			part.Signature = fromSequenceSignature(sig)
 		}
 

@@ -121,7 +121,7 @@ func SubDigest(chainID *big.Int, address common.Address, digest common.Hash) ([]
 		return nil, ErrUnknownChainID
 	}
 
-	// sequence smart wallet uses additional encoding of the digest in IsValidSignature()
+	// sequence smart wallet uses additional encoding of the digest in GenericIsValidSignature()
 	packedData, err := PackMessageData(chainID, address, digest)
 	if err != nil {
 		return nil, fmt.Errorf("subDigest, packageMessageData failed: %w", err)
