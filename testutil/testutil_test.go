@@ -30,17 +30,17 @@ func init() {
 func TestTestutil(t *testing.T) {
 	assert.Equal(t, testChain.ChainID().Uint64(), uint64(1337))
 
-	// DeploySequenceContext
-	sequenceContext, err := testChain.DeploySequenceContext()
+	// V1DeploySequenceContext
+	sequenceContext, err := testChain.V1DeploySequenceContext()
 	assert.NoError(t, err)
 
-	sequenceContextV2, err := testChain.DeploySequenceContextV2()
+	sequenceContextV2, err := testChain.V2DeploySequenceContext()
 	assert.NoError(t, err)
 
-	// Compare against "expexcted" testutil.SequenceContext
-	expectedContext := testutil.SequenceContext()
+	// Compare against "expexcted" testutil.V1SequenceContext
+	expectedContext := testutil.V1SequenceContext()
 
-	expectedContextV2 := testutil.SequenceContextV2()
+	expectedContextV2 := testutil.V2SequenceContext()
 
 	assert.Equal(t, expectedContext.FactoryAddress, sequenceContext.FactoryAddress)
 	assert.Equal(t, expectedContext.MainModuleAddress, sequenceContext.MainModuleAddress)

@@ -14,7 +14,7 @@ import (
 
 func TestGetReceiptOfTransaction(t *testing.T) {
 	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -54,7 +54,7 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 
 func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -101,7 +101,7 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 
 func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -186,7 +186,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 
 func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 

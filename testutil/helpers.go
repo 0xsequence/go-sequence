@@ -37,10 +37,14 @@ var sequenceContextV2 = sequence.WalletContext{
 }
 
 func SequenceContext() sequence.WalletContext {
+	return sequenceContextV2
+}
+
+func V1SequenceContext() sequence.WalletContext {
 	return sequenceContext
 }
 
-func SequenceContextV2() sequence.WalletContext {
+func V2SequenceContext() sequence.WalletContext {
 	return sequenceContextV2
 }
 

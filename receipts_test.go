@@ -16,7 +16,7 @@ import (
 
 func TestReceiptDecoding(t *testing.T) {
 	// Ensure a dummy sequence wallet is deployed
-	wallets, err := testChain.DummySequenceWallets(1, 1)
+	wallets, err := testChain.V1DummySequenceWallets(1, 1)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallets)
 	assert.Len(t, wallets, 1)

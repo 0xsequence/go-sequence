@@ -50,7 +50,7 @@ func TestEstimateSimpleTransaction(t *testing.T) {
 }
 
 func TestEstimateSimpleSequenceTransaction(t *testing.T) {
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -97,7 +97,7 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
-	wallet, err := testChain.DummySequenceWallet(rand.Uint64(), true)
+	wallet, err := testChain.V1DummySequenceWallet(rand.Uint64(), true)
 	assert.NoError(t, err)
 
 	isDeployed, err := wallet.IsDeployed()
@@ -106,7 +106,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
-	wallet2, err := testChain.DummySequenceWallet(1)
+	wallet2, err := testChain.V1DummySequenceWallet(1)
 	clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
 	assert.NoError(t, err)
 	testutil.SignAndSend(t, wallet2, callmockContract.Address, clearData)
@@ -170,7 +170,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfigV1(t *testing.T) {
 		},
 	}
 
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -215,7 +215,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfigV1(t *testing.T) {
 }
 
 func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -270,7 +270,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 }
 
 func TestEstimateBatchSequenceTransaction(t *testing.T) {
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -420,7 +420,7 @@ func TestEstimateSequenceNestedSignersV1(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	wal2, err := testChain.DummySequenceWallet(1)
+	wal2, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
@@ -705,7 +705,7 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		Signers_:   wallets,
 	}
 
-	wallet, err := testChain.DummySequenceWallet(1)
+	wallet, err := testChain.V1DummySequenceWallet(1)
 	assert.NoError(t, err)
 
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
