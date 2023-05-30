@@ -614,7 +614,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		// event in the above transaction as its just calling the mock receiver
 
 		// Assert that first log in the receipt computes to the guest subdigest / id
-		assert.True(t, fmt.Sprintf("0x%s", metaTxnID) == common.BytesToHash(receipt.Logs[0].Data).Hex())
+		assert.True(t, fmt.Sprintf("0x%s", metaTxnID) == receipt.Logs[0].Topics[1].Hex())
 
 		// Check the value
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
