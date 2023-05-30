@@ -348,17 +348,17 @@ var (
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch
 	// 0x3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7
-	TxFailedEventSigV1 = MustEncodeSig("TxFailed(bytes32,bytes)")
+	V1TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,bytes)")
 
 	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
 	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
 	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	TxExecutedEventSigV2 = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+	V2TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	TxFailedEventSigV2 = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
 )
 
 // EncodeNonce with space

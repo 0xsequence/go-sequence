@@ -169,7 +169,7 @@ func LegacyWaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTx
 				}
 
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), TxFailedEventSigV1.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
+				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), V1TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
 					status = MetaTxnFailed
 				}
 

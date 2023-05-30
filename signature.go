@@ -47,8 +47,12 @@ func V1DecodeSignature(sequenceSignature []byte) (core.Signature[*v1.WalletConfi
 	return GenericDecodeSignature[*v1.WalletConfig](sequenceSignature)
 }
 
-func DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
+func V2DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
 	return GenericDecodeSignature[*v2.WalletConfig](sequenceSignature)
+}
+
+func DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
+	return V2DecodeSignature(sequenceSignature)
 }
 
 func GenericRecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (C, *big.Int, error) {
@@ -75,8 +79,12 @@ func V1RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common
 	return GenericRecoverWalletConfigFromDigest[*v1.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
 }
 
-func RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
+func V2RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
 	return GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
+}
+
+func RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
+	return V2RecoverWalletConfigFromDigest(digest, seqSig, walletAddress, walletContext, chainID, provider)
 }
 
 func GenericIsValidSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
@@ -126,8 +134,12 @@ func V1IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig
 	return GenericIsValidSignature[*v1.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func V2IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	return GenericIsValidSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return V2IsValidSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
 func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
@@ -163,8 +175,12 @@ func V1IsValidUndeployedSignature(walletAddress common.Address, digest common.Ha
 	return GenericIsValidUndeployedSignature[*v1.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
-func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func V2IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	return GenericIsValidUndeployedSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
 func MessageDigest(message []byte) common.Hash {

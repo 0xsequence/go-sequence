@@ -77,8 +77,12 @@ func V1NewWallet(walletOptions WalletOptions[*v1.WalletConfig], signers ...Signe
 	return GenericNewWallet[*v1.WalletConfig](walletOptions, signers...)
 }
 
-func NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
+func V2NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
 	return GenericNewWallet[*v2.WalletConfig](walletOptions, signers...)
+}
+
+func NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
+	return V2NewWallet(walletOptions, signers...)
 }
 
 func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...WalletContext) (*Wallet[C], error) {
@@ -131,8 +135,12 @@ func V1NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[
 	return GenericNewWalletSingleOwner[*v1.WalletConfig](owner, optContext...)
 }
 
-func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
+func V2NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
 	return GenericNewWalletSingleOwner[*v2.WalletConfig](owner, optContext...)
+}
+
+func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
+	return V2NewWalletSingleOwner(owner, optContext...)
 }
 
 func GenericNewWalletWithCoreWalletConfig[C core.WalletConfig](wallet *Wallet[C]) *Wallet[core.WalletConfig] {
@@ -161,7 +169,7 @@ func V1NewWalletWithCoreWalletConfig(wallet *Wallet[*v1.WalletConfig]) *Wallet[c
 	}
 }
 
-func NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
+func V2NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
 	return &Wallet[core.WalletConfig]{
 		context:         wallet.context,
 		config:          wallet.config,
@@ -172,6 +180,10 @@ func NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[cor
 		skipSortSigners: wallet.skipSortSigners,
 		chainID:         wallet.chainID,
 	}
+}
+
+func NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
+	return V2NewWalletWithCoreWalletConfig(wallet)
 }
 
 type Wallet[C core.WalletConfig] struct {

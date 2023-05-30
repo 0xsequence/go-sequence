@@ -72,8 +72,12 @@ func V1SequenceContext() WalletContext {
 	return sequenceContextV1
 }
 
-func SequenceContext() WalletContext {
+func V2SequenceContext() WalletContext {
 	return sequenceContextV2
+}
+
+func SequenceContext() WalletContext {
+	return V2SequenceContext()
 }
 
 func SequenceContexts() WalletContexts {

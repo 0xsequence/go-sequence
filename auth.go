@@ -27,8 +27,12 @@ func V1ValidateSequenceAccountProof() ethauth.ValidatorFunc {
 	return GenericValidateSequenceAccountProofWith[*v1.WalletConfig](V1SequenceContext())
 }
 
+func V2ValidateSequenceAccountProof() ethauth.ValidatorFunc {
+	return GenericValidateSequenceAccountProofWith[*v2.WalletConfig](V2SequenceContext())
+}
+
 func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
-	return GenericValidateSequenceAccountProofWith[*v2.WalletConfig](SequenceContext())
+	return V2ValidateSequenceAccountProof()
 }
 
 func GeneralValidateSequenceAccountProof() ethauth.ValidatorFunc {
@@ -101,8 +105,12 @@ func V1ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.Val
 	return GenericValidateSequenceAccountProofWith[*v1.WalletConfig](walletContext)
 }
 
-func ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.ValidatorFunc {
+func V2ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.ValidatorFunc {
 	return GenericValidateSequenceAccountProofWith[*v2.WalletConfig](walletContext)
+}
+
+func ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.ValidatorFunc {
+	return V2ValidateSequenceAccountProofWith(walletContext)
 }
 
 func GeneralValidateSequenceAccountProofWith(walletContexts WalletContexts) ethauth.ValidatorFunc {
