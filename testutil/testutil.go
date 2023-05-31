@@ -329,36 +329,36 @@ func (c *TestChain) V1DeploySequenceContext() (sequence.WalletContext, error) {
 }
 
 func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
+	ud, err := deployer.NewEIP2740Deployer(c.GetDeployWallet())
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	ctx := context.Background()
 
 	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, 0, nil, 7000000)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModuleUpgradable.ABI, contracts.V2.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	mainModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModule.ABI, contracts.V2.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleUpgradableAddress)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	guestModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletGuestModule.ABI, contracts.V2.WalletGuestModule.Bin, 0, nil, 7000000)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	utilsAddress, err := ud.Deploy(ctx, contracts.V2.WalletUtils.ABI, contracts.V2.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
 	return sequence.WalletContext{

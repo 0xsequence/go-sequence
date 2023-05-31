@@ -29,11 +29,11 @@ var sequenceContext = sequence.WalletContext{
 }
 
 var sequenceContextV2 = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0xAA4A319D9f7b43e197555d1c219F9195B80F0C8c"),
-	MainModuleAddress:           common.HexToAddress("0xc38D0b3faA48945059dfe60a98BC237F36233658"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x289157fe5f01e6d6Ca773cE013Cf113E0A570Ac6"),
-	GuestModuleAddress:          common.HexToAddress("0x510D161f15B0b3D7149B823978531B354c6E9Ef1"),
-	UtilsAddress:                common.HexToAddress("0xF8117F5EF3b375cE131089DA286BF061565C3D66"),
+	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
+	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
+	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
+	UtilsAddress:                common.HexToAddress("0xdbbFa3cB3B087B64F4ef5E3D20Dda2488AA244e6"),
 }
 
 func SequenceContext() sequence.WalletContext {
