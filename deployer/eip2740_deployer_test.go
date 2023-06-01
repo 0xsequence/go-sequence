@@ -19,10 +19,10 @@ func TestEIP2740Deployer(t *testing.T) {
 	eip2740Deployer, err := deployer.NewEIP2740Deployer(testWallet)
 	require.NoError(t, err)
 
-	testSequenceContext := testutil.V1SequenceContext()
+	testSequenceContext := testutil.V2SequenceContext()
 
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
-	walletFactoryAddress, err := eip2740Deployer.Deploy(context.Background(), contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil, 1000000)
+	walletFactoryAddress, err := eip2740Deployer.Deploy(context.Background(), contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, 0, nil, 1000000)
 	assert.NoError(t, err)
 	assert.Equal(t, testSequenceContext.FactoryAddress, walletFactoryAddress)
 }
