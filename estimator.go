@@ -527,7 +527,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	return estimates[len(estimates)-1].Uint64(), nil
 }
 
-func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
 	if block == "" {
 		block = "latest"
 	}
@@ -582,4 +582,65 @@ func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Tra
 	}
 
 	return results, nil
+}
+
+func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	if block == "" {
+		block = "latest"
+	}
+
+	encoded, err := transactions.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	callData, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	type ethCallParams struct {
+		To   common.Address `json:"to"`
+		Data string         `json:"data"`
+	}
+
+	params := ethCallParams{
+		To:   wallet,
+		Data: hexutil.Encode(callData),
+	}
+
+	allOverrides := map[common.Address]*CallOverride{
+		wallet: {Code: walletGasEstimatorCodeV2},
+	}
+	for address, override := range overrides {
+		if address == wallet {
+			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
+		}
+
+		allOverrides[address] = override
+	}
+
+	var response string
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	err = provider.Do(context.Background(), rpcCall.Into(&response))
+	if err != nil {
+		return nil, err
+	}
+
+	resultsData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SimulateResult
+	err = contracts.V2.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	return V2Simulate(provider, wallet, transactions, block, overrides)
 }
