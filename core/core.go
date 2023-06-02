@@ -8,9 +8,11 @@ package core
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -109,12 +111,73 @@ const (
 )
 
 type SignerSignature struct {
+	Signer    common.Address
 	Subdigest Subdigest
 	Type      SignerSignatureType
 	Signature []byte
 }
 
-type SigningFunction func(ctx context.Context, signer common.Address) (SignerSignatureType, []byte, error)
+// ErrSigningFunctionNotReady is returned when a signing function is not ready to sign and should be retried later.
+var ErrSigningFunctionNotReady = fmt.Errorf("signing function not ready")
+
+type SigningFunction func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error)
+
+func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16, sign SigningFunction) chan SignerSignature {
+	signaturesChan := make(chan SignerSignature)
+	go func() {
+		defer close(signaturesChan)
+
+		wg := sync.WaitGroup{}
+
+		var cond = sync.NewCond(&sync.Mutex{})
+		var signatures = make([]SignerSignature, 0, len(signers))
+		for signer := range signers {
+			wg.Add(1)
+			go func(signer common.Address) {
+				defer wg.Done()
+
+				retries := 0
+				for {
+					cond.L.Lock()
+					signaturesArg := signatures[:]
+					cond.L.Unlock()
+
+					signatureType, signature, err := sign(ctx, signer, signaturesArg)
+					if err != nil {
+						if errors.Is(err, ErrSigningFunctionNotReady) && retries < 1 {
+							cond.L.Lock()
+							if len(signatures) == 0 {
+								cond.Wait()
+							}
+							cond.L.Unlock()
+
+							retries++
+							continue
+						}
+					}
+
+					signerSignature := SignerSignature{
+						Type:      signatureType,
+						Signer:    signer,
+						Signature: signature,
+					}
+
+					cond.L.Lock()
+					signatures = append(signatures, signerSignature)
+					cond.L.Unlock()
+
+					signaturesChan <- signerSignature
+					cond.Broadcast()
+					break
+				}
+			}(signer)
+		}
+
+		wg.Wait()
+	}()
+
+	return signaturesChan
+}
 
 // An ImageHashable is an object with an ImageHash.
 type ImageHashable interface {

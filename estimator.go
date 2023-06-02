@@ -353,7 +353,7 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 	// TODO: Compute average siganture and present a more likely scenario for a more close estimation
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
-	stubSigner := func(ctx context.Context, signer common.Address) (core.SignerSignatureType, []byte, error) {
+	stubSigner := func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		if willSign[signer] {
 			if isEoa[signer] {
 				return core.SignerSignatureTypeEthSign, sig, nil

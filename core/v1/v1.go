@@ -796,28 +796,23 @@ func (c *WalletConfig) BuildSignature(ctx context.Context, sign core.SigningFunc
 		weight.Add(weight, new(big.Int).SetUint64(uint64(signer.Weight)))
 	}
 
-	signerSignatureCh := make(chan signerSignature)
-
 	signCtx, signCancel := context.WithCancel(ctx)
 	defer signCancel()
 
-	for signer := range signerWeights {
-		go func(signer common.Address) {
-			type_, signature, _ := sign(signCtx, signer)
-			signerSignatureCh <- signerSignature{signer, type_, signature}
-		}(signer)
-	}
+	signerSignatureCh := core.SigningOrchestrator(signCtx, c.Signers(), sign)
 
 	signerSignatures := map[common.Address]signerSignature{}
 	weight := new(big.Int)
 
 	for range signerWeights {
-		signerSignature := <-signerSignatureCh
+		signerSig := <-signerSignatureCh
 
-		if signerSignature.signature != nil {
-			signerSignatures[signerSignature.signer] = signerSignature
+		if signerSig.Signature != nil {
+			signerSignatures[signerSig.Signer] = signerSignature{
+				signerSig.Signer, signerSig.Type, signerSig.Signature,
+			}
 
-			weight.Add(weight, signerWeights[signerSignature.signer])
+			weight.Add(weight, signerWeights[signerSig.Signer])
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
 				signCancel()
 				isValid = true

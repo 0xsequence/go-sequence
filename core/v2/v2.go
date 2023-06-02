@@ -1348,27 +1348,21 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 
 	configSigners := c.Signers()
 
-	signerSignatureCh := make(chan signerSignature)
-
 	signCtx, signCancel := context.WithCancel(ctx)
 	defer signCancel()
 
-	for signer := range configSigners {
-		go func(signer common.Address) {
-			type_, signature, _ := sign(signCtx, signer)
-			signerSignatureCh <- signerSignature{signer, type_, signature}
-		}(signer)
-	}
+	signerSignatureCh := core.SigningOrchestrator(signCtx, configSigners, sign)
 
 	signerSignatures := map[common.Address]signerSignature{}
 	signedSigners := map[common.Address]uint16{}
 
 	for range configSigners {
-		signerSignature := <-signerSignatureCh
+		signerSig := <-signerSignatureCh
 
-		if signerSignature.signature != nil {
-			signerSignatures[signerSignature.signer] = signerSignature
-			signedSigners[signerSignature.signer] = 0
+		if signerSig.Signature != nil {
+			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,
+				signerSig.Type, signerSig.Signature}
+			signedSigners[signerSig.Signer] = 0
 
 			weight := c.Tree.unverifiedWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
@@ -1393,28 +1387,22 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction) (core.Signature[*WalletConfig], error) {
 	configSigners := c.Signers()
 
-	signerSignatureCh := make(chan signerSignature)
-
 	signCtx, signCancel := context.WithCancel(ctx)
 	defer signCancel()
 
-	for signer := range configSigners {
-		go func(signer common.Address) {
-			type_, signature, _ := sign(signCtx, signer)
-			signerSignatureCh <- signerSignature{signer, type_, signature}
-		}(signer)
-	}
+	signerSignatureCh := core.SigningOrchestrator(signCtx, configSigners, sign)
 
 	signerSignatures := map[common.Address]signerSignature{}
 	signedSigners := map[common.Address]uint16{}
 	isValid := false
 
 	for range configSigners {
-		signerSignature := <-signerSignatureCh
+		signerSig := <-signerSignatureCh
 
-		if signerSignature.signature != nil {
-			signerSignatures[signerSignature.signer] = signerSignature
-			signedSigners[signerSignature.signer] = 0
+		if signerSig.Signature != nil {
+			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,
+				signerSig.Type, signerSig.Signature}
+			signedSigners[signerSig.Signer] = 0
 
 			weight := c.Tree.unverifiedWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {

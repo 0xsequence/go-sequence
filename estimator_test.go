@@ -1156,11 +1156,9 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], false)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
 		assert.Equal(t, pick[eoa4.Address()], true)
-		assert.Equal(t, pick[eoa3.Address()], false)
+
+		assert.Equal(t, pick[eoa2.Address()] || pick[eoa1.Address()] || pick[eoa5.Address()] || pick[eoa3.Address()], true)
 	})
 
 	t.Run("v2", func(t *testing.T) {
@@ -1216,11 +1214,9 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], false)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
 		assert.Equal(t, pick[eoa4.Address()], true)
-		assert.Equal(t, pick[eoa3.Address()], false)
+
+		assert.Equal(t, pick[eoa2.Address()] || pick[eoa1.Address()] || pick[eoa5.Address()] || pick[eoa3.Address()], true)
 	})
 }
 

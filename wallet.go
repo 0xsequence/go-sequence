@@ -414,7 +414,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
 
-	sign := func(ctx context.Context, signerAddress common.Address) (core.SignerSignatureType, []byte, error) {
+	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		signer, _ := w.GetSigner(signerAddress)
 
 		if signer == nil {
