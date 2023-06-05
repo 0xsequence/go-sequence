@@ -188,6 +188,11 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 	}, weight, nil
 }
 
+func (s *regularSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) core.Signature[*WalletConfig] {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (s *regularSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
 	return &regularSignature{
 		isRegular:  s.isRegular,
@@ -298,6 +303,11 @@ func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wa
 		Checkpoint_: s.checkpoint,
 		Tree:        tree,
 	}, weight, nil
+}
+
+func (s *noChainIDSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) core.Signature[*WalletConfig] {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s *noChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
@@ -434,6 +444,11 @@ func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, walle
 	}
 
 	return config, weight, nil
+}
+
+func (s chainedSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) core.Signature[*WalletConfig] {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s chainedSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {

@@ -182,6 +182,51 @@ const (
 	addressCost = 20 * 16
 )
 
+func (s *signature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) core.Signature[*WalletConfig] {
+	var copyLeafs = make([]signatureLeaf, len(s.leaves))
+	copy(copyLeafs, s.leaves)
+
+	leafAddress := func(leaf2 signatureLeaf) (common.Address, core.SignerSignatureType, error) {
+		switch leaf2 := leaf2.(type) {
+		case *signatureTreeECDSASignatureLeaf:
+			address, err := ecrecover(subdigest.EthSignSubdigest(), leaf2.signature[:])
+			return address, core.SignerSignatureTypeEthSign, err
+
+		case *signatureTreeAddressLeaf:
+			return leaf2.address, 0, nil
+
+		case *signatureTreeDynamicSignatureLeaf:
+			return leaf2.address, core.SignerSignatureTypeEIP1271, nil
+
+		default:
+			panic(fmt.Errorf("unknown signature leaf type %T", leaf2))
+		}
+	}
+
+	for index, leaf := range copyLeafs {
+		lAddress, lType, _ := leafAddress(leaf)
+
+		if lType == core.SignerSignatureTypeEIP712 {
+			for _, leaf2 := range other.(*signature).leaves {
+				l2Address, l2Type, err := leafAddress(leaf2)
+				if err != nil {
+					continue
+				}
+
+				if lAddress == l2Address && (l2Type == core.SignerSignatureTypeEthSign ||
+					l2Type == core.SignerSignatureTypeEIP1271) {
+					copyLeafs[index] = leaf2
+				}
+			}
+		}
+	}
+
+	return &signature{
+		threshold: s.threshold,
+		leaves:    copyLeafs,
+	}
+}
+
 func (s *signature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
 	var leaves []signatureLeaf
 	var weights []int
