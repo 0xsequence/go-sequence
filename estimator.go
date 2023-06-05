@@ -293,31 +293,25 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletCon
 		i int
 	}
 
+	// Create a copy of the signers array
+	// this will be sorted and used to pick the worst case scenario for the signers
 	signersMap := walletConfig.Signers()
-	signersArr := make([]*v1.WalletConfigSigner, 0, len(signersMap))
+	sortedSigners := make([]*v1.WalletConfigSigner, 0, len(signersMap))
 	for signer, weight := range signersMap {
-		signersArr = append(signersArr, &v1.WalletConfigSigner{
+		sortedSigners = append(sortedSigners, &v1.WalletConfigSigner{
 			Weight:  uint8(weight),
 			Address: signer,
 		})
 	}
 
-	// Create a copy of the signers array
-	// this will be sorted and used to pick the worst case scenario for the signers
-	sortedSigners := make([]SortedSigner, len(signersArr))
-	for i, _ := range signersArr {
-		sortedSigners[i] = SortedSigner{
-			s: signersArr[i],
-			i: i,
-		}
-	}
-
 	sort.SliceStable(sortedSigners, func(a, b int) bool {
-		if !isEoa[sortedSigners[a].s.Address] && isEoa[sortedSigners[b].s.Address] {
+		if !isEoa[sortedSigners[a].Address] && isEoa[sortedSigners[b].Address] {
 			return true
+		} else if isEoa[sortedSigners[a].Address] && !isEoa[sortedSigners[b].Address] {
+			return false
 		}
 
-		return sortedSigners[a].s.Weight < sortedSigners[b].s.Weight
+		return sortedSigners[a].Weight < sortedSigners[b].Weight
 	})
 
 	weightSum := 0
@@ -331,10 +325,10 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletCon
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
 	for _, s := range sortedSigners {
 		if weightSum >= threshold {
-			willSign[s.s.Address] = false
+			willSign[s.Address] = false
 		} else {
-			weightSum += int(s.s.Weight)
-			willSign[s.s.Address] = true
+			weightSum += int(s.Weight)
+			willSign[s.Address] = true
 		}
 	}
 

@@ -131,22 +131,37 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 
 		var cond = sync.NewCond(&sync.Mutex{})
 		var signatures = make([]SignerSignature, 0, len(signers))
+		var signaturesExpected = len(signers)
 		for signer := range signers {
 			wg.Add(1)
 			go func(signer common.Address) {
 				defer wg.Done()
 
+				go func() {
+					select {
+					case <-ctx.Done():
+						cond.Broadcast()
+					}
+				}()
+
 				retries := 0
 				for {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+
 					cond.L.Lock()
 					signaturesArg := signatures[:]
+					signaturesLeft := signaturesExpected - len(signaturesArg)
 					cond.L.Unlock()
 
 					signatureType, signature, err := sign(ctx, signer, signaturesArg)
 					if err != nil {
 						if errors.Is(err, ErrSigningFunctionNotReady) && retries < 1 {
 							cond.L.Lock()
-							if len(signatures) == 0 {
+							if signaturesLeft > 1 {
 								cond.Wait()
 							}
 							cond.L.Unlock()
