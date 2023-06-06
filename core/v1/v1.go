@@ -182,7 +182,7 @@ const (
 	addressCost = 20 * 16
 )
 
-func (s *signature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) core.Signature[*WalletConfig] {
+func (s *signature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
 	var copyLeafs = make([]signatureLeaf, len(s.leaves))
 	copy(copyLeafs, s.leaves)
 
@@ -224,7 +224,7 @@ func (s *signature) Join(subdigest core.Subdigest, other core.Signature[*WalletC
 	return &signature{
 		threshold: s.threshold,
 		leaves:    copyLeafs,
-	}
+	}, nil
 }
 
 func (s *signature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {

@@ -62,7 +62,7 @@ type Signature[C WalletConfig] interface {
 	Reduce(subdigest Subdigest) Signature[C]
 
 	// Join joins two signatures into one.
-	Join(subdigest Subdigest, other Signature[C]) Signature[C]
+	Join(subdigest Subdigest, other Signature[C]) (Signature[C], error)
 
 	// Data is the raw signature data.
 	Data() ([]byte, error)

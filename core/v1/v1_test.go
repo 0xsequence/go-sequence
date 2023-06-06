@@ -98,7 +98,9 @@ func TestSignatureJoin(t *testing.T) {
 	sig1Leaves := sig1.(*signature).leaves
 	sig2Leaves := sig2.(*signature).leaves
 
-	sigJoined := sig1.Join(subdigest, sig2)
+	sigJoined, err := sig1.Join(subdigest, sig2)
+	require.NoError(t, err)
+
 	sigJoinedLeaves := sigJoined.(*signature).leaves
 
 	require.Equal(t, 3, len(sig1Leaves))
