@@ -157,13 +157,13 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 
 					cond.L.Lock()
 					signaturesArg := signatures[:]
-					signaturesLeft := signaturesExpected - len(signaturesArg)
 					cond.L.Unlock()
 
 					signatureType, signature, err := sign(ctx, signer, signaturesArg)
 					if err != nil {
 						if errors.Is(err, ErrSigningFunctionNotReady) && retries < 1 {
 							cond.L.Lock()
+							signaturesLeft := signaturesExpected - len(signatures)
 							if signaturesLeft > 1 {
 								cond.Wait()
 							}
