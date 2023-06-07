@@ -134,6 +134,79 @@ func TestSignatureJoin(t *testing.T) {
 		assert.Equal(t, sig2Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right)
 	})
 
+	t.Run("simple_reduced", func(t *testing.T) {
+		wc := &WalletConfig{
+			Threshold_: 2,
+			Tree: WalletConfigTreeNodes(
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa1.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa2.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa3.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa4.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa5.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa6.Address(),
+				},
+			),
+		}
+
+		msg := []byte("hello")
+		digest := core.Digest{
+			Hash:     crypto.Keccak256Hash(msg),
+			Preimage: nil,
+		}
+		subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+
+		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == eoa1.Address() {
+				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				return core.SignerSignatureTypeEthSign, sig, nil
+			} else {
+				return core.SignerSignatureTypeEIP712, nil, nil
+			}
+		}, false)
+		require.NoError(t, err)
+
+		sig1 = sig1.Reduce(subdigest)
+
+		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == eoa6.Address() {
+				sig, _ := eoa6.SignMessage(subdigest.Bytes())
+				return core.SignerSignatureTypeEthSign, sig, nil
+			} else {
+				return core.SignerSignatureTypeEIP712, nil, nil
+			}
+		}, false)
+		require.NoError(t, err)
+
+		sig2 = sig2.Reduce(subdigest)
+
+		joinedSig, err := sig1.Join(subdigest, sig2)
+		require.NoError(t, err)
+
+		sig1Tree := sig1.(*regularSignature).tree
+		sig2Tree := sig2.(*regularSignature).tree
+
+		joinedSigTree := joinedSig.(*regularSignature).tree
+
+		assert.Equal(t, sig1Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left)
+		assert.Equal(t, sig2Tree.(*signatureTreeNode).right.(*signatureTreeNode).right, joinedSigTree.(*signatureTreeNode).right.(*signatureTreeNode).right)
+	})
 }
 
 const configTOML = `

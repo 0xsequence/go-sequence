@@ -647,6 +647,9 @@ func (n *signatureTreeNode) join(other signatureTree) (signatureTree, error) {
 			left:  left,
 			right: right,
 		}, nil
+	case signatureTreeNodeLeaf:
+		// todo: verify that the image hash is valid
+		return n, nil
 	default:
 		return nil, fmt.Errorf("unable to join signature tree node with %T", other)
 	}
@@ -1144,6 +1147,9 @@ func (l signatureTreeNodeLeaf) reduce() signatureTree {
 }
 
 func (l signatureTreeNodeLeaf) join(other signatureTree) (signatureTree, error) {
+	if _, ok := other.(signatureTreeNodeLeaf); !ok {
+		return other, nil
+	}
 	return l, nil
 }
 
