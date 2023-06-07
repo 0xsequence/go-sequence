@@ -437,13 +437,10 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			}
 
 			return core.SignerSignatureTypeEIP1271, sigValue, nil
-		} else if _, ok := signer.(SignerGuardSigner); ok {
-			// todo: rework how guard signer works (take inspiration from sequence-js orchestrator)
 		}
 		return 0, nil, fmt.Errorf("signer is not a valid signer type")
 	}
 
-	// todo: add to core.WalletConfig? so this trickery is not needed?
 	var coreWalletConfig core.WalletConfig = w.config
 	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
 		sig, err := config.BuildRegularSignature(ctx, sign, false)

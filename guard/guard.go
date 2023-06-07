@@ -17,7 +17,3 @@ func NewGuardSigningService(params GuardSigningServiceParams) *GuardSigningServi
 		SigningService: signing_service.NewSigningService(params.SigningServiceParams),
 	}
 }
-
-func (g *GuardSigningService) IsGuard() bool {
-	return true
-}
