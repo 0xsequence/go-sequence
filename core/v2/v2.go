@@ -189,9 +189,30 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 }
 
 func (s *regularSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
+	other_, ok := other.(*regularSignature)
+	if !ok {
+		return nil, fmt.Errorf("expected regular signature, got %T", other)
+	}
 
-	//TODO implement me
-	panic("implement me")
+	if s.threshold != other_.threshold {
+		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.threshold, other_.threshold)
+	}
+
+	if s.checkpoint != other_.checkpoint {
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.checkpoint, other_.checkpoint)
+	}
+
+	tree, err := s.tree.join(other_.tree)
+	if err != nil {
+		return nil, fmt.Errorf("unable to join signature trees: %w", err)
+	}
+
+	return &regularSignature{
+		isRegular:  s.isRegular,
+		threshold:  s.threshold,
+		checkpoint: s.checkpoint,
+		tree:       tree,
+	}, nil
 }
 
 func (s *regularSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
@@ -504,6 +525,7 @@ func (s chainedSignature) String() string {
 type signatureTree interface {
 	recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error)
 	reduce() signatureTree
+	join(other signatureTree) (signatureTree, error)
 	reduceImageHash() (core.ImageHash, error)
 	write(writer io.Writer) error
 }
@@ -598,6 +620,35 @@ func (n *signatureTreeNode) reduce() signatureTree {
 			left:  n.left.reduce(),
 			right: n.right.reduce(),
 		}
+	}
+}
+
+func (n *signatureTreeNode) join(other signatureTree) (signatureTree, error) {
+	switch other := other.(type) {
+	case *signatureTreeNode:
+		var err error
+		var left, right signatureTree
+
+		if other.left != nil {
+			left, err = n.left.join(other.left)
+			if err != nil {
+				return nil, fmt.Errorf("unable to join left subtree: %w", err)
+			}
+		}
+
+		if other.right != nil {
+			right, err = n.right.join(other.right)
+			if err != nil {
+				return nil, fmt.Errorf("unable to join right subtree: %w", err)
+			}
+		}
+
+		return &signatureTreeNode{
+			left:  left,
+			right: right,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unable to join signature tree node with %T", other)
 	}
 }
 
@@ -751,6 +802,10 @@ func (l *signatureTreeECDSASignatureLeaf) reduce() signatureTree {
 	return l
 }
 
+func (l *signatureTreeECDSASignatureLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
+}
+
 func (l *signatureTreeECDSASignatureLeaf) reduceImageHash() (core.ImageHash, error) {
 	return core.ImageHash{}, fmt.Errorf("ecdsa signature leaf has signing power")
 }
@@ -817,6 +872,14 @@ func (l *signatureTreeAddressLeaf) recover(ctx context.Context, subdigest core.S
 
 func (l *signatureTreeAddressLeaf) reduce() signatureTree {
 	return l
+}
+
+func (l *signatureTreeAddressLeaf) join(other signatureTree) (signatureTree, error) {
+	switch other := other.(type) {
+	case *signatureTreeECDSASignatureLeaf, *signatureTreeDynamicSignatureLeaf:
+		return other, nil
+	}
+	return l, nil
 }
 
 func (l *signatureTreeAddressLeaf) reduceImageHash() (core.ImageHash, error) {
@@ -998,6 +1061,10 @@ func (l *signatureTreeDynamicSignatureLeaf) reduce() signatureTree {
 	return l
 }
 
+func (l *signatureTreeDynamicSignatureLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
+}
+
 func (l *signatureTreeDynamicSignatureLeaf) reduceImageHash() (core.ImageHash, error) {
 	if l.weight == 0 {
 		leaf := WalletConfigTreeAddressLeaf{
@@ -1074,6 +1141,10 @@ func (l signatureTreeNodeLeaf) recover(ctx context.Context, subdigest core.Subdi
 
 func (l signatureTreeNodeLeaf) reduce() signatureTree {
 	return l
+}
+
+func (l signatureTreeNodeLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
 }
 
 func (l signatureTreeNodeLeaf) reduceImageHash() (core.ImageHash, error) {
@@ -1165,6 +1236,11 @@ func (l signatureTreeSubdigestLeaf) reduce() signatureTree {
 	return l
 }
 
+func (l signatureTreeSubdigestLeaf) join(other signatureTree) (signatureTree, error) {
+	// todo: join if subdigests are equal
+	return l, nil
+}
+
 func (l signatureTreeSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
 	return WalletConfigTreeSubdigestLeaf{l.Subdigest}.ImageHash(), nil
 }
@@ -1251,6 +1327,24 @@ func (l *signatureTreeNestedLeaf) reduce() signatureTree {
 		weight:    l.weight,
 		threshold: l.threshold,
 		tree:      l.tree.reduce(),
+	}
+}
+
+func (l *signatureTreeNestedLeaf) join(other signatureTree) (signatureTree, error) {
+	switch other := other.(type) {
+	case *signatureTreeNestedLeaf:
+		tree, err := l.tree.join(other.tree)
+		if err != nil {
+			return nil, fmt.Errorf("unable to join nested leaf trees: %w", err)
+		}
+
+		return &signatureTreeNestedLeaf{
+			weight:    l.weight,
+			threshold: l.threshold,
+			tree:      tree,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unable to join nested leaf with %T", other)
 	}
 }
 

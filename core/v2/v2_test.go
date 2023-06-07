@@ -1,14 +1,20 @@
 package v2
 
 import (
+	"context"
 	"fmt"
+	"math/big"
 	"testing"
 
+	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/BurntSushi/toml"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var signatures = []string{
@@ -37,6 +43,97 @@ func TestDecodeSignature(t *testing.T) {
 
 		assert.Equalf(t, signature, hexutil.Encode(reEncodedSignature), "re-encoded signature does not match original signature")
 	}
+}
+
+func TestSignatureJoin(t *testing.T) {
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	eoa3, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	eoa4, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	eoa5, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	eoa6, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	t.Run("simple", func(t *testing.T) {
+		wc := &WalletConfig{
+			Threshold_: 2,
+			Tree: WalletConfigTreeNodes(
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa1.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa2.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa3.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa4.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa5.Address(),
+				},
+				&WalletConfigTreeAddressLeaf{
+					Weight:  1,
+					Address: eoa6.Address(),
+				},
+			),
+		}
+
+		msg := []byte("hello")
+		digest := core.Digest{
+			Hash:     crypto.Keccak256Hash(msg),
+			Preimage: nil,
+		}
+		subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+
+		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == eoa1.Address() {
+				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				return core.SignerSignatureTypeEthSign, sig, nil
+			} else {
+				return core.SignerSignatureTypeEIP712, nil, nil
+			}
+		}, false)
+		require.NoError(t, err)
+
+		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == eoa2.Address() {
+				sig, _ := eoa2.SignMessage(subdigest.Bytes())
+				return core.SignerSignatureTypeEthSign, sig, nil
+			} else {
+				return core.SignerSignatureTypeEIP712, nil, nil
+			}
+		}, false)
+		require.NoError(t, err)
+
+		joinedSig, err := sig1.Join(subdigest, sig2)
+		require.NoError(t, err)
+
+		sig1Tree := sig1.(*regularSignature).tree
+		sig2Tree := sig2.(*regularSignature).tree
+
+		joinedSigTree := joinedSig.(*regularSignature).tree
+
+		assert.Equal(t, sig1Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left)
+		assert.Equal(t, sig2Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right)
+	})
+
 }
 
 const configTOML = `
