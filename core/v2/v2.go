@@ -328,7 +328,29 @@ func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wa
 }
 
 func (s *noChainIDSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
-	panic("implement me")
+	other_, ok := other.(*noChainIDSignature)
+	if !ok {
+		return nil, fmt.Errorf("expected no chain ID signature, got %T", other)
+	}
+
+	if s.threshold != other_.threshold {
+		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.threshold, other_.threshold)
+	}
+
+	if s.checkpoint != other_.checkpoint {
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.checkpoint, other_.checkpoint)
+	}
+
+	tree, err := s.tree.join(other_.tree)
+	if err != nil {
+		return nil, fmt.Errorf("unable to join signature trees: %w", err)
+	}
+
+	return &noChainIDSignature{
+		threshold:  s.threshold,
+		checkpoint: s.checkpoint,
+		tree:       tree,
+	}, nil
 }
 
 func (s *noChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
@@ -648,7 +670,6 @@ func (n *signatureTreeNode) join(other signatureTree) (signatureTree, error) {
 			right: right,
 		}, nil
 	case signatureTreeNodeLeaf:
-		// todo: verify that the image hash is valid
 		return n, nil
 	default:
 		return nil, fmt.Errorf("unable to join signature tree node with %T", other)
@@ -1243,7 +1264,6 @@ func (l signatureTreeSubdigestLeaf) reduce() signatureTree {
 }
 
 func (l signatureTreeSubdigestLeaf) join(other signatureTree) (signatureTree, error) {
-	// todo: join if subdigests are equal
 	return l, nil
 }
 
@@ -1499,7 +1519,12 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 	}
 }
 
-func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction) (core.Signature[*WalletConfig], error) {
+func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
+	isValid := false
+	if len(validateSigningPower) > 0 {
+		isValid = !validateSigningPower[0]
+	}
+
 	configSigners := c.Signers()
 
 	signCtx, signCancel := context.WithCancel(ctx)
@@ -1509,7 +1534,6 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 
 	signerSignatures := map[common.Address]signerSignature{}
 	signedSigners := map[common.Address]uint16{}
-	isValid := false
 
 	for range configSigners {
 		signerSig := <-signerSignatureCh
