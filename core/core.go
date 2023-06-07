@@ -84,6 +84,9 @@ type WalletConfig interface {
 	// Signers is the set of signers in the wallet configuration.
 	Signers() map[common.Address]uint16
 
+	// SignersWeight is the total weight of the signers passed to the function according to the wallet configuration.
+	SignersWeight(signers []common.Address) uint16
+
 	// IsUsable checks if it's possible to construct signatures that meet threshold.
 	IsUsable() error
 }

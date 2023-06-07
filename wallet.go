@@ -350,25 +350,11 @@ func (w *Wallet[C]) GetSigner(address common.Address) (Signer, bool) {
 }
 
 func (w *Wallet[C]) GetSignerWeight() *big.Int {
-	signerAddresses := w.GetSignerAddresses()
-
-	// todo: add to core.WalletConfig? so this trickery is not needed?
-	var coreWalletConfig core.WalletConfig = w.config
-	if walletConfigV1 := coreWalletConfig.(*v1.WalletConfig); walletConfigV1 != nil {
-		totalWeight := big.NewInt(0)
-		for _, sa := range signerAddresses {
-			for address, weight := range w.config.Signers() {
-				if address == sa {
-					totalWeight = big.NewInt(0).Add(totalWeight, big.NewInt(0).SetUint64(uint64(weight)))
-				}
-			}
-		}
-		return totalWeight
-	} else if walletConfigV2 := coreWalletConfig.(*v2.WalletConfig); walletConfigV2 != nil {
-		// todo: implement weight for v2
+	var signers = make([]common.Address, 0, len(w.signers))
+	for _, s := range w.signers {
+		signers = append(signers, s.Address())
 	}
-
-	return nil
+	return big.NewInt(0).SetUint64(uint64(w.config.SignersWeight(signers)))
 }
 
 func (w *Wallet[C]) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {

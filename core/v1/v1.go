@@ -789,6 +789,18 @@ func (c *WalletConfig) Signers() map[common.Address]uint16 {
 	return signers
 }
 
+func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
+	var totalWeight uint16
+	for _, sa := range signers {
+		for address, weight := range c.Signers() {
+			if address == sa {
+				totalWeight += weight
+			}
+		}
+	}
+	return totalWeight
+}
+
 func (c *WalletConfig) IsUsable() error {
 	if c.Threshold_ == 0 {
 		return fmt.Errorf("threshold is 0")

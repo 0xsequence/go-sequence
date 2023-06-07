@@ -1444,6 +1444,16 @@ func (c *WalletConfig) Signers() map[common.Address]uint16 {
 	return signers
 }
 
+func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
+	var signersMap = make(map[common.Address]uint16)
+	for _, signer := range signers {
+		signersMap[signer] = 0
+	}
+
+	weight := c.Tree.unverifiedWeight(signersMap)
+	return uint16(weight.Uint64())
+}
+
 func (c *WalletConfig) IsUsable() error {
 	if c.Threshold_ == 0 {
 		return fmt.Errorf("threshold is 0")
