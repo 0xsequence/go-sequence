@@ -422,7 +422,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
 
-			return core.SignerSignatureTypeEIP1271, sigValue, nil
+			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue, nil
 		}
 		return 0, nil, fmt.Errorf("signer is not a valid signer type")
 	}
@@ -438,7 +438,10 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
 		}
-		return sigEnc, sig.(core.Signature[C]), nil
+
+		sigTyped, _ := sig.(core.Signature[C])
+		// todo: implement core.Signature[core.WalletConfig] wrapper
+		return sigEnc, sigTyped, nil
 	} else if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
 		sig, err := config.BuildSignature(ctx, sign, false)
 		if err != nil {
@@ -449,7 +452,10 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
 		}
-		return sigEnc, sig.(core.Signature[C]), nil
+
+		sigTyped, _ := sig.(core.Signature[C])
+		// todo: implement core.Signature[core.WalletConfig] wrapper
+		return sigEnc, sigTyped, nil
 	} else {
 		return nil, nil, fmt.Errorf("SignDigest, unknown config type")
 	}
