@@ -135,6 +135,20 @@ func V2IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig
 	return GenericIsValidSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
+func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	isValid, err := V2IsValidSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+	if err == nil {
+		return isValid, nil
+	}
+
+	isValid, err2 := V1IsValidSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+	if err2 != nil {
+		return false, fmt.Errorf("failed to validate: %v, %v", err, err2)
+	}
+
+	return isValid, nil
+}
+
 func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	return V2IsValidSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
