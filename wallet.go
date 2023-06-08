@@ -438,7 +438,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
 		}
-		return sigEnc, nil, nil
+		return sigEnc, sig.(core.Signature[C]), nil
 	} else if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
 		sig, err := config.BuildSignature(ctx, sign, false)
 		if err != nil {
@@ -449,7 +449,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		if err != nil {
 			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
 		}
-		return sigEnc, nil, nil
+		return sigEnc, sig.(core.Signature[C]), nil
 	} else {
 		return nil, nil, fmt.Errorf("SignDigest, unknown config type")
 	}
