@@ -422,7 +422,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
 
-			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue, nil
+			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
 		}
 		return 0, nil, fmt.Errorf("signer is not a valid signer type")
 	}

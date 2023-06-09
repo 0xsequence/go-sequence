@@ -111,7 +111,7 @@ func (s SignerSignatures) Insert(signer common.Address, signature SignerSignatur
 type SignerSignatureType int
 
 const (
-	SignerSignatureTypeEIP712 SignerSignatureType = iota
+	SignerSignatureTypeEIP712 SignerSignatureType = iota + 1
 	SignerSignatureTypeEthSign
 	SignerSignatureTypeEIP1271
 )
