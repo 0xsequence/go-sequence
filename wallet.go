@@ -409,6 +409,17 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			return 0, nil, fmt.Errorf("no signature for %v", signerAddress)
 		}
 
+		// add the signature to the aux data if available
+		if len(signatures) != 0 {
+			if auxData, err := AuxDataFromContext(ctx); err == nil {
+				var sigWithType = make([]byte, 0, len(signatures[0].Signature)+1)
+				auxData.Sig = append(
+					append(sigWithType, signatures[0].Signature...),
+					byte(signatures[0].Type),
+				)
+			}
+		}
+
 		if eoaSigner, ok := signer.(MessageSigner); ok {
 			sigValue, err := eoaSigner.SignMessage(subDigest)
 			if err != nil {

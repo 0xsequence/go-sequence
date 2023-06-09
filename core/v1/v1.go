@@ -206,7 +206,7 @@ func (s *signature) Join(subdigest core.Subdigest, other core.Signature[*WalletC
 	for index, leaf := range copyLeafs {
 		lAddress, lType, _ := leafAddress(leaf)
 
-		if lType == core.SignerSignatureTypeEIP712 {
+		if lType == 0 {
 			for _, leaf2 := range other.(*signature).leaves {
 				l2Address, l2Type, err := leafAddress(leaf2)
 				if err != nil {

@@ -107,7 +107,7 @@ func TestSignatureJoin(t *testing.T) {
 				sig, _ := eoa1.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestSignatureJoin(t *testing.T) {
 				sig, _ := eoa2.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestSignatureJoin(t *testing.T) {
 				sig, _ := eoa1.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestSignatureJoin(t *testing.T) {
 				sig, _ := eoa6.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -271,7 +271,7 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 				sig, _ := eoa1.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 				sig, _ := eoa2.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
@@ -353,7 +353,7 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 				sig, _ := eoa6.SignMessage(subdigest.Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				return core.SignerSignatureTypeEIP712, nil, nil
+				return 0, nil, nil
 			}
 		}, false)
 		require.NoError(t, err)
