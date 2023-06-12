@@ -18,6 +18,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
 )
@@ -71,6 +74,7 @@ var defaultEstimator = &Estimator{
 
 var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
+var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -207,8 +211,8 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	return gas, nil
 }
 
-func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig WalletConfig) ([]bool, error) {
-	res := make([]bool, walletConfig.Signers.Len())
+func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig core.WalletConfig) (map[common.Address]bool, error) {
+	res := make(map[common.Address]bool, len(walletConfig.Signers()))
 
 	// Get non-eoa signers
 	// required for computing worse case scenario
@@ -217,7 +221,8 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	errCh := make(chan error)
 	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
 
-	for i := range walletConfig.Signers {
+	var mutex sync.Mutex
+	for address := range walletConfig.Signers() {
 		wg.Add(1)
 
 		select {
@@ -228,19 +233,23 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 		case workersCh <- struct{}{}: // wait until a worker slot becomes available to continue
 		}
 
-		go func(ctx context.Context, i int, address common.Address) {
+		go func(ctx context.Context, address common.Address) {
 			defer func() {
 				wg.Done()
 				<-workersCh // release the worker
 			}()
 
 			var err error
-			res[i], err = e.isEOA(ctx, provider, address)
+			isEOA, err := e.isEOA(ctx, provider, address)
 			if err != nil {
 				errCh <- err
 				return
 			}
-		}(ctx, i, walletConfig.Signers[i].Address)
+
+			mutex.Lock()
+			res[address] = isEOA
+			mutex.Unlock()
+		}(ctx, address)
 	}
 	wg.Wait()
 
@@ -278,45 +287,48 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 	return false, nil
 }
 
-func (e *Estimator) PickSigners(ctx context.Context, walletConfig WalletConfig, isEoa []bool) ([]bool, error) {
+func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletConfig, isEoa map[common.Address]bool) (map[common.Address]bool, error) {
 	type SortedSigner struct {
-		s WalletConfigSigner
+		s *v1.WalletConfigSigner
 		i int
 	}
 
 	// Create a copy of the signers array
 	// this will be sorted and used to pick the worst case scenario for the signers
-	sortedSigners := make([]SortedSigner, walletConfig.Signers.Len())
-	for i, _ := range walletConfig.Signers {
-		sortedSigners[i] = SortedSigner{
-			s: walletConfig.Signers[i],
-			i: i,
-		}
+	signersMap := walletConfig.Signers()
+	sortedSigners := make([]*v1.WalletConfigSigner, 0, len(signersMap))
+	for signer, weight := range signersMap {
+		sortedSigners = append(sortedSigners, &v1.WalletConfigSigner{
+			Weight:  uint8(weight),
+			Address: signer,
+		})
 	}
 
 	sort.SliceStable(sortedSigners, func(a, b int) bool {
-		if !isEoa[sortedSigners[a].i] && isEoa[sortedSigners[b].i] {
+		if !isEoa[sortedSigners[a].Address] && isEoa[sortedSigners[b].Address] {
 			return true
+		} else if isEoa[sortedSigners[a].Address] && !isEoa[sortedSigners[b].Address] {
+			return false
 		}
 
-		return sortedSigners[a].s.Weight < sortedSigners[b].s.Weight
+		return sortedSigners[a].Weight < sortedSigners[b].Weight
 	})
 
 	weightSum := 0
 
 	// Define what signers are goint go be signing
 	// it should construct a worse case scenario for the signature
-	willSign := make([]bool, walletConfig.Signers.Len())
-	threshold := int(walletConfig.Threshold)
+	willSign := make(map[common.Address]bool, len(walletConfig.Signers()))
+	threshold := int(walletConfig.Threshold())
 
 	// Pick signers until we reach the threshold we stop
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
 	for _, s := range sortedSigners {
-		weightSum += int(s.s.Weight)
-		willSign[s.i] = true
-
 		if weightSum >= threshold {
-			break
+			willSign[s.Address] = false
+		} else {
+			weightSum += int(s.Weight)
+			willSign[s.Address] = true
 		}
 	}
 
@@ -329,76 +341,99 @@ func stubAddress() common.Address {
 	return common.BytesToAddress(raw)
 }
 
-func (e *Estimator) BuildStubSignature(walletConfig WalletConfig, willSign []bool, isEoa []bool) []byte {
-	parts := make(SignatureParts, walletConfig.Signers.Len())
+func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign, isEoa map[common.Address]bool) []byte {
 
 	// pre-determined signature, tailored for worse-case scenario in gas costs
 	// TODO: Compute average siganture and present a more likely scenario for a more close estimation
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
-	for i, s := range walletConfig.Signers {
-		if willSign[i] {
-			if isEoa[i] {
-				parts[i] = &SignaturePart{
-					Weight:  s.Weight,
-					Address: s.Address,
-					Type:    SignaturePartTypeEOA,
-					Value:   sig,
-				}
+	stubSigner := func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		if willSign[signer] {
+			if isEoa[signer] {
+				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
-				sig := e.BuildStubSignature(WalletConfig{
-					Threshold: 2,
-					Signers: WalletConfigSigners{
-						WalletConfigSigner{
-							Address: stubAddress(),
-							Weight:  1,
-						},
-						WalletConfigSigner{
-							Address: stubAddress(),
-							Weight:  1,
-						},
-						WalletConfigSigner{
-							Address: stubAddress(),
-							Weight:  1,
+				address1 := stubAddress()
+				address2 := stubAddress()
+				address3 := stubAddress()
+
+				var sig []byte
+				if _, ok := walletConfig.(*v1.WalletConfig); ok {
+					sig = e.BuildStubSignature(&v1.WalletConfig{
+						Threshold_: 2,
+						Signers_: v1.WalletConfigSigners{
+							{
+								Address: address1,
+								Weight:  1,
+							},
+							{
+								Address: address2,
+								Weight:  1,
+							},
+							{
+								Address: address3,
+								Weight:  1,
+							},
 						},
 					},
-				}, []bool{false, true, true}, []bool{true, true, true})
-
-				sig = append(sig, 03)
-
-				parts[i] = &SignaturePart{
-					Weight:  s.Weight,
-					Address: s.Address,
-					Type:    SignaturePartTypeDynamic,
-					Value:   sig,
+						map[common.Address]bool{address1: false, address2: true, address3: true},
+						map[common.Address]bool{address1: true, address2: true, address3: true})
+				} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
+					sig = e.BuildStubSignature(&v2.WalletConfig{
+						Threshold_: 2,
+						Tree: v2.WalletConfigTreeNodes(
+							&v2.WalletConfigTreeAddressLeaf{
+								Address: address1,
+								Weight:  1,
+							},
+							&v2.WalletConfigTreeAddressLeaf{
+								Address: address2,
+								Weight:  1,
+							},
+							&v2.WalletConfigTreeAddressLeaf{
+								Address: address3,
+								Weight:  1,
+							},
+						),
+					},
+						map[common.Address]bool{address1: false, address2: true, address3: true},
+						map[common.Address]bool{address1: true, address2: true, address3: true})
 				}
+
+				return core.SignerSignatureTypeEIP1271, sig, nil
 			}
 		} else {
-			parts[i] = &SignaturePart{
-				Weight:  s.Weight,
-				Address: s.Address,
-				Type:    SignaturePartTypeAddress,
-			}
+			return 0, nil, fmt.Errorf("no signature")
 		}
 	}
 
-	signature := Signature{
-		Threshold: walletConfig.Threshold,
-		Signers:   parts,
+	if confV1, ok := walletConfig.(*v1.WalletConfig); ok {
+		sigV1, err := confV1.BuildSignature(context.Background(), stubSigner, false)
+		if err != nil {
+			return nil
+		}
+
+		encoded, err := sigV1.Data()
+		if err != nil {
+			return nil
+		}
+		return encoded
+	} else if confV2, ok := walletConfig.(*v2.WalletConfig); ok {
+		sigV2, err := confV2.BuildRegularSignature(context.Background(), stubSigner, false)
+		if err != nil {
+			return nil
+		}
+
+		encoded, err := sigV2.Data()
+		if err != nil {
+			return nil
+		}
+		return encoded
+	} else {
+		return nil
 	}
-
-	encoded, err := signature.Encode()
-
-	// This method builds a signature from scratch
-	// it should never faild to encode it
-	if err != nil {
-		panic(err)
-	}
-
-	return encoded
 }
 
-func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
+func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
 	isEOA, err := e.AreEOAs(ctx, provider, walletConfig)
 	if err != nil {
 		return 0, err
@@ -411,9 +446,19 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 	signature := e.BuildStubSignature(walletConfig, willSign, isEOA)
 
-	overrides := map[common.Address]*CallOverride{
-		walletContext.MainModuleAddress:           {Code: walletGasEstimatorCode},
-		walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCode},
+	var overrides map[common.Address]*CallOverride
+	if _, ok := walletConfig.(*v1.WalletConfig); ok {
+		overrides = map[common.Address]*CallOverride{
+			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCode},
+			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCode},
+		}
+	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
+		overrides = map[common.Address]*CallOverride{
+			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCodeV2},
+			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCodeV2},
+		}
+	} else {
+		return 0, fmt.Errorf("unknown wallet config type")
 	}
 
 	isDeployed, err := IsWalletDeployed(provider, address)
@@ -444,9 +489,17 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 			return 0, err
 		}
 
-		execData, err := contracts.WalletMainModule.Encode("execute", encTxs, nonce, signature)
-		if err != nil {
-			return 0, err
+		var execData []byte
+		if _, ok := walletConfig.(*v1.WalletConfig); ok {
+			execData, err = contracts.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			if err != nil {
+				return 0, err
+			}
+		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
+			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			if err != nil {
+				return 0, err
+			}
 		}
 
 		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
@@ -468,7 +521,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	return estimates[len(estimates)-1].Uint64(), nil
 }
 
-func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
 	if block == "" {
 		block = "latest"
 	}
@@ -523,4 +576,65 @@ func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Tra
 	}
 
 	return results, nil
+}
+
+func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	if block == "" {
+		block = "latest"
+	}
+
+	encoded, err := transactions.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	callData, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	type ethCallParams struct {
+		To   common.Address `json:"to"`
+		Data string         `json:"data"`
+	}
+
+	params := ethCallParams{
+		To:   wallet,
+		Data: hexutil.Encode(callData),
+	}
+
+	allOverrides := map[common.Address]*CallOverride{
+		wallet: {Code: walletGasEstimatorCodeV2},
+	}
+	for address, override := range overrides {
+		if address == wallet {
+			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
+		}
+
+		allOverrides[address] = override
+	}
+
+	var response string
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	err = provider.Do(context.Background(), rpcCall.Into(&response))
+	if err != nil {
+		return nil, err
+	}
+
+	resultsData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SimulateResult
+	err = contracts.V2.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	return V2Simulate(provider, wallet, transactions, block, overrides)
 }

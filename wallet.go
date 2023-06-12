@@ -5,20 +5,23 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
-	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
 )
 
-type WalletOptions struct {
+type WalletOptions[C core.WalletConfig] struct {
 	// Config is the wallet multi-sig configuration. Note: the first config of any wallet
 	// before it is deployed is used to derive it's the account address of the wallet.
-	Config WalletConfig
+	Config C
 
 	// Context is the WalletContext of deployed wallet-contract modules for the Smart Wallet.
-	// NOTE: if a WalletContext is not provided, then `SequenceContext()` value is used.
+	// NOTE: if a WalletContext is not provided, then `V1SequenceContext()` value is used.
 	Context *WalletContext
 
 	// Skips config sorting and keeps signers order as-is
@@ -29,42 +32,39 @@ type WalletOptions struct {
 	Address common.Address
 }
 
-func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wallet, error) {
-	context := sequenceContext
+func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signers ...Signer) (*Wallet[C], error) {
+	seqContext := SequenceContextForWalletConfig(walletOptions.Config)
 	if walletOptions.Context != nil {
-		context = *walletOptions.Context
+		seqContext = *walletOptions.Context
 	}
 
-	walletConfig := walletOptions.Config.Clone()
-	if !walletOptions.SkipSortSigners {
-		err := SortWalletConfig(walletConfig)
-		if err != nil {
-			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
-		}
-	}
-
-	_, err := IsWalletConfigUsable(walletConfig)
-	if err != nil {
-		return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+	// Check if wallet config is usable
+	if err := walletOptions.Config.IsUsable(); err != nil {
+		return nil, fmt.Errorf("sequence.GenericNewWallet: %w", err)
 	}
 
 	// Generate address
 	address := walletOptions.Address
 	if address == (common.Address{}) {
-		hs, err := ImageHashOfWalletConfig(walletConfig)
+		var err error
+		address, err = AddressFromImageHash(walletOptions.Config.ImageHash().Hex(), seqContext)
 		if err != nil {
-			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
-		}
-
-		address, err = AddressFromImageHash(hs, context)
-		if err != nil {
-			return nil, fmt.Errorf("sequence.NewWallet: %w", err)
+			return nil, fmt.Errorf("sequence.GenericNewWallet: %w", err)
 		}
 	}
 
-	w := &Wallet{
-		config:          walletConfig,
-		context:         context,
+	// Check signers
+	for _, signer := range signers {
+		_, canSignMessage := signer.(MessageSigner)
+		_, canSignDigest := signer.(DigestSigner)
+		if !canSignMessage && !canSignDigest {
+			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+		}
+	}
+
+	w := &Wallet[C]{
+		config:          walletOptions.Config,
+		context:         seqContext,
 		address:         address,
 		skipSortSigners: walletOptions.SkipSortSigners,
 	}
@@ -73,27 +73,123 @@ func NewWallet(walletOptions WalletOptions, signers ...*ethwallet.Wallet) (*Wall
 	return w, nil
 }
 
-func NewWalletSingleOwner(owner *ethwallet.Wallet, optContext ...WalletContext) (*Wallet, error) {
-	context := sequenceContext
-	if len(optContext) > 0 {
-		context = optContext[0]
-	}
-
-	return NewWallet(WalletOptions{
-		Config: WalletConfig{
-			Threshold: 1, //big.NewInt(1),
-			Signers: WalletConfigSigners{
-				{Weight: 1, Address: owner.Address()},
-			},
-		},
-		Context: &context,
-	}, owner)
+func V1NewWallet(walletOptions WalletOptions[*v1.WalletConfig], signers ...Signer) (*Wallet[*v1.WalletConfig], error) {
+	return GenericNewWallet[*v1.WalletConfig](walletOptions, signers...)
 }
 
-type Wallet struct {
+func V2NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
+	return GenericNewWallet[*v2.WalletConfig](walletOptions, signers...)
+}
+
+func NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
+	return V2NewWallet(walletOptions, signers...)
+}
+
+func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext ...WalletContext) (*Wallet[C], error) {
+	var typeOfWallet C
+	seqContext := SequenceContextForWalletConfig(typeOfWallet)
+	if len(optContext) > 0 {
+		seqContext = optContext[0]
+	}
+
+	_, canSignMessage := owner.(MessageSigner)
+	_, canSignDigest := owner.(DigestSigner)
+	if !canSignMessage && !canSignDigest {
+		return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+	}
+
+	if _, ok := core.WalletConfig(typeOfWallet).(*v1.WalletConfig); ok {
+		// new wallet config v1
+		var config core.WalletConfig = &v1.WalletConfig{
+			Threshold_: 1, //big.NewInt(1),
+			Signers_: v1.WalletConfigSigners{
+				{Weight: 1, Address: owner.Address()},
+			},
+		}
+
+		// new sequence v1 wallet
+		return GenericNewWallet[C](WalletOptions[C]{
+			Config:  config.(C),
+			Context: &seqContext,
+		}, owner)
+	} else if _, ok := core.WalletConfig(typeOfWallet).(*v2.WalletConfig); ok {
+		// new wallet config v2
+		var config core.WalletConfig = &v2.WalletConfig{
+			Threshold_: 1, //big.NewInt(1),
+			Tree: &v2.WalletConfigTreeAddressLeaf{
+				Weight: 1, Address: owner.Address(),
+			},
+		}
+
+		// new sequence v2 wallet
+		return GenericNewWallet[C](WalletOptions[C]{
+			Config:  config.(C),
+			Context: &seqContext,
+		}, owner)
+	} else {
+		return nil, fmt.Errorf("sequence.GenericNewWalletSingleOwner: unsupported wallet config type")
+	}
+}
+
+func V1NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v1.WalletConfig], error) {
+	return GenericNewWalletSingleOwner[*v1.WalletConfig](owner, optContext...)
+}
+
+func V2NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
+	return GenericNewWalletSingleOwner[*v2.WalletConfig](owner, optContext...)
+}
+
+func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
+	return V2NewWalletSingleOwner(owner, optContext...)
+}
+
+func GenericNewWalletWithCoreWalletConfig[C core.WalletConfig](wallet *Wallet[C]) *Wallet[core.WalletConfig] {
+	return &Wallet[core.WalletConfig]{
+		context:         wallet.context,
+		config:          wallet.config,
+		signers:         wallet.signers,
+		provider:        wallet.provider,
+		relayer:         wallet.relayer,
+		address:         wallet.address,
+		skipSortSigners: wallet.skipSortSigners,
+		chainID:         wallet.chainID,
+	}
+}
+
+func V1NewWalletWithCoreWalletConfig(wallet *Wallet[*v1.WalletConfig]) *Wallet[core.WalletConfig] {
+	return &Wallet[core.WalletConfig]{
+		context:         wallet.context,
+		config:          wallet.config,
+		signers:         wallet.signers,
+		provider:        wallet.provider,
+		relayer:         wallet.relayer,
+		address:         wallet.address,
+		skipSortSigners: wallet.skipSortSigners,
+		chainID:         wallet.chainID,
+	}
+}
+
+func V2NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
+	return &Wallet[core.WalletConfig]{
+		context:         wallet.context,
+		config:          wallet.config,
+		signers:         wallet.signers,
+		provider:        wallet.provider,
+		relayer:         wallet.relayer,
+		address:         wallet.address,
+		skipSortSigners: wallet.skipSortSigners,
+		chainID:         wallet.chainID,
+	}
+}
+
+func NewWalletWithCoreWalletConfig(wallet *Wallet[*v2.WalletConfig]) *Wallet[core.WalletConfig] {
+	return V2NewWalletWithCoreWalletConfig(wallet)
+}
+
+type Wallet[C core.WalletConfig] struct {
 	context WalletContext
-	config  WalletConfig
-	signers []*ethwallet.Wallet // NOTE: only supports EOA signers at this time
+	config  C
+	signers []Signer
 
 	provider *ethrpc.Provider
 	relayer  Relayer
@@ -110,8 +206,8 @@ var (
 	ErrRelayerNotSet  = fmt.Errorf("relayer is not set")
 )
 
-func (w *Wallet) UseConfig(config WalletConfig) (*Wallet, error) {
-	ww, err := NewWallet(WalletOptions{
+func (w *Wallet[C]) UseConfig(config C) (*Wallet[C], error) {
+	ww, err := GenericNewWallet(WalletOptions[C]{
 		Config:          config,
 		Context:         &w.context,
 		SkipSortSigners: w.skipSortSigners,
@@ -136,8 +232,8 @@ func (w *Wallet) UseConfig(config WalletConfig) (*Wallet, error) {
 	return ww, nil
 }
 
-func (w *Wallet) UseSigners(signers ...*ethwallet.Wallet) (*Wallet, error) {
-	ww, err := NewWallet(WalletOptions{
+func (w *Wallet[C]) UseSigners(signers ...Signer) (*Wallet[C], error) {
+	ww, err := GenericNewWallet(WalletOptions[C]{
 		Config:          w.config,
 		Context:         &w.context,
 		SkipSortSigners: w.skipSortSigners,
@@ -159,11 +255,18 @@ func (w *Wallet) UseSigners(signers ...*ethwallet.Wallet) (*Wallet, error) {
 			return nil, fmt.Errorf("sequence.Wallet#UseSigners connect: %w", err)
 		}
 	}
+	for _, signer := range signers {
+		_, canSignMessage := signer.(MessageSigner)
+		_, canSignDigest := signer.(DigestSigner)
+		if !canSignMessage && !canSignDigest {
+			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+		}
+	}
 	ww.signers = signers
 	return ww, nil
 }
 
-func (w *Wallet) Connect(provider *ethrpc.Provider, relayer Relayer) error {
+func (w *Wallet[C]) Connect(provider *ethrpc.Provider, relayer Relayer) error {
 	err := w.SetProvider(provider)
 	if err != nil {
 		return err
@@ -175,7 +278,7 @@ func (w *Wallet) Connect(provider *ethrpc.Provider, relayer Relayer) error {
 	return nil
 }
 
-func (w *Wallet) SetProvider(provider *ethrpc.Provider) error {
+func (w *Wallet[C]) SetProvider(provider *ethrpc.Provider) error {
 	chainID, err := provider.ChainID(context.Background())
 	if err != nil {
 		return fmt.Errorf("sequence.Wallet#SetProvider: %w", err)
@@ -185,50 +288,46 @@ func (w *Wallet) SetProvider(provider *ethrpc.Provider) error {
 	return nil
 }
 
-func (w *Wallet) SetRelayer(relayer Relayer) error {
+func (w *Wallet[C]) SetRelayer(relayer Relayer) error {
 	w.relayer = relayer
 	return nil
 }
 
 // SetChainID will set the wallet's associated chainID. However, for most part, this will automatically
 // be set by the provider rpc.
-func (w *Wallet) SetChainID(chainID *big.Int) {
+func (w *Wallet[C]) SetChainID(chainID *big.Int) {
 	w.chainID = chainID
 }
 
-func (w *Wallet) GetProvider() *ethrpc.Provider {
+func (w *Wallet[C]) GetProvider() *ethrpc.Provider {
 	return w.provider
 }
 
-func (w *Wallet) GetRelayer() Relayer {
+func (w *Wallet[C]) GetRelayer() Relayer {
 	return w.relayer
 }
 
-func (w *Wallet) GetChainID() *big.Int {
+func (w *Wallet[C]) GetChainID() *big.Int {
 	return w.chainID
 }
 
-func (w *Wallet) GetWalletContext() WalletContext {
+func (w *Wallet[C]) GetWalletContext() WalletContext {
 	return w.context
 }
 
-func (w *Wallet) GetWalletConfig() WalletConfig {
+func (w *Wallet[C]) GetWalletConfig() C {
 	return w.config
 }
 
-func (w *Wallet) Address() common.Address {
+func (w *Wallet[C]) Address() common.Address {
 	return w.address
 }
 
-func (w *Wallet) ImageHash() (common.Hash, error) {
-	hs, err := ImageHashOfWalletConfig(w.config)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return common.HexToHash(hs), nil
+func (w *Wallet[C]) ImageHash() (common.Hash, error) {
+	return w.config.ImageHash().Hash, nil
 }
 
-func (w *Wallet) GetSignerAddresses() []common.Address {
+func (w *Wallet[C]) GetSignerAddresses() []common.Address {
 	as := []common.Address{}
 	for _, s := range w.signers {
 		as = append(as, s.Address())
@@ -236,12 +335,12 @@ func (w *Wallet) GetSignerAddresses() []common.Address {
 	return as
 }
 
-func (w *Wallet) IsSignerAvailable(address common.Address) bool {
+func (w *Wallet[C]) IsSignerAvailable(address common.Address) bool {
 	_, ok := w.GetSigner(address)
 	return ok
 }
 
-func (w *Wallet) GetSigner(address common.Address) (*ethwallet.Wallet, bool) {
+func (w *Wallet[C]) GetSigner(address common.Address) (Signer, bool) {
 	for _, s := range w.signers {
 		if s.Address() == address {
 			return s, true
@@ -250,20 +349,15 @@ func (w *Wallet) GetSigner(address common.Address) (*ethwallet.Wallet, bool) {
 	return nil, false
 }
 
-func (w *Wallet) GetSignerWeight() *big.Int {
-	signerAddresses := w.GetSignerAddresses()
-	totalWeight := big.NewInt(0)
-	for _, sa := range signerAddresses {
-		for _, sc := range w.config.Signers {
-			if sc.Address == sa {
-				totalWeight = big.NewInt(0).Add(totalWeight, big.NewInt(0).SetUint64(uint64(sc.Weight)))
-			}
-		}
+func (w *Wallet[C]) GetSignerWeight() *big.Int {
+	var signers = make([]common.Address, 0, len(w.signers))
+	for _, s := range w.signers {
+		signers = append(signers, s.Address())
 	}
-	return totalWeight
+	return big.NewInt(0).SetUint64(uint64(w.config.SignersWeight(signers)))
 }
 
-func (w *Wallet) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {
+func (w *Wallet[C]) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {
 	if w.relayer == nil {
 		return nil, ErrRelayerNotSet
 	}
@@ -274,17 +368,22 @@ func (w *Wallet) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {
 	return w.relayer.GetNonce(context.Background(), w.config, w.context, nil, blockNum)
 }
 
-func (w *Wallet) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) {
+func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) {
 	return w.GetNonce(optBlockNum...)
 }
 
-func (w *Wallet) SignMessage(msg []byte) ([]byte, *Signature, error) {
-	return w.SignDigest(MessageDigest(msg))
+func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.Signature[C], error) {
+	sCtx := ContextWithAuxData(ctx, &AuxData{
+		ChainID: w.chainID,
+		Address: &w.address,
+		Msg:     msg,
+	})
+	return w.SignDigest(sCtx, MessageDigest(msg))
 }
 
 // func (w *Wallet) SignTypedData() // TODO
 
-func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte, *Signature, error) {
+func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -301,50 +400,83 @@ func (w *Wallet) SignDigest(digest common.Hash, optChainID ...*big.Int) ([]byte,
 		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
 
-	sig := &Signature{
-		Threshold: w.config.Threshold,
-		Signers:   SignatureParts{},
-	}
-
-	for _, signerInfo := range w.config.Signers {
-		signer, _ := w.GetSigner(signerInfo.Address)
+	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		signer, _ := w.GetSigner(signerAddress)
 
 		if signer == nil {
 			// signer isn't available, just include the config value of address
 			// without it's signature
-			sig.Signers = append(sig.Signers, &SignaturePart{
-				Type: SignaturePartTypeAddress, Weight: signerInfo.Weight, Address: signerInfo.Address,
-			})
-			continue
+			return 0, nil, fmt.Errorf("no signature for %v", signerAddress)
 		}
 
-		// TODO: in future add support for Sequence Signers, right now we only support EOA
-		// signers in go-sequence
+		// add the signature to the aux data if available
+		if len(signatures) != 0 {
+			if auxData, err := AuxDataFromContext(ctx); err == nil {
+				var sigWithType = make([]byte, 0, len(signatures[0].Signature)+1)
+				auxData.Sig = append(
+					append(sigWithType, signatures[0].Signature...),
+					byte(signatures[0].Type),
+				)
+			}
+		}
 
-		sigValue, err := signer.SignMessage(subDigest)
+		if eoaSigner, ok := signer.(MessageSigner); ok {
+			sigValue, err := eoaSigner.SignMessage(subDigest)
+			if err != nil {
+				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			}
+
+			return core.SignerSignatureTypeEthSign, sigValue, nil
+		} else if seqSigner, ok := signer.(DigestSigner); ok {
+			sigValue, _, err := seqSigner.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+			if err != nil {
+				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			}
+
+			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
+		}
+		return 0, nil, fmt.Errorf("signer is not a valid signer type")
+	}
+
+	var coreWalletConfig core.WalletConfig = w.config
+	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
+		sig, err := config.BuildRegularSignature(ctx, sign, false)
 		if err != nil {
-			return nil, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
 		}
-		sigValue = append(sigValue, SignatureTypeEthSign)
 
-		sig.Signers = append(sig.Signers, &SignaturePart{
-			Type: SignaturePartTypeEOA, Weight: signerInfo.Weight, Address: signer.Address(), Value: sigValue,
-		})
+		sigEnc, err := sig.Data()
+		if err != nil {
+			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
+		}
+
+		sigTyped, _ := sig.(core.Signature[C])
+		// todo: implement core.Signature[core.WalletConfig] wrapper
+		return sigEnc, sigTyped, nil
+	} else if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
+		sig, err := config.BuildSignature(ctx, sign, false)
+		if err != nil {
+			return nil, nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
+		}
+
+		sigEnc, err := sig.Data()
+		if err != nil {
+			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
+		}
+
+		sigTyped, _ := sig.(core.Signature[C])
+		// todo: implement core.Signature[core.WalletConfig] wrapper
+		return sigEnc, sigTyped, nil
+	} else {
+		return nil, nil, fmt.Errorf("SignDigest, unknown config type")
 	}
-
-	encodedSig, err := sig.Encode()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return encodedSig, sig, nil
 }
 
-func (w *Wallet) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
+func (w *Wallet[C]) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
 	return w.SignTransactions(ctx, Transactions{txn})
 }
 
-func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
+func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
 	if len(txns) == 0 {
 		return nil, fmt.Errorf("cannot sign an empty set of transactions")
 	}
@@ -393,8 +525,14 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 		return nil, err
 	}
 
+	// Sign AuxData (for signing services)
+	sCtx := ctx
+	if auxData := w.auxDataFromTransactionBundle(&bundle); auxData != nil {
+		sCtx = ContextWithAuxData(ctx, auxData)
+	}
+
 	// Sign the transactions
-	sig, _, err := w.SignDigest(digest)
+	sig, _, err := w.SignDigest(sCtx, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -410,39 +548,106 @@ func (w *Wallet) SignTransactions(ctx context.Context, txns Transactions) (*Sign
 	}, nil
 }
 
-func (w *Wallet) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	return w.SendTransactions(ctx, signedTxns)
 }
 
-func (w *Wallet) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
 	return w.relayer.Relay(ctx, signedTxns)
 }
 
-func (w *Wallet) IsDeployed() (bool, error) {
+func (w *Wallet[C]) IsDeployed() (bool, error) {
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
 	return IsWalletDeployed(w.provider, w.Address())
 }
 
+func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	if w.relayer == nil {
+		return "", nil, nil, ErrRelayerNotSet
+	}
+
+	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeployment(w.config, w.context)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	if w.address != (common.Address{}) && w.address != walletAddress {
+		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
+	}
+
+	var txn = &Transaction{
+		RevertOnError: true,
+		To:            walletFactoryAddress,
+		Data:          deploymentData,
+	}
+
+	signerTxn, err := w.SignTransaction(ctx, txn)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	return w.relayer.Relay(ctx, signerTxn)
+}
+
 // func (w *Wallet) UpdateConfig() // TODO in future
 
 // func (w *Wallet) PublishConfig() // TODO in future
 
-func (w *Wallet) IsValidSignature(digest common.Hash, signature []byte) (bool, error) {
+func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool, error) {
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
 
-	// Assume that this context if for a v1 wallet, so we bundle the context in a mapping
-	// with a single key of (1)
-	contexts := make(map[uint16]WalletContext)
-	contexts[1] = w.context
+	// todo: this is a hack to get around the fact that the signature verification is not available in WalletConfig
+	var generalWalletConfig core.WalletConfig = w.config
+	if _, ok := generalWalletConfig.(*v2.WalletConfig); ok {
+		sig, err := v2.Core.DecodeSignature(signature)
+		if err != nil {
+			return false, err
+		}
 
-	return IsValidSignature(w.Address(), digest, signature, contexts, w.chainID, w.provider)
+		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		if err != nil {
+			return false, err
+		} else {
+			return true, nil
+		}
+	} else if _, ok := generalWalletConfig.(*v1.WalletConfig); ok {
+		sig, err := v1.Core.DecodeSignature(signature)
+		if err != nil {
+			return false, err
+		}
+
+		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		if err != nil {
+			return false, err
+		} else {
+			return true, nil
+		}
+	} else {
+		return false, fmt.Errorf("unknown wallet config type")
+	}
+}
+
+func (w *Wallet[C]) auxDataFromTransactionBundle(bundle *Transaction) *AuxData {
+	bundle.Signature = []byte{}
+
+	msg, err := Transactions{bundle}.EncodeRaw()
+	if err != nil {
+		return nil
+	}
+
+	return &AuxData{
+		Msg:     msg,
+		Sig:     nil,
+		ChainID: w.chainID,
+		Address: &w.address,
+	}
 }
 
 func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (bool, error) {
@@ -454,6 +659,33 @@ func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (
 		return true, nil
 	}
 	return false, nil
+}
+
+// AuxData is the data that is signed by the wallet
+type AuxData struct {
+	Msg     []byte
+	Sig     []byte
+	ChainID *big.Int
+	Address *common.Address
+}
+
+func (a *AuxData) Pack() ([]byte, error) {
+	return ethcoder.AbiCoder(
+		[]string{"address", "uint256", "bytes", "bytes"},
+		[]interface{}{a.Address, a.ChainID, &a.Msg, &a.Sig},
+	)
+}
+
+func ContextWithAuxData(ctx context.Context, auxData *AuxData) context.Context {
+	return context.WithValue(ctx, "auxData", auxData)
+}
+
+func AuxDataFromContext(ctx context.Context) (*AuxData, error) {
+	auxData, ok := ctx.Value("auxData").(*AuxData)
+	if !ok {
+		return nil, fmt.Errorf("auxData not found in context")
+	}
+	return auxData, nil
 }
 
 var (

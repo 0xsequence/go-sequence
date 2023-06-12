@@ -14,6 +14,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 type Relayer interface {
@@ -21,10 +22,10 @@ type Relayer interface {
 	GetProvider() *ethrpc.Provider
 
 	// ..
-	EstimateGasLimits(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
+	EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
 
 	// NOTE: nonce space is 160 bits wide
-	GetNonce(ctx context.Context, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
+	GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
 
 	// Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
@@ -50,7 +51,7 @@ const (
 )
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
-func EncodeTransactionsForRelaying(relayer Relayer, walletConfig WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+func EncodeTransactionsForRelaying(relayer Relayer, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
 	// TODO/NOTE: first version, we assume the wallet is deployed, then we can add bundlecreation after.
 	// .....
 
@@ -168,7 +169,7 @@ func LegacyWaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTx
 				}
 
 				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), TxFailedEventSigV1.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
+				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), V1TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
 					status = MetaTxnFailed
 				}
 

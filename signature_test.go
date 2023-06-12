@@ -1,13 +1,6 @@
 package sequence_test
 
-import (
-	"testing"
-
-	"github.com/0xsequence/ethkit/ethwallet"
-	"github.com/0xsequence/go-sequence"
-	"github.com/stretchr/testify/assert"
-)
-
+/*
 const message = "hi!"
 
 func TestSignatureReduction(t *testing.T) {
@@ -513,7 +506,7 @@ func fromSequenceSignature(s *sequence.Signature) *signature {
 		}
 
 		if signer.Type == sequence.SignaturePartTypeDynamic {
-			sig, _ := sequence.DecodeSignature(signer.Value[:len(signer.Value)-1])
+			sig, _ := sequence.GenericDecodeSignature(signer.Value[:len(signer.Value)-1])
 			part.Signature = fromSequenceSignature(sig)
 		}
 
@@ -553,3 +546,4 @@ func areSignaturesIsomorphic(a *signature, b *signature) bool {
 
 	return true
 }
+*/

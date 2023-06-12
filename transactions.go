@@ -11,6 +11,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -115,22 +117,18 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 	}
 
 	if len(t.Signature) != 0 {
-		signature, err := DecodeSignature(t.Signature)
+		signature, err := GenericDecodeSignature[*v1.WalletConfig](t.Signature)
 		if err != nil {
 			return err
 		}
 
-		_, metaTxnID, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
+		_, subdigest, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
 		if err != nil {
 			return err
 		}
+		signature = signature.Reduce(core.Subdigest{Hash: subdigest})
 
-		err = signature.Reduce(metaTxnID[:])
-		if err != nil {
-			return err
-		}
-
-		encoded, err := signature.Encode()
+		encoded, err := signature.Data()
 		if err != nil {
 			return err
 		}
@@ -325,7 +323,7 @@ func (t Transactions) Clone() Transactions {
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
 	ChainID       *big.Int
-	WalletConfig  WalletConfig
+	WalletConfig  core.WalletConfig
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
@@ -350,17 +348,17 @@ var (
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch
 	// 0x3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7
-	TxFailedEventSigV1 = MustEncodeSig("TxFailed(bytes32,bytes)")
+	V1TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,bytes)")
 
 	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
 	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
 	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	TxExecutedEventSigV2 = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+	V2TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	TxFailedEventSigV2 = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
 )
 
 // EncodeNonce with space
@@ -415,7 +413,7 @@ func GenerateRandomNonce() (*big.Int, error) {
 	return nonce, nil
 }
 
-func GetWalletNonce(provider *ethrpc.Provider, walletConfig WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+func GetWalletNonce(provider *ethrpc.Provider, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	walletAddress, err := AddressFromWalletConfig(walletConfig, walletContext)
 	if err != nil {
 		return nil, err

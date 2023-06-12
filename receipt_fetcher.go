@@ -45,10 +45,10 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 	var isV2 bool
 
 	for _, log := range receipt.Logs() {
-		isTxExecutedV1 := IsTxExecutedEventV1(log, metaTxnHash)
-		isTxFailedV1 := IsTxFailedEventV1(log, metaTxnHash)
-		isTxExecutedV2 := IsTxExecutedEventV2(log, metaTxnHash)
-		isTxFailedV2 := IsTxFailedEventV2(log, metaTxnHash)
+		isTxExecutedV1 := V1IsTxExecutedEvent(log, metaTxnHash)
+		isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnHash)
+		isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnHash)
+		isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnHash)
 
 		if isTxExecutedV1 || isTxFailedV1 {
 			isV2 = false
@@ -64,18 +64,18 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 		var reason string
 
 		if isV2 {
-			isTxExecuted = IsTxExecutedEventV2(log, metaTxnHash)
-			isTxFailed = IsTxFailedEventV2(log, metaTxnHash)
+			isTxExecuted = IsTxExecutedEvent(log, metaTxnHash)
+			isTxFailed = V2IsTxFailedEvent(log, metaTxnHash)
 
 			if isTxFailed {
-				_, reason, _, _ = DecodeTxFailedEventV2(log)
+				_, reason, _, _ = V2DecodeTxFailedEvent(log)
 			}
 		} else {
-			isTxExecuted = IsTxExecutedEventV1(log, metaTxnHash)
-			isTxFailed = IsTxFailedEventV1(log, metaTxnHash)
+			isTxExecuted = V1IsTxExecutedEvent(log, metaTxnHash)
+			isTxFailed = V1IsTxFailedEvent(log, metaTxnHash)
 
 			if isTxFailed {
-				_, reason, _ = DecodeTxFailedEventV1(log)
+				_, reason, _ = V1DecodeTxFailedEvent(log)
 			}
 		}
 
@@ -94,10 +94,10 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 	return ethreceipts.FilterLogs(func(logs []*types.Log) bool {
 		for _, log := range logs {
-			isTxExecutedV1 := IsTxExecutedEventV1(log, metaTxnID)
-			isTxFailedV1 := IsTxFailedEventV1(log, metaTxnID)
-			isTxExecutedV2 := IsTxExecutedEventV2(log, metaTxnID)
-			isTxFailedV2 := IsTxFailedEventV2(log, metaTxnID)
+			isTxExecutedV1 := V1IsTxExecutedEvent(log, metaTxnID)
+			isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnID)
+			isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnID)
+			isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnID)
 
 			if isTxExecutedV1 || isTxFailedV1 || isTxExecutedV2 || isTxFailedV2 {
 				// found the sequence meta txn
@@ -123,7 +123,7 @@ func FilterMetaTransactionAny() ethreceipts.FilterQuery {
 		}
 
 		for _, log := range logs {
-			if len(log.Topics) == 1 && log.Topics[0] == TxFailedEventSigV1 {
+			if len(log.Topics) == 1 && log.Topics[0] == V1TxFailedEventSig {
 				// failed sequence txn
 				return true
 			} else if len(log.Topics) == 0 && len(log.Data) == 32 {
