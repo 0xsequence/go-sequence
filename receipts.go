@@ -77,32 +77,40 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 	return receipts, logs, nil
 }
 
-func IsTxExecutedEventV1(log *types.Log, hash common.Hash) bool {
+func V1IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 0 &&
 		len(log.Data) == 32 &&
 		bytes.Equal(log.Data, hash[:])
 }
 
-func IsTxFailedEventV1(log *types.Log, hash common.Hash) bool {
+func V1IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 1 &&
-		log.Topics[0] == TxFailedEventSigV1 &&
+		log.Topics[0] == V1TxFailedEventSig &&
 		bytes.HasPrefix(log.Data, hash[:])
 }
 
-func IsTxExecutedEventV2(log *types.Log, hash common.Hash) bool {
+func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
-		log.Topics[0] == TxExecutedEventSigV2 &&
+		log.Topics[0] == V2TxExecutedEventSig &&
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
-func IsTxFailedEventV2(log *types.Log, hash common.Hash) bool {
+func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
+	return V2IsTxExecutedEvent(log, hash)
+}
+
+func V2IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
-		log.Topics[0] == TxFailedEventSigV2 &&
+		log.Topics[0] == V2TxFailedEventSig &&
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
-func DecodeTxFailedEventV1(log *types.Log) (common.Hash, string, error) {
-	if len(log.Topics) != 1 || log.Topics[0] != TxFailedEventSigV1 {
+func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
+	return V2IsTxFailedEvent(log, hash)
+}
+
+func V1DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
+	if len(log.Topics) != 1 || log.Topics[0] != V1TxFailedEventSig {
 		return common.Hash{}, "", fmt.Errorf("not a TxFailed event")
 	}
 
@@ -120,8 +128,8 @@ func DecodeTxFailedEventV1(log *types.Log) (common.Hash, string, error) {
 	return hash, reason, nil
 }
 
-func DecodeTxFailedEventV2(log *types.Log) (common.Hash, string, uint, error) {
-	if len(log.Topics) != 2 || log.Topics[0] != TxFailedEventSigV2 {
+func V2DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
+	if len(log.Topics) != 2 || log.Topics[0] != V2TxFailedEventSig {
 		return common.Hash{}, "", 0, fmt.Errorf("not a TxFailed event")
 	}
 
@@ -139,6 +147,10 @@ func DecodeTxFailedEventV2(log *types.Log) (common.Hash, string, uint, error) {
 	}
 
 	return hash, reason, index, nil
+}
+
+func DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
+	return V2DecodeTxFailedEvent(log)
 }
 
 func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
@@ -199,10 +211,10 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := IsTxExecutedEventV1(log, hash) || IsTxExecutedEventV2(log, hash)
-			failedHash, failedReason, err := DecodeTxFailedEventV1(log)
+			isTxExecuted := V1IsTxExecutedEvent(log, hash) || IsTxExecutedEvent(log, hash)
+			failedHash, failedReason, err := V1DecodeTxFailedEvent(log)
 			if err != nil {
-				failedHash, failedReason, _, err = DecodeTxFailedEventV2(log)
+				failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
 			}
 
 			isTxFailed := err == nil && failedHash == hash

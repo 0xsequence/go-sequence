@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,8 +28,31 @@ var sequenceContext = sequence.WalletContext{
 	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
 }
 
+var sequenceContextV2 = sequence.WalletContext{
+	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
+	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
+	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
+	UtilsAddress:                common.HexToAddress("0xdbbFa3cB3B087B64F4ef5E3D20Dda2488AA244e6"),
+}
+
 func SequenceContext() sequence.WalletContext {
+	return sequenceContextV2
+}
+
+func V1SequenceContext() sequence.WalletContext {
 	return sequenceContext
+}
+
+func V2SequenceContext() sequence.WalletContext {
+	return sequenceContextV2
+}
+
+func SequenceContexts() map[uint8]sequence.WalletContext {
+	return map[uint8]sequence.WalletContext{
+		1: sequenceContext,
+		2: sequenceContextV2,
+	}
 }
 
 // parseTestWalletMnemonic parses the wallet mnemonic from ./package.json, the same
@@ -67,7 +91,7 @@ func DummyPrivateKey(seed uint64) string {
 	return fmt.Sprintf("%064x", seed)
 }
 
-func SignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data []byte) error {
+func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
 	stx := &sequence.Transaction{
 		// DelegateCall:  false,
 		// RevertOnError: false,
@@ -80,7 +104,7 @@ func SignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *sequence.Transaction) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) error {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
@@ -100,7 +124,7 @@ func SignAndSendRawTransaction(t *testing.T, wallet *sequence.Wallet, stx *seque
 	return err
 }
 
-func BatchSignAndSend(t *testing.T, wallet *sequence.Wallet, to common.Address, data [][]byte) error {
+func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {
 	var stxs []*sequence.Transaction
 	for i := 0; i < len(data); i++ {
 		stxs = append(stxs, &sequence.Transaction{

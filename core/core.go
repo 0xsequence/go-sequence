@@ -8,15 +8,32 @@ package core
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
+
+var cores []any
+
+func RegisterCore[C WalletConfig, S Signature[C]](core Core[C, S]) {
+	cores = append(cores, core)
+}
+
+func GetCoreForWalletConfig[C WalletConfig]() (Core[C, Signature[C]], error) {
+	for _, core := range cores {
+		if core, ok := core.(Core[C, Signature[C]]); ok {
+			return core, nil
+		}
+	}
+	return nil, fmt.Errorf("sequence: core not found")
+}
 
 type Core[C WalletConfig, S Signature[C]] interface {
 	// DecodeSignature takes raw signature data and returns a Signature that can Recover a WalletConfig.
@@ -41,6 +58,12 @@ type Signature[C WalletConfig] interface {
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
 	Recover(ctx context.Context, digest Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
+	// Reduce returns an equivalent optimized signature.
+	Reduce(subdigest Subdigest) Signature[C]
+
+	// Join joins two signatures into one.
+	Join(subdigest Subdigest, other Signature[C]) (Signature[C], error)
+
 	// Data is the raw signature data.
 	Data() ([]byte, error)
 
@@ -59,7 +82,13 @@ type WalletConfig interface {
 	Checkpoint() uint32
 
 	// Signers is the set of signers in the wallet configuration.
-	Signers() map[common.Address]struct{}
+	Signers() map[common.Address]uint16
+
+	// SignersWeight is the total weight of the signers passed to the function according to the wallet configuration.
+	SignersWeight(signers []common.Address) uint16
+
+	// IsUsable checks if it's possible to construct signatures that meet threshold.
+	IsUsable() error
 }
 
 // A SignerSignatures object stores signer signatures indexed by signer and subdigest.
@@ -82,18 +111,94 @@ func (s SignerSignatures) Insert(signer common.Address, signature SignerSignatur
 type SignerSignatureType int
 
 const (
-	SignerSignatureTypeEIP712 SignerSignatureType = iota
+	SignerSignatureTypeEIP712 SignerSignatureType = iota + 1
 	SignerSignatureTypeEthSign
 	SignerSignatureTypeEIP1271
 )
 
 type SignerSignature struct {
+	Signer    common.Address
 	Subdigest Subdigest
 	Type      SignerSignatureType
 	Signature []byte
 }
 
-type SigningFunction func(ctx context.Context, signer common.Address) (SignerSignatureType, []byte, error)
+// ErrSigningFunctionNotReady is returned when a signing function is not ready to sign and should be retried later.
+var ErrSigningFunctionNotReady = fmt.Errorf("signing function not ready")
+
+type SigningFunction func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error)
+
+func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16, sign SigningFunction) chan SignerSignature {
+	signaturesChan := make(chan SignerSignature)
+	go func() {
+		defer close(signaturesChan)
+
+		wg := sync.WaitGroup{}
+
+		var cond = sync.NewCond(&sync.Mutex{})
+		var signatures = make([]SignerSignature, 0, len(signers))
+		var signaturesExpected = len(signers)
+		for signer := range signers {
+			wg.Add(1)
+			go func(signer common.Address) {
+				defer wg.Done()
+
+				go func() {
+					select {
+					case <-ctx.Done():
+						cond.Broadcast()
+					}
+				}()
+
+				retries := 0
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+
+					cond.L.Lock()
+					signaturesArg := signatures[:]
+					cond.L.Unlock()
+
+					signatureType, signature, err := sign(ctx, signer, signaturesArg)
+					if err != nil {
+						if errors.Is(err, ErrSigningFunctionNotReady) && retries < 1 {
+							cond.L.Lock()
+							signaturesLeft := signaturesExpected - len(signatures)
+							if signaturesLeft > 1 {
+								cond.Wait()
+							}
+							cond.L.Unlock()
+
+							retries++
+							continue
+						}
+					}
+
+					signerSignature := SignerSignature{
+						Type:      signatureType,
+						Signer:    signer,
+						Signature: signature,
+					}
+
+					cond.L.Lock()
+					signatures = append(signatures, signerSignature)
+					cond.L.Unlock()
+
+					signaturesChan <- signerSignature
+					cond.Broadcast()
+					break
+				}
+			}(signer)
+		}
+
+		wg.Wait()
+	}()
+
+	return signaturesChan
+}
 
 // An ImageHashable is an object with an ImageHash.
 type ImageHashable interface {

@@ -30,18 +30,29 @@ func init() {
 func TestTestutil(t *testing.T) {
 	assert.Equal(t, testChain.ChainID().Uint64(), uint64(1337))
 
-	// DeploySequenceContext
-	sequenceContext, err := testChain.DeploySequenceContext()
+	// V1DeploySequenceContext
+	sequenceContext, err := testChain.V1DeploySequenceContext()
 	assert.NoError(t, err)
 
-	// Compare against "expexcted" testutil.SequenceContext
-	expectedContext := testutil.SequenceContext()
+	sequenceContextV2, err := testChain.V2DeploySequenceContext()
+	assert.NoError(t, err)
+
+	// Compare against "expexcted" testutil.V1SequenceContext
+	expectedContext := testutil.V1SequenceContext()
+
+	expectedContextV2 := testutil.V2SequenceContext()
 
 	assert.Equal(t, expectedContext.FactoryAddress, sequenceContext.FactoryAddress)
 	assert.Equal(t, expectedContext.MainModuleAddress, sequenceContext.MainModuleAddress)
 	assert.Equal(t, expectedContext.MainModuleUpgradableAddress, sequenceContext.MainModuleUpgradableAddress)
 	assert.Equal(t, expectedContext.GuestModuleAddress, sequenceContext.GuestModuleAddress)
 	assert.Equal(t, expectedContext.UtilsAddress, sequenceContext.UtilsAddress)
+
+	assert.Equal(t, expectedContextV2.FactoryAddress, sequenceContextV2.FactoryAddress)
+	assert.Equal(t, expectedContextV2.MainModuleAddress, sequenceContextV2.MainModuleAddress)
+	assert.Equal(t, expectedContextV2.MainModuleUpgradableAddress, sequenceContextV2.MainModuleUpgradableAddress)
+	assert.Equal(t, expectedContextV2.GuestModuleAddress, sequenceContextV2.GuestModuleAddress)
+	assert.Equal(t, expectedContextV2.UtilsAddress, sequenceContextV2.UtilsAddress)
 }
 
 func TestContractHelpers(t *testing.T) {
