@@ -94,9 +94,13 @@ func GenericIsValidSignature[C core.WalletConfig](walletAddress common.Address, 
 		return ok, nil
 	}
 
-	var code []byte
 	if provider == nil {
 		return false, fmt.Errorf("failed to validate: provider is required")
+	}
+
+	code, err := provider.CodeAt(context.TODO(), walletAddress, nil)
+	if err != nil {
+		return false, fmt.Errorf("unable to get code at %v: %w", walletAddress, err)
 	}
 
 	if len(code) == 0 {
