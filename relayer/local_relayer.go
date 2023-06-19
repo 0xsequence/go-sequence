@@ -137,6 +137,15 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
+	// send to guest module if factory address is the recipient (in order to deploy wallet)
+	// todo: split wallet create and other transactions
+	for _, txn := range signedTxs.Transactions {
+		if txn.To == signedTxs.WalletContext.FactoryAddress {
+			to = signedTxs.WalletContext.GuestModuleAddress
+			break
+		}
+	}
+
 	walletAddress, err := sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
 	if err != nil {
 		return "", nil, nil, err
