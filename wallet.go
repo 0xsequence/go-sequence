@@ -373,12 +373,7 @@ func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, erro
 }
 
 func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.Signature[C], error) {
-	sCtx := ContextWithAuxData(ctx, &AuxData{
-		ChainID: w.chainID,
-		Address: &w.address,
-		Msg:     msg,
-	})
-	return w.SignDigest(sCtx, MessageDigest(msg))
+	return w.SignDigest(ctx, MessageDigest(msg))
 }
 
 // func (w *Wallet) SignTypedData() // TODO
@@ -394,6 +389,13 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	} else {
 		chainID = w.chainID
 	}
+
+	ctx = ContextWithAuxData(ctx, &AuxData{
+		ChainID: chainID,
+		Address: &w.address,
+		Msg:     digest[:],
+		Sig:     []byte{},
+	})
 
 	subDigest, err := SubDigest(chainID, w.Address(), digest)
 	if err != nil {
@@ -525,14 +527,8 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		return nil, err
 	}
 
-	// Sign AuxData (for signing services)
-	sCtx := ctx
-	if auxData := w.auxDataFromTransactionBundle(&bundle); auxData != nil {
-		sCtx = ContextWithAuxData(ctx, auxData)
-	}
-
 	// Sign the transactions
-	sig, _, err := w.SignDigest(sCtx, digest)
+	sig, _, err := w.SignDigest(ctx, digest)
 	if err != nil {
 		return nil, err
 	}
@@ -631,22 +627,6 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 		}
 	} else {
 		return false, fmt.Errorf("unknown wallet config type")
-	}
-}
-
-func (w *Wallet[C]) auxDataFromTransactionBundle(bundle *Transaction) *AuxData {
-	bundle.Signature = []byte{}
-
-	msg, err := Transactions{bundle}.EncodeRaw()
-	if err != nil {
-		return nil
-	}
-
-	return &AuxData{
-		Msg:     msg,
-		Sig:     nil,
-		ChainID: w.chainID,
-		Address: &w.address,
 	}
 }
 
