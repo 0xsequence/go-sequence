@@ -13,7 +13,9 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWalletAddress(t *testing.T) {
@@ -147,6 +149,62 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)
 		assert.NoError(t, err)
 		assert.True(t, isValidSig)
+	})
+}
+
+func TestWalletDeploy(t *testing.T) {
+	t.Run("v1", func(t *testing.T) {
+		eoa, err := ethwallet.NewWalletFromRandomEntropy()
+		assert.NoError(t, err)
+
+		rel, err := relayer.NewLocalRelayer(testChain.MustWallet(0), nil)
+		require.NoError(t, err)
+
+		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
+		assert.NoError(t, err)
+
+		err = wallet.SetProvider(testChain.Provider)
+		require.NoError(t, err)
+
+		err = wallet.SetRelayer(rel)
+		require.NoError(t, err)
+
+		_, _, wait, err := wallet.Deploy(context.Background())
+		assert.NoError(t, err)
+
+		_, err = wait(context.Background())
+		require.NoError(t, err)
+
+		isDeployed, err := wallet.IsDeployed()
+		assert.NoError(t, err)
+		assert.True(t, isDeployed)
+	})
+
+	t.Run("v2", func(t *testing.T) {
+		eoa, err := ethwallet.NewWalletFromRandomEntropy()
+		assert.NoError(t, err)
+
+		rel, err := relayer.NewLocalRelayer(testChain.MustWallet(0), nil)
+		require.NoError(t, err)
+
+		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
+		assert.NoError(t, err)
+
+		err = wallet.SetProvider(testChain.Provider)
+		require.NoError(t, err)
+
+		err = wallet.SetRelayer(rel)
+		require.NoError(t, err)
+
+		_, _, wait, err := wallet.Deploy(context.Background())
+		assert.NoError(t, err)
+
+		_, err = wait(context.Background())
+		require.NoError(t, err)
+
+		isDeployed, err := wallet.IsDeployed()
+		assert.NoError(t, err)
+		assert.True(t, isDeployed)
 	})
 }
 

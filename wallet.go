@@ -422,22 +422,30 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			}
 		}
 
-		if eoaSigner, ok := signer.(MessageSigner); ok {
-			sigValue, err := eoaSigner.SignMessage(subDigest)
+		switch signer.(type) {
+		// Ethereum Wallet Signer
+		case MessageSigner:
+			sigValue, err := signer.(MessageSigner).SignMessage(subDigest)
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
 
 			return core.SignerSignatureTypeEthSign, sigValue, nil
-		} else if seqSigner, ok := signer.(DigestSigner); ok {
-			sigValue, _, err := seqSigner.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+		// sequence.Wallet / Signing Service / Guard
+		case DigestSigner:
+			sigValue, _, err := signer.(DigestSigner).SignDigest(ctx, common.BytesToHash(subDigest), chainID)
 			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
 			}
 
+			// Sequence Wallet SignDigest returns a signature without a type
+			if _, ok := signer.(*Wallet[core.WalletConfig]); ok {
+				return core.SignerSignatureTypeEIP1271, sigValue, nil
+			}
 			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
+		default:
+			return 0, nil, fmt.Errorf("signer %T is not supported", signer)
 		}
-		return 0, nil, fmt.Errorf("signer is not a valid signer type")
 	}
 
 	var coreWalletConfig core.WalletConfig = w.config
@@ -580,6 +588,9 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		RevertOnError: true,
 		To:            walletFactoryAddress,
 		Data:          deploymentData,
+		// TODO: Move this hardcoded gas limit to a configuration
+		// or fix it with a contract patch
+		GasLimit: big.NewInt(131072),
 	}
 
 	signerTxn, err := w.SignTransaction(ctx, txn)
