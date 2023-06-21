@@ -240,6 +240,7 @@ func (c *TestChain) MustFundAddress(addr common.Address) error {
 	type SendTx struct {
 		From  *common.Address `json:"from"`
 		To    *common.Address `json:"to"`
+		Gas   string          `json:"gas"`
 		Value string          `json:"value"`
 	}
 
@@ -247,8 +248,10 @@ func (c *TestChain) MustFundAddress(addr common.Address) error {
 	diff.Sub(target, balance)
 
 	tx := &SendTx{
-		To:    &addr,
-		From:  &accounts[0],
+		To:   &addr,
+		From: &accounts[0],
+		// default not always sufficient to send ETH to a contract
+		Gas:   "0x" + big.NewInt(1000000).Text(16),
 		Value: "0x" + diff.Text(16),
 	}
 
