@@ -54,9 +54,12 @@ type Signature[C WalletConfig] interface {
 	// Recover derives the wallet configuration that the signature applies to.
 	// Also returns the signature's weight.
 	// If chainID is not provided, provider must be provided.
-	// If provider is not provided, EIP-1271 signatures are assumed to be valid.
+	// If provider is not provided, EIP-1271 signatures are assumed to be NOT valid and ignored.
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
 	Recover(ctx context.Context, digest Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
+
+	// Recover a signature but only using the subdigest
+	RecoverSubdigest(ctx context.Context, subdigest Subdigest, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
 	// Reduce returns an equivalent optimized signature.
 	Reduce(subdigest Subdigest) Signature[C]
