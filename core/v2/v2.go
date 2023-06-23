@@ -1054,6 +1054,8 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 		}, new(big.Int).SetUint64(uint64(l.weight)), nil
 
 	case dynamicSignatureTypeEIP1271:
+		effectiveWeight := l.weight
+
 		if provider != nil {
 			contract := ethcontract.NewContractCaller(l.address, contracts.IERC1271.ABI, provider)
 
@@ -1075,6 +1077,11 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 			if magicValue != isValidSignatureMagicValue {
 				return nil, nil, fmt.Errorf("isValidSignature returned %v, expected %v", hexutil.Encode(magicValue[:]), hexutil.Encode(isValidSignatureMagicValue[:]))
 			}
+		} else {
+			// Set the effective weight to 0
+			// we can still get the signer address (and its corresponding weight)
+			// but we should not count it towards the total weight
+			effectiveWeight = 0
 		}
 
 		signerSignatures.Insert(l.address, core.SignerSignature{
@@ -1086,7 +1093,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 		return &WalletConfigTreeAddressLeaf{
 			Weight:  l.weight,
 			Address: l.address,
-		}, new(big.Int).SetUint64(uint64(l.weight)), nil
+		}, new(big.Int).SetUint64(uint64(effectiveWeight)), nil
 
 	default:
 		return nil, nil, fmt.Errorf("unknown dynamic signature type %v", l.type_)
