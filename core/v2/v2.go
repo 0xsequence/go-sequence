@@ -160,10 +160,6 @@ func (s *regularSignature) Checkpoint() uint32 {
 }
 
 func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
-	}
-
 	if chainID == nil {
 		if provider == nil {
 			return nil, nil, fmt.Errorf("provider is required if chain ID is not specified")
@@ -180,6 +176,10 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 }
 
 func (s *regularSignature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	if len(signerSignatures) == 0 {
+		signerSignatures = []core.SignerSignatures{nil}
+	}
+
 	tree, weight, err := s.tree.recover(ctx, subDigest, provider, signerSignatures[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover wallet config: %w", err)
@@ -315,14 +315,14 @@ func (s *noChainIDSignature) Checkpoint() uint32 {
 }
 
 func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
-	}
-
 	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
 }
 
 func (s *noChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	if len(signerSignatures) == 0 {
+		signerSignatures = []core.SignerSignatures{nil}
+	}
+
 	tree, weight, err := s.tree.recover(ctx, subdigest, provider, signerSignatures[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover wallet config: %w", err)
