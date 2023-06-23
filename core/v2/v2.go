@@ -176,7 +176,11 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 		}
 	}
 
-	tree, weight, err := s.tree.recover(ctx, digest.Subdigest(wallet, chainID), provider, signerSignatures[0])
+	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
+}
+
+func (s *regularSignature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	tree, weight, err := s.tree.recover(ctx, subDigest, provider, signerSignatures[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover wallet config: %w", err)
 	}
@@ -315,7 +319,11 @@ func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wa
 		signerSignatures = []core.SignerSignatures{nil}
 	}
 
-	tree, weight, err := s.tree.recover(ctx, digest.Subdigest(wallet), provider, signerSignatures[0])
+	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
+}
+
+func (s *noChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	tree, weight, err := s.tree.recover(ctx, subdigest, provider, signerSignatures[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover wallet config: %w", err)
 	}
@@ -487,6 +495,10 @@ func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, walle
 	}
 
 	return config, weight, nil
+}
+
+func (s chainedSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	return nil, nil, fmt.Errorf("chained signatures do not support recovering subdigests")
 }
 
 func (s chainedSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
