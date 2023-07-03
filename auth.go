@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	eip6492 "github.com/0xsequence/go-sequence/eip_6492"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
@@ -32,7 +33,29 @@ func V2ValidateSequenceAccountProof() ethauth.ValidatorFunc {
 }
 
 func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
-	return V2ValidateSequenceAccountProof()
+	eip6492Validator := EIP6492ValidateSignature()
+	legacyValidator := V2ValidateSequenceAccountProof()
+
+	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
+		// NOTICE: We only need the legacy validator so we can deploy these API updates
+		// without having to pause the wallet, otherwise we need to coordinate both.
+		// as soon as we have EIP-6492 running on prod we can remove this.
+		eip6492Valid, _, _ := eip6492Validator(ctx, provider, chainID, proof)
+		if eip6492Valid {
+			return true, proof.Address, nil
+		}
+
+		legacyIsValid, addr, err := legacyValidator(ctx, provider, chainID, proof)
+		if err != nil {
+			return false, addr, err
+		}
+
+		if legacyIsValid {
+			fmt.Printf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s\n", proof.Address, proof.Signature)
+		}
+
+		return legacyIsValid, addr, nil
+	}
 }
 
 func GeneralValidateSequenceAccountProof() ethauth.ValidatorFunc {
@@ -51,6 +74,33 @@ func GeneralValidateSequenceAccountProof() ethauth.ValidatorFunc {
 		}
 
 		return false, "", fmt.Errorf("ValidateSequenceAccountProof failed. %v, %v", err1, err2)
+	}
+}
+
+func EIP6492ValidateSignature() ethauth.ValidatorFunc {
+	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
+		if provider == nil {
+			return false, "", fmt.Errorf("ValidateContractAccountToken failed. provider is nil")
+		}
+
+		messageDigest, err := proof.MessageDigest()
+		if err != nil {
+			return false, "", fmt.Errorf("ValidateEOAToken failed. Unable to compute token message digest, because %w", err)
+		}
+
+		hash := common.BytesToHash(messageDigest)
+		signer := common.HexToAddress(proof.Address)
+		sig, err := ethcoder.HexDecode(proof.Signature)
+		if err != nil {
+			return false, "", fmt.Errorf("sig is invalid")
+		}
+
+		isValid, err := eip6492.ValidateEIP6492Offchain(provider, signer, hash, sig)
+		if err != nil {
+			return false, "", fmt.Errorf("failed to validate")
+		}
+
+		return isValid, proof.Address, nil
 	}
 }
 
