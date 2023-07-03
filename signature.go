@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	eip6492 "github.com/0xsequence/go-sequence/eip_6492"
 )
 
 func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
@@ -153,8 +154,25 @@ func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, s
 	return isValid, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	return V2IsValidSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(provider, walletAddress, digest, seqSig)
+	if eip6492isValid {
+		return true, nil
+	}
+
+	// NOTICE: This is legacy code, we only need it while we deploy EIP-6492
+	// on prod, otherwise we need to coordinate both.
+	// as soon as we have EIP-6492 running on prod we can remove this.
+	generalIsValid, err := GeneralIsValidSignature(walletAddress, digest, seqSig, walletContexts, chainID, provider)
+	if err != nil {
+		return false, err
+	}
+
+	if generalIsValid {
+		fmt.Printf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s, %s\n", walletAddress, digest, common.Bytes2Hex(seqSig))
+	}
+
+	return generalIsValid, nil
 }
 
 func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
