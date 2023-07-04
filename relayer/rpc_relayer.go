@@ -55,22 +55,17 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig sequenc
 		return nil, err
 	}
 
-	config, err := r.protoConfig(ctx, &walletConfig, walletAddress)
+	response, err := r.Service.Simulate(ctx, walletAddress.Hex(), hexutil.Encode(requestData))
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), config, hexutil.Encode(requestData))
-	if err != nil {
-		return nil, err
+	txns = txns.Clone()
+	for i, txn := range txns {
+		txn.GasLimit = big.NewInt(int64(response[i].GasLimit))
 	}
 
-	responseData, err := hexutil.Decode(response)
-	if err != nil {
-		return nil, err
-	}
-
-	return sequence.DecodeRawTransactions(responseData)
+	return txns, nil
 }
 
 // NOTE: nonce space is 160 bits wide
