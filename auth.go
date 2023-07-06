@@ -14,6 +14,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/eip6492"
+	"github.com/goware/logger"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
@@ -32,7 +33,7 @@ func V2ValidateSequenceAccountProof() ethauth.ValidatorFunc {
 	return GenericValidateSequenceAccountProofWith[*v2.WalletConfig](V2SequenceContext())
 }
 
-func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
+func ValidateSequenceAccountProof(log logger.Logger) ethauth.ValidatorFunc {
 	eip6492Validator := EIP6492ValidateSignature()
 	legacyValidator := V2ValidateSequenceAccountProof()
 
@@ -51,7 +52,7 @@ func ValidateSequenceAccountProof() ethauth.ValidatorFunc {
 		}
 
 		if legacyIsValid {
-			fmt.Printf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s\n", proof.Address, proof.Signature)
+			log.Errorf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s", proof.Address, proof.Signature)
 		}
 
 		return legacyIsValid, addr, nil
