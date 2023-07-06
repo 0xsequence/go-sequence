@@ -17,6 +17,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/eip6492"
+	"github.com/goware/logger"
 )
 
 func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
@@ -154,7 +155,7 @@ func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, s
 	return isValid, nil
 }
 
-func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(provider, walletAddress, digest, seqSig)
 	if eip6492isValid {
 		return true, nil
@@ -169,7 +170,7 @@ func IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig [
 	}
 
 	if generalIsValid {
-		fmt.Printf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s, %s\n", walletAddress, digest, common.Bytes2Hex(seqSig))
+		log.Errorf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s, %s", walletAddress, digest, common.Bytes2Hex(seqSig))
 	}
 
 	return generalIsValid, nil
