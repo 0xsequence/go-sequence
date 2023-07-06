@@ -13,7 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
-	eip6492 "github.com/0xsequence/go-sequence/eip_6492"
+	"github.com/0xsequence/go-sequence/eip6492"
 )
 
 // Utility functions to use with ethauth, in order to validate Sequence Wallet signatures, encoded
