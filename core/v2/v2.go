@@ -172,7 +172,7 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 		}
 	}
 
-	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
+	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet, chainID), provider, signerSignatures...)
 }
 
 func (s *regularSignature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
