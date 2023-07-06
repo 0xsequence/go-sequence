@@ -1,6 +1,7 @@
 package eip6492
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -219,5 +220,5 @@ func ValidateEIP6492Offchain(
 
 	// Check if the result is '0x01'
 	expectedResult := common.Hex2Bytes("01")
-	return len(result) == 1 && result[0] == expectedResult[0], nil
+	return bytes.Equal(result, expectedResult), nil
 }

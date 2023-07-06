@@ -80,24 +80,28 @@ func GeneralValidateSequenceAccountProof() ethauth.ValidatorFunc {
 func EIP6492ValidateSignature() ethauth.ValidatorFunc {
 	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
 		if provider == nil {
-			return false, "", fmt.Errorf("ValidateContractAccountToken failed. provider is nil")
+			return false, "", fmt.Errorf("EIP6492ValidateSignature failed. provider is nil")
 		}
 
 		messageDigest, err := proof.MessageDigest()
 		if err != nil {
-			return false, "", fmt.Errorf("ValidateEOAToken failed. Unable to compute token message digest, because %w", err)
+			return false, "", fmt.Errorf("EIP6492ValidateSignature failed. Unable to compute token message digest, because %w", err)
+		}
+
+		if !common.IsHexAddress(proof.Address) {
+			return false, "", fmt.Errorf(`"%v" is not a valid address`, proof.Address)
 		}
 
 		hash := common.BytesToHash(messageDigest)
 		signer := common.HexToAddress(proof.Address)
 		sig, err := ethcoder.HexDecode(proof.Signature)
 		if err != nil {
-			return false, "", fmt.Errorf("sig is invalid")
+			return false, "", fmt.Errorf("sig is invalid: %w", err)
 		}
 
 		isValid, err := eip6492.ValidateEIP6492Offchain(provider, signer, hash, sig)
 		if err != nil {
-			return false, "", fmt.Errorf("failed to validate")
+			return false, "", fmt.Errorf("failed to validate: %w", err)
 		}
 
 		return isValid, proof.Address, nil
