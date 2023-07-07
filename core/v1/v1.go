@@ -140,10 +140,6 @@ func (s *signature) Checkpoint() uint32 {
 }
 
 func (s *signature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
-	}
-
 	if chainID == nil {
 		if provider == nil {
 			return nil, nil, fmt.Errorf("provider is required if chain ID is not specified")
@@ -157,12 +153,19 @@ func (s *signature) Recover(ctx context.Context, digest core.Digest, wallet comm
 	}
 
 	subdigest := digest.Subdigest(wallet, chainID)
+	return s.RecoverSubdigest(ctx, subdigest, provider, signerSignatures...)
+}
+
+func (s *signature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+	if len(signerSignatures) == 0 {
+		signerSignatures = []core.SignerSignatures{nil}
+	}
 
 	var signers []*WalletConfigSigner
 	var total big.Int
 
 	for i, leaf := range s.leaves {
-		signer, weight, err := leaf.recover(ctx, subdigest, provider, signerSignatures[0])
+		signer, weight, err := leaf.recover(ctx, subDigest, provider, signerSignatures[0])
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to recover signer for leaf %v: %w", i, err)
 		}
@@ -685,6 +688,8 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 		}, new(big.Int).SetUint64(uint64(l.weight)), nil
 
 	case dynamicSignatureTypeEIP1271:
+		effectiveWeight := l.weight
+
 		if provider != nil {
 			contract := ethcontract.NewContractCaller(l.address, contracts.IERC1271.ABI, provider)
 
@@ -706,6 +711,11 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 			if magicValue != isValidSignatureMagicValue {
 				return nil, nil, fmt.Errorf("isValidSignature returned %v, expected %v", hexutil.Encode(magicValue[:]), hexutil.Encode(isValidSignatureMagicValue[:]))
 			}
+		} else {
+			// Set the effective weight to 0
+			// we can still get the signer address (and its corresponding weight)
+			// but we should not count it towards the total weight
+			effectiveWeight = 0
 		}
 
 		signerSignatures.Insert(l.address, core.SignerSignature{
@@ -717,7 +727,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 		return &WalletConfigSigner{
 			Weight:  l.weight,
 			Address: l.address,
-		}, new(big.Int).SetUint64(uint64(l.weight)), nil
+		}, new(big.Int).SetUint64(uint64(effectiveWeight)), nil
 
 	default:
 		return nil, nil, fmt.Errorf("unknown dynamic signature type %v", l.type_)
