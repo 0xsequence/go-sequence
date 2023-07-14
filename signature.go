@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
@@ -223,4 +224,26 @@ func MessageDigest(message []byte) common.Hash {
 
 func MustEncodeSig(str string) common.Hash {
 	return crypto.Keccak256Hash([]byte(str))
+}
+
+func EIP6492Signature(signature []byte, config core.WalletConfig) ([]byte, error) {
+	context := SequenceContextForWalletConfig(config)
+	factory := context.FactoryAddress
+	if factory == (common.Address{}) {
+		return nil, fmt.Errorf("unknown factory address for wallet config type %T", config)
+	}
+
+	mainModule := context.MainModuleAddress
+	imageHash := config.ImageHash().Hash
+	deploy, err := contracts.V2.WalletFactory.ABI.Pack("deploy", mainModule, imageHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode deploy call: %w", err)
+	}
+
+	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{factory, deploy, signature})
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
+	}
+	signature = append(signature, eip6492.EIP6492MagicBytes...)
+	return signature, nil
 }
