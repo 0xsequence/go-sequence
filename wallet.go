@@ -414,11 +414,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		// add the signature to the aux data if available
 		if len(signatures) != 0 {
 			if auxData, err := AuxDataFromContext(ctx); err == nil {
-				var sigWithType = make([]byte, 0, len(signatures[0].Signature)+1)
-				auxData.Sig = append(
-					append(sigWithType, signatures[0].Signature...),
-					byte(signatures[0].Type),
-				)
+				auxData.Sig = signatures[0].Signature
 			}
 		}
 
