@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	"github.com/0xsequence/go-sequence/sessions/proto"
 )
 
 type WalletOptions[C core.WalletConfig] struct {
@@ -294,6 +295,55 @@ func (w *Wallet[C]) SetRelayer(relayer Relayer) error {
 	return nil
 }
 
+func (w *Wallet[C]) SetSessions(sessions proto.Sessions) error {
+	w.sessions = sessions
+	return nil
+}
+
+func (w *Wallet[C]) UpdateSessionsWallet(ctx context.Context) error {
+	if w.sessions == nil {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: sessions are not set")
+	}
+
+	var version int
+	if _, ok := core.WalletConfig(w.config).(*v1.WalletConfig); ok {
+		version = 1
+	} else if _, ok := core.WalletConfig(w.config).(*v2.WalletConfig); ok {
+		version = 2
+	} else {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: unknown wallet config version")
+	}
+
+	err := w.sessions.SaveWallet(ctx, version, w.config)
+	if err != nil {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: %w", err)
+	}
+
+	return nil
+}
+
+func (w *Wallet[C]) UpdateSessionsConfig(ctx context.Context) error {
+	if w.sessions == nil {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: sessions are not set")
+	}
+
+	var version int
+	if _, ok := core.WalletConfig(w.config).(*v1.WalletConfig); ok {
+		version = 1
+	} else if _, ok := core.WalletConfig(w.config).(*v2.WalletConfig); ok {
+		version = 2
+	} else {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: unknown wallet config version")
+	}
+
+	err := w.sessions.SaveConfig(ctx, version, w.config)
+	if err != nil {
+		return fmt.Errorf("sequence.Wallet#UpdateSessions: %w", err)
+	}
+
+	return nil
+}
+
 // SetChainID will set the wallet's associated chainID. However, for most part, this will automatically
 // be set by the provider rpc.
 func (w *Wallet[C]) SetChainID(chainID *big.Int) {
@@ -380,6 +430,13 @@ func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.S
 // func (w *Wallet) SignTypedData() // TODO
 
 func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
+	if w.sessions != nil {
+		err := w.UpdateSessionsConfig(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", err)
+		}
+	}
+
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
