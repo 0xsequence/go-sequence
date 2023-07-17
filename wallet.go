@@ -193,6 +193,7 @@ type Wallet[C core.WalletConfig] struct {
 
 	provider *ethrpc.Provider
 	relayer  Relayer
+	sessions proto.Sessions
 	address  common.Address
 
 	skipSortSigners bool
@@ -414,14 +415,20 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		// add the signature to the aux data if available
 		if len(signatures) != 0 {
 			if auxData, err := AuxDataFromContext(ctx); err == nil {
-				auxData.Sig = signatures[0].Signature
+				auxData.Sig, _ = w.buildSignature(ctx, func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+					if signer == signatures[0].Signer {
+						return signatures[0].Type, signatures[0].Signature, nil
+					} else {
+						return 0, nil, fmt.Errorf("no signer")
+					}
+				})
 			}
 		}
 
-		switch signer.(type) {
+		switch signerTyped := signer.(type) {
 		// Ethereum Wallet Signer
 		case MessageSigner:
-			sigValue, err := signer.(MessageSigner).SignMessage(subDigest)
+			sigValue, err := signerTyped.SignMessage(subDigest)
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
@@ -429,7 +436,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			return core.SignerSignatureTypeEthSign, sigValue, nil
 		// sequence.Wallet / Signing Service / Guard
 		case DigestSigner:
-			sigValue, _, err := signer.(DigestSigner).SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+			sigValue, _, err := signerTyped.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
 			}
@@ -634,6 +641,37 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 		}
 	} else {
 		return false, fmt.Errorf("unknown wallet config type")
+	}
+}
+
+func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction) ([]byte, error) {
+	var coreWalletConfig core.WalletConfig = w.config
+	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
+		sig, err := config.BuildRegularSignature(ctx, sign, false)
+		if err != nil {
+			return nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
+		}
+
+		sigEnc, err := sig.Data()
+		if err != nil {
+			return nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
+		}
+
+		return sigEnc, nil
+	} else if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
+		sig, err := config.BuildSignature(ctx, sign, false)
+		if err != nil {
+			return nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
+		}
+
+		sigEnc, err := sig.Data()
+		if err != nil {
+			return nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
+		}
+
+		return sigEnc, nil
+	} else {
+		return nil, fmt.Errorf("SignDigest, unknown config type")
 	}
 }
 
