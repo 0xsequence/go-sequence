@@ -472,9 +472,10 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		// add the signature to the aux data if available
 		if len(signatures) != 0 {
 			if auxData, err := AuxDataFromContext(ctx); err == nil {
+				signature := signatures[0]
 				auxData.Sig, _ = w.buildSignature(ctx, func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-					if signer == signatures[0].Signer {
-						return signatures[0].Type, signatures[0].Signature, nil
+					if signer == signature.Signer {
+						return signature.Type, signature.Signature, nil
 					} else {
 						return 0, nil, fmt.Errorf("no signer")
 					}
