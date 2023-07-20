@@ -618,9 +618,13 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		RevertOnError: true,
 		To:            walletFactoryAddress,
 		Data:          deploymentData,
+	}
+
+	// for v1 sequence wallet default does not work
+	if _, ok := core.WalletConfig(w.config).(*v1.WalletConfig); ok {
 		// TODO: Move this hardcoded gas limit to a configuration
 		// or fix it with a contract patch
-		GasLimit: big.NewInt(131072),
+		txn.GasLimit = big.NewInt(131072)
 	}
 
 	signerTxn, err := w.SignTransaction(ctx, txn)
