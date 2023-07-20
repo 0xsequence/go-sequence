@@ -55,7 +55,7 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 		})
 	}
 
-	encSig, err := r.params.Client.Sign(rCtx, &proto.SignRequest{
+	encSig, err := r.params.Client.SignWith(rCtx, r.params.SignerAddress.Hex(), &proto.SignRequest{
 		ChainId: chainId.Uint64(),
 		Msg:     ethcoder.HexEncode(digest[:]),
 		AuxData: ethcoder.HexEncode(auxDataPacked),
