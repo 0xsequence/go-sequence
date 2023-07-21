@@ -142,6 +142,8 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 		var signatures = make([]SignerSignature, 0, len(signers))
 		var signaturesExpected = len(signers)
 		for signer := range signers {
+			rSigner := signer
+
 			wg.Add(1)
 			go func(signer common.Address) {
 				defer wg.Done()
@@ -194,7 +196,7 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 					cond.Broadcast()
 					break
 				}
-			}(signer)
+			}(rSigner)
 		}
 
 		wg.Wait()
