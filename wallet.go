@@ -481,7 +481,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		if signer == nil {
 			// signer isn't available, just include the config value of address
 			// without it's signature
-			return 0, nil, fmt.Errorf("no signature for %v", signerAddress)
+			return 0, nil, core.ErrSigningNoSigner
 		}
 
 		// add the signature to the aux data if available

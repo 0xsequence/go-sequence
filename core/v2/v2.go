@@ -1522,6 +1522,10 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 
 	for range configSigners {
 		signerSig := <-signerSignatureCh
+		if signerSig.Error != nil {
+			signCancel()
+			return nil, fmt.Errorf("signer %s signing error: %w", signerSig.Signer.Hex(), signerSig.Error)
+		}
 
 		if signerSig.Signature != nil {
 			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,
@@ -1566,6 +1570,10 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 
 	for range configSigners {
 		signerSig := <-signerSignatureCh
+		if signerSig.Error != nil {
+			signCancel()
+			return nil, fmt.Errorf("signer %s signing error: %w", signerSig.Signer.Hex(), signerSig.Error)
+		}
 
 		if signerSig.Signature != nil {
 			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,

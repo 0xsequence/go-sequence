@@ -402,7 +402,7 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 				return core.SignerSignatureTypeEIP1271, sig, nil
 			}
 		} else {
-			return 0, nil, fmt.Errorf("no signature")
+			return 0, nil, core.ErrSigningNoSigner
 		}
 	}
 

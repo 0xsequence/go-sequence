@@ -873,6 +873,10 @@ func (c *WalletConfig) BuildSignature(ctx context.Context, sign core.SigningFunc
 
 	for range signerWeights {
 		signerSig := <-signerSignatureCh
+		if signerSig.Error != nil {
+			signCancel()
+			return nil, fmt.Errorf("signer %s signing error: %w", signerSig.Signer.Hex(), signerSig.Error)
+		}
 
 		if signerSig.Signature != nil {
 			signerSignatures[signerSig.Signer] = signerSignature{
