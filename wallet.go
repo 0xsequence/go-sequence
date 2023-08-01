@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/0xsequence/ethkit"
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
@@ -14,6 +15,8 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/sessions/proto"
+	"github.com/0xsequence/go-sequence/signing_service"
+	proto_signing_service "github.com/0xsequence/go-sequence/signing_service/proto"
 )
 
 type WalletOptions[C core.WalletConfig] struct {
@@ -424,6 +427,14 @@ func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, erro
 }
 
 func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.Signature[C], error) {
+	signContext := signing_service.SignContextFromContext(ctx)
+	if signContext == nil {
+		signContext = &proto_signing_service.SignContext{}
+		ctx = signing_service.ContextWithSignContext(ctx, signContext)
+	}
+
+	signContext.Message = ethkit.ToPtr(string(msg))
+
 	return w.SignDigest(ctx, MessageDigest(msg))
 }
 
@@ -448,12 +459,16 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		chainID = w.chainID
 	}
 
-	ctx = ContextWithAuxData(ctx, &AuxData{
-		ChainID: chainID,
-		Address: &w.address,
-		Msg:     digest[:],
-		Sig:     []byte{},
-	})
+	signContext := signing_service.SignContextFromContext(ctx)
+	if signContext == nil {
+		signContext = &proto_signing_service.SignContext{}
+		signContext.WalletAddress = ethkit.ToPtr(w.address.Hex())
+		ctx = signing_service.ContextWithSignContext(ctx, signContext)
+	}
+
+	signContext.PreImage = digest.Hex()
+	signContext.SigneeWalletAddress = w.address.Hex()
+	signContext.ChainId = chainID.Uint64()
 
 	subDigest, err := SubDigest(chainID, w.Address(), digest)
 	if err != nil {
@@ -471,15 +486,17 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 
 		// add the signature to the aux data if available
 		if len(signatures) != 0 {
-			if auxData, err := AuxDataFromContext(ctx); err == nil {
+			if signContext := signing_service.SignContextFromContext(ctx); signContext != nil {
 				signature := signatures[0]
-				auxData.Sig, _, _ = w.buildSignature(ctx, func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+				sig, _, _ := w.buildSignature(ctx, func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 					if signer == signature.Signer {
 						return signature.Type, signature.Signature, nil
 					} else {
 						return 0, nil, fmt.Errorf("no signer")
 					}
 				})
+
+				signContext.Signature = ethcoder.HexEncode(sig)
 			}
 		}
 
@@ -564,6 +581,24 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	if err != nil {
 		return nil, err
 	}
+
+	// Set SignContext
+	signContext := signing_service.SignContextFromContext(ctx)
+	if signContext == nil {
+		signContext = &proto_signing_service.SignContext{}
+		ctx = signing_service.ContextWithSignContext(ctx, signContext)
+	}
+
+	signContext.Nonce = ethkit.ToPtr(nonce.Uint64())
+	signContext.WalletAddress = ethkit.ToPtr(w.Address().Hex())
+	signContext.ChainId = w.chainID.Uint64()
+
+	encTxn, err := txns.EncodeRaw()
+	if err != nil {
+		return nil, err
+	}
+
+	signContext.Transactions = ethkit.ToPtr(ethcoder.HexEncode(encTxn))
 
 	// Sign the transactions
 	sig, _, err := w.SignDigest(ctx, digest)

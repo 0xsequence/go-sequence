@@ -7,7 +7,6 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/signing_service/proto"
 )
@@ -40,14 +39,6 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 		chainId = optChainID[0]
 	}
 
-	var auxDataPacked []byte
-	if auxData, err := sequence.AuxDataFromContext(ctx); err == nil {
-		auxDataPacked, err = auxData.Pack()
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
 	rCtx := ctx
 	if r.params.AuthToken != "" {
 		rCtx, _ = proto.WithHTTPRequestHeaders(ctx, map[string][]string{
@@ -56,9 +47,9 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 	}
 
 	encSig, err := r.params.Client.SignWith(rCtx, r.params.SignerAddress.Hex(), &proto.SignRequest{
-		ChainId: chainId.Uint64(),
-		Msg:     ethcoder.HexEncode(digest[:]),
-		AuxData: ethcoder.HexEncode(auxDataPacked),
+		ChainId:     chainId.Uint64(),
+		Msg:         ethcoder.HexEncode(digest[:]),
+		SignContext: SignContextFromContext(ctx),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -69,4 +60,16 @@ func (r *SigningService) SignDigest(ctx context.Context, digest common.Hash, opt
 	return sig, nil, nil
 }
 
-var _ sequence.SignerDigestSigner = &SigningService{}
+const SignContextKey = "signing_service_sign_context"
+
+func ContextWithSignContext(ctx context.Context, signer *proto.SignContext) context.Context {
+	return context.WithValue(ctx, SignContextKey, signer)
+}
+
+func SignContextFromContext(ctx context.Context) *proto.SignContext {
+	signCtx, ok := ctx.Value(SignContextKey).(*proto.SignContext)
+	if !ok {
+		return nil
+	}
+	return signCtx
+}
