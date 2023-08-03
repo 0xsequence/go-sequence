@@ -461,7 +461,7 @@ func (n *NotFirstTestSigner) SignDigest(ctx context.Context, digest common.Hash,
 		return nil, nil, errors.New("signing context not found")
 	}
 
-	if signContext.Signature == "" {
+	if len(signContext.Signature) <= 2 {
 		return nil, nil, core.ErrSigningFunctionNotReady
 	}
 
