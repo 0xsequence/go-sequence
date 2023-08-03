@@ -2,6 +2,7 @@ package sequence_test
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"sort"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/relayer"
+	"github.com/0xsequence/go-sequence/signing_service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -443,4 +445,74 @@ func TestWalletWithNonDeterministicConfigV1(t *testing.T) {
 
 	assert.Equal(t, nwallet.Address(), randomAddr)
 	assert.Equal(t, nwallet.GetWalletConfig(), newConfig)
+}
+
+type NotFirstTestSigner struct {
+	Wallet *ethwallet.Wallet
+}
+
+func (n *NotFirstTestSigner) Address() common.Address {
+	return n.Wallet.Address()
+}
+
+func (n *NotFirstTestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[core.WalletConfig], error) {
+	signContext := signing_service.SignContextFromContext(ctx)
+	if signContext == nil {
+		return nil, nil, errors.New("signing context not found")
+	}
+
+	if signContext.Signature == "" {
+		return nil, nil, core.ErrSigningFunctionNotReady
+	}
+
+	sig, err := n.Wallet.SignMessage(digest.Bytes())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(sig, 1), nil, nil
+}
+
+var _ sequence.SignerDigestSigner = &NotFirstTestSigner{}
+
+func TestWalletSignDigestWithNotFirstSigner(t *testing.T) {
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	walletConfig := &v2.WalletConfig{
+		Threshold_: 3,
+		Tree: &v2.WalletConfigTreeNode{
+			Left: &v2.WalletConfigTreeAddressLeaf{
+				Weight: 2, Address: eoa1.Address(),
+			},
+			Right: &v2.WalletConfigTreeAddressLeaf{
+				Weight: 2, Address: eoa2.Address(),
+			},
+		},
+	}
+
+	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+		Config: walletConfig,
+	}, &NotFirstTestSigner{Wallet: eoa2}, eoa1)
+	require.NoError(t, err)
+
+	wallet.SetChainID(big.NewInt(1))
+
+	sig, _, err := wallet.SignMessage(context.Background(), []byte("hello world"))
+	require.NoError(t, err)
+	require.NotNil(t, sig)
+
+	wallet, err = sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+		Config: walletConfig,
+	}, eoa1, &NotFirstTestSigner{Wallet: eoa2})
+	require.NoError(t, err)
+
+	wallet.SetChainID(big.NewInt(1))
+
+	sig, _, err = wallet.SignMessage(context.Background(), []byte("hello world"))
+	require.NoError(t, err)
+	require.NotNil(t, sig)
 }

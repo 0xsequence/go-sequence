@@ -73,3 +73,17 @@ func SignContextFromContext(ctx context.Context) *proto.SignContext {
 	}
 	return signCtx
 }
+
+func SignContextCopy(signCtx *proto.SignContext) *proto.SignContext {
+	return &proto.SignContext{
+		ChainId:             signCtx.ChainId,
+		PreImage:            signCtx.PreImage,
+		WalletAddress:       signCtx.WalletAddress,
+		SigneeWalletAddress: signCtx.SigneeWalletAddress,
+		Signature:           signCtx.Signature,
+		Message:             signCtx.Message,
+		Transactions:        signCtx.Transactions,
+		Nonce:               signCtx.Nonce,
+		PartnerId:           signCtx.PartnerId,
+	}
+}
