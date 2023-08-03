@@ -498,7 +498,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 					if signer == signature.Signer {
 						return signature.Type, signature.Signature, nil
 					} else {
-						return 0, nil, fmt.Errorf("no signer")
+						return 0, nil, core.ErrSigningNoSigner
 					}
 				})
 
