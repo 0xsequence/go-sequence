@@ -433,6 +433,7 @@ func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.S
 		ctx = signing_service.ContextWithSignContext(ctx, signContext)
 	}
 
+	signContext.WalletAddress = ethkit.ToPtr(w.address.Hex())
 	signContext.Message = ethkit.ToPtr(string(msg))
 
 	return w.SignDigest(ctx, MessageDigest(msg))
