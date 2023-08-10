@@ -124,10 +124,12 @@ type SignerSignature struct {
 	Subdigest Subdigest
 	Type      SignerSignatureType
 	Signature []byte
+	Error     error
 }
 
 // ErrSigningFunctionNotReady is returned when a signing function is not ready to sign and should be retried later.
 var ErrSigningFunctionNotReady = fmt.Errorf("signing function not ready")
+var ErrSigningNoSigner = fmt.Errorf("no signer")
 
 type SigningFunction func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error)
 
@@ -142,6 +144,8 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 		var signatures = make([]SignerSignature, 0, len(signers))
 		var signaturesExpected = len(signers)
 		for signer := range signers {
+			rSigner := signer
+
 			wg.Add(1)
 			go func(signer common.Address) {
 				defer wg.Done()
@@ -177,6 +181,8 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 
 							retries++
 							continue
+						} else if errors.Is(err, ErrSigningNoSigner) {
+							err = nil
 						}
 					}
 
@@ -184,6 +190,7 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 						Type:      signatureType,
 						Signer:    signer,
 						Signature: signature,
+						Error:     err,
 					}
 
 					cond.L.Lock()
@@ -194,7 +201,7 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 					cond.Broadcast()
 					break
 				}
-			}(signer)
+			}(rSigner)
 		}
 
 		wg.Wait()

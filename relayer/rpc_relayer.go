@@ -186,7 +186,7 @@ func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, opt
 }
 
 func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
-	if walletConfigV1 := config.(*v1.WalletConfig); walletConfigV1 != nil {
+	if walletConfigV1, ok := config.(*v1.WalletConfig); ok {
 		var signers []*proto.WalletSigner
 		for _, signer := range walletConfigV1.Signers_ {
 			signers = append(signers, &proto.WalletSigner{
@@ -207,8 +207,27 @@ func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, 
 			Threshold: walletConfigV1.Threshold_,
 			ChainId:   &chainID,
 		}, nil
-	} else if walletConfigV2 := config.(*v2.WalletConfig); walletConfigV2 != nil {
-		// todo: implement v2
+	} else if walletConfigV2, ok := config.(*v2.WalletConfig); ok {
+		var signers []*proto.WalletSigner
+		for address, weight := range walletConfigV2.Signers() {
+			signers = append(signers, &proto.WalletSigner{
+				Address: address.Hex(),
+				Weight:  uint8(weight),
+			})
+		}
+
+		result, err := r.provider.ChainID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		chainID := result.Uint64()
+
+		return &proto.WalletConfig{
+			Address:   walletAddress.Hex(),
+			Signers:   signers,
+			Threshold: walletConfigV2.Threshold_,
+			ChainId:   &chainID,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("relayer: unknown wallet config version")
