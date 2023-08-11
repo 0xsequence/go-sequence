@@ -323,6 +323,7 @@ func (t Transactions) Clone() Transactions {
 // SignedTransactions includes a signed meta-transaction payload intended for the relayer.
 type SignedTransactions struct {
 	ChainID       *big.Int
+	WalletAddress common.Address
 	WalletConfig  core.WalletConfig
 	WalletContext WalletContext
 
