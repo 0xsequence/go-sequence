@@ -647,3 +647,58 @@ func TestWalletSignTransactionCheckSignContext(t *testing.T) {
 
 	mockSigner.AssertExpectations(t)
 }
+
+func TestWalletLazyDeployment(t *testing.T) {
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+
+	walletConfig := &v2.WalletConfig{
+		Threshold_: 3,
+		Tree: &v2.WalletConfigTreeAddressLeaf{
+			Weight: 3, Address: eoa1.Address(),
+		},
+	}
+
+	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+		Config: walletConfig,
+	}, eoa1)
+	require.NoError(t, err)
+
+	err = wallet.SetProvider(testChain.Provider)
+	require.NoError(t, err)
+
+	rel, err := relayer.NewLocalRelayer(testChain.MustWallet(1), nil)
+	require.NoError(t, err)
+
+	err = wallet.SetRelayer(rel)
+	require.NoError(t, err)
+
+	err = testChain.MustFundAddress(wallet.Address())
+	require.NoError(t, err)
+
+	isDeployed, err := wallet.IsDeployed()
+	require.NoError(t, err)
+	assert.False(t, isDeployed)
+
+	sigTx, err := wallet.SignTransaction(context.Background(), &sequence.Transaction{
+		To:    eoa1.Address(),
+		Value: big.NewInt(1),
+	})
+	require.NoError(t, err)
+
+	_, _, wait, err := wallet.SendTransaction(context.Background(), sigTx)
+	require.NoError(t, err)
+
+	receipt, err := wait(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, receipt.Status, uint64(1))
+
+	isDeployed, err = wallet.IsDeployed()
+	require.NoError(t, err)
+	assert.True(t, isDeployed)
+
+	bal, err := testChain.Provider.BalanceAt(context.Background(), eoa1.Address(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, big.NewInt(1), bal)
+}

@@ -615,6 +615,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 
 	return &SignedTransactions{
 		ChainID:       w.chainID,
+		WalletAddress: w.address,
 		WalletConfig:  w.config,
 		WalletContext: w.context,
 		Transactions:  txns,

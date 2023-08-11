@@ -51,7 +51,7 @@ const (
 )
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
-func EncodeTransactionsForRelaying(relayer Relayer, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
 	// TODO/NOTE: first version, we assume the wallet is deployed, then we can add bundlecreation after.
 	// .....
 
@@ -60,9 +60,12 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig core.WalletConf
 	}
 
 	// Encode transaction to be sent to a deployed wallet
-	walletAddress, err := AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return common.Address{}, nil, err
+	var err error
+	if walletAddress == (common.Address{}) {
+		walletAddress, err = AddressFromWalletConfig(walletConfig, walletContext)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
 	}
 
 	encodedTxns, err := txns.EncodedTransactions()
