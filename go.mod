@@ -5,7 +5,7 @@ go 1.18
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.20.25
+	github.com/0xsequence/ethkit v1.20.26-0.20230811104853-689ebe564076
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
