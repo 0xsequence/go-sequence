@@ -30,9 +30,5 @@ func (g *GuardSigningService) SignDigest(ctx context.Context, digest common.Hash
 		return nil, nil, fmt.Errorf("guard: missing sign context")
 	}
 
-	if len(signContext.Signature) <= 2 {
-		return nil, nil, core.ErrSigningFunctionNotReady
-	}
-
 	return g.SigningService.SignDigest(ctx, digest, optChainID...)
 }

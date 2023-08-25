@@ -2,13 +2,11 @@ package guard
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/signing_service"
 	proto_signing_service "github.com/0xsequence/go-sequence/signing_service/proto"
 	"github.com/stretchr/testify/assert"
@@ -93,39 +91,6 @@ func TestGuardSigningServiceSignNoSignContext(t *testing.T) {
 
 	sigBytes, sigTyped, err := guardSigningService.SignDigest(context.Background(), digest, big.NewInt(1))
 	require.Error(t, err)
-	assert.Nil(t, sigBytes)
-	assert.Nil(t, sigTyped)
-}
-
-func TestGuardSigningServiceSignNotFirst(t *testing.T) {
-	mockSigningServiceClient := &MockSigningServiceClient{}
-
-	guardSigningService := NewGuardSigningService(GuardSigningServiceParams{
-		SigningServiceParams: signing_service.SigningServiceParams{
-			SignerAddress: common.Address{},
-			SignerWeight:  0,
-			Client:        mockSigningServiceClient,
-		},
-	})
-
-	ctx := signing_service.ContextWithSignContext(context.Background(), &proto_signing_service.SignContext{})
-
-	msg := []byte("hello world")
-	digest := sequence.MessageDigest(msg)
-
-	sigBytes, sigTyped, err := guardSigningService.SignDigest(ctx, digest, big.NewInt(1))
-	require.Error(t, err)
-	require.True(t, errors.Is(err, core.ErrSigningFunctionNotReady))
-	assert.Nil(t, sigBytes)
-	assert.Nil(t, sigTyped)
-
-	ctx = signing_service.ContextWithSignContext(context.Background(), &proto_signing_service.SignContext{
-		Signature: "0x",
-	})
-
-	sigBytes, sigTyped, err = guardSigningService.SignDigest(ctx, digest, big.NewInt(1))
-	require.Error(t, err)
-	require.True(t, errors.Is(err, core.ErrSigningFunctionNotReady))
 	assert.Nil(t, sigBytes)
 	assert.Nil(t, sigTyped)
 }
