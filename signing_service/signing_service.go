@@ -85,5 +85,6 @@ func SignContextCopy(signCtx *proto.SignContext) *proto.SignContext {
 		Transactions:        signCtx.Transactions,
 		Nonce:               signCtx.Nonce,
 		PartnerId:           signCtx.PartnerId,
+		UserSession:         signCtx.UserSession,
 	}
 }
