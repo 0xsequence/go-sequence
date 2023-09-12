@@ -42,6 +42,7 @@ func TestParseAndRecoverIntent(t *testing.T) {
 	signers := intent.Signers()
 	assert.Equal(t, 1, len(signers))
 	assert.Equal(t, "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
+	assert.Equal(t, intent.PacketCode(), "sendTransactions")
 
 	// Changing the version should not affect the hash
 	intent.Version = "2.0.0"
@@ -56,6 +57,7 @@ func TestParseAndRecoverIntent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, hash)
 	assert.NotEqual(t, common.Bytes2Hex(hash), "e54e41eca96c1c047ad6a31f80dd3e61ba5f8a6e0a8a83b95e58515afe1780da")
+	assert.Equal(t, intent.PacketCode(), "sendTransactions2")
 
 	signers = intent.Signers()
 	assert.Equal(t, 0, len(signers))

@@ -99,3 +99,11 @@ func (intent *Intent) isValidSignature(session string, signature string) bool {
 	// Check if the recovered address matches the session address
 	return strings.ToLower(addr.Hex()) == strings.ToLower(session)
 }
+
+func (intent *Intent) PacketCode() string {
+	var packetCode struct {
+		Code string `json:"code"`
+	}
+	json.Unmarshal(intent.Packet, &packetCode)
+	return packetCode.Code
+}
