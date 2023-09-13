@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -85,7 +84,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 			return nil, fmt.Errorf("invalid value '%s'", subpacketTransactionType.Value)
 		}
 
-		data := common.Hex2Bytes(strings.TrimPrefix(subpacketTransactionType.Data, "0x"))
+		data := common.FromHex(subpacketTransactionType.Data)
 
 		return &expectedValuesForTransaction{
 			To:    &to,
@@ -152,7 +151,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 		if !ok {
 			return nil, fmt.Errorf("invalid id '%s'", subpacketERC721SendType.ID)
 		}
-		data := common.Hex2Bytes(strings.TrimPrefix(subpacketERC721SendType.Data, "0x"))
+		data := common.FromHex(subpacketERC721SendType.Data)
 
 		// If data is not empty, then safe *must* be true
 		if len(data) > 0 && !subpacketERC721SendType.Safe {
@@ -222,7 +221,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 			parsedAmounts = append(parsedAmounts, amount)
 		}
 
-		data := common.Hex2Bytes(strings.TrimPrefix(subpacketERC1155SendType.Data, "0x"))
+		data := common.FromHex(subpacketERC1155SendType.Data)
 
 		encodedData, err := ethcoder.AbiEncodeMethodCalldata("safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)", []interface{}{p.wallet(), to, parsedIDs, parsedAmounts, data})
 

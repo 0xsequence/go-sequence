@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
@@ -44,7 +43,7 @@ func (p *SignMessagePacket) chainID() (*big.Int, error) {
 }
 
 func (p *SignMessagePacket) message() []byte {
-	return common.Hex2Bytes(strings.TrimPrefix(p.Message, "0x"))
+	return common.FromHex(p.Message)
 }
 
 func (p *SignMessagePacket) wallet() common.Address {

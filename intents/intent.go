@@ -1,7 +1,6 @@
 package intents
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -79,11 +78,7 @@ func (intent *Intent) isValidSignature(session string, signature string) bool {
 	prefixedHash := crypto.Keccak256Hash([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(hash), hash)))
 
 	// Convert the signature to bytes
-	sigBytes, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
-	if err != nil {
-		return false
-	}
-
+	sigBytes := common.FromHex(signature)
 	if sigBytes[64] == 27 || sigBytes[64] == 28 {
 		sigBytes[64] -= 27
 	}
