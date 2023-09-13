@@ -13,7 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/intents"
 )
 
-type TransactionsPacket struct {
+type SendTransactionsPacket struct {
 	Code         string            `json:"code"`
 	Wallet       string            `json:"wallet"`
 	Network      string            `json:"network"`
@@ -22,7 +22,7 @@ type TransactionsPacket struct {
 
 const SendTransactionCode = "sendTransaction"
 
-func (p *TransactionsPacket) Unmarshal(i *intents.Intent) error {
+func (p *SendTransactionsPacket) Unmarshal(i *intents.Intent) error {
 	err := json.Unmarshal(i.Packet, &p)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (p *TransactionsPacket) Unmarshal(i *intents.Intent) error {
 	return nil
 }
 
-func (p *TransactionsPacket) chainID() (*big.Int, error) {
+func (p *SendTransactionsPacket) chainID() (*big.Int, error) {
 	n, ok := sequence.ParseHexOrDec(p.Network)
 	if !ok {
 		return nil, fmt.Errorf("invalid network id '%s'", p.Network)
@@ -44,7 +44,7 @@ func (p *TransactionsPacket) chainID() (*big.Int, error) {
 	return n, nil
 }
 
-func (p *TransactionsPacket) wallet() common.Address {
+func (p *SendTransactionsPacket) wallet() common.Address {
 	return common.HexToAddress(p.Wallet)
 }
 
@@ -54,7 +54,7 @@ type expectedValuesForTransaction struct {
 	Data  []byte
 }
 
-func (p *TransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (*expectedValuesForTransaction, error) {
+func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (*expectedValuesForTransaction, error) {
 	// Get the subpacket type
 	var subpacketType struct {
 		Type string `json:"type"`
@@ -240,7 +240,7 @@ func (p *TransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (*exp
 	}
 }
 
-func (p *TransactionsPacket) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
+func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
 	// Compare the digest with the provided transactions
 	// otherwise we can't be sure that the subdigest belongs to the transactions
 	bundle := sequence.Transaction{
@@ -270,6 +270,10 @@ func (p *TransactionsPacket) IsValidInterpretation(subdigest common.Hash, txns s
 	}
 
 	for i, txn := range txns {
+		if txn.DelegateCall != false {
+			return false
+		}
+
 		expected, err := p.expectedValuesFor(&p.Transactions[i])
 		if err != nil {
 			return false
