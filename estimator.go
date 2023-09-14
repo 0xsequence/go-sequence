@@ -182,7 +182,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 
 	var res string
 	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, estimateCall, blockTag, finalOverrides)
-	err = provider.Do(context.Background(), rpcCall.Into(&res))
+	_, err = provider.Do(context.Background(), rpcCall.Into(&res))
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 
 	var response string
 	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	err = provider.Do(context.Background(), rpcCall.Into(&response))
+	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +616,7 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 
 	var response string
 	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	err = provider.Do(context.Background(), rpcCall.Into(&response))
+	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
 	if err != nil {
 		return nil, err
 	}
