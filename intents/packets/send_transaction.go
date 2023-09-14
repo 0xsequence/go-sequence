@@ -47,13 +47,13 @@ func (p *SendTransactionsPacket) wallet() common.Address {
 	return common.HexToAddress(p.Wallet)
 }
 
-type expectedValuesForTransaction struct {
+type ExpectedValuesForTransaction struct {
 	To    *common.Address
 	Value *big.Int
 	Data  []byte
 }
 
-func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (*expectedValuesForTransaction, error) {
+func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (*ExpectedValuesForTransaction, error) {
 	// Get the subpacket type
 	var subpacketType struct {
 		Type string `json:"type"`
@@ -86,7 +86,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 
 		data := common.FromHex(subpacketTransactionType.Data)
 
-		return &expectedValuesForTransaction{
+		return &ExpectedValuesForTransaction{
 			To:    &to,
 			Value: value,
 			Data:  data,
@@ -120,7 +120,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 			return nil, err
 		}
 
-		return &expectedValuesForTransaction{
+		return &ExpectedValuesForTransaction{
 			To:    &token,
 			Value: big.NewInt(0),
 			Data:  data,
@@ -173,7 +173,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 			}
 		}
 
-		return &expectedValuesForTransaction{
+		return &ExpectedValuesForTransaction{
 			To:    &token,
 			Value: big.NewInt(0),
 			Data:  encodedData,
@@ -229,7 +229,7 @@ func (p *SendTransactionsPacket) expectedValuesFor(subpacket *json.RawMessage) (
 			return nil, err
 		}
 
-		return &expectedValuesForTransaction{
+		return &ExpectedValuesForTransaction{
 			To:    &token,
 			Value: big.NewInt(0),
 			Data:  encodedData,
@@ -273,7 +273,7 @@ func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, tx
 			return false
 		}
 
-		expected, err := p.expectedValuesFor(&p.Transactions[i])
+		expected, err := p.ExpectedValuesFor(&p.Transactions[i])
 		if err != nil {
 			return false
 		}
