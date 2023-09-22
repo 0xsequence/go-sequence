@@ -519,7 +519,9 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			}
 
 			// Sequence Wallet SignDigest returns a signature without a type
-			if _, ok := signer.(*Wallet[core.WalletConfig]); ok {
+			_, pc1 := signer.(*Wallet[*v1.WalletConfig])
+			_, pc2 := signer.(*Wallet[*v2.WalletConfig])
+			if pc1 || pc2 {
 				return core.SignerSignatureTypeEIP1271, sigValue, nil
 			}
 			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
