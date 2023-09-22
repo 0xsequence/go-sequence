@@ -99,7 +99,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	_, canSignMessage := owner.(MessageSigner)
 	_, canSignDigest := owner.(DigestSigner)
 	if !canSignMessage && !canSignDigest {
-		return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
+		return nil, fmt.Errorf("sequence.Wallet#UseSigners: %s is not a valid signer, canSignMessage: %v, canSignDigest: %v", owner.Address(), canSignMessage, canSignDigest)
 	}
 
 	if _, ok := core.WalletConfig(typeOfWallet).(*v1.WalletConfig); ok {
@@ -426,7 +426,9 @@ func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, erro
 	return w.GetNonce(optBlockNum...)
 }
 
-func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.Signature[C], error) {
+func (w *Wallet[C]) SignMessage(msg []byte) ([]byte, error) {
+	ctx := context.Background()
+
 	signContext := signing_service.SignContextFromContext(ctx)
 	if signContext == nil {
 		signContext = &proto_signing_service.SignContext{}
@@ -439,18 +441,19 @@ func (w *Wallet[C]) SignMessage(ctx context.Context, msg []byte) ([]byte, core.S
 	return w.SignDigest(ctx, MessageDigest(msg))
 }
 
-// func (w *Wallet) SignTypedData() // TODO
+var _ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
+var _ MessageSigner = (*Wallet[*v2.WalletConfig])(nil)
 
-func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
+func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
 	if w.sessions != nil {
 		err := w.UpdateSessionsConfig(ctx)
 		if err != nil {
-			return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", err)
+			return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", err)
 		}
 	}
 
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
-		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
+		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
 
 	var chainID *big.Int
@@ -473,7 +476,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 
 	subDigest, err := SubDigest(chainID, w.Address(), digest)
 	if err != nil {
-		return nil, nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
+		return nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
 
 	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
@@ -518,7 +521,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 			return core.SignerSignatureTypeEthSign, sigValue, nil
 		// sequence.Wallet / Signing Service / Guard
 		case DigestSigner:
-			sigValue, _, err := signerTyped.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+			sigValue, err := signerTyped.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
 			}
@@ -533,8 +536,12 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		}
 	}
 
-	return w.buildSignature(ctx, sign)
+	res, _, err := w.buildSignature(ctx, sign)
+	return res, err
 }
+
+var _ DigestSigner = (*Wallet[*v1.WalletConfig])(nil)
+var _ DigestSigner = (*Wallet[*v2.WalletConfig])(nil)
 
 func (w *Wallet[C]) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
 	return w.SignTransactions(ctx, Transactions{txn})
@@ -608,7 +615,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	signContext.Transactions = ethkit.ToPtr(ethcoder.HexEncode(encTxn))
 
 	// Sign the transactions
-	sig, _, err := w.SignDigest(ctx, digest)
+	sig, err := w.SignDigest(ctx, digest)
 	if err != nil {
 		return nil, err
 	}

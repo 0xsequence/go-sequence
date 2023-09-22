@@ -21,7 +21,7 @@ import (
 	"github.com/goware/logger"
 )
 
-func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, core.Signature[C], error) {
+func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, error) {
 	return wallet.SignDigest(context.Background(), input)
 }
 

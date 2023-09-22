@@ -39,7 +39,7 @@ func TestEthAuthEIP6492(t *testing.T) {
 	assert.NoError(t, err)
 	copy(digest[:], digest_)
 
-	signature, _, err := wallet.SignDigest(context.Background(), digest, testChain.ChainID())
+	signature, err := wallet.SignDigest(context.Background(), digest, testChain.ChainID())
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
