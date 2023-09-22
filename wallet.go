@@ -511,14 +511,6 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		}
 
 		switch signerTyped := signer.(type) {
-		// Ethereum Wallet Signer
-		case MessageSigner:
-			sigValue, err := signerTyped.SignMessage(subDigest)
-			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
-			}
-
-			return core.SignerSignatureTypeEthSign, sigValue, nil
 		// sequence.Wallet / Signing Service / Guard
 		case DigestSigner:
 			sigValue, err := signerTyped.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
@@ -531,6 +523,14 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 				return core.SignerSignatureTypeEIP1271, sigValue, nil
 			}
 			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
+		// Ethereum Wallet Signer
+		case MessageSigner:
+			sigValue, err := signerTyped.SignMessage(subDigest)
+			if err != nil {
+				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
+			}
+
+			return core.SignerSignatureTypeEthSign, sigValue, nil
 		default:
 			return 0, nil, fmt.Errorf("signer %T is not supported", signer)
 		}
