@@ -27,8 +27,8 @@ func (p *OpenSessionPacket) Unmarshal(i *intents.Intent) error {
 		return err
 	}
 
-	if p.Code != SignMessagePacketCode {
-		return fmt.Errorf("packet code is not '%s', got '%s'", SignMessagePacketCode, p.Code)
+	if p.Code != OpenSessionPacketCode {
+		return fmt.Errorf("packet code is not '%s', got '%s'", OpenSessionPacketCode, p.Code)
 	}
 
 	return nil
