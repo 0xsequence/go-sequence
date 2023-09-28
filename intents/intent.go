@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gibson042/canonicaljson-go"
+
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
@@ -54,7 +56,7 @@ func (intent *Intent) Hash() ([]byte, error) {
 	packet := intent.Packet
 
 	// Convert packet to bytes
-	packetBytes, err := json.Marshal(packet)
+	packetBytes, err := canonicaljson.Marshal(packet)
 	if err != nil {
 		return nil, err
 	}
