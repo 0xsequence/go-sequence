@@ -42,6 +42,14 @@ func (i *Intent) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (i *Intent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(JSONIntent{
+		Version:    i.Version,
+		Packet:     i.Packet,
+		Signatures: i.signatures,
+	})
+}
+
 func (intent *Intent) Hash() ([]byte, error) {
 	packet := intent.Packet
 
