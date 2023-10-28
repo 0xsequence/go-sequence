@@ -12,9 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/goware/breaker"
-	"github.com/goware/logadapter-zerolog"
 	"github.com/goware/logger"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -28,7 +26,7 @@ const (
 //
 // DEPRECATED, but leaving here in case we want for some testing.
 type LegacyReceiptListener struct {
-	log      zerolog.Logger
+	log      logger.Logger
 	provider *ethrpc.Provider
 	monitor  *ethmonitor.Monitor
 	br       *breaker.Breaker
@@ -62,18 +60,18 @@ type subscriber struct {
 	unsubscribe func()
 }
 
-func NewLegacyReceiptListener(log zerolog.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*LegacyReceiptListener, error) {
+func NewLegacyReceiptListener(log logger.Logger, provider *ethrpc.Provider, monitor *ethmonitor.Monitor) (*LegacyReceiptListener, error) {
 	if !monitor.Options().WithLogs {
 		return nil, fmt.Errorf("ReceiptListener needs a monitor with WithLogs enabled to function")
 	}
 
-	log = log.With().Str("ps", "ReceiptListener").Logger()
+	log = log.With("ps", "ReceiptListener")
 
 	return &LegacyReceiptListener{
 		log:          log,
 		provider:     provider,
 		monitor:      monitor,
-		br:           breaker.New(logadapter.LogAdapter(log), time.Second, 2, 10),
+		br:           breaker.New(log, time.Second, 2, 10),
 		receiptsSem:  make(chan struct{}, legacyMaxConcurrentFetchReceipts),
 		pastReceipts: make([]BlockOfReceipts, 0),
 		subscribers:  make([]*subscriber, 0),
@@ -88,11 +86,11 @@ func (l *LegacyReceiptListener) Run(ctx context.Context) error {
 		select {
 
 		case <-ctx.Done():
-			l.log.Debug().Msgf("parent signaled to cancel - receipt listener is quitting")
+			l.log.Debug("parent signaled to cancel - receipt listener is quitting")
 			return nil
 
 		case <-sub.Done():
-			l.log.Info().Msgf("receipt listener is stopped because monitor signaled its stopping")
+			l.log.Info("receipt listener is stopped because monitor signaled its stopping")
 			return nil
 
 		case blocks := <-sub.Blocks():
@@ -131,20 +129,20 @@ func (l *LegacyReceiptListener) WaitForMetaTxn(ctx context.Context, metaTxnID Me
 			for _, receipt := range bol {
 				totalInspected++
 				if receipt.MetaTxnID == metaTxnID {
-					l.log.Debug().
-						Int("inspected", totalInspected).
-						Str("meta-tx", string(metaTxnID)).
-						Msgf("Found receipt among past receipts")
+					l.log.With(
+						"inspected", totalInspected,
+						"meta-tx", string(metaTxnID),
+					).Debug("Found receipt among past receipts")
 
 					return &receipt
 				}
 			}
 		}
 
-		l.log.Debug().
-			Int("inspected", totalInspected).
-			Str("meta-tx", string(metaTxnID)).
-			Msgf("Receipt not found among past receipts. Now listening..")
+		l.log.With(
+			"inspected", totalInspected,
+			"meta-tx", string(metaTxnID),
+		).Debug("Receipt not found among past receipts. Now listening..")
 
 		return nil
 	}()
@@ -240,7 +238,7 @@ func (l *LegacyReceiptListener) handleBlock(ctx context.Context, block *ethmonit
 
 				metaTxnID, reason, err := V1DecodeTxFailedEvent(log)
 				if err != nil {
-					l.log.Err(err).Msgf("unable to decode TxFailed event: topics=%v data=%v", log.Topics, log.Data)
+					l.log.With("err", err).Errorf("unable to decode TxFailed event: topics=%v data=%v", log.Topics, log.Data)
 					continue
 				}
 
@@ -291,7 +289,7 @@ func (l *LegacyReceiptListener) handleReceipts(ctx context.Context, txHash commo
 			return nil
 		})
 		if err != nil {
-			l.log.Warn().Err(err).Msgf("failed to fetch receipt after several tries")
+			l.log.With("err", err).Warn("failed to fetch receipt after several tries")
 		}
 
 		l.pushReceipts(txReceipts)
@@ -329,7 +327,7 @@ func (l *LegacyReceiptListener) subscribe() *subscriber {
 	ch := make(chan ReceiptResult)
 	subscriber := &subscriber{
 		ch:     ch,
-		sendCh: makeUnboundedBuffered(ch, logadapter.LogAdapter(l.log), 100),
+		sendCh: makeUnboundedBuffered(ch, l.log, 100),
 		done:   make(chan struct{}),
 	}
 

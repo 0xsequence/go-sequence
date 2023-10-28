@@ -5,15 +5,13 @@ go 1.18
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.22.0
+	github.com/0xsequence/ethkit v1.22.1
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.8.0
-	github.com/goware/logadapter-zerolog v0.1.0
-	github.com/goware/logger v0.1.0
-	github.com/rs/zerolog v1.28.0
+	github.com/goware/logger v0.3.0
 	github.com/stretchr/testify v1.8.1
 )
 
@@ -35,20 +33,18 @@ require (
 	github.com/goware/superr v0.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.0.5 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
-	golang.org/x/crypto v0.13.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20230124195608-d38c7dcee874 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
-	golang.org/x/term v0.12.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
