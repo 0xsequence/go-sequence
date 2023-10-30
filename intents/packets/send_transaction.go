@@ -234,6 +234,41 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 			Value: big.NewInt(0),
 			Data:  encodedData,
 		}, nil
+
+	case "delayedEncode":
+		var subpacketDelayedEncodeType struct {
+			To    string          `json:"to"`
+			Value string          `json:"value"`
+			Data  json.RawMessage `json:"data"`
+		}
+
+		err := json.Unmarshal(*subpacket, &subpacketDelayedEncodeType)
+		if err != nil {
+			return nil, err
+		}
+
+		nst := &delayedEncodeType{}
+		err = json.Unmarshal(subpacketDelayedEncodeType.Data, nst)
+		if err != nil {
+			return nil, err
+		}
+
+		encoded, err := EncodeDelayedABI(nst)
+		if err != nil {
+			return nil, err
+		}
+
+		to := common.HexToAddress(subpacketDelayedEncodeType.To)
+		value, ok := sequence.ParseHexOrDec(subpacketDelayedEncodeType.Value)
+		if !ok {
+			return nil, fmt.Errorf("invalid value '%s'", subpacketDelayedEncodeType.Value)
+		}
+
+		return &ExpectedValuesForTransaction{
+			To:    &to,
+			Value: value,
+			Data:  common.FromHex(encoded),
+		}, nil
 	default:
 		return nil, fmt.Errorf("invalid subpacket type '%s'", subpacketType.Type)
 	}
