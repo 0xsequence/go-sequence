@@ -8,7 +8,6 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type delayedEncodeType struct {
@@ -54,7 +53,6 @@ func EncodeDelayedABI(data *delayedEncodeType) (string, error) {
 				}
 
 			default:
-				spew.Dump(arg)
 				return "", fmt.Errorf("invalid arg type")
 			}
 		}
