@@ -8,8 +8,7 @@ import (
 )
 
 type CloseSessionPacket struct {
-	Code    string `json:"code"`
-	Wallet  string `json:"wallet"`
+	BasePacketForWallet
 	Session string `json:"session"`
 }
 

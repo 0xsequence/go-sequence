@@ -13,7 +13,7 @@ import (
 )
 
 type SendTransactionsPacket struct {
-	Code         string            `json:"code"`
+	BasePacketForWallet
 	Wallet       string            `json:"wallet"`
 	Network      string            `json:"network"`
 	Transactions []json.RawMessage `json:"transactions"`

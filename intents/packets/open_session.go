@@ -8,8 +8,7 @@ import (
 )
 
 type OpenSessionPacket struct {
-	Code    string                 `json:"code"`
-	Wallet  string                 `json:"wallet"`
+	BasePacket
 	Session string                 `json:"session"`
 	Proof   OpenSessionPacketProof `json:"proof"`
 }

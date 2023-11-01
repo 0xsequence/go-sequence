@@ -16,6 +16,9 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		"version": "1",
 		"packet": {
 		  "code": "sendTransaction",
+			"identifier": "test-identifier",
+			"issued": 1600000000,
+			"expires": 1600086400,
 		  "wallet": "0xD67FC48b298B09Ed3D03403d930769C527186c4e",
 		  "network": "10",
 		  "transactions": [
@@ -82,7 +85,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		"signatures": [
 		  {
 			"session": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
-			"signature": "0xfaf2c6af7a18344c4055d61c3475a6e2f43425961fa59bb6309a846ab582b0781016ec62d264eaa732136f9ad371a8da7e638105e1d1c3a9798f45da0807f9801c"
+			"signature": "0xdd137166e6e73fcaa710e822aa3eef3d501ef1b7969d59e8583cb602a32233e0628d4e28ea5a562a1ccf6bd85bfccfcd1004673a28763640cca33002fbedbb3a1b"
 		  }
 		]
 	}`
@@ -96,7 +99,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 
 	hash, err := intent.Hash()
 	assert.Nil(t, err)
-	assert.Equal(t, common.Bytes2Hex(hash), "437629d2d86800f7d568ce8f1575cbcb6ec9b30cb3d661bc245fefc6a5f8cf7a")
+	assert.Equal(t, common.Bytes2Hex(hash), "2feb22d5631075041c5aaafce98da8950d706a9eca8d9ea2b28ea95142d8e890")
 
 	signers := intent.Signers()
 	assert.Equal(t, 1, len(signers))

@@ -12,8 +12,7 @@ import (
 )
 
 type SignMessagePacket struct {
-	Code    string `json:"code"`
-	Wallet  string `json:"wallet"`
+	BasePacketForWallet
 	Network string `json:"network"`
 	Message string `json:"message"`
 }

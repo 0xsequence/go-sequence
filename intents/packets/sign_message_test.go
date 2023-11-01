@@ -16,13 +16,15 @@ func TestRecoverMessageIntent(t *testing.T) {
 		"version": "1.0.0",
 		"packet": {
 			"code": "signMessage",
+			"issued": 1600000000,
+			"expires": 1600086400,
 			"wallet": "0xD67FC48b298B09Ed3D03403d930769C527186c4e",
 			"network": "1",
 			"message": "0xdeadbeef"
 		},
 		"signatures": [{
 			"session": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
-			"signature": "0xfa8697812a75e3893b7d498695fe699bcf00cfc84a6ca8815bd0a23021e631176dcbfeb7f07b942386277ebc821dc15ac6520e80e4d6d3947e556376d5a74e051c"
+			"signature": "0x827b2a2afbf4a8a79e761fdb26e567b519a56a06e897dce5517b3ccfb408b55f20aaba276c1dade28112f51fe7262fbd0508da0019c0f8582c41b2be451ddede1b"
 		}]
 	}`
 
@@ -35,7 +37,7 @@ func TestRecoverMessageIntent(t *testing.T) {
 
 	hash, err := intent.Hash()
 	assert.Nil(t, err)
-	assert.Equal(t, common.Bytes2Hex(hash), "26abd75b9e3f2f8f8a777f8e0ac628edb136dbe82a461c9c7ee4b102d654cb87")
+	assert.Equal(t, common.Bytes2Hex(hash), "5b15538a25716e951630dde1cf38ae056d764976145d1134576461203a621ddb")
 
 	signers := intent.Signers()
 	assert.Equal(t, 1, len(signers))
