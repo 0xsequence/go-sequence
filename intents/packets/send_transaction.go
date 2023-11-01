@@ -14,6 +14,7 @@ import (
 
 type SendTransactionsPacket struct {
 	BasePacketForWallet
+	Identifier   string            `json:"identifier"`
 	Wallet       string            `json:"wallet"`
 	Network      string            `json:"network"`
 	Transactions []json.RawMessage `json:"transactions"`
@@ -274,7 +275,27 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 	}
 }
 
+func (p *SendTransactionsPacket) Nonce() (*big.Int, error) {
+	// Hash the identifier, it will be used as the nonce
+	// space. The nonce number is always 0.
+	hashed := ethcoder.Keccak256([]byte(p.Identifier))
+
+	// The space contains only 160 bits
+	return sequence.EncodeNonce(big.NewInt(0).SetBytes(hashed[:20]), common.Big0)
+}
+
 func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
+	// Nonce must be the expected one
+	// (defined by the identifier)
+	enonce, err := p.Nonce()
+	if err != nil {
+		return false
+	}
+
+	if enonce.Cmp(nonce) != 0 {
+		return false
+	}
+
 	// Compare the digest with the provided transactions
 	// otherwise we can't be sure that the subdigest belongs to the transactions
 	bundle := sequence.Transaction{

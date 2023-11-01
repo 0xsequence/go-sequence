@@ -112,7 +112,9 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	assert.Equal(t, "sendTransaction", packet.Code)
 
 	// Generate transactions as sequence.Wallet would
-	nonce := big.NewInt(33151233)
+	nonce, err := packet.Nonce()
+	assert.Nil(t, err)
+
 	chainID := big.NewInt(10)
 
 	transactions := make(sequence.Transactions, 0)
@@ -257,7 +259,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		transactions[i].GasLimit = prev
 	}
 
-	// changing the nonce should NOT invalidate the interpretation
+	// changing the nonce should invalidate the interpretation
 	nxtBundle := sequence.Transaction{
 		Transactions: transactions,
 		Nonce:        big.NewInt(123),
@@ -270,7 +272,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		nxtdigest,
 	)
 	assert.Nil(t, err)
-	assert.True(t, packet.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
+	assert.False(t, packet.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
 
 	// removing a transaction should invalidate the interpretation
 	assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce))
