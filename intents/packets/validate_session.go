@@ -8,9 +8,10 @@ import (
 )
 
 type ValidateSessionPacket struct {
-	Code    string `json:"code"`
-	Wallet  string `json:"wallet"`
-	Session string `json:"session"`
+	Code           string `json:"code"`
+	Session        string `json:"session"`
+	DeviceMetadata string `json:"deviceMetadata"`
+	RedirectURL    string `json:"redirectURL"`
 }
 
 const ValidateSessionPacketCode = "validateSession"
