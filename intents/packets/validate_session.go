@@ -8,7 +8,7 @@ import (
 )
 
 type ValidateSessionPacket struct {
-	Code           string  `json:"code"`
+	BasePacketForWallet
 	Session        string  `json:"session"`
 	DeviceMetadata string  `json:"deviceMetadata"`
 	RedirectURL    *string `json:"redirectURL"`
