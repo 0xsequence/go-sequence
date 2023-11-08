@@ -348,6 +348,15 @@ type SentTransactionsFilter struct {
 	Failed  *bool `json:"failed"`
 }
 
+type SimulateResult struct {
+	Executed  bool    `json:"executed"`
+	Succeeded bool    `json:"succeeded"`
+	Result    *string `json:"result"`
+	Reason    *string `json:"reason"`
+	GasUsed   uint    `json:"gasUsed"`
+	GasLimit  uint    `json:"gasLimit"`
+}
+
 type FeeOption struct {
 	Token    *FeeToken `json:"token"`
 	To       string    `json:"to"`
@@ -396,6 +405,7 @@ type Relayer interface {
 	GetMetaTxnNetworkFeeOptions(ctx context.Context, walletConfig *WalletConfig, payload string) ([]*FeeOption, error)
 	SentTransactions(ctx context.Context, filter *SentTransactionsFilter, page *Page) (*Page, []*Transaction, error)
 	PendingTransactions(ctx context.Context, page *Page) (*Page, []*Transaction, error)
+	Simulate(ctx context.Context, wallet string, transactions string) ([]*SimulateResult, error)
 }
 
 var WebRPCServices = map[string][]string{
@@ -413,6 +423,7 @@ var WebRPCServices = map[string][]string{
 		"GetMetaTxnNetworkFeeOptions",
 		"SentTransactions",
 		"PendingTransactions",
+		"SimulateResult",
 	},
 }
 
@@ -424,12 +435,12 @@ const RelayerPathPrefix = "/rpc/Relayer/"
 
 type relayerClient struct {
 	client HTTPClient
-	urls   [13]string
+	urls   [14]string
 }
 
 func NewRelayerClient(addr string, client HTTPClient) Relayer {
 	prefix := urlBase(addr) + RelayerPathPrefix
-	urls := [13]string{
+	urls := [14]string{
 		prefix + "Ping",
 		prefix + "Version",
 		prefix + "RuntimeStatus",
@@ -443,6 +454,7 @@ func NewRelayerClient(addr string, client HTTPClient) Relayer {
 		prefix + "GetMetaTxnNetworkFeeOptions",
 		prefix + "SentTransactions",
 		prefix + "PendingTransactions",
+		prefix + "Simulate",
 	}
 	return &relayerClient{
 		client: client,
@@ -595,6 +607,19 @@ func (c *relayerClient) PendingTransactions(ctx context.Context, page *Page) (*P
 
 	err := doJSONRequest(ctx, c.client, c.urls[12], in, &out)
 	return out.Ret0, out.Ret1, err
+}
+
+func (c *relayerClient) Simulate(ctx context.Context, wallet string, transactions string) ([]*SimulateResult, error) {
+	in := struct {
+		Arg0 string `json:"wallet"`
+		Arg1 string `json:"transactions"`
+	}{wallet, transactions}
+	out := struct {
+		Ret0 []*SimulateResult `json:"results"`
+	}{}
+
+	err := doJSONRequest(ctx, c.client, c.urls[13], in, &out)
+	return out.Ret0, err
 }
 
 // HTTPClient is the interface used by generated clients to send HTTP requests.
