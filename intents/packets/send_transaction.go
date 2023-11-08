@@ -8,8 +8,10 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/intents"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
 type SendTransactionsPacket struct {
@@ -349,3 +351,26 @@ func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, tx
 
 	return true
 }
+
+type SendTransactionResponse struct {
+	Code string `json:"code"`
+	Data struct {
+		Request       *SendTransactionsPacket `json:"request"`
+		TxHash        string                  `json:"txHash"`
+		Receipt       *proto.MetaTxnReceipt   `json:"receipt"`
+		NativeReceipt *types.Receipt          `json:"nativeReceipt"`
+		Simulations   []*proto.SimulateResult `json:"simulations"`
+	}
+}
+
+const SendTransactionResponseCode = "transactionReceipt"
+
+type SendTransactionFailed struct {
+	Code string `json:"code"`
+	Data struct {
+		Request     *SendTransactionsPacket `json:"request"`
+		Simulations []*proto.SimulateResult `json:"simulations"`
+	}
+}
+
+const SendTransactionFailedCode = "transactionFailed"
