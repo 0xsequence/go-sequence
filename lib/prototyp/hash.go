@@ -124,6 +124,10 @@ func (h Hash) IsValidTxnHash() bool {
 	return true
 }
 
+func (h Hash) Bytes() []byte {
+	return h.Hash().Bytes()
+}
+
 func (h *Hash) Hash() common.Hash {
 	return common.HexToHash(h.String())
 }
