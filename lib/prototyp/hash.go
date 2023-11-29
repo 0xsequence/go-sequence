@@ -144,6 +144,9 @@ func (h *Hash) Scan(src interface{}) error {
 	// NOTE: the 'scany' package we use is unable to scan values of
 	// *string, aka *prototyp.Hash, when needing to have a nullable Hash
 	// please use the HashMaybe type instead.
+	if src == nil {
+		return nil
+	}
 	*h = HashFromBytes(src.([]byte))
 	return nil
 }
