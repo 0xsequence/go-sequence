@@ -3,8 +3,6 @@ package packets
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/0xsequence/go-sequence/intents"
 )
 
 type ValidateSessionPacket struct {
@@ -16,8 +14,8 @@ type ValidateSessionPacket struct {
 
 const ValidateSessionPacketCode = "validateSession"
 
-func (p *ValidateSessionPacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *ValidateSessionPacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}
@@ -47,8 +45,8 @@ type GetSessionPacket struct {
 	Session string `json:"session"`
 }
 
-func (p *GetSessionPacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *GetSessionPacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}

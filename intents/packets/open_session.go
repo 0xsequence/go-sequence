@@ -3,8 +3,6 @@ package packets
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/0xsequence/go-sequence/intents"
 )
 
 type OpenSessionPacket struct {
@@ -20,8 +18,8 @@ type OpenSessionPacketProof struct {
 
 const OpenSessionPacketCode = "openSession"
 
-func (p *OpenSessionPacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *OpenSessionPacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}

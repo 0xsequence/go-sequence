@@ -3,8 +3,6 @@ package packets
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/0xsequence/go-sequence/intents"
 )
 
 type CloseSessionPacket struct {
@@ -14,8 +12,8 @@ type CloseSessionPacket struct {
 
 const CloseSessionPacketCode = "closeSession"
 
-func (p *CloseSessionPacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *CloseSessionPacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}

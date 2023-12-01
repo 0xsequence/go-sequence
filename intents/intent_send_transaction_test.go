@@ -1,4 +1,4 @@
-package packets
+package intents
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/intents"
+	"github.com/0xsequence/go-sequence/intents/packets"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,7 +90,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		]
 	}`
 
-	intent := &intents.Intent{}
+	intent := &Intent{}
 	err := json.Unmarshal([]byte(data), intent)
 	assert.Nil(t, err)
 
@@ -105,8 +105,8 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	assert.Equal(t, 1, len(signers))
 	assert.Equal(t, "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
 
-	packet := &SendTransactionsPacket{}
-	err = packet.Unmarshal(intent)
+	packet := &packets.SendTransactionsPacket{}
+	err = packet.Unmarshal(intent.Packet)
 	assert.Nil(t, err)
 
 	assert.Equal(t, "sendTransaction", packet.Code)

@@ -8,7 +8,6 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/intents"
 )
 
 type SignMessagePacket struct {
@@ -19,8 +18,8 @@ type SignMessagePacket struct {
 
 const SignMessagePacketCode = "signMessage"
 
-func (p *SignMessagePacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *SignMessagePacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}

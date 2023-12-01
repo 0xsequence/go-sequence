@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/intents"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -24,8 +23,8 @@ type SendTransactionsPacket struct {
 
 const SendTransactionCode = "sendTransaction"
 
-func (p *SendTransactionsPacket) Unmarshal(i *intents.Intent) error {
-	err := json.Unmarshal(i.Packet, &p)
+func (p *SendTransactionsPacket) Unmarshal(packet json.RawMessage) error {
+	err := json.Unmarshal(packet, &p)
 	if err != nil {
 		return err
 	}
