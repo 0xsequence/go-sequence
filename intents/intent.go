@@ -79,6 +79,18 @@ func (intent *Intent) Signers() []string {
 }
 
 func (intent *Intent) IsValid() bool {
+	// Check if the packet is valid
+	var packet packets.BasePacket
+	err := json.Unmarshal(intent.Packet, &packet)
+	if err != nil {
+		return false
+	}
+
+	// OpenSession packets do not require signatures
+	if packet.Code == packets.OpenSessionPacketCode {
+		return packet.IsValid()
+	}
+
 	// Check if there are any signatures
 	if len(intent.signatures) == 0 {
 		return false
@@ -92,12 +104,6 @@ func (intent *Intent) IsValid() bool {
 	}
 
 	// Check if the packet is valid
-	var packet packets.BasePacket
-	err := json.Unmarshal(intent.Packet, &packet)
-	if err != nil {
-		return false
-	}
-
 	return packet.IsValid()
 }
 
