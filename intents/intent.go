@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/0xsequence/go-sequence/intents/packets"
 	"github.com/gibson042/canonicaljson-go"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -75,6 +76,29 @@ func (intent *Intent) Signers() []string {
 	}
 
 	return signers
+}
+
+func (intent *Intent) IsValid() bool {
+	// Check if there are any signatures
+	if len(intent.signatures) == 0 {
+		return false
+	}
+
+	// Check if all signatures are valid
+	for _, signature := range intent.signatures {
+		if !intent.isValidSignature(signature.Session, signature.Signature) {
+			return false
+		}
+	}
+
+	// Check if the packet is valid
+	var packet packets.BasePacket
+	err := json.Unmarshal(intent.Packet, &packet)
+	if err != nil {
+		return false
+	}
+
+	return packet.IsValid()
 }
 
 func (intent *Intent) isValidSignature(session string, signature string) bool {
