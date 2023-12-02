@@ -3,6 +3,8 @@ package proto
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/0xsequence/go-sequence"
 )
 
 type Options struct {
@@ -44,4 +46,28 @@ func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
 		req.Header.Set("Authorization", c.jwtAuthHeader)
 	}
 	return c.client.Do(req)
+}
+
+func MetaTxnStatusFromString(s string) sequence.MetaTxnStatus {
+	var ethTxnStatus ETHTxnStatus
+	ethTxnStatus.UnmarshalJSON([]byte(s))
+
+	switch ethTxnStatus {
+	case ETHTxnStatus_UNKNOWN:
+		return sequence.MetaTxnStatusUnknown
+	case ETHTxnStatus_DROPPED:
+		return sequence.MetaTxnStatusUnknown
+	case ETHTxnStatus_QUEUED:
+		return sequence.MetaTxnStatusUnknown
+	case ETHTxnStatus_SENT:
+		return sequence.MetaTxnStatusUnknown
+	case ETHTxnStatus_SUCCEEDED:
+		return sequence.MetaTxnExecuted
+	case ETHTxnStatus_PARTIALLY_FAILED:
+		return sequence.MetaTxnFailed
+	case ETHTxnStatus_FAILED:
+		return sequence.MetaTxnFailed
+	default:
+		return sequence.MetaTxnStatusUnknown
+	}
 }
