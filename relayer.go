@@ -41,6 +41,10 @@ type Relayer interface {
 
 type MetaTxnID string
 
+func (id MetaTxnID) String() string {
+	return string(id)
+}
+
 type MetaTxnStatus uint8
 
 const (

@@ -2,6 +2,7 @@ package relayer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/url"
@@ -167,13 +168,12 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 // ....
 func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+	// Fetch the meta transaction receipt from the relayer service
 	if r.receiptListener == nil {
-		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
+		return r.waitMetaTxnReceipt(ctx, metaTxnID, optTimeout...)
 	}
 
-	// TODO: call rpcRelayer host RPC method GetMetaTxnReceipt()
-	// which in the future will be renamed to WaitTransactionReceipt()
-
+	// Fetch the meta transaction receipt from the receipt listener
 	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
 		return 0, nil, err
@@ -183,6 +183,46 @@ func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, opt
 		status = result.Status
 	}
 	return status, receipt.Receipt(), nil
+}
+
+func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+	// TODO: in future GetMetaTxnReceipt() will be renamed to WaitTransactionReceipt()
+
+	var clear context.CancelFunc
+	if len(optTimeout) > 0 {
+		ctx, clear = context.WithTimeout(ctx, optTimeout[0])
+		defer clear()
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			err := ctx.Err()
+			if err != nil {
+				return 0, nil, err
+			}
+			return 0, nil, nil
+		default:
+		}
+
+		metaTxnReceipt, err := r.Service.GetMetaTxnReceipt(ctx, metaTxnID.String())
+		if metaTxnReceipt == nil && err == nil {
+			// currently we assume that if the receipt is nil, and error is nil, then
+			// we're still searching for the transaction. This is a hack, and we should
+			// use proper error codes when we upgrade webrpc version
+			continue
+		}
+		if err != nil {
+			return sequence.MetaTxnStatusUnknown, nil, err
+		}
+		txnReceipt := metaTxnReceipt.TxnReceipt
+		var receipt *types.Receipt
+		err = json.Unmarshal([]byte(txnReceipt), &receipt)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
+		}
+		return proto.MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
+	}
 }
 
 func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
