@@ -107,13 +107,36 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
+func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*proto.SimulateResult, error) {
+	to, execdata, err := sequence.EncodeTransactionsForRelaying(
+		r,
+		txs.WalletAddress,
+		txs.WalletConfig,
+		txs.WalletContext,
+		txs.Transactions,
+		txs.Nonce,
+		txs.Signature,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+}
+
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
-	if err != nil {
-		return "", nil, nil, err
+	walletAddress := signedTxs.WalletAddress
+	var err error
+
+	if walletAddress == (common.Address{}) {
+		walletAddress, err = sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
+		if err != nil {
+			return "", nil, nil, err
+		}
 	}
 
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(

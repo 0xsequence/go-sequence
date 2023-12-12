@@ -70,7 +70,7 @@ func TestWalletSignMessage(t *testing.T) {
 
 		message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-		sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
+		sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 		assert.NoError(t, err)
 
 		expectedSig := "0x00010001a0fb306480bc3027c04d33a16370f4618b29f2d5b89464f526045c94802bc9d1525389c364b75daf58e859ed0d6105aac6b3718e4659814c7793c626653edb871b02"
@@ -95,7 +95,7 @@ func TestWalletSignMessage(t *testing.T) {
 
 		message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-		sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
+		sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 		assert.NoError(t, err)
 
 		expectedSig := "0x0100010000000000012d1d8f90e8ae7cb4dff2b63643633bb0480ca8ce4c993f3934587e0f2041b4970832b96512cfc5418a125d4110c1e3c8293c515f144d0119b4ab57b2db0c95741c02"
@@ -118,7 +118,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 
 		message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-		sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
+		sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 		assert.NoError(t, err)
 
 		expectedSig := "0x00010001aea46cf46662768aa0287f04788afeaf84ed12eda6dd759bdb500db113b289b20cbc85a8dbb040e14082b401b081e33f16a9685993b168212a1a0f4e686cb8b31c02"
@@ -143,7 +143,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 
 		message := "0x1901f0ba65550f2d1dccf4b131b774844dc3d801d886bbd4edcf660f395f21fe94792f7c1da94638270a049646e541004312b3ec1ac5"
 
-		sig, _, err := wallet.SignMessage(context.Background(), ethcoder.MustHexDecode(message))
+		sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 		assert.NoError(t, err)
 
 		expectedSig := "0x010001000000000001a91667dc105882d23a555c49e0e76a135c70bf7e4493cc9550a1bff6ffb7525372c7f67e8d6e18ccba35bdabe9264c8241c6a7fec88ccd8b74fcf680f83009541b02"
@@ -222,7 +222,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		wallet.SetChainID(big.NewInt(3))
 
 		message := "Hi! this is a test message"
-		sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
+		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
 		s, err := v1.Core.DecodeSignature(sig)
@@ -250,7 +250,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		wallet.SetChainID(big.NewInt(3))
 
 		message := "Hi! this is a test message"
-		sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
+		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
 		s, err := v2.Core.DecodeSignature(sig)
@@ -295,7 +295,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		wallet.SetChainID(big.NewInt(3))
 
 		message := "Hi! this is a test message"
-		sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
+		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
 		subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
@@ -340,7 +340,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		wallet.SetChainID(big.NewInt(3))
 
 		message := "Hi! this is a test message"
-		sig, _, err := wallet.SignMessage(context.Background(), []byte(message))
+		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
 		recoveredWalletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
@@ -456,22 +456,22 @@ func (n *NotFirstTestSigner) Address() common.Address {
 	return n.Wallet.Address()
 }
 
-func (n *NotFirstTestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[core.WalletConfig], error) {
+func (n *NotFirstTestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
 	signContext := signing_service.SignContextFromContext(ctx)
 	if signContext == nil {
-		return nil, nil, errors.New("signing context not found")
+		return nil, errors.New("signing context not found")
 	}
 
 	if len(signContext.Signature) <= 2 {
-		return nil, nil, core.ErrSigningFunctionNotReady
+		return nil, core.ErrSigningFunctionNotReady
 	}
 
 	sig, err := n.Wallet.SignMessage(digest.Bytes())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return append(sig, 1), nil, nil
+	return append(sig, 1), nil
 }
 
 var _ sequence.SignerDigestSigner = &NotFirstTestSigner{}
@@ -502,7 +502,7 @@ func TestWalletSignDigestWithNotFirstSigner(t *testing.T) {
 
 	wallet.SetChainID(big.NewInt(1))
 
-	sig, _, err := wallet.SignMessage(context.Background(), []byte("hello world"))
+	sig, err := wallet.SignMessage([]byte("hello world"))
 	require.NoError(t, err)
 	require.NotNil(t, sig)
 
@@ -513,7 +513,7 @@ func TestWalletSignDigestWithNotFirstSigner(t *testing.T) {
 
 	wallet.SetChainID(big.NewInt(1))
 
-	sig, _, err = wallet.SignMessage(context.Background(), []byte("hello world"))
+	sig, err = wallet.SignMessage([]byte("hello world"))
 	require.NoError(t, err)
 	require.NotNil(t, sig)
 }
@@ -527,7 +527,7 @@ func (m *MockSignerDigestSigner) Address() common.Address {
 	return args.Get(0).(common.Address)
 }
 
-func (m *MockSignerDigestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, core.Signature[core.WalletConfig], error) {
+func (m *MockSignerDigestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
 	args := m.Called(ctx, digest, optChainID)
 
 	var sig []byte
@@ -535,17 +535,12 @@ func (m *MockSignerDigestSigner) SignDigest(ctx context.Context, digest common.H
 		sig = args.Get(0).([]byte)
 	}
 
-	var sigTyped core.Signature[core.WalletConfig]
-	if args.Get(1) != nil {
-		sigTyped = args.Get(1).(core.Signature[core.WalletConfig])
-	}
-
 	var err error
 	if args.Get(2) != nil {
 		err = args.Get(2).(error)
 	}
 
-	return sig, sigTyped, err
+	return sig, err
 }
 
 var _ sequence.SignerDigestSigner = &MockSignerDigestSigner{}
@@ -583,7 +578,7 @@ func TestWalletSignMessageCheckSignContext(t *testing.T) {
 		assert.Equal(t, *signContext.Message, string(message))
 	}).Return([]byte{0x01}, nil, nil).Once()
 
-	_, _, _ = wallet.SignMessage(context.Background(), message)
+	_, _ = wallet.SignMessage(message)
 
 	mockSigner.AssertExpectations(t)
 }
