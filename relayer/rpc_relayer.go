@@ -14,7 +14,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -154,43 +153,6 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	if r.IsDeployTransaction(signedTxs) {
 		to = signedTxs.WalletContext.GuestModuleAddress
-	} else {
-		isDeployed, err := sequence.IsWalletDeployed(r.GetProvider(), to)
-		if err != nil {
-			return "", nil, nil, err
-		}
-
-		if !isDeployed {
-			_, factoryAddress, deployData, err := sequence.EncodeWalletDeployment(signedTxs.WalletConfig, signedTxs.WalletContext)
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			txns := sequence.Transactions{
-				{
-					RevertOnError: true,
-					To:            factoryAddress,
-					Data:          deployData,
-				},
-				{
-					RevertOnError: true,
-					To:            to,
-					Data:          execdata,
-				},
-			}
-
-			encodedTxns, err := txns.EncodedTransactions()
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			execdata, err = contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			to = signedTxs.WalletContext.GuestModuleAddress
-		}
 	}
 
 	call := &proto.MetaTxn{
