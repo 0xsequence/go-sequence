@@ -107,7 +107,7 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
-func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*proto.SimulateResult, error) {
+func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(
 		r,
 		txs.WalletAddress,
@@ -122,7 +122,23 @@ func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransacti
 		return nil, err
 	}
 
-	return r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+	res, err := r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*sequence.RelayerSimulateResult
+	for _, r := range res {
+		results = append(results, &sequence.RelayerSimulateResult{
+			Executed:  r.Executed,
+			Succeeded: r.Succeeded,
+			Result:    r.Result,
+			Reason:    r.Reason,
+			GasUsed:   r.GasUsed,
+			GasLimit:  r.GasLimit,
+		})
+	}
+	return results, nil
 }
 
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer

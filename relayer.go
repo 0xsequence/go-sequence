@@ -17,12 +17,24 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 )
 
+type RelayerSimulateResult struct {
+	Executed  bool
+	Succeeded bool
+	Result    *string
+	Reason    *string
+	GasUsed   uint
+	GasLimit  uint
+}
+
 type Relayer interface {
 	// ..
 	GetProvider() *ethrpc.Provider
 
 	// ..
 	EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
+
+	// ..
+	Simulate(ctx context.Context, txs *SignedTransactions) ([]*RelayerSimulateResult, error)
 
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
