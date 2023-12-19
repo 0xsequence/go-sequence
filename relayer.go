@@ -15,6 +15,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
 type RelayerSimulateResult struct {
@@ -46,6 +47,9 @@ type Relayer interface {
 
 	// ..
 	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
+
+	// ..
+	Client() proto.Relayer
 
 	// TODO, in future when needed..
 	// GasRefundOptions()

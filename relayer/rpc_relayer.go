@@ -256,7 +256,7 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
 		}
-		return proto.MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
+		return MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
 	}
 }
 
@@ -267,6 +267,10 @@ func (r *RpcRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions)
 		}
 	}
 	return false
+}
+
+func (r *RpcRelayer) Client() proto.Relayer {
+	return r.Service
 }
 
 func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {

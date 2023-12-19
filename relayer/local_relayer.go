@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -237,4 +238,9 @@ func (r *LocalRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransaction
 		}
 	}
 	return false
+}
+
+func (r *LocalRelayer) Client() proto.Relayer {
+	// no relayer used
+	return nil
 }
