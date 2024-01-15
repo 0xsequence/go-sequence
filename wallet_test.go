@@ -2,7 +2,6 @@ package sequence_test
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"sort"
 	"testing"
@@ -15,7 +14,6 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/relayer"
-	"github.com/0xsequence/go-sequence/signing_service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -457,15 +455,6 @@ func (n *NotFirstTestSigner) Address() common.Address {
 }
 
 func (n *NotFirstTestSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
-	signContext := signing_service.SignContextFromContext(ctx)
-	if signContext == nil {
-		return nil, errors.New("signing context not found")
-	}
-
-	if len(signContext.Signature) <= 2 {
-		return nil, core.ErrSigningFunctionNotReady
-	}
-
 	sig, err := n.Wallet.SignMessage(digest.Bytes())
 	if err != nil {
 		return nil, err
@@ -541,106 +530,6 @@ func (m *MockSignerDigestSigner) SignDigest(ctx context.Context, digest common.H
 	}
 
 	return sig, err
-}
-
-var _ sequence.SignerDigestSigner = &MockSignerDigestSigner{}
-
-func TestWalletSignMessageCheckSignContext(t *testing.T) {
-	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
-	assert.NoError(t, err)
-
-	mockSigner := &MockSignerDigestSigner{}
-
-	walletConfig := &v2.WalletConfig{
-		Threshold_: 3,
-		Tree: &v2.WalletConfigTreeAddressLeaf{
-			Weight: 3, Address: eoa1.Address(),
-		},
-	}
-
-	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
-		Config: walletConfig,
-	}, mockSigner)
-	require.NoError(t, err)
-
-	wallet.SetChainID(big.NewInt(1))
-
-	message := []byte("hello world")
-
-	mockSigner.On("Address").Return(eoa1.Address()).Maybe()
-	mockSigner.On("SignDigest", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		ctx := args.Get(0).(context.Context)
-		signContext := signing_service.SignContextFromContext(ctx)
-		assert.NotNil(t, signContext)
-		assert.Equal(t, signContext.ChainId, uint64(1))
-		assert.Equal(t, *signContext.WalletAddress, wallet.Address().Hex())
-		assert.Equal(t, signContext.SigneeWalletAddress, wallet.Address().Hex())
-		assert.Equal(t, *signContext.Message, string(message))
-	}).Return([]byte{0x01}, nil, nil).Once()
-
-	_, _ = wallet.SignMessage(message)
-
-	mockSigner.AssertExpectations(t)
-}
-
-func TestWalletSignTransactionCheckSignContext(t *testing.T) {
-	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
-	assert.NoError(t, err)
-
-	mockSigner := &MockSignerDigestSigner{}
-
-	walletConfig := &v2.WalletConfig{
-		Threshold_: 3,
-		Tree: &v2.WalletConfigTreeAddressLeaf{
-			Weight: 3, Address: eoa1.Address(),
-		},
-	}
-
-	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
-		Config: walletConfig,
-	}, mockSigner)
-	require.NoError(t, err)
-
-	wallet.SetChainID(testChain.ChainID())
-
-	rel, err := relayer.NewLocalRelayer(testChain.MustWallet(1), nil)
-	require.NoError(t, err)
-
-	err = wallet.SetRelayer(rel)
-	require.NoError(t, err)
-
-	txn := sequence.Transactions{
-		&sequence.Transaction{
-			DelegateCall:  false,
-			RevertOnError: true,
-			GasLimit:      big.NewInt(100000000),
-			To:            common.Address{},
-			Value:         big.NewInt(1),
-			Data:          nil,
-			Transactions:  nil,
-			Nonce:         big.NewInt(1),
-			Signature:     nil,
-		},
-	}
-
-	rawTx, err := txn.EncodeRaw()
-	require.NoError(t, err)
-
-	mockSigner.On("Address").Return(eoa1.Address()).Maybe()
-	mockSigner.On("SignDigest", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		ctx := args.Get(0).(context.Context)
-		signContext := signing_service.SignContextFromContext(ctx)
-		assert.NotNil(t, signContext)
-		assert.Equal(t, signContext.ChainId, uint64(1337))
-		assert.Equal(t, *signContext.WalletAddress, wallet.Address().Hex())
-		assert.Equal(t, signContext.SigneeWalletAddress, wallet.Address().Hex())
-		assert.Equal(t, *signContext.Transactions, ethcoder.HexEncode(rawTx))
-		assert.Equal(t, *signContext.Nonce, uint64(1))
-	}).Return([]byte{0x01}, nil, nil).Once()
-
-	_, _ = wallet.SignTransactions(context.Background(), txn)
-
-	mockSigner.AssertExpectations(t)
 }
 
 func TestWalletLazyDeployment(t *testing.T) {
