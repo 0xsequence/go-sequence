@@ -8,11 +8,12 @@ import (
 )
 
 type Options struct {
-	HTTPClient   HTTPClient
-	JWTAuthToken string
+	HTTPClient       HTTPClient
+	ProjectAccessKey string
+	JWTAuthToken     string
 }
 
-func NewRelayer(relayerServiceURL string, projectAccessKey string, options ...Options) Relayer {
+func NewRelayer(relayerServiceURL string, options ...Options) Relayer {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -20,7 +21,7 @@ func NewRelayer(relayerServiceURL string, projectAccessKey string, options ...Op
 
 	client := &httpclient{
 		client:           opts.HTTPClient,
-		projectAccessKey: projectAccessKey,
+		projectAccessKey: opts.ProjectAccessKey,
 	}
 	if opts.HTTPClient == nil {
 		client.client = http.DefaultClient

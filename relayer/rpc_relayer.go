@@ -29,13 +29,19 @@ type RpcRelayer struct {
 
 var _ sequence.Relayer = &RpcRelayer{}
 
-func NewRpcRelayer(provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, rpcRelayerURL string, httpClient proto.HTTPClient) (*RpcRelayer, error) {
+type Options = proto.Options
+
+func NewRpcRelayer(provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, rpcRelayerURL string, options ...Options) (*RpcRelayer, error) {
+	// TODO: move receiptListener to Options, and if unspecified, use the Sequence Indexer
+	// for the receipts listener instead. Or, we can also have the receipts filter method
+	// on the relayer service too.
+
 	_, err := url.Parse(rpcRelayerURL)
 	if err != nil {
 		return nil, fmt.Errorf("rpcRelayerURL is invalid: %w", err)
 	}
 
-	service := proto.NewRelayerClient(rpcRelayerURL, httpClient)
+	service := proto.NewRelayer(rpcRelayerURL, options...)
 
 	return &RpcRelayer{
 		provider:        provider,
