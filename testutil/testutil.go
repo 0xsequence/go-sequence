@@ -162,7 +162,7 @@ func (c *TestChain) V2SequenceContext() sequence.WalletContext {
 }
 
 func (c *TestChain) SetRpcRelayer(relayerURL string) error {
-	rpcRelayer, err := relayer.NewRpcRelayer(c.Provider, c.ReceiptsListener, relayerURL)
+	rpcRelayer, err := relayer.NewRpcRelayer(relayerURL, "", c.Provider, c.ReceiptsListener)
 	if err != nil {
 		return err
 	}
