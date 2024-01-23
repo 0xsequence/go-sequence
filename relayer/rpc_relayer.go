@@ -33,17 +33,17 @@ type Options = proto.Options
 
 // NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
-func NewRpcRelayer(rpcRelayerURL string, projectAccessKey string, provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, options ...Options) (*RpcRelayer, error) {
+func NewRpcRelayer(relayerURL string, projectAccessKey string, provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, options ...Options) (*RpcRelayer, error) {
 	// TODO: move receiptListener to Options, and if unspecified, use the Sequence Indexer
 	// for the receipts listener instead. Or, we can also have the receipts filter method
 	// on the relayer service too.
 
-	_, err := url.Parse(rpcRelayerURL)
+	_, err := url.Parse(relayerURL)
 	if err != nil {
-		return nil, fmt.Errorf("rpcRelayerURL is invalid: %w", err)
+		return nil, fmt.Errorf("relayerURL is invalid: %w", err)
 	}
 
-	service := proto.NewRelayer(rpcRelayerURL, projectAccessKey, options...)
+	service := proto.NewRelayer(relayerURL, projectAccessKey, options...)
 
 	return &RpcRelayer{
 		provider:        provider,
