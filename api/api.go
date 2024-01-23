@@ -11,6 +11,8 @@ type Options struct {
 	APIServiceURL string
 }
 
+// NewAPI creates a new Sequence API client instance. Please see https://sequence.build to
+// get a `projectAccessKey`.
 func NewAPI(projectAccessKey string, options ...Options) API {
 	opts := Options{}
 	if len(options) > 0 {
