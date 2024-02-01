@@ -1,8 +1,12 @@
 package intents
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/0xsequence/go-sequence/intents/packets"
@@ -107,7 +111,20 @@ func (intent *Intent) IsValid() bool {
 	return packet.IsValid()
 }
 
+func (intent *Intent) isValidSECP256R1Session(session string, signature string) bool {
+	return strings.HasPrefix(session, "r1:") && strings.HasPrefix(signature, "r1:")
+}
+
 func (intent *Intent) isValidSignature(session string, signature string) bool {
+	if intent.isValidSECP256R1Session(session, signature) {
+		return intent.isValidSignatureSECP256R1(session, signature)
+	} else {
+		return intent.isValidSignatureSPECP256K1(session, signature)
+	}
+}
+
+// isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256k1 session
+func (intent *Intent) isValidSignatureSPECP256K1(session string, signature string) bool {
 	// Get hash of the packet
 	hash, err := intent.Hash()
 	if err != nil {
@@ -133,6 +150,42 @@ func (intent *Intent) isValidSignature(session string, signature string) bool {
 
 	// Check if the recovered address matches the session address
 	return strings.ToLower(addr.Hex()) == strings.ToLower(session)
+}
+
+// isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256r1 session
+func (intent *Intent) isValidSignatureSECP256R1(session string, signature string) bool {
+	// session
+	sessionHex, _ := strings.CutPrefix(session, "r1:")
+	sessionBuff := common.FromHex(sessionHex)
+
+	// public key
+	// TODO: check if can use ecdh instead of unmarshal
+	// NOTE: no way to convert ecdh pub key into elliptic pub key?
+	x, y := elliptic.Unmarshal(elliptic.P256(), sessionBuff)
+	if x == nil || y == nil {
+		return false
+	}
+
+	pub := ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}
+
+	// message hash
+	messageHash, _ := intent.Hash()
+	messageHash2 := sha256.Sum256(messageHash)
+
+	// signature
+	signatureHex, _ := strings.CutPrefix(signature, "r1:")
+	signatureBytes := common.FromHex(signatureHex)
+	if len(signatureBytes) != 64 {
+		return false
+	}
+
+	r := new(big.Int).SetBytes(signatureBytes[:32])
+	s := new(big.Int).SetBytes(signatureBytes[32:64])
+	return ecdsa.Verify(&pub, messageHash2[:], r, s)
 }
 
 func (intent *Intent) PacketCode() string {
