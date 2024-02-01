@@ -112,7 +112,7 @@ func (intent *Intent) IsValid() bool {
 }
 
 func (intent *Intent) isValidSECP256R1Session(session string, signature string) bool {
-	return strings.HasPrefix(session, "r1:") && strings.HasPrefix(signature, "r1:")
+	return len(session) == 65 && len(signature) == 64
 }
 
 func (intent *Intent) isValidSignature(session string, signature string) bool {
