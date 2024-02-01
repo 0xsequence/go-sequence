@@ -155,8 +155,7 @@ func (intent *Intent) isValidSignatureSPECP256K1(session string, signature strin
 // isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256r1 session
 func (intent *Intent) isValidSignatureSECP256R1(session string, signature string) bool {
 	// session
-	sessionHex, _ := strings.CutPrefix(session, "r1:")
-	sessionBuff := common.FromHex(sessionHex)
+	sessionBuff := common.FromHex(session)
 
 	// public key
 	// TODO: check if can use ecdh instead of unmarshal
@@ -177,8 +176,7 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 	messageHash2 := sha256.Sum256(messageHash)
 
 	// signature
-	signatureHex, _ := strings.CutPrefix(signature, "r1:")
-	signatureBytes := common.FromHex(signatureHex)
+	signatureBytes := common.FromHex(signature)
 	if len(signatureBytes) != 64 {
 		return false
 	}
