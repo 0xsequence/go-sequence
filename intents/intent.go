@@ -129,10 +129,8 @@ func (intent *Intent) isValidSECP256R1Session(session string, signature string) 
 
 func (intent *Intent) isValidSignature(session string, signature string) bool {
 	if intent.isValidSECP256R1Session(session, signature) {
-		fmt.Println("isValidSignatureSECP256R1")
 		return intent.isValidSignatureSECP256R1(session, signature)
 	} else {
-		fmt.Println("isValidSignatureSECP256R1")
 		return intent.isValidSignatureSPECP256K1(session, signature)
 	}
 }
@@ -168,9 +166,6 @@ func (intent *Intent) isValidSignatureSPECP256K1(session string, signature strin
 
 // isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256r1 session
 func (intent *Intent) isValidSignatureSECP256R1(session string, signature string) bool {
-	fmt.Println("session: ", session)
-	fmt.Println("signature: ", signature)
-
 	// session
 	sessionBuff := common.FromHex(session[3:])
 
@@ -179,7 +174,6 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 	// NOTE: no way to convert ecdh pub key into elliptic pub key?
 	x, y := elliptic.Unmarshal(elliptic.P256(), sessionBuff)
 	if x == nil || y == nil {
-		fmt.Println("not valid x,y")
 		return false
 	}
 
@@ -191,13 +185,11 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 
 	// message hash
 	messageHash, _ := intent.Hash()
-	fmt.Println("messageHash: ", messageHash)
 	messageHash2 := sha256.Sum256(messageHash)
 
 	// signature
 	signatureBytes := common.FromHex(signature[3:])
 	if len(signatureBytes) != 64 {
-		fmt.Println("not valid signature bytes")
 		return false
 	}
 

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// allowedTimeDrift is the amount of time in seconds that a packet can be
+// issued in the future or expired in the past and still be considered valid.
 const allowedTimeDrift = 5
 
 var (
@@ -24,10 +26,8 @@ func (p *BasePacket) IsValid() (bool, error) {
 	if p.Code == "" {
 		return false, ErrInvalidPacketCode
 	} else if p.Issued > now+allowedTimeDrift {
-		fmt.Println("issued err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPackedIssuedInFuture
 	} else if p.Expires < now-allowedTimeDrift {
-		fmt.Println("expired err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPacketExpired
 	}
 	return true, nil
