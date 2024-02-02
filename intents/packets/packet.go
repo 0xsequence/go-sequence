@@ -23,10 +23,10 @@ func (p *BasePacket) IsValid() (bool, error) {
 	now := uint64(time.Now().Unix())
 	if p.Code == "" {
 		return false, ErrInvalidPacketCode
-	} else if p.Issued <= now+allowedTimeDrift {
+	} else if p.Issued > now+allowedTimeDrift {
 		fmt.Println("issued err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPackedIssuedInFuture
-	} else if p.Expires > now-allowedTimeDrift {
+	} else if p.Expires < now-allowedTimeDrift {
 		fmt.Println("expired err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPacketExpired
 	}
