@@ -7,7 +7,7 @@ import (
 
 type CloseSessionPacket struct {
 	BasePacketForWallet
-	Session string `json:"session"`
+	SessionId string `json:"sessionId"`
 }
 
 const CloseSessionPacketCode = "closeSession"

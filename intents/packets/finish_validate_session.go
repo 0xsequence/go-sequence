@@ -7,7 +7,7 @@ import (
 
 type FinishValidateSessionPacket struct {
 	Code      string `json:"code"`
-	Session   string `json:"session"`
+	SessionId string `json:"sessionId"`
 	Salt      string `json:"salt"`
 	Challenge string `json:"challenge"`
 }

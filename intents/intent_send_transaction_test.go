@@ -2,6 +2,7 @@ package intents
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -84,7 +85,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		},
 		"signatures": [
 		  {
-			"session": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
+			"sessionId": "afaf60c0-67ba-4c9b-89ae-b115c78026a4",
 			"signature": "0xdd137166e6e73fcaa710e822aa3eef3d501ef1b7969d59e8583cb602a32233e0628d4e28ea5a562a1ccf6bd85bfccfcd1004673a28763640cca33002fbedbb3a1b"
 		  }
 		]
@@ -101,7 +102,15 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, common.Bytes2Hex(hash), "2feb22d5631075041c5aaafce98da8950d706a9eca8d9ea2b28ea95142d8e890")
 
-	signers := intent.Signers()
+	getSessionVerifier := func(sessionId string) (string, error) {
+		if sessionId == "afaf60c0-67ba-4c9b-89ae-b115c78026a4" {
+			return "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", nil
+		} else {
+			return "", fmt.Errorf("invalid session id")
+		}
+	}
+
+	signers := intent.Signers(getSessionVerifier)
 	assert.Equal(t, 1, len(signers))
 	assert.Equal(t, "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
 

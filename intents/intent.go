@@ -39,7 +39,7 @@ type JSONIntent struct {
 }
 
 type Signature struct {
-	Session   string `json:"session"`
+	SessionId string `json:"sessionId"`
 	Signature string `json:"signature"`
 }
 
@@ -76,19 +76,24 @@ func (intent *Intent) Hash() ([]byte, error) {
 	return crypto.Keccak256(packetBytes), nil
 }
 
-func (intent *Intent) Signers() []string {
+func (intent *Intent) Signers(getSessionVerifier func(sessionId string) (string, error)) []string {
 	var signers []string
 
 	for _, signature := range intent.signatures {
-		if intent.isValidSignature(signature.Session, signature.Signature) {
-			signers = append(signers, signature.Session)
+		sessionVerifier, err := getSessionVerifier(signature.SessionId)
+		if err != nil {
+			return nil
+		}
+
+		if intent.isValidSignature(sessionVerifier, signature.Signature) {
+			signers = append(signers, sessionVerifier)
 		}
 	}
 
 	return signers
 }
 
-func (intent *Intent) IsValid() (bool, error) {
+func (intent *Intent) IsValid(getSessionVerifier func(sessionId string) (string, error)) (bool, error) {
 	// Check if the packet is valid
 	var packet packets.BasePacket
 	err := json.Unmarshal(intent.Packet, &packet)
@@ -111,7 +116,12 @@ func (intent *Intent) IsValid() (bool, error) {
 
 	// Check if all signatures are valid
 	for _, signature := range intent.signatures {
-		if !intent.isValidSignature(signature.Session, signature.Signature) {
+		sessionVerifier, err := getSessionVerifier(signature.SessionId)
+		if err != nil {
+			return false, fmt.Errorf("intent: %w", err)
+		}
+
+		if !intent.isValidSignature(sessionVerifier, signature.Signature) {
 			return false, fmt.Errorf("intent: %w", ErrInvalidSignature)
 		}
 	}
