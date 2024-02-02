@@ -82,7 +82,7 @@ func (intent *Intent) Signers(getSessionVerifier func(sessionId string) (string,
 	for _, signature := range intent.signatures {
 		sessionVerifier, err := getSessionVerifier(signature.SessionId)
 		if err != nil {
-			return nil
+			continue
 		}
 
 		if intent.isValidSignature(sessionVerifier, signature.Signature) {
