@@ -179,6 +179,7 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 	// NOTE: no way to convert ecdh pub key into elliptic pub key?
 	x, y := elliptic.Unmarshal(elliptic.P256(), sessionBuff)
 	if x == nil || y == nil {
+		fmt.Println("not valid x,y")
 		return false
 	}
 
@@ -196,6 +197,7 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 	// signature
 	signatureBytes := common.FromHex(signature[3:])
 	if len(signatureBytes) != 64 {
+		fmt.Println("not valid signature bytes")
 		return false
 	}
 
