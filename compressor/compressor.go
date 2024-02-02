@@ -9,9 +9,9 @@ import (
 )
 
 type Compressor struct {
-	addressIndexes map[string]int
-	bytes32Indexes map[string]int
-	bytes4Indexes  map[string]int
+	addressIndexes map[string]uint
+	bytes32Indexes map[string]uint
+	bytes4Indexes  map[string]uint
 }
 
 type EncodeType int
@@ -22,6 +22,13 @@ const (
 	ReadStorage
 	WriteStorage
 )
+
+func NewCompressor(addressesIndexes map[string]uint) *Compressor {
+	return &Compressor{
+		bytes4Indexes:  LoadBytes4(),
+		addressIndexes: addressesIndexes,
+	}
+}
 
 func HighestPriority(a EncodeType, b EncodeType) EncodeType {
 	if a == WriteStorage || b == WriteStorage {
@@ -40,7 +47,7 @@ func HighestPriority(a EncodeType, b EncodeType) EncodeType {
 }
 
 func FindPastData(pastData *CBuffer, data []byte) int {
-	for i := 0; i < len(pastData.Data()); i++ {
+	for i := 0; i+len(data) < len(pastData.Data()); i++ {
 		if bytes.Equal(pastData.Data()[i:i+len(data)], data) {
 			return i
 		}
@@ -56,6 +63,11 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 	}
 
 	trimmed := bytes.TrimLeft(word, "\x00")
+
+	// If empty then it can be encoded as literal zero
+	if len(trimmed) == 0 {
+		return []byte{byte(LITERAL_ZERO)}, Stateless, nil
+	}
 
 	// Literals are the cheapest encoding
 	if len(trimmed) <= 1 && trimmed[0] <= byte(MAX_LITERAL) {
@@ -112,7 +124,8 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 
 		// We can only encode 16 bits for the mirror flag
 		// if it exceeds this value, then we can't mirror it
-		if usedFlag <= 0xffff {
+		// NOR it can be this pointer itself
+		if usedFlag <= 0xffff && usedFlag != pastData.Len() {
 			return []byte{byte(FLAG_MIRROR_FLAG), byte(usedFlag >> 8), byte(usedFlag)}, Mirror, nil
 		}
 	}
@@ -152,14 +165,12 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 		// on the addresses or bytes32 repositories
 		addressIndex := c.addressIndexes[padded32str]
 		if addressIndex != 0 {
-			addressIndex -= 1
-
 			// There are 4 different flags for reading addresses,
 			// depending if the index fits on 2, 3, or 4 bytes
 			bytesNeeded := minBytesToRepresent(addressIndex)
+			fmt.Println("USES CONTRACT STORAGE", addressIndex, bytesNeeded)
 			switch bytesNeeded {
-			case 1:
-			case 2:
+			case 1, 2:
 				return []byte{
 					byte(FLAG_READ_ADDRESS_2),
 					byte(addressIndex >> 8),
@@ -185,14 +196,11 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 
 		bytes32Index := c.bytes32Indexes[padded32str]
 		if bytes32Index != 0 {
-			bytes32Index -= 1
-
 			// There are 4 different flags for reading bytes32,
 			// depending if the index fits on 2, 3, or 4 bytes
 			bytesNeeded := minBytesToRepresent(bytes32Index)
 			switch bytesNeeded {
-			case 1:
-			case 2:
+			case 1, 2:
 				return []byte{
 					byte(FLAG_READ_BYTES32_2),
 					byte(bytes32Index >> 8),
@@ -247,7 +255,7 @@ func (c *Compressor) EncodeWordBytes32(word []byte) ([]byte, EncodeType, error) 
 		return nil, Stateless, fmt.Errorf("word is empty")
 	}
 
-	encodedWord := []byte{byte(FLAG_READ_BYTES32_1_BYTES + len(word) - 1)}
+	encodedWord := []byte{byte(FLAG_READ_BYTES32_1_BYTES + uint(len(word)) - 1)}
 	encodedWord = append(encodedWord, word...)
 	return encodedWord, Stateless, nil
 }
@@ -347,7 +355,7 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	if len(bytes) == 22 && bytes[0] == 0x01 {
 		// If the firt byte (weight) is between 1 and 4, then there is a special flag
 		if bytes[1] >= 1 && bytes[1] <= 4 {
-			dest.WriteInt(FLAG_ADDRESS_W0 + int(bytes[1]))
+			dest.WriteInt(FLAG_ADDRESS_W0 + uint(bytes[1]))
 		} else {
 			// We need to use FLAG_ADDRES_W0 and 1 extra byte for the weight
 			dest.WriteInt(FLAG_ADDRESS_W0)
@@ -369,7 +377,7 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	if len(bytes) == 68 && bytes[0] == 0x00 {
 		// If the first byte (weight) is between 1 and 4, then there is a special flag
 		if bytes[1] >= 1 && bytes[1] <= 4 {
-			dest.WriteInt(FLAG_SIGNATURE_W0 + int(bytes[1]))
+			dest.WriteInt(FLAG_SIGNATURE_W0 + uint(bytes[1]))
 		} else {
 			// We need to use FLAG_SIGNATURE_W0 and 1 extra byte for the weight
 			dest.WriteInt(FLAG_SIGNATURE_W0)
@@ -394,7 +402,7 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	// If the bytes are a multiple of 32 + 4 bytes (max 6 * 32 + 4) then it
 	// can be encoded as an ABI call with 0 to 6 parameters
 	if len(bytes) <= 6*32+4 && (len(bytes)-4)%32 == 0 {
-		dest.WriteInt(FLAG_ABI_0_PARAM + (len(bytes)-4)/32)
+		dest.WriteInt(FLAG_ABI_0_PARAM + uint((len(bytes)-4)/32))
 		dest.WriteBytes(c.Encode4Bytes(bytes[:4]))
 		dest.End(bytes, Stateless)
 
@@ -417,7 +425,7 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	if len(bytes) <= 256*32+4 && (len(bytes)-4)%32 == 0 {
 		dest.WriteInt(FLAG_READ_DYNAMIC_ABI)
 		dest.WriteBytes(c.Encode4Bytes(bytes[:4]))
-		dest.WriteInt((len(bytes) - 4) / 32) // The number of ARGs
+		dest.WriteInt(uint((len(bytes) - 4) / 32)) // The number of ARGs
 		// This flag can be used to compress dynamic size arguments too
 		// but in this case, we just leave it as 0s so all arguments are 32 bytes
 		dest.WriteInt(0)
@@ -474,11 +482,14 @@ func (c *Compressor) Encode4Bytes(bytes []byte) []byte {
 }
 
 func (c *Compressor) WriteNonce(dest *CBuffer, nonce *big.Int, randomNonce bool) (EncodeType, error) {
+	paddedNonce := make([]byte, 32)
+	copy(paddedNonce[32-len(nonce.Bytes()):], nonce.Bytes())
+
 	// The nonce is encoded in two parts, the first 160 bits are the space
 	// the last 96 bits are the nonce itself, the nonce space can be saved to storage
 	// unless it is a random nonce
-	spaceBytes := nonce.Bytes()[:20]
-	nonceBytes := nonce.Bytes()[20:]
+	spaceBytes := paddedNonce[:20]
+	nonceBytes := paddedNonce[20:]
 
 	t1, err := c.WriteWord(spaceBytes, dest, !randomNonce)
 	if err != nil {
@@ -503,7 +514,7 @@ func (c *Compressor) WriteTransactions(dest *CBuffer, transactions sequence.Tran
 	}
 
 	// The first byte is the number of transactions
-	dest.WriteInt(len(transactions))
+	dest.WriteInt(uint(len(transactions)))
 	dest.End([]byte{}, Stateless)
 
 	encodeType := Stateless
@@ -570,6 +581,14 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 		encodeType = HighestPriority(encodeType, t)
 	}
 
+	// Encode the address as a word
+	t, err := c.WriteWord(transaction.To.Bytes(), dest, false)
+	if err != nil {
+		return Stateless, err
+	}
+
+	encodeType = HighestPriority(encodeType, t)
+
 	if hasValue {
 		t, err := c.WriteWord(transaction.Value.Bytes(), dest, false)
 		if err != nil {
@@ -610,7 +629,7 @@ func (c *Compressor) WriteSignature(dest *CBuffer, signature []byte) (EncodeType
 	case 0x03: // Chained
 		return Stateless, fmt.Errorf("chained signatures are not supported yet")
 	default:
-		return Stateless, fmt.Errorf("invalid signature type")
+		return Stateless, fmt.Errorf("invalid signature type %d", typeByte)
 	}
 }
 
@@ -650,10 +669,10 @@ func (c *Compressor) WriteSignatureBody(dest *CBuffer, noChain bool, body []byte
 		return Stateless, fmt.Errorf("signature is too short")
 	}
 
-	threshold := int(body[0])<<8 | int(body[1])
+	threshold := uint(body[0])<<8 | uint(body[1])
 	longThreshold := threshold > 0xff
 
-	var tflag int
+	var tflag uint
 
 	if !longThreshold && !noChain {
 		tflag = FLAG_S_SIG
@@ -671,7 +690,7 @@ func (c *Compressor) WriteSignatureBody(dest *CBuffer, noChain bool, body []byte
 	if longThreshold {
 		dest.WriteBytes(body[:2])
 	} else {
-		dest.WriteByte(body[0])
+		dest.WriteByte(body[1])
 	}
 
 	dest.End(body, Stateless)
@@ -695,9 +714,9 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 	}
 
 	totalParts := 0
-	pointer := 0
+	pointer := uint(0)
 
-	for pointer < len(tree) {
+	for pointer < uint(len(tree)) {
 		partType := tree[pointer]
 		pointer += 1
 
@@ -709,46 +728,45 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 		case 0x02: // Dynamic
 			pointer += (1 + 20)
 			// 3 bytes after address and weight are the length
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += (3 + length)
 		case 0x03: // Node
 			pointer += 32
 		case 0x04: // Branch
 			// 3 bytes of length
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += (3 + length)
 		case 0x05: // Subdigest
 			pointer += 32
 		case 0x06: // Nested
 			pointer += 3
 			// 3 bytes of length
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += (3 + length)
 		default:
-			return Stateless, fmt.Errorf("invalid signature part type")
+			return Stateless, fmt.Errorf("invalid signature part type %d", partType)
 		}
 
 		totalParts += 1
 	}
 
-	if totalParts == 1 {
-		return c.WriteBytesOptimized(dest, tree, true)
+	if totalParts > 1 {
+		if totalParts > 255 {
+			dest.WriteInt(FLAG_NESTED_N_FLAGS_16)
+			dest.WriteByte(byte(totalParts >> 8))
+			dest.WriteByte(byte(totalParts))
+		} else {
+			dest.WriteInt(FLAG_NESTED_N_FLAGS_8)
+			dest.WriteByte(byte(totalParts))
+		}
 	}
 
-	if totalParts > 255 {
-		dest.WriteInt(FLAG_NESTED_N_FLAGS_16)
-		dest.WriteByte(byte(totalParts >> 8))
-		dest.WriteByte(byte(totalParts))
-	} else {
-		dest.WriteInt(FLAG_NESTED_N_FLAGS_8)
-		dest.WriteByte(byte(totalParts))
-	}
-
-	dest.End(tree, Stateless)
+	dest.End([]byte{}, Stateless)
 
 	// Now we need to encode every nested part, one for each signature part
 	encodeType := Stateless
-	for pointer < len(tree) {
+	pointer = uint(0)
+	for pointer < uint(len(tree)) {
 		partType := tree[pointer]
 		pointer += 1
 
@@ -766,13 +784,16 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 			encodeType = HighestPriority(encodeType, t)
 			pointer = next
 		case 0x02: // Dynamic
+			weight := uint(tree[pointer])
+			pointer += 1
+
 			addr := tree[pointer : pointer+20]
 			pointer += 20
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += 3
 
 			next := pointer + length
-			t, err = c.WriteDynamicSignaturePart(dest, addr, int(tree[pointer]), tree[pointer:next])
+			t, err = c.WriteDynamicSignaturePart(dest, addr, weight, tree[pointer:next])
 			pointer = next
 		case 0x03: // Node
 			next := pointer + 32
@@ -780,7 +801,7 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 			pointer = next
 		case 0x04: // Branch
 			// 3 bytes of length
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += 3
 
 			next := pointer + length
@@ -791,11 +812,11 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 			t, err = c.WriteBytesOptimized(dest, tree[pointer-1:next], false)
 			pointer = next
 		case 0x06: // Nested
-			weight := int(tree[pointer])
+			weight := uint(tree[pointer])
 			pointer += 1
-			threshold := int(tree[pointer])<<8 | int(tree[pointer+1])
+			threshold := uint(tree[pointer])<<8 | uint(tree[pointer+1])
 			pointer += 2
-			length := int(tree[pointer])<<16 | int(tree[pointer+1])<<8 | int(tree[pointer+2])
+			length := uint(tree[pointer])<<16 | uint(tree[pointer+1])<<8 | uint(tree[pointer+2])
 			pointer += 3
 
 			next := pointer + length
@@ -816,7 +837,7 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 	return encodeType, nil
 }
 
-func (c *Compressor) WriteNestedSignaturePart(dest *CBuffer, weight int, threshold int, branch []byte) (EncodeType, error) {
+func (c *Compressor) WriteNestedSignaturePart(dest *CBuffer, weight uint, threshold uint, branch []byte) (EncodeType, error) {
 	if weight > 255 {
 		return Stateless, fmt.Errorf("weight exceeds 255")
 	}
@@ -844,10 +865,16 @@ func (c *Compressor) WriteBranchSignaturePart(dest *CBuffer, branch []byte) (Enc
 	return c.WriteSignatureTree(dest, branch)
 }
 
-func (c *Compressor) WriteDynamicSignaturePart(dest *CBuffer, address []byte, weight int, signature []byte) (EncodeType, error) {
+func (c *Compressor) WriteDynamicSignaturePart(dest *CBuffer, address []byte, weight uint, signature []byte) (EncodeType, error) {
 	if weight > 255 {
 		return Stateless, fmt.Errorf("weight exceeds 255")
 	}
+
+	if signature[len(signature)-1] != 0x03 {
+		return Stateless, fmt.Errorf("signature is not a dynamic signature")
+	}
+
+	unsuffixed := signature[:len(signature)-1]
 
 	dest.WriteInt(FLAG_DYNAMIC_SIGNATURE)
 	dest.WriteInt(weight)
@@ -867,10 +894,12 @@ func (c *Compressor) WriteDynamicSignaturePart(dest *CBuffer, address []byte, we
 	// Encode the signature using bytes, as it may or may not be a Sequence signature
 	// bytes is going to try to encode it as a Sequence signature, if it fails it will
 	// encode it as a bunch of bytes
-	t2, err := c.WriteBytesOptimized(dest, signature, true)
+	t2, err := c.WriteBytesOptimized(dest, unsuffixed, true)
 	if err != nil {
 		return Stateless, err
 	}
 
 	return HighestPriority(t1, t2), nil
 }
+
+// 005002029a0121026fa7142791bca1f2de4661ed88a30c99a7a9449aa841742f00a9059cbb14061150e5574716dbb1a2cdf54b3dce9f94395f65008846057d34043e14fc3f94024b68702065173d8ae617943d93cb344341440314761f5e29944d79d76656323f106cf2efbf5f09e92bb2010001000000000001d241fa6686d5cbcc2134c6ca1e19911ec916e3fb03e13aae26bd19ad23324d1d12413061df5367324b7a570aede1a21c03272d1cd1f48fc2535df9a96d708b251b02010190d62a32d1cc65aa3e80b567c8c0d3ca0f411e610341 4d 00 d4 414d00d84d0025

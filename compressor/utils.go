@@ -3,6 +3,7 @@ package compressor
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"math/big"
 )
@@ -110,7 +111,7 @@ func pow10factor(b []byte) (int, int) {
 	return -1, -1
 }
 
-func minBytesToRepresent(num int) int {
+func minBytesToRepresent(num uint) uint {
 	if num == 0 {
 		return 1
 	}
@@ -122,16 +123,50 @@ func minBytesToRepresent(num int) int {
 	}
 
 	// Convert bits to bytes
-	return int((bitsNeeded + 7) / 8)
+	return uint((bitsNeeded + 7) / 8)
 }
 
 func intToBytes(n int) []byte {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, byte(n))
 
 	if err != nil {
 		log.Fatalf("binary.Write failed: %v", err)
 	}
 
 	return buf.Bytes()
+}
+
+func padToX(b []byte, n uint) ([]byte, error) {
+	if len(b) > int(n) {
+		// Try trimming leading zeros, if that doesn't work, return an error
+		b = bytes.TrimLeft(b, "\x00")
+		if len(b) > int(n) {
+			return nil, fmt.Errorf("value too large to pad")
+		}
+	}
+
+	if len(b) == int(n) {
+		return b, nil
+	}
+
+	pad := make([]byte, int(n)-len(b))
+	return append(pad, b...), nil
+}
+
+func uintPadToX(u uint, n uint) ([]byte, error) {
+	buff := make([]byte, 8)
+	binary.BigEndian.PutUint64(buff, uint64(u))
+	return padToX(buff, n)
+}
+
+func bytesToUint64(b []byte) uint {
+	// Read byte by byte, as it may be shorter
+	// this is big endian
+	var val uint
+	for _, byteVal := range b {
+		val <<= 8
+		val |= uint(byteVal)
+	}
+	return val
 }

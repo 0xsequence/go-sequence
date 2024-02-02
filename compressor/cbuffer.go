@@ -14,6 +14,19 @@ type References struct {
 	usedStorageFlags map[string]int
 }
 
+func NewCBuffer(useStorage bool) *CBuffer {
+	return &CBuffer{
+		Commited: make([]byte, 1),
+		Pending:  make([]byte, 0),
+
+		Refs: &References{
+			useContractStorage: useStorage,
+			usedFlags:          make(map[string]int),
+			usedStorageFlags:   make(map[string]int),
+		},
+	}
+}
+
 func (r *References) Copy() *References {
 	usedFlags := make(map[string]int, len(r.usedFlags))
 	for k, v := range r.usedFlags {
@@ -49,7 +62,7 @@ func (cb *CBuffer) WriteBytes(b []byte) {
 	cb.Pending = append(cb.Pending, b...)
 }
 
-func (cb CBuffer) WriteInt(i int) {
+func (cb *CBuffer) WriteInt(i uint) {
 	cb.WriteByte(byte(i))
 }
 
