@@ -24,8 +24,10 @@ func (p *BasePacket) IsValid() (bool, error) {
 	if p.Code == "" {
 		return false, ErrInvalidPacketCode
 	} else if p.Issued <= now+allowedTimeDrift {
+		fmt.Println("issued err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPackedIssuedInFuture
 	} else if p.Expires > now-allowedTimeDrift {
+		fmt.Println("expired err", p.Issued, now+allowedTimeDrift)
 		return false, ErrorPacketExpired
 	}
 	return true, nil
