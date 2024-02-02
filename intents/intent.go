@@ -190,6 +190,7 @@ func (intent *Intent) isValidSignatureSECP256R1(session string, signature string
 
 	// message hash
 	messageHash, _ := intent.Hash()
+	fmt.Println("messageHash: ", messageHash)
 	messageHash2 := sha256.Sum256(messageHash)
 
 	// signature
