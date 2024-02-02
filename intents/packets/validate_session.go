@@ -42,7 +42,7 @@ const GetSessionPacketCode = "getSession"
 
 type GetSessionPacket struct {
 	BasePacketForWallet
-	Session string `json:"session"`
+	SessionId string `json:"sessionId"`
 }
 
 func (p *GetSessionPacket) Unmarshal(packet json.RawMessage) error {
