@@ -16,6 +16,12 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
+var (
+	ErrInvalidPacket    = fmt.Errorf("invalid packet")
+	ErrNoSignatures     = fmt.Errorf("no signatures")
+	ErrInvalidSignature = fmt.Errorf("invalid signature")
+)
+
 type Intent struct {
 	Version string          `json:"version"`
 	Packet  json.RawMessage `json:"packet"`
@@ -82,33 +88,39 @@ func (intent *Intent) Signers() []string {
 	return signers
 }
 
-func (intent *Intent) IsValid() bool {
+func (intent *Intent) IsValid() (bool, error) {
 	// Check if the packet is valid
 	var packet packets.BasePacket
 	err := json.Unmarshal(intent.Packet, &packet)
 	if err != nil {
-		return false
+		return false, fmt.Errorf("intent: %w", ErrInvalidPacket)
 	}
 
 	// OpenSession packets do not require signatures
 	if packet.Code == packets.OpenSessionPacketCode {
-		return packet.IsValid()
+		if ok, err := packet.IsValid(); !ok {
+			return false, fmt.Errorf("intent: %w", err)
+		}
+		return true, nil
 	}
 
 	// Check if there are any signatures
 	if len(intent.signatures) == 0 {
-		return false
+		return false, fmt.Errorf("intent: %w", ErrNoSignatures)
 	}
 
 	// Check if all signatures are valid
 	for _, signature := range intent.signatures {
 		if !intent.isValidSignature(signature.Session, signature.Signature) {
-			return false
+			return false, fmt.Errorf("intent: %w", ErrInvalidSignature)
 		}
 	}
 
 	// Check if the packet is valid
-	return packet.IsValid()
+	if ok, err := packet.IsValid(); !ok {
+		return false, fmt.Errorf("intent: %w", err)
+	}
+	return true, nil
 }
 
 func (intent *Intent) isValidSECP256R1Session(session string, signature string) bool {
