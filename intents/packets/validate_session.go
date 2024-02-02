@@ -7,7 +7,7 @@ import (
 
 type ValidateSessionPacket struct {
 	BasePacketForWallet
-	Session        string  `json:"session"`
+	SessionId      string  `json:"sessionId"`
 	DeviceMetadata string  `json:"deviceMetadata"`
 	RedirectURL    *string `json:"redirectURL"`
 }
@@ -64,7 +64,7 @@ type GetSessionPacketResponse struct {
 	Code string `json:"code"`
 
 	Data struct {
-		Session   string `json:"session"`
+		SessionId string `json:"sessionId"`
 		Wallet    string `json:"wallet"`
 		Validated bool   `json:"validated"`
 	}
