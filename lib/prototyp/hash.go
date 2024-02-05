@@ -151,8 +151,8 @@ func (h *Hash) Scan(src interface{}) error {
 	return nil
 }
 
-func ToHashList(list []common.Address) []Hash {
-	var result []Hash
+func ToHashList[T Hexer](list []T) []Hash {
+	result := make([]Hash, 0, len(list))
 	for _, a := range list {
 		result = append(result, ToHash(a))
 	}
