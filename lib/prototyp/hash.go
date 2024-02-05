@@ -151,7 +151,7 @@ func (h *Hash) Scan(src interface{}) error {
 	return nil
 }
 
-func HashList(list []common.Address) []Hash {
+func ToHashList(list []common.Address) []Hash {
 	var result []Hash
 	for _, a := range list {
 		result = append(result, ToHash(a))
