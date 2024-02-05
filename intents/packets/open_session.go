@@ -39,7 +39,7 @@ func (p *OpenSessionPacket) HasIDToken() bool {
 	return p.Proof.IDToken != ""
 }
 
-const OpenSessionPacketResponseCode = "openSession"
+const OpenSessionPacketResponseCode = "sessionOpened"
 
 type OpenSessionPacketResponse struct {
 	Code string                        `json:"code"`
