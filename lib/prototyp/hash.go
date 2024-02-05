@@ -152,7 +152,7 @@ func (h *Hash) Scan(src interface{}) error {
 }
 
 func ToHashList[T Hexer](list []T) []Hash {
-	var result []Hash
+	result := make([]Hash, 0, len(list))
 	for _, a := range list {
 		result = append(result, ToHash(a))
 	}
