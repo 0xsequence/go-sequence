@@ -150,3 +150,11 @@ func (h *Hash) Scan(src interface{}) error {
 	*h = HashFromBytes(src.([]byte))
 	return nil
 }
+
+func HashList(list []common.Address) []Hash {
+	var result []Hash
+	for _, a := range list {
+		result = append(result, ToHash(a))
+	}
+	return result
+}
