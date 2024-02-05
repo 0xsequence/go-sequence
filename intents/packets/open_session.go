@@ -51,7 +51,12 @@ type OpenSessionPacketResponseData struct {
 	Wallet    string `json:"wallet"`
 }
 
-func (p *OpenSessionPacketResponse) UnmarshalFromMap(m map[string]any) error {
+func (p *OpenSessionPacketResponse) UnmarshalFromAny(a any) error {
+	m, ok := a.(map[string]any)
+	if !ok {
+		return fmt.Errorf("packet is not a map")
+	}
+
 	if code, ok := m["code"].(string); ok && code == OpenSessionPacketResponseCode {
 		p.Code = code
 	} else {
