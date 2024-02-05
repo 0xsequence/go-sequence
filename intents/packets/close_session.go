@@ -18,8 +18,8 @@ func (p *CloseSessionPacket) Unmarshal(packet json.RawMessage) error {
 		return err
 	}
 
-	if p.Code != SignMessagePacketCode {
-		return fmt.Errorf("packet code is not '%s', got '%s'", SignMessagePacketCode, p.Code)
+	if p.Code != CloseSessionPacketCode {
+		return fmt.Errorf("packet code is not '%s', got '%s'", CloseSessionPacketCode, p.Code)
 	}
 
 	return nil
