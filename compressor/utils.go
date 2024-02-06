@@ -170,3 +170,13 @@ func bytesToUint64(b []byte) uint {
 	}
 	return val
 }
+
+func FindPastData(pastData *CBuffer, data []byte) int {
+	for i := 0; i+len(data) < len(pastData.Data()); i++ {
+		if bytes.Equal(pastData.Data()[i:i+len(data)], data) {
+			return i
+		}
+	}
+
+	return -1
+}

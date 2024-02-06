@@ -9,9 +9,9 @@ import (
 )
 
 type Compressor struct {
-	addressIndexes map[string]uint
-	bytes32Indexes map[string]uint
-	bytes4Indexes  map[string]uint
+	AddressIndexes map[string]uint
+	Bytes32Indexes map[string]uint
+	Bytes4Indexes  map[string]uint
 }
 
 type EncodeType int
@@ -23,10 +23,11 @@ const (
 	WriteStorage
 )
 
-func NewCompressor(addressesIndexes map[string]uint) *Compressor {
+func NewCompressor() *Compressor {
 	return &Compressor{
-		bytes4Indexes:  LoadBytes4(),
-		addressIndexes: addressesIndexes,
+		Bytes4Indexes:  LoadBytes4(),
+		AddressIndexes: make(map[string]uint),
+		Bytes32Indexes: make(map[string]uint),
 	}
 }
 
@@ -44,16 +45,6 @@ func HighestPriority(a EncodeType, b EncodeType) EncodeType {
 	}
 
 	return Stateless
-}
-
-func FindPastData(pastData *CBuffer, data []byte) int {
-	for i := 0; i+len(data) < len(pastData.Data()); i++ {
-		if bytes.Equal(pastData.Data()[i:i+len(data)], data) {
-			return i
-		}
-	}
-
-	return -1
 }
 
 // Encodes a 32 bytes word, trying to optimize it as much as possible
@@ -163,7 +154,7 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 	if pastData.Refs.useContractStorage {
 		// If the data is already on storage, we can look it up
 		// on the addresses or bytes32 repositories
-		addressIndex := c.addressIndexes[padded32str]
+		addressIndex := c.AddressIndexes[padded32str]
 		if addressIndex != 0 {
 			// There are 4 different flags for reading addresses,
 			// depending if the index fits on 2, 3, or 4 bytes
@@ -194,7 +185,7 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 			}
 		}
 
-		bytes32Index := c.bytes32Indexes[padded32str]
+		bytes32Index := c.Bytes32Indexes[padded32str]
 		if bytes32Index != 0 {
 			// There are 4 different flags for reading bytes32,
 			// depending if the index fits on 2, 3, or 4 bytes
@@ -471,8 +462,8 @@ func (c *Compressor) EncodeNBytesRaw(dest *CBuffer, bytes []byte) (EncodeType, e
 }
 
 func (c *Compressor) Encode4Bytes(bytes []byte) []byte {
-	// If bytes4Indexes has this value, then we can just use the index
-	index := c.bytes4Indexes[string(bytes)]
+	// If Bytes4Indexes has this value, then we can just use the index
+	index := c.Bytes4Indexes[string(bytes)]
 	if index != 0 {
 		return []byte{byte(index)}
 	}
@@ -582,7 +573,7 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 	}
 
 	// Encode the address as a word
-	t, err := c.WriteWord(transaction.To.Bytes(), dest, false)
+	t, err := c.WriteWord(transaction.To.Bytes(), dest, dest.Refs.useContractStorage)
 	if err != nil {
 		return Stateless, err
 	}
@@ -599,7 +590,7 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 	}
 
 	if len(transaction.Data) > 0 {
-		t, err := c.WriteBytesOptimized(dest, transaction.Data, false)
+		t, err := c.WriteBytesOptimized(dest, transaction.Data, dest.Refs.useContractStorage)
 		if err != nil {
 			return Stateless, err
 		}
@@ -901,5 +892,3 @@ func (c *Compressor) WriteDynamicSignaturePart(dest *CBuffer, address []byte, we
 
 	return HighestPriority(t1, t2), nil
 }
-
-// 005002029a0121026fa7142791bca1f2de4661ed88a30c99a7a9449aa841742f00a9059cbb14061150e5574716dbb1a2cdf54b3dce9f94395f65008846057d34043e14fc3f94024b68702065173d8ae617943d93cb344341440314761f5e29944d79d76656323f106cf2efbf5f09e92bb2010001000000000001d241fa6686d5cbcc2134c6ca1e19911ec916e3fb03e13aae26bd19ad23324d1d12413061df5367324b7a570aede1a21c03272d1cd1f48fc2535df9a96d708b251b02010190d62a32d1cc65aa3e80b567c8c0d3ca0f411e610341 4d 00 d4 414d00d84d0025

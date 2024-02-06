@@ -2,7 +2,6 @@ package compressor
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/0xsequence/ethkit/ethrpc"
@@ -20,38 +19,6 @@ import (
 // - 0x05: Read storage slots (32 bytes for each index)
 // - 0x06: Decompress 1 execute
 // - 0x07: Decompress N executes
-
-func GetTotals(ctx context.Context, provider *ethrpc.Provider, contract common.Address) (uint, uint, error) {
-	res, err := provider.CallContract(ctx, ethereum.CallMsg{
-		To:   &contract,
-		Data: common.Hex2Bytes("04"),
-	}, nil)
-
-	if err != nil {
-		return 0, 0, err
-	}
-
-	// First 16 bytes are the total number of addresses
-	// Next 16 bytes are the total number of bytes32
-
-	// Read only an uint64, since there will be no more than 2^64 addresses
-	asize := uint(binary.BigEndian.Uint64(res[8:16])) + 1
-	bsize := uint(binary.BigEndian.Uint64(res[24:32])) + 1
-
-	return asize, bsize, nil
-}
-
-func AddressIndex(i uint) []byte {
-	padded32 := make([]byte, 32)
-	binary.BigEndian.PutUint64(padded32[24:32], uint64(i+1))
-	return padded32
-}
-
-func Bytes32Index(i uint) []byte {
-	padded32 := make([]byte, 32)
-	binary.BigEndian.PutUint64(padded32[8:16], uint64(i))
-	return padded32
-}
 
 func GenBatch(from uint, to uint, max uint, itemplate func(uint) []byte) []byte {
 	var end uint
@@ -94,36 +61,49 @@ func ParseBatchResult(to map[string]uint, res []byte, offset uint) error {
 	return nil
 }
 
-func LoadAddresses(ctx context.Context, provider *ethrpc.Provider, contract common.Address, skip uint) (map[string]uint, error) {
+func LoadState(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skipa uint, skipb uint, skipBlocks uint) (map[string]uint, map[string]uint, error) {
+	addresses, err := LoadAddresses(ctx, provider, contract, batchSize, skipa, skipBlocks)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bytes32, err := LoadBytes32(ctx, provider, contract, batchSize, skipb, skipBlocks)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return addresses, bytes32, nil
+}
+
+func LoadAddresses(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (map[string]uint, error) {
 	// Load total number of addresses
-	asize, _, err := GetTotals(ctx, provider, contract)
+	asize, _, err := GetTotals(ctx, provider, contract, skipBlocks)
 	if err != nil {
 		return nil, err
 	}
 
-	return LoadStorage(ctx, provider, contract, skip, asize, AddressIndex)
+	return LoadStorage(ctx, provider, contract, batchSize, skip, asize, AddressIndex)
 }
 
-func LoadBytes32(ctx context.Context, provider *ethrpc.Provider, contract common.Address, skip uint) (map[string]uint, error) {
+func LoadBytes32(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (map[string]uint, error) {
 	// Load total number of bytes32
-	_, bsize, err := GetTotals(ctx, provider, contract)
+	_, bsize, err := GetTotals(ctx, provider, contract, skipBlocks)
 	if err != nil {
 		return nil, err
 	}
 
-	return LoadStorage(ctx, provider, contract, skip, bsize, Bytes32Index)
+	return LoadStorage(ctx, provider, contract, batchSize, skip, bsize, Bytes32Index)
 }
 
-func LoadStorage(ctx context.Context, provider *ethrpc.Provider, contract common.Address, skip uint, total uint, itemplate func(uint) []byte) (map[string]uint, error) {
-	// Load addresses using chunks of 64 addresses
+func LoadStorage(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, total uint, itemplate func(uint) []byte) (map[string]uint, error) {
 	out := make(map[string]uint)
 
-	for i := skip; i < total; i += 64 {
-		batch := GenBatch(i, total, 64, itemplate)
+	for i := skip; i < total; i += batchSize {
+		batch := GenBatch(i, total, batchSize, itemplate)
 
 		res, err := provider.CallContract(ctx, ethereum.CallMsg{
 			To:   &contract,
-			Data: append([]byte{0x05}, batch...),
+			Data: append([]byte{byte(METHOD_READ_STORAGE_SLOTS)}, batch...),
 		}, nil)
 
 		if err != nil {

@@ -16,6 +16,9 @@ type References struct {
 
 func NewCBuffer(useStorage bool) *CBuffer {
 	return &CBuffer{
+		// Start with an empty byte, this
+		// will be used as the method when calling the compressor
+		// contract.
 		Commited: make([]byte, 1),
 		Pending:  make([]byte, 0),
 
