@@ -7,8 +7,8 @@ import (
 
 type OpenSessionPacket struct {
 	BasePacket
-	SessionVerifier string                 `json:"sessionVerifier"`
-	Proof           OpenSessionPacketProof `json:"proof"`
+	SessionId string                 `json:"sessionId"`
+	Proof     OpenSessionPacketProof `json:"proof"`
 }
 
 type OpenSessionPacketProof struct {
