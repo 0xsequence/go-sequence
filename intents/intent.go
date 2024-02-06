@@ -27,6 +27,7 @@ type KeyType int
 const (
 	KeyTypeSECP256K1 KeyType = iota
 	KeyTypeSECP256R1
+	KeyTypeUnknown
 )
 
 type Intent struct {
@@ -130,29 +131,30 @@ func (intent *Intent) IsValid() (bool, error) {
 	return true, nil
 }
 
-func (intent *Intent) isValidP256R1Session(sessionId string, signature string) bool {
+func (intent *Intent) keyType(sessionId string) KeyType {
+	// handle empty session ids
+	if len(sessionId) == 0 {
+		return KeyTypeUnknown
+	}
+
 	// handle old session ids
 	if len(sessionId) <= 42 {
-		return false
+		return KeyTypeSECP256K1
 	}
 
 	// handle key typed session ids
 	sessionIdBytes := common.FromHex(sessionId)
-	switch KeyType(sessionIdBytes[0]) {
-	case KeyTypeSECP256K1:
-		return false
-	case KeyTypeSECP256R1:
-		return true
-	default:
-		return false
-	}
+	return KeyType(sessionIdBytes[0])
 }
 
-func (intent *Intent) isValidSignature(session string, signature string) bool {
-	if intent.isValidP256R1Session(session, signature) {
-		return intent.isValidSignatureP256R1(session, signature)
-	} else {
-		return intent.isValidSignatureP256K1(session, signature)
+func (intent *Intent) isValidSignature(sessionId string, signature string) bool {
+	switch intent.keyType(sessionId) {
+	case KeyTypeSECP256K1:
+		return intent.isValidSignatureP256K1(sessionId, signature)
+	case KeyTypeSECP256R1:
+		return intent.isValidSignatureP256R1(sessionId, signature)
+	default:
+		return false
 	}
 }
 
