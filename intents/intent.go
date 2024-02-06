@@ -22,7 +22,12 @@ var (
 	ErrInvalidSignature = fmt.Errorf("invalid signature")
 )
 
-type IntentVerifierGetter func(sessionId string) (string, error)
+type KeyType int
+
+const (
+	KeyTypeSECP256K1 KeyType = iota
+	KeyTypeSECP256R1
+)
 
 type Intent struct {
 	Version string          `json:"version"`
@@ -78,24 +83,19 @@ func (intent *Intent) Hash() ([]byte, error) {
 	return crypto.Keccak256(packetBytes), nil
 }
 
-func (intent *Intent) Signers(verifierGetter IntentVerifierGetter) []string {
+func (intent *Intent) Signers() []string {
 	var signers []string
 
 	for _, signature := range intent.signatures {
-		sessionVerifier, err := verifierGetter(signature.SessionId)
-		if err != nil {
-			continue
-		}
-
-		if intent.isValidSignature(sessionVerifier, signature.Signature) {
-			signers = append(signers, sessionVerifier)
+		if intent.isValidSignature(signature.SessionId, signature.Signature) {
+			signers = append(signers, signature.SessionId)
 		}
 	}
 
 	return signers
 }
 
-func (intent *Intent) IsValid(verifierGetter IntentVerifierGetter) (bool, error) {
+func (intent *Intent) IsValid() (bool, error) {
 	// Check if the packet is valid
 	var packet packets.BasePacket
 	err := json.Unmarshal(intent.Packet, &packet)
@@ -118,12 +118,7 @@ func (intent *Intent) IsValid(verifierGetter IntentVerifierGetter) (bool, error)
 
 	// Check if all signatures are valid
 	for _, signature := range intent.signatures {
-		sessionVerifier, err := verifierGetter(signature.SessionId)
-		if err != nil {
-			return false, fmt.Errorf("intent: %w", err)
-		}
-
-		if !intent.isValidSignature(sessionVerifier, signature.Signature) {
+		if !intent.isValidSignature(signature.SessionId, signature.Signature) {
 			return false, fmt.Errorf("intent: %w", ErrInvalidSignature)
 		}
 	}
@@ -135,20 +130,40 @@ func (intent *Intent) IsValid(verifierGetter IntentVerifierGetter) (bool, error)
 	return true, nil
 }
 
-func (intent *Intent) isValidSECP256R1Session(session string, signature string) bool {
-	return strings.HasPrefix(session, "r1:") && strings.HasPrefix(signature, "r1:")
-}
+func (intent *Intent) isValidP256R1Session(sessionId string, signature string) bool {
+	// handle old session ids
+	if len(sessionId) <= 42 {
+		return false
+	}
 
-func (intent *Intent) isValidSignature(session string, signature string) bool {
-	if intent.isValidSECP256R1Session(session, signature) {
-		return intent.isValidSignatureSECP256R1(session, signature)
-	} else {
-		return intent.isValidSignatureSPECP256K1(session, signature)
+	// handle key typed session ids
+	sessionIdBytes := common.FromHex(sessionId)
+	switch KeyType(sessionIdBytes[0]) {
+	case KeyTypeSECP256K1:
+		return false
+	case KeyTypeSECP256R1:
+		return true
+	default:
+		return false
 	}
 }
 
-// isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256k1 session
-func (intent *Intent) isValidSignatureSPECP256K1(session string, signature string) bool {
+func (intent *Intent) isValidSignature(session string, signature string) bool {
+	if intent.isValidP256R1Session(session, signature) {
+		return intent.isValidSignatureP256R1(session, signature)
+	} else {
+		return intent.isValidSignatureP256K1(session, signature)
+	}
+}
+
+// isValidSignatureP256K1 checks if the signature is valid for the given secp256k1 session
+func (intent *Intent) isValidSignatureP256K1(sessionAddress string, signature string) bool {
+	// handle typed session address
+	if len(sessionAddress) > 42 {
+		sessionAddressBytes := common.FromHex(sessionAddress)
+		sessionAddress = fmt.Sprintf("0x%s", common.Bytes2Hex(sessionAddressBytes[1:]))
+	}
+
 	// Get hash of the packet
 	hash, err := intent.Hash()
 	if err != nil {
@@ -173,18 +188,17 @@ func (intent *Intent) isValidSignatureSPECP256K1(session string, signature strin
 	addr := common.BytesToAddress(crypto.Keccak256(pubKey[1:])[12:])
 
 	// Check if the recovered address matches the session address
-	return strings.ToLower(addr.Hex()) == strings.ToLower(session)
+	return strings.ToLower(addr.Hex()) == strings.ToLower(sessionAddress)
 }
 
-// isValidSignatureSPECP256K1 checks if the signature is valid for the given secp256r1 session
-func (intent *Intent) isValidSignatureSECP256R1(session string, signature string) bool {
-	// session
-	sessionBuff := common.FromHex(session[3:])
+// isValidSignatureP256R1 checks if the signature is valid for the given secp256r1 session
+func (intent *Intent) isValidSignatureP256R1(publicKey string, signature string) bool {
+	publicKeyBuff := common.FromHex(publicKey)[1:]
 
 	// public key
 	// TODO: check if can use ecdh instead of unmarshal
 	// NOTE: no way to convert ecdh pub key into elliptic pub key?
-	x, y := elliptic.Unmarshal(elliptic.P256(), sessionBuff)
+	x, y := elliptic.Unmarshal(elliptic.P256(), publicKeyBuff)
 	if x == nil || y == nil {
 		return false
 	}

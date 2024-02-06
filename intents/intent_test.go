@@ -11,13 +11,10 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParseAndRecoverIntent(t *testing.T) {
-	fmt.Println(uuid.New().String())
-
 	data := `{
 		"version": "1.0.0",
 		"packet": {
@@ -35,7 +32,7 @@ func TestParseAndRecoverIntent(t *testing.T) {
 			}]
 		},
 		"signatures": [{
-			"sessionId": "afaf60c0-67ba-4c9b-89ae-b115c78026a4",
+			"sessionId": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
 			"signature": "0xcca6253c4fd281247ddd0fa487252ef91932eaec8d68b61f0901ccaa70345bf66fdbbd98ed3e3c9752f9e35ef2a7bc88dd9c8ae23c594241b476fe988824ab881c"
 		}]
 	}`
@@ -51,15 +48,7 @@ func TestParseAndRecoverIntent(t *testing.T) {
 	assert.NotNil(t, hash)
 	assert.Equal(t, common.Bytes2Hex(hash), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
 
-	getSessionVerifier := func(sessionId string) (string, error) {
-		if sessionId == "afaf60c0-67ba-4c9b-89ae-b115c78026a4" {
-			return "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", nil
-		} else {
-			return "", fmt.Errorf("invalid session id")
-		}
-	}
-
-	signers := intent.Signers(getSessionVerifier)
+	signers := intent.Signers()
 	assert.Equal(t, 1, len(signers))
 	assert.Equal(t, "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
 	assert.Equal(t, intent.PacketCode(), "sendTransactions")
@@ -79,7 +68,77 @@ func TestParseAndRecoverIntent(t *testing.T) {
 	assert.NotEqual(t, common.Bytes2Hex(hash), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
 	assert.Equal(t, intent.PacketCode(), "sendTransactions2")
 
-	signers = intent.Signers(getSessionVerifier)
+	signers = intent.Signers()
+	assert.Equal(t, 0, len(signers))
+
+	// Parsing the JSON without tabs, spaces, newlines, etc. should still work
+	// and produce the same hash
+	data2 := `{"signatures":[{"signature":"0xcca6253c4fd281247ddd0fa487252ef91932eaec8d68b61f0901ccaa70345bf66fdbbd98ed3e3c9752f9e35ef2a7bc88dd9c8ae23c594241b476fe988824ab881c","session":"0x1111BD4F3233e7a7f552AdAf32C910fD30de598B"}],"version":"1.0.0","packet":{"transactions":[{"token":"0x0000000000000000000000000000000000000000","value":"0","type":"erc20send","to":"0x0dc9603d4da53841C1C83f3B550C6143e60e0425"}],"wallet":"0xD67FC48b298B09Ed3D03403d930769C527186c4e","expires":1600086400,"code":"sendTransactions","network":"1","identifier":"test-identifier","issued":1600000000}}`
+	intent2 := &Intent{}
+	err = json.Unmarshal([]byte(data2), intent2)
+	assert.Nil(t, err)
+
+	hash2, err := intent2.Hash()
+	assert.Nil(t, err)
+	assert.NotNil(t, hash2)
+	assert.Equal(t, common.Bytes2Hex(hash2), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
+}
+
+func TestParseAndRecoverIntent_SessionKeyP256K1Typed(t *testing.T) {
+	data := `{
+		"version": "1.0.0",
+		"packet": {
+			"code": "sendTransactions",
+			"identifier": "test-identifier",
+			"issued": 1600000000,
+			"expires": 1600086400,
+			"wallet": "0xD67FC48b298B09Ed3D03403d930769C527186c4e",
+			"network": "1",
+			"transactions": [{
+				"type": "erc20send",
+				"token": "0x0000000000000000000000000000000000000000",
+				"to": "0x0dc9603d4da53841C1C83f3B550C6143e60e0425",
+				"value": "0"
+			}]
+		},
+		"signatures": [{
+			"sessionId": "0x001111BD4F3233e7a7f552AdAf32C910fD30de598B",
+			"signature": "0xcca6253c4fd281247ddd0fa487252ef91932eaec8d68b61f0901ccaa70345bf66fdbbd98ed3e3c9752f9e35ef2a7bc88dd9c8ae23c594241b476fe988824ab881c"
+		}]
+	}`
+
+	intent := &Intent{}
+	err := json.Unmarshal([]byte(data), intent)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "1.0.0", intent.Version)
+
+	hash, err := intent.Hash()
+	assert.Nil(t, err)
+	assert.NotNil(t, hash)
+	assert.Equal(t, common.Bytes2Hex(hash), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
+
+	signers := intent.Signers()
+	assert.Equal(t, 1, len(signers))
+	assert.Equal(t, "0x001111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
+	assert.Equal(t, intent.PacketCode(), "sendTransactions")
+
+	// Changing the version should not affect the hash
+	intent.Version = "2.0.0"
+	hash, err = intent.Hash()
+	assert.Nil(t, err)
+	assert.NotNil(t, hash)
+	assert.Equal(t, common.Bytes2Hex(hash), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
+
+	// Changing the packet code SHOULD affect the hash (and make Signers() return empty)
+	intent.Packet = json.RawMessage(`{"code": "sendTransactions2"}`)
+	hash, err = intent.Hash()
+	assert.Nil(t, err)
+	assert.NotNil(t, hash)
+	assert.NotEqual(t, common.Bytes2Hex(hash), "893060f818437f8e3d9b4d8e103c5eb3c325fa25dd0221fb7b61cca6dd03a79e")
+	assert.Equal(t, intent.PacketCode(), "sendTransactions2")
+
+	signers = intent.Signers()
 	assert.Equal(t, 0, len(signers))
 
 	// Parsing the JSON without tabs, spaces, newlines, etc. should still work
@@ -103,6 +162,8 @@ func TestECDSAP256SessionSig(t *testing.T) {
 	sessionId := "r1:0x040714f2ed82b5748ba30e3d81df81d481371b20c43cdbec81a89cbdb74e149e73ee083a1306328236c7de6d26b6f8d4494951d7423946422a04700ed182092a45"
 	message := "0x7a7e5a0913e63cac5886afcafedba93b17baae3eb4066534ffdd5e3da3e8c714"
 	signature := "r1:0x4038376385b045c19754bb69fa6cde925674778e6a1a78b8fa3135ec96b695aef5b8126c78dc17a2cc0be522a4e6154bf5152c908d763fb1c28e47cf419a3ea5"
+
+	fmt.Println(len(sessionId))
 
 	// get public key from sessionId
 	sessionIdBuff := common.FromHex(sessionId[3:])
