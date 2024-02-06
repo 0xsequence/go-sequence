@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type CompressorInstance struct {
@@ -26,8 +25,13 @@ type CompressorInstance struct {
 	TrailBlocks    uint
 	BatchSize      uint
 
+	AddressesHeight uint
+	Bytes32Height   uint
+
 	LastIndexUpdate uint
 	Provider        *ethrpc.Provider
+
+	onLoadedIndexes func(uint, uint)
 
 	mu *sync.RWMutex
 }
@@ -67,15 +71,19 @@ func NewCompressorManager(
 	return &c
 }
 
+func (cm *CompressorManager) SetOnLoadedIndexes(f func(uint, uint)) {
+	cm.instance.onLoadedIndexes = f
+}
+
 func LoadIndexes(ci *CompressorInstance) error {
 	ci.mu.RLock()
-	lenAddrs := uint(len(ci.Compressor.AddressIndexes))
-	lenBytes32s := uint(len(ci.Compressor.Bytes32Indexes))
+	lenAddrs := ci.AddressesHeight
+	lenBytes32s := ci.Bytes32Height
 	ci.mu.RUnlock()
 
 	// Don't lock while we read the state, it can take a while
 
-	addrs, bytes32s, err := LoadState(
+	nah, addrs, nbh, bytes32s, err := LoadState(
 		ci.Context,
 		ci.Provider,
 		ci.Contract,
@@ -101,8 +109,12 @@ func LoadIndexes(ci *CompressorInstance) error {
 		ci.Compressor.Bytes32Indexes[k] = v
 	}
 
-	spew.Dump(ci.Compressor.AddressIndexes)
-	spew.Dump(ci.Compressor.Bytes32Indexes)
+	ci.AddressesHeight = nah
+	ci.Bytes32Height = nbh
+
+	if ci.onLoadedIndexes != nil {
+		ci.onLoadedIndexes(nah-lenAddrs, nbh-lenBytes32s)
+	}
 
 	return nil
 }

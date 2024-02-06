@@ -61,41 +61,48 @@ func ParseBatchResult(to map[string]uint, res []byte, offset uint) error {
 	return nil
 }
 
-func LoadState(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skipa uint, skipb uint, skipBlocks uint) (map[string]uint, map[string]uint, error) {
-	addresses, err := LoadAddresses(ctx, provider, contract, batchSize, skipa, skipBlocks)
+func LoadState(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skipa uint, skipb uint, skipBlocks uint) (uint, map[string]uint, uint, map[string]uint, error) {
+	ah, addresses, err := LoadAddresses(ctx, provider, contract, batchSize, skipa, skipBlocks)
 	if err != nil {
-		return nil, nil, err
+		return 0, nil, 0, nil, err
 	}
 
-	bytes32, err := LoadBytes32(ctx, provider, contract, batchSize, skipb, skipBlocks)
+	bh, bytes32, err := LoadBytes32(ctx, provider, contract, batchSize, skipb, skipBlocks)
 	if err != nil {
-		return nil, nil, err
+		return 0, nil, 0, nil, err
 	}
 
-	return addresses, bytes32, nil
+	return ah, addresses, bh, bytes32, nil
 }
 
-func LoadAddresses(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (map[string]uint, error) {
+func LoadAddresses(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (uint, map[string]uint, error) {
 	// Load total number of addresses
 	asize, _, err := GetTotals(ctx, provider, contract, skipBlocks)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	return LoadStorage(ctx, provider, contract, batchSize, skip, asize, AddressIndex)
 }
 
-func LoadBytes32(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (map[string]uint, error) {
+func LoadBytes32(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, skipBlocks uint) (uint, map[string]uint, error) {
+	// Always skip index 0 for bytes32, it maps to the size slot
+	// it technically can be used, but it is not write-once, so
+	// it will lead to decompression errors
+	if skip == 0 {
+		skip = 1
+	}
+
 	// Load total number of bytes32
 	_, bsize, err := GetTotals(ctx, provider, contract, skipBlocks)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	return LoadStorage(ctx, provider, contract, batchSize, skip, bsize, Bytes32Index)
 }
 
-func LoadStorage(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, total uint, itemplate func(uint) []byte) (map[string]uint, error) {
+func LoadStorage(ctx context.Context, provider *ethrpc.Provider, contract common.Address, batchSize uint, skip uint, total uint, itemplate func(uint) []byte) (uint, map[string]uint, error) {
 	out := make(map[string]uint)
 
 	for i := skip; i < total; i += batchSize {
@@ -107,14 +114,14 @@ func LoadStorage(ctx context.Context, provider *ethrpc.Provider, contract common
 		}, nil)
 
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
 		err = ParseBatchResult(out, res, i)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 	}
 
-	return out, nil
+	return total, out, nil
 }
