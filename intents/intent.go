@@ -214,7 +214,7 @@ func (intent *Intent) isValidSignatureP256R1(publicKey string, signature string)
 	messageHash2 := sha256.Sum256(messageHash)
 
 	// signature
-	signatureBytes := common.FromHex(signature[3:])
+	signatureBytes := common.FromHex(signature)
 	if len(signatureBytes) != 64 {
 		return false
 	}
