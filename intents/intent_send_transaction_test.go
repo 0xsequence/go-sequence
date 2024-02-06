@@ -84,7 +84,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		},
 		"signatures": [
 		  {
-			"sessionId": "afaf60c0-67ba-4c9b-89ae-b115c78026a4",
+			"sessionId": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
 			"signature": "0xdd137166e6e73fcaa710e822aa3eef3d501ef1b7969d59e8583cb602a32233e0628d4e28ea5a562a1ccf6bd85bfccfcd1004673a28763640cca33002fbedbb3a1b"
 		  }
 		]
