@@ -138,7 +138,7 @@ func (intent *Intent) keyType(sessionId string) KeyType {
 	}
 
 	// handle old session ids
-	if len(sessionId) <= 42 {
+	if len(sessionId) == 42 {
 		return KeyTypeSECP256K1
 	}
 
