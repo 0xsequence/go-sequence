@@ -49,7 +49,27 @@ func NewCompressorManager(
 	updateInterval uint,
 	trailBlocks uint,
 	batchSize uint,
-) *CompressorManager {
+) (*CompressorManager, error) {
+	if userStorage {
+		if updateInterval == 0 {
+			return nil, fmt.Errorf("update interval must be greater than 0")
+		}
+
+		if batchSize == 0 {
+			return nil, fmt.Errorf("batch size must be greater than 0")
+		}
+	}
+
+	// Check if the contract exists
+	code, err := provider.CodeAt(context, contract, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(code) == 0 {
+		return nil, fmt.Errorf("contract %s does not exist", contract.Hex())
+	}
+
 	c := CompressorManager{
 		instance: &CompressorInstance{
 			Context:         context,
@@ -68,7 +88,7 @@ func NewCompressorManager(
 
 	c.StartIndexUpdater()
 
-	return &c
+	return &c, nil
 }
 
 func (cm *CompressorManager) SetOnLoadedIndexes(f func(uint, uint)) {
