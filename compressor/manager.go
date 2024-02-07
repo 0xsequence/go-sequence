@@ -120,6 +120,11 @@ func LoadIndexes(ci *CompressorInstance) error {
 }
 
 func (cm *CompressorManager) StartIndexUpdater() {
+	// No need to start the updater if we don't use storage
+	if !cm.instance.UseStorage {
+		return
+	}
+
 	go func() {
 		ticker := time.NewTicker(time.Duration(cm.instance.UpdateInterval) * time.Second)
 		defer ticker.Stop()
@@ -161,7 +166,7 @@ func (cm *CompressorManager) IsSaneCompression(
 ) error {
 	// The decompressed entrypoint should match the input entrypoint
 	if !bytes.Equal(entrypoint.Bytes(), decompressedEntrypoint.Bytes()) {
-		return fmt.Errorf("decompressed entrypoint does not match input")
+		return fmt.Errorf("decompressed entrypoin t does not match input")
 	}
 
 	ed1, err := transaction.Execdata()
@@ -169,17 +174,10 @@ func (cm *CompressorManager) IsSaneCompression(
 		return err
 	}
 
-	// One thing that happens is that there are two ways of representing a Sequence signature in v2
-	// lagacy and dynamic, decompressor will ALWAYS decompress to the dynamic format, so if
-	// the input is in the legacy format, we need to convert it to the dynamic format.
-	// This is easy, because the legacy format starts with 0x00, if that's the case we just
-	// add 0x01 at the beginning of the signature
-	if len(transaction.Signature) == 0 {
-		return fmt.Errorf("empty signature")
-	}
-
-	if transaction.Signature[0] == 0 {
-		transaction.Signature = append([]byte{1}, transaction.Signature...)
+	// We need to normalize the signature before comparing the exec data
+	err = NormalizeTransactionSignature(transaction)
+	if err != nil {
+		return err
 	}
 
 	// Now we can re-compute the exec data and compare it with the decompressed data
@@ -224,12 +222,6 @@ func (cm *CompressorManager) TryCompress(
 	err = cm.IsSaneCompression(input, entrypoint, transaction, decompressedEntrypoint, decompressed)
 	if err != nil {
 		return common.Address{}, nil, 0, err
-	}
-
-	// Now, for chains that don't use storage, we should check if the compressed data is really
-	// smaller than the input, if it's not, we need to return an error
-	if !ci.UseStorage {
-		// TODO: implement this
 	}
 
 	return ci.Contract, compressed, et, nil

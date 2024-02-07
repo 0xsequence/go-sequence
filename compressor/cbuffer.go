@@ -1,6 +1,8 @@
 package compressor
 
 type CBuffer struct {
+	SignatureLevel uint
+
 	Commited []byte
 	Pending  []byte
 
@@ -91,7 +93,10 @@ func (cb *CBuffer) End(uncompressed []byte, t EncodeType) {
 
 type Snapshot struct {
 	Commited []byte
-	Refs     *References
+
+	SignatureLevel uint
+
+	Refs *References
 }
 
 func (cb *CBuffer) Snapshot() *Snapshot {
@@ -103,12 +108,14 @@ func (cb *CBuffer) Snapshot() *Snapshot {
 	refs := cb.Refs.Copy()
 
 	return &Snapshot{
-		Commited: com,
-		Refs:     refs,
+		Commited:       com,
+		SignatureLevel: cb.SignatureLevel,
+		Refs:           refs,
 	}
 }
 
 func (cb *CBuffer) Restore(snap *Snapshot) {
 	cb.Commited = snap.Commited
 	cb.Refs = snap.Refs
+	cb.SignatureLevel = snap.SignatureLevel
 }

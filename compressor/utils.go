@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+
+	"github.com/0xsequence/go-sequence"
 )
 
 func ispow2minus1(b []byte) int {
@@ -83,16 +85,16 @@ func pow10(b []byte) int {
 	return count
 }
 
-func pow10factor(b []byte) (int, int) {
+func pow10Mantissa(b []byte, maxExp int, maxMantissa int) (int, int) {
 	num := big.NewInt(0).SetBytes(b)
 
 	var n int
 
 	ten := big.NewInt(10)
-	maxByteValue := big.NewInt(255)
+	maxByteValue := big.NewInt(int64(maxMantissa))
 	zero := big.NewInt(0)
 
-	for n = 0; n < 256; n++ {
+	for n = 0; n < maxExp; n++ {
 		powerOfTen := new(big.Int).Exp(ten, big.NewInt(int64(n)), nil)
 
 		if powerOfTen.Cmp(num) > 0 {
@@ -126,9 +128,9 @@ func minBytesToRepresent(num uint) uint {
 	return uint((bitsNeeded + 7) / 8)
 }
 
-func intToBytes(n int) []byte {
+func uintToBytes(n uint64) []byte {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, byte(n))
+	err := binary.Write(buf, binary.BigEndian, n)
 
 	if err != nil {
 		log.Fatalf("binary.Write failed: %v", err)
@@ -179,4 +181,30 @@ func FindPastData(pastData *CBuffer, data []byte) int {
 	}
 
 	return -1
+}
+
+func NormalizeTransactionSignature(
+	transaction *sequence.Transaction,
+) error {
+	// One thing that happens is that there are two ways of representing a Sequence signature in v2
+	// lagacy and dynamic, decompressor will ALWAYS decompress to the dynamic format, so if
+	// the input is in the legacy format, we need to convert it to the dynamic format.
+	// This is easy, because the legacy format starts with 0x00, if that's the case we just
+	// add 0x01 at the beginning of the signature
+	// Notice that guest executes have no signature, so we don't need to fix those
+	if len(transaction.Signature) != 0 && transaction.Signature[0] == 0 {
+		transaction.Signature = append([]byte{1}, transaction.Signature...)
+	}
+
+	// If the transaction is a nested sequence transaction, we need to normalize its calldata too
+	for _, tx := range transaction.Transactions {
+		if tx.Signature != nil && len(tx.Signature) != 0 {
+			err := NormalizeTransactionSignature(tx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

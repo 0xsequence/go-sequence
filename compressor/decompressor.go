@@ -48,11 +48,11 @@ func (d *Decompress) ReadFlag() error {
 		return d.ReadBytes32(flag)
 	}
 
-	if flag >= FLAG_READ_ADDRESS_2 && flag <= FLAG_READ_ADDRESS_5 {
+	if flag >= FLAG_READ_ADDRESS_2 && flag <= FLAG_READ_ADDRESS_4 {
 		return d.ReadAddressStorage(flag)
 	}
 
-	if flag >= FLAG_READ_BYTES32_2 && flag <= FLAG_READ_BYTES32_5 {
+	if flag >= FLAG_READ_BYTES32_2 && flag <= FLAG_READ_BYTES32_4 {
 		return d.ReadBytes32Storage(flag)
 	}
 

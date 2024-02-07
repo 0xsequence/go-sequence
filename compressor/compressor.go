@@ -89,7 +89,8 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 	// have the first 2 bytes as 00, in reality this only applies to 0xffff
 	pow2minus1 := ispow2minus1(trimmed)
 	if pow2minus1 != -1 {
-		return []byte{byte(FLAG_READ_POWER_OF_2), 0x00, byte(pow2minus1)}, Stateless, nil
+		// The opcode adds an extra 1 to the value, so we need to subtract 1
+		return []byte{byte(FLAG_READ_POWER_OF_2), 0x00, byte(pow2minus1 - 1)}, Stateless, nil
 	}
 
 	// Now we can store words of 2 bytes, we have exhausted all the 1 byte options
@@ -98,9 +99,9 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 	}
 
 	// We can also use (10 ** N) * X, this uses 2 bytes
-	pow10fn, pow10fx := pow10factor(trimmed)
-	if pow10fn != -1 && pow10fx != -1 {
-		return []byte{byte(FLAG_READ_POWER_OF_10_MISC), byte(pow10fn), byte(pow10fx)}, Stateless, nil
+	pow10fn, pow10fm := pow10Mantissa(trimmed, 127, 255)
+	if pow10fn != -1 && pow10fm != -1 {
+		return []byte{byte(FLAG_READ_POWER_OF_10_MISC), byte(pow10fn), byte(pow10fm)}, Stateless, nil
 	}
 
 	// Mirror flag uses 2 bytes, it lets us point to another flag that we had already used before
@@ -141,6 +142,18 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 		return c.EncodeWordBytes32(trimmed)
 	}
 
+	// With 3 bytes we can encode 10 ** N * X (with a mantissa of 18 bits and an exp of 6 bits)
+	pow10fn, pow10fm = pow10Mantissa(trimmed, 63, 262143)
+	if pow10fn != -1 && pow10fm != -1 {
+		// The first byte is 6 bits of exp and 2 bits of mantissa
+		b1 := byte(uint64(pow10fn)<<2) | byte(uint64(pow10fm)>>16)
+		// The next 16 bits are the last 16 bits of the mantissa
+		b2 := byte(pow10fm >> 8)
+		b3 := byte(pow10fm)
+
+		return []byte{byte(FLAG_READ_POW_10_MANTISSA), byte(b1), byte(b2), byte(b3)}, Stateless, nil
+	}
+
 	// With 3 bytes we can also copy any other word from the calldata
 	// this can be anything but notice: we must copy the value already padded
 	copyIndex := FindPastData(pastData, padded32)
@@ -159,7 +172,6 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 			// There are 4 different flags for reading addresses,
 			// depending if the index fits on 2, 3, or 4 bytes
 			bytesNeeded := minBytesToRepresent(addressIndex)
-			fmt.Println("USES CONTRACT STORAGE", addressIndex, bytesNeeded)
 			switch bytesNeeded {
 			case 1, 2:
 				return []byte{
@@ -218,13 +230,15 @@ func (c *Compressor) EncodeWordOptimized(pastData *CBuffer, word []byte, saveWor
 		if saveWord {
 			// Any value smaller than 20 bytes can be saved as an address
 			// ALL saved values must be padded to either 20 bytes or 32 bytes
-			if len(trimmed) <= 20 {
+			// For both cases skip values that are too short already
+			if len(trimmed) <= 20 && len(trimmed) >= 15 {
 				padded20 := make([]byte, 20)
 				copy(padded20[20-len(trimmed):], trimmed)
 				encoded := []byte{byte(FLAG_SAVE_ADDRESS)}
 				encoded = append(encoded, padded20...)
 				return encoded, WriteStorage, nil
-			} else {
+
+			} else if len(trimmed) >= 27 {
 				encoded := []byte{byte(FLAG_SAVE_BYTES32)}
 				encoded = append(encoded, padded32...)
 				return encoded, WriteStorage, nil
@@ -383,8 +397,9 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	// We can try encoding this as a signature, we don't know if it is a Sequence signature
 	// we generate a snapshot of the dest buffer and try to encode it as a signature, if it fails
 	// or if the result is bigger than the original bytes, we restore the snapshot and continue.
+	// Notice: pass `false` to `mayUseBytes` or else this will be an infinite loop
 	snapshot := dest.Snapshot()
-	t, err := c.WriteSignature(dest, bytes)
+	t, err := c.WriteSignature(dest, bytes, false)
 	if err == nil && dest.Len() < len(bytes)+3+len(snapshot.Commited) {
 		return t, nil
 	}
@@ -439,15 +454,15 @@ func (c *Compressor) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord b
 	// If there are no other options, then we encode the bytes as-is
 	// we can try two different methods: bytes_n or splitting it in many words + an extra bytes
 	// for now we leave it as bytes_n for simplicity
-	return c.EncodeNBytesRaw(dest, bytes)
+	return c.WriteNBytesRaw(dest, bytes)
 }
 
 // Encodes N bytes, without any optimizations
-func (c *Compressor) EncodeNBytesRaw(dest *CBuffer, bytes []byte) (EncodeType, error) {
+func (c *Compressor) WriteNBytesRaw(dest *CBuffer, bytes []byte) (EncodeType, error) {
 	dest.WriteInt(FLAG_READ_N_BYTES)
 	dest.End(bytes, Stateless)
 
-	t, err := c.WriteWord(intToBytes(len(bytes)), dest, false)
+	t, err := c.WriteWord(uintToBytes(uint64(len(bytes))), dest, false)
 	if err != nil {
 		return Stateless, err
 	}
@@ -553,7 +568,8 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 		flag |= 0x10
 	}
 
-	if len(transaction.Data) > 0 {
+	hasData := len(transaction.Data) > 0 || len(transaction.Transactions) > 0
+	if hasData {
 		flag |= 0x01
 	}
 
@@ -589,8 +605,20 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 		encodeType = HighestPriority(encodeType, t)
 	}
 
-	if len(transaction.Data) > 0 {
-		t, err := c.WriteBytesOptimized(dest, transaction.Data, dest.Refs.useContractStorage)
+	if hasData {
+		// If the transaction has "transactions" then it is another sequence transaction
+		// in that case, we must Write a transaction, since data is empty
+		var t EncodeType
+
+		if len(transaction.Transactions) > 0 {
+			dest.WriteInt(FLAG_READ_EXECUTE)
+			dest.End([]byte{}, Stateless)
+
+			t, err = c.WriteExecute(dest, nil, transaction)
+		} else {
+			t, err = c.WriteBytesOptimized(dest, transaction.Data, dest.Refs.useContractStorage)
+		}
+
 		if err != nil {
 			return Stateless, err
 		}
@@ -601,10 +629,17 @@ func (c *Compressor) WriteTransaction(dest *CBuffer, transaction *sequence.Trans
 	return encodeType, nil
 }
 
-func (c *Compressor) WriteSignature(dest *CBuffer, signature []byte) (EncodeType, error) {
+func (c *Compressor) WriteSignature(dest *CBuffer, signature []byte, mayUseBytes bool) (EncodeType, error) {
+	dest.SignatureLevel += 1
+
+	defer func() {
+		dest.SignatureLevel -= 1
+	}()
+
 	// First byte determines the signature type
-	if len(signature) == 0 {
-		return Stateless, fmt.Errorf("signature is empty")
+	if mayUseBytes && (len(signature) == 0) {
+		// Guestmodule signatures are empty
+		return c.WriteBytesOptimized(dest, signature, false)
 	}
 
 	typeByte := signature[0]
@@ -618,7 +653,8 @@ func (c *Compressor) WriteSignature(dest *CBuffer, signature []byte) (EncodeType
 		return c.WriteSignatureBody(dest, true, signature[1:])
 
 	case 0x03: // Chained
-		return Stateless, fmt.Errorf("chained signatures are not supported yet")
+		return c.WriteNBytesRaw(dest, signature)
+		// return Stateless, fmt.Errorf("chained signatures are not supported yet")
 	default:
 		return Stateless, fmt.Errorf("invalid signature type %d", typeByte)
 	}
@@ -638,15 +674,17 @@ func (c *Compressor) WriteExecute(dest *CBuffer, wallet []byte, transaction *seq
 	}
 	t = HighestPriority(t, tt)
 
-	tt, err = c.WriteSignature(dest, transaction.Signature)
+	tt, err = c.WriteSignature(dest, transaction.Signature, true)
 	if err != nil {
 		return Stateless, err
 	}
 	t = HighestPriority(t, tt)
 
-	tt, err = c.WriteWord(wallet, dest, true)
-	if err != nil {
-		return Stateless, err
+	if wallet != nil {
+		tt, err = c.WriteWord(wallet, dest, true)
+		if err != nil {
+			return Stateless, err
+		}
 	}
 
 	return HighestPriority(t, tt), nil
@@ -788,7 +826,7 @@ func (c *Compressor) WriteSignatureTree(dest *CBuffer, tree []byte) (EncodeType,
 			pointer = next
 		case 0x03: // Node
 			next := pointer + 32
-			t, err = c.WriteBytesOptimized(dest, tree[pointer-1:next], false)
+			t, err = c.WriteBytesOptimized(dest, tree[pointer-1:next], true)
 			pointer = next
 		case 0x04: // Branch
 			// 3 bytes of length
