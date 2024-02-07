@@ -183,18 +183,64 @@ func FindPastData(pastData *CBuffer, data []byte) int {
 	return -1
 }
 
-func NormalizeTransactionSignature(
-	transaction *sequence.Transaction,
-) error {
+func NormalizeSignature(signature []byte) ([]byte, error) {
+	if len(signature) == 0 {
+		return signature, nil
+	}
 	// One thing that happens is that there are two ways of representing a Sequence signature in v2
 	// lagacy and dynamic, decompressor will ALWAYS decompress to the dynamic format, so if
 	// the input is in the legacy format, we need to convert it to the dynamic format.
 	// This is easy, because the legacy format starts with 0x00, if that's the case we just
 	// add 0x01 at the beginning of the signature
 	// Notice that guest executes have no signature, so we don't need to fix those
-	if len(transaction.Signature) != 0 && transaction.Signature[0] == 0 {
-		transaction.Signature = append([]byte{1}, transaction.Signature...)
+	if signature[0] == 0 {
+		return append([]byte{1}, signature...), nil
 	}
+
+	// Chained signatures are a bit harder, as they need to be dissected and normalized
+	// then-reassembled again
+	if signature[0] == 3 {
+		normalized := []byte{0x03}
+		var rindex uint = 1
+
+		for rindex < uint(len(signature)) {
+			// The first 3 bytes are the length of the part
+			length := bytesToUint64(signature[rindex : rindex+3])
+			rindex += 3
+
+			part := signature[rindex : rindex+uint(length)]
+			rindex += uint(length)
+
+			npart, err := NormalizeSignature(part)
+			if err != nil {
+				return nil, err
+			}
+
+			// Notice that we need to write it with the new length
+			plen, err := uintPadToX(uint(len(npart)), 3)
+			if err != nil {
+				return nil, err
+			}
+
+			normalized = append(normalized, plen...)
+			normalized = append(normalized, npart...)
+		}
+
+		return normalized, nil
+	}
+
+	return signature, nil
+}
+
+func NormalizeTransactionSignature(
+	transaction *sequence.Transaction,
+) error {
+	sig, err := NormalizeSignature(transaction.Signature)
+	if err != nil {
+		return err
+	}
+
+	transaction.Signature = sig
 
 	// If the transaction is a nested sequence transaction, we need to normalize its calldata too
 	for _, tx := range transaction.Transactions {

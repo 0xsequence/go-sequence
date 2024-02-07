@@ -651,13 +651,56 @@ func (c *Compressor) WriteSignature(dest *CBuffer, signature []byte, mayUseBytes
 		return c.WriteSignatureBody(dest, false, signature[1:])
 	case 0x02: // No chain ID
 		return c.WriteSignatureBody(dest, true, signature[1:])
-
 	case 0x03: // Chained
-		return c.WriteNBytesRaw(dest, signature)
-		// return Stateless, fmt.Errorf("chained signatures are not supported yet")
+		return c.WriteChainedSignature(dest, signature[1:])
+
 	default:
 		return Stateless, fmt.Errorf("invalid signature type %d", typeByte)
 	}
+}
+
+func (c *Compressor) WriteChainedSignature(dest *CBuffer, signature []byte) (EncodeType, error) {
+	// First we need to count how many chained signatures are there
+	// for this we read the first 3 bytes of each, as they contain the size
+	var pointer uint
+	var parts [][]byte
+
+	for pointer < uint(len(signature)) {
+		length := uint(signature[pointer])<<16 | uint(signature[pointer+1])<<8 | uint(signature[pointer+2])
+		pointer += 3
+
+		npointer := pointer + length
+		parts = append(parts, signature[pointer:npointer])
+		pointer = npointer
+	}
+
+	// We have two instructions for this, one for 8 bits and one for 16 bits
+	// depending on the number of parts
+	totalParts := uint(len(parts))
+	if totalParts > 255 {
+		dest.WriteInt(FLAG_READ_CHAINED_L)
+		dest.WriteByte(byte(totalParts >> 8))
+		dest.WriteByte(byte(totalParts))
+	} else {
+		dest.WriteInt(FLAG_READ_CHAINED)
+		dest.WriteByte(byte(totalParts))
+	}
+
+	dest.End([]byte{}, Stateless)
+
+	// Now we need to encode every nested part, one for each signature part
+	encodeType := Stateless
+
+	for _, part := range parts {
+		t, err := c.WriteSignature(dest, part, false)
+		if err != nil {
+			return Stateless, err
+		}
+
+		encodeType = HighestPriority(encodeType, t)
+	}
+
+	return encodeType, nil
 }
 
 func (c *Compressor) WriteExecute(dest *CBuffer, wallet []byte, transaction *sequence.Transaction) (EncodeType, error) {
