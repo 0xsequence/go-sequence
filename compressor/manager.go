@@ -12,8 +12,8 @@ import (
 	"github.com/0xsequence/go-sequence"
 )
 
-type CompressorInstance struct {
-	Context context.Context
+type Manager struct {
+	ctx context.Context
 
 	Compressor *Compressor
 	CostModel  *CostModel
@@ -36,12 +36,8 @@ type CompressorInstance struct {
 	mu *sync.RWMutex
 }
 
-type CompressorManager struct {
-	instance *CompressorInstance
-}
-
 func NewCompressorManager(
-	context context.Context,
+	ctx context.Context,
 	provider *ethrpc.Provider,
 	contract common.Address,
 	costModel *CostModel,
@@ -49,7 +45,7 @@ func NewCompressorManager(
 	updateInterval uint,
 	trailBlocks uint,
 	batchSize uint,
-) (*CompressorManager, error) {
+) (*Manager, error) {
 	if userStorage {
 		if updateInterval == 0 {
 			return nil, fmt.Errorf("update interval must be greater than 0")
@@ -61,7 +57,7 @@ func NewCompressorManager(
 	}
 
 	// Check if the contract exists
-	code, err := provider.CodeAt(context, contract, nil)
+	code, err := provider.CodeAt(ctx, contract, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +66,18 @@ func NewCompressorManager(
 		return nil, fmt.Errorf("contract %s does not exist", contract.Hex())
 	}
 
-	c := CompressorManager{
-		instance: &CompressorInstance{
-			Context:         context,
-			Compressor:      NewCompressor(),
-			CostModel:       costModel,
-			Contract:        contract,
-			LastIndexUpdate: 0,
-			Provider:        provider,
-			UseStorage:      userStorage,
-			UpdateInterval:  updateInterval,
-			TrailBlocks:     trailBlocks,
-			BatchSize:       batchSize,
-			mu:              &sync.RWMutex{},
-		},
+	c := Manager{
+		ctx:             ctx,
+		Compressor:      NewCompressor(),
+		CostModel:       costModel,
+		Contract:        contract,
+		LastIndexUpdate: 0,
+		Provider:        provider,
+		UseStorage:      userStorage,
+		UpdateInterval:  updateInterval,
+		TrailBlocks:     trailBlocks,
+		BatchSize:       batchSize,
+		mu:              &sync.RWMutex{},
 	}
 
 	c.StartIndexUpdater()
@@ -91,11 +85,11 @@ func NewCompressorManager(
 	return &c, nil
 }
 
-func (cm *CompressorManager) SetOnLoadedIndexes(f func(uint, uint)) {
-	cm.instance.onLoadedIndexes = f
+func (cm *Manager) SetOnLoadedIndexes(f func(uint, uint)) {
+	cm.onLoadedIndexes = f
 }
 
-func LoadIndexes(ci *CompressorInstance) error {
+func LoadIndexes(ci *Manager) error {
 	ci.mu.RLock()
 	lenAddrs := ci.AddressesHeight
 	lenBytes32s := ci.Bytes32Height
@@ -104,7 +98,7 @@ func LoadIndexes(ci *CompressorInstance) error {
 	// Don't lock while we read the state, it can take a while
 
 	nah, addrs, nbh, bytes32s, err := LoadState(
-		ci.Context,
+		ci.ctx,
 		ci.Provider,
 		ci.Contract,
 		ci.BatchSize,
@@ -139,24 +133,24 @@ func LoadIndexes(ci *CompressorInstance) error {
 	return nil
 }
 
-func (cm *CompressorManager) StartIndexUpdater() {
+func (cm *Manager) StartIndexUpdater() {
 	// No need to start the updater if we don't use storage
-	if !cm.instance.UseStorage {
+	if !cm.UseStorage {
 		return
 	}
 
 	go func() {
-		ticker := time.NewTicker(time.Duration(cm.instance.UpdateInterval) * time.Second)
+		ticker := time.NewTicker(time.Duration(cm.UpdateInterval) * time.Second)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
-				err := LoadIndexes(cm.instance)
+				err := LoadIndexes(cm)
 				if err != nil {
-					fmt.Printf("Error updating indexes for chain %d: %v\n", cm.instance.Contract, err)
+					fmt.Printf("Error updating indexes for chain %d: %v\n", cm.Contract, err)
 				}
-			case <-cm.instance.Context.Done():
+			case <-cm.ctx.Done():
 				// Context cancelled, stop the ticker
 				return
 			}
@@ -164,7 +158,7 @@ func (cm *CompressorManager) StartIndexUpdater() {
 	}()
 }
 
-func (cm *CompressorManager) performCompress(ci *CompressorInstance, wallet []byte, transaction *sequence.Transaction) ([]byte, EncodeType, error) {
+func (cm *Manager) performCompress(ci *Manager, wallet []byte, transaction *sequence.Transaction) ([]byte, EncodeType, error) {
 	ci.mu.RLock()
 	defer ci.mu.RUnlock()
 
@@ -177,7 +171,7 @@ func (cm *CompressorManager) performCompress(ci *CompressorInstance, wallet []by
 	return cbuffer.Data(), et, nil
 }
 
-func (cm *CompressorManager) IsSaneCompression(
+func (cm *Manager) IsSaneCompression(
 	input []byte,
 	entrypoint common.Address,
 	transaction *sequence.Transaction,
@@ -221,19 +215,19 @@ func (cm *CompressorManager) IsSaneCompression(
 
 // We return two errors, the first one is the inner compression error, we returns it for traceability
 // but the real error is the second one, which should only appear on a non-recoverable situation
-func (cm *CompressorManager) TryCompress(
+func (cm *Manager) TryCompress(
 	input []byte,
 	entrypoint common.Address,
 	transaction *sequence.Transaction,
 ) (common.Address, []byte, EncodeType, error) {
-	ci := cm.instance
+	ci := cm
 	compressed, et, err := cm.performCompress(ci, entrypoint.Bytes(), transaction)
 	if err != nil {
 		return common.Address{}, nil, 0, err
 	}
 
 	// We do a dry run of decompression to make sure it's sane
-	decompressedEntrypoint, decompressed, err := DecompressTransaction(ci.Context, ci.Provider, ci.Contract, compressed)
+	decompressedEntrypoint, decompressed, err := DecompressTransaction(ci.ctx, ci.Provider, ci.Contract, compressed)
 	if err != nil {
 		return common.Address{}, nil, 0, err
 	}

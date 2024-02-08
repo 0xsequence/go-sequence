@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-type Decompress struct {
+type Decompressor struct {
 	calldata []byte
 	rindex   uint
 	buffer   []byte
@@ -16,12 +16,12 @@ type Decompress struct {
 	indexToBytes4  map[uint][]byte
 }
 
-func (d *Decompress) Buffer() []byte {
+func (d *Decompressor) Buffer() []byte {
 	return d.buffer
 }
 
-func NewDecompressor(calldata []byte) *Decompress {
-	return &Decompress{
+func NewDecompressor(calldata []byte) *Decompressor {
+	return &Decompressor{
 		calldata: calldata,
 		rindex:   1,
 		buffer:   make([]byte, 0),
@@ -32,11 +32,11 @@ func NewDecompressor(calldata []byte) *Decompress {
 	}
 }
 
-func (d *Decompress) LogFlag(flag string) {
+func (d *Decompressor) LogFlag(flag string) {
 	// fmt.Println("flag:", flag)
 }
 
-func (d *Decompress) ReadFlag() error {
+func (d *Decompressor) ReadFlag() error {
 	flag := uint(d.calldata[d.rindex])
 	d.rindex++
 
@@ -131,7 +131,7 @@ func (d *Decompress) ReadFlag() error {
 	return d.ReadLiteral(flag)
 }
 
-func (d *Decompress) ReadAndLoad32Bytes() ([]byte, error) {
+func (d *Decompressor) ReadAndLoad32Bytes() ([]byte, error) {
 	d.LogFlag("read_and_load_flag")
 
 	d.ReadFlag()
@@ -148,7 +148,7 @@ func (d *Decompress) ReadAndLoad32Bytes() ([]byte, error) {
 	return word, nil
 }
 
-func (d *Decompress) ReadBytes32(flag uint) error {
+func (d *Decompressor) ReadBytes32(flag uint) error {
 	d.LogFlag("bytes32")
 
 	// FLAG_READ_BYTES32_1_BYTES reads 1 byte
@@ -169,7 +169,7 @@ func (d *Decompress) ReadBytes32(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadSaveAddress() error {
+func (d *Decompressor) ReadSaveAddress() error {
 	d.LogFlag("save_address")
 
 	// Read 20 bytes, pad it to 32 bytes
@@ -185,7 +185,7 @@ func (d *Decompress) ReadSaveAddress() error {
 	return nil
 }
 
-func (d *Decompress) ReadSaveBytes32() error {
+func (d *Decompressor) ReadSaveBytes32() error {
 	d.LogFlag("save_bytes32")
 
 	// Read 32 bytes
@@ -196,7 +196,7 @@ func (d *Decompress) ReadSaveBytes32() error {
 	return nil
 }
 
-func (d *Decompress) ReadAddressStorage(flag uint) error {
+func (d *Decompressor) ReadAddressStorage(flag uint) error {
 	d.LogFlag("address_storage")
 
 	// Number of bytes used for the index:
@@ -227,7 +227,7 @@ func (d *Decompress) ReadAddressStorage(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadBytes32Storage(flag uint) error {
+func (d *Decompressor) ReadBytes32Storage(flag uint) error {
 	d.LogFlag("bytes32_storage")
 
 	// Number of bytes used for the index:
@@ -259,7 +259,7 @@ func (d *Decompress) ReadBytes32Storage(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadNBytes(flag uint) error {
+func (d *Decompressor) ReadNBytes(flag uint) error {
 	d.LogFlag("n_bytes")
 
 	// Read a nested flag, this gives us the number of bytes to read
@@ -278,7 +278,7 @@ func (d *Decompress) ReadNBytes(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadPow2() error {
+func (d *Decompressor) ReadPow2() error {
 	d.LogFlag("pow2")
 
 	exp := int(d.calldata[d.rindex])
@@ -310,7 +310,7 @@ func (d *Decompress) ReadPow2() error {
 	return nil
 }
 
-func (d *Decompress) ReadAbi4Bytes() error {
+func (d *Decompressor) ReadAbi4Bytes() error {
 	d.LogFlag("abi_4_bytes")
 
 	// The first value is always the bytes4, it may be an index
@@ -332,7 +332,7 @@ func (d *Decompress) ReadAbi4Bytes() error {
 	return nil
 }
 
-func (d *Decompress) ReadAbiStatic(flag uint) error {
+func (d *Decompressor) ReadAbiStatic(flag uint) error {
 	d.LogFlag("abi_static")
 
 	err := d.ReadAbi4Bytes()
@@ -353,7 +353,7 @@ func (d *Decompress) ReadAbiStatic(flag uint) error {
 	return d.ReadNFlags(nargs)
 }
 
-func (d *Decompress) ReadAbiDynamic() error {
+func (d *Decompressor) ReadAbiDynamic() error {
 	d.LogFlag("abi_dynamic")
 
 	err := d.ReadAbi4Bytes()
@@ -427,7 +427,7 @@ func (d *Decompress) ReadAbiDynamic() error {
 	return nil
 }
 
-func (d *Decompress) ReadNestedFlags(flag uint) error {
+func (d *Decompressor) ReadNestedFlags(flag uint) error {
 	d.LogFlag("nested_flags")
 
 	// FLAG_NESTED_N_FLAGS_8 -> 1 byte for n of flags
@@ -451,7 +451,7 @@ func (d *Decompress) ReadNestedFlags(flag uint) error {
 	return d.ReadNFlags(nflags)
 }
 
-func (d *Decompress) ReadNFlags(n uint) error {
+func (d *Decompressor) ReadNFlags(n uint) error {
 	d.LogFlag("n_flags")
 
 	for i := uint(0); i < n; i++ {
@@ -464,7 +464,7 @@ func (d *Decompress) ReadNFlags(n uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadSignature(flag uint) error {
+func (d *Decompressor) ReadSignature(flag uint) error {
 	d.LogFlag("signature_part")
 
 	// FLAG_SIGNATURE_W0 -> for 1 byte for the weight (has to read more)
@@ -497,7 +497,7 @@ func (d *Decompress) ReadSignature(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadAddress(flag uint) error {
+func (d *Decompressor) ReadAddress(flag uint) error {
 	d.LogFlag("address_part")
 
 	// FLAG_ADDRESS_W0 -> for 1 byte for the weight (has to read more)
@@ -535,7 +535,7 @@ func (d *Decompress) ReadAddress(flag uint) error {
 	return nil
 }
 
-func (d *Decompress) ReadDynamicSignature() error {
+func (d *Decompressor) ReadDynamicSignature() error {
 	d.LogFlag("dynamic_signature_part")
 
 	// Write the "dynamic signature" sequence flag (0x02)
@@ -583,7 +583,7 @@ func (d *Decompress) ReadDynamicSignature() error {
 	return nil
 }
 
-func (d *Decompress) FlagNode() error {
+func (d *Decompressor) FlagNode() error {
 	d.LogFlag("node")
 
 	// Write the node flag (0x03) and just read a nested flag
@@ -591,7 +591,7 @@ func (d *Decompress) FlagNode() error {
 	return d.ReadFlag()
 }
 
-func (d *Decompress) ReadBranch() error {
+func (d *Decompressor) ReadBranch() error {
 	d.LogFlag("branch")
 
 	// Write the branch flag (0x04) and just read a nested flag
@@ -626,7 +626,7 @@ func (d *Decompress) ReadBranch() error {
 	return nil
 }
 
-func (d *Decompress) FlagSubdigest() error {
+func (d *Decompressor) FlagSubdigest() error {
 	d.LogFlag("subdigest")
 
 	// Write the subdigest flag (0x05) and just read a nested flag
@@ -634,7 +634,7 @@ func (d *Decompress) FlagSubdigest() error {
 	return d.ReadFlag()
 }
 
-func (d *Decompress) ReadNested() error {
+func (d *Decompressor) ReadNested() error {
 	d.LogFlag("nested")
 
 	// Write the nested flag (0x06) and just read a nested flag
@@ -680,7 +680,7 @@ func (d *Decompress) ReadNested() error {
 	return nil
 }
 
-func (d *Decompress) ReadPow10Misc() error {
+func (d *Decompressor) ReadPow10Misc() error {
 	d.LogFlag("pow10misc")
 
 	exp := uint(d.calldata[d.rindex])
@@ -724,7 +724,7 @@ func (d *Decompress) ReadPow10Misc() error {
 	return nil
 }
 
-func (d *Decompress) ReadMirrorFlag() error {
+func (d *Decompressor) ReadMirrorFlag() error {
 	// The next 2 bytes determine the temporal rindex
 	trindex := uint(binary.BigEndian.Uint16(d.calldata[d.rindex : d.rindex+2]))
 	d.rindex += 2
@@ -750,7 +750,7 @@ func (d *Decompress) ReadMirrorFlag() error {
 	return nil
 }
 
-func (d *Decompress) ReadCopyCalldata() error {
+func (d *Decompressor) ReadCopyCalldata() error {
 	d.LogFlag("copy_calldata")
 
 	// The next 2 bytes determine from where to copy, the next byte determines the size
@@ -765,7 +765,7 @@ func (d *Decompress) ReadCopyCalldata() error {
 	return nil
 }
 
-func (d *Decompress) ReadSequenceSignatureV2(flag uint) error {
+func (d *Decompressor) ReadSequenceSignatureV2(flag uint) error {
 	d.LogFlag("sequence_signature_v2")
 
 	// The flag determines the type of signature
@@ -817,7 +817,7 @@ func (d *Decompress) ReadSequenceSignatureV2(flag uint) error {
 	return d.ReadFlag()
 }
 
-func (d *Decompress) ReadNonce() error {
+func (d *Decompressor) ReadNonce() error {
 	d.LogFlag("read_nonce")
 
 	// Read a word, but use only the last 20 bytes
@@ -838,7 +838,7 @@ func (d *Decompress) ReadNonce() error {
 	return nil
 }
 
-func (d *Decompress) ReadTransactions() error {
+func (d *Decompressor) ReadTransactions() error {
 	// The first byte determines the number of transactions
 	n := uint(d.calldata[d.rindex])
 	d.rindex++
@@ -875,7 +875,7 @@ func (d *Decompress) ReadTransactions() error {
 	return nil
 }
 
-func (d *Decompress) ReadTransaction() error {
+func (d *Decompressor) ReadTransaction() error {
 	d.LogFlag("read_transaction")
 
 	// The first byte is a bitmap, it contains information about what values are defined
@@ -972,7 +972,7 @@ func (d *Decompress) ReadTransaction() error {
 	return nil
 }
 
-func (d *Decompress) ReadExecute() error {
+func (d *Decompressor) ReadExecute() error {
 	d.LogFlag("execute")
 
 	// Write the execute method (0x7a9a1628)
@@ -1035,7 +1035,7 @@ func (d *Decompress) ReadExecute() error {
 	return nil
 }
 
-func (d *Decompress) ReadLiteral(flag uint) error {
+func (d *Decompressor) ReadLiteral(flag uint) error {
 	d.LogFlag("literal " + fmt.Sprintf("%d", flag))
 
 	if flag < LITERAL_ZERO {
