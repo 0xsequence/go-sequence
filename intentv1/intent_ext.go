@@ -11,7 +11,6 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gibson042/canonicaljson-go"
 )
 
@@ -81,37 +80,36 @@ func (intent *Intent) keyType(sessionId string) KeyType {
 	return KeyType(sessionIdBytes[0])
 }
 
-func (intent *Intent) isValidSignature(sessionId string, signature string) bool {
+func (intent *Intent) isValidSignature(sessionId string, signature string) error {
 	switch intent.keyType(sessionId) {
 	case KeyTypeSECP256K1:
 		return intent.isValidSignatureP256K1(sessionId, signature)
 	case KeyTypeSECP256R1:
 		return intent.isValidSignatureP256R1(sessionId, signature)
 	default:
-		return false
+		return fmt.Errorf("unknown session key type")
 	}
 }
 
 // isValidSignatureP256K1 checks if the signature is valid for the given secp256k1 session
-func (intent *Intent) isValidSignatureP256K1(sessionAddress string, signature string) bool {
+func (intent *Intent) isValidSignatureP256K1(sessionId string, signature string) error {
 	// validate session address and signature
-	if !strings.HasPrefix(signature, "0x") || !strings.HasPrefix(sessionAddress, "0x") {
+	if !strings.HasPrefix(signature, "0x") || !strings.HasPrefix(sessionId, "0x") {
 		// invalid params
-		return false
+		return fmt.Errorf("invalid sessionId or signature format")
 	}
 
 	// validate session address
-	sessionAddressBytes := common.FromHex(sessionAddress)
+	sessionAddressBytes := common.FromHex(sessionId)
 	if len(sessionAddressBytes) != 21 && len(sessionAddressBytes) != 20 {
 		// invalid session address
-		return false
+		return fmt.Errorf("invalid sessionId length")
 	}
 
 	// validate signature
 	sigBytes := common.FromHex(signature)
 	if len(sigBytes) != 65 {
-		// invalid signature
-		return false
+		return fmt.Errorf("invalid signature length")
 	}
 
 	// handle typed session address
@@ -119,17 +117,18 @@ func (intent *Intent) isValidSignatureP256K1(sessionAddress string, signature st
 		sessionAddressBytes = sessionAddressBytes[1:]
 	}
 
-	sessionAddress = fmt.Sprintf("0x%s", common.Bytes2Hex(sessionAddressBytes))
+	sessionAddress := fmt.Sprintf("0x%s", common.Bytes2Hex(sessionAddressBytes))
 
 	// Get hash of the packet
 	hash, err := intent.Hash()
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to hash intent: %w", err)
 	}
 
 	// Add Ethereum prefix to the hash
 	prefixedHash := crypto.Keccak256Hash([]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(hash), hash)))
 
+	// handle recovery byte
 	if sigBytes[64] == 27 || sigBytes[64] == 28 {
 		sigBytes[64] -= 27
 	}
@@ -137,25 +136,47 @@ func (intent *Intent) isValidSignatureP256K1(sessionAddress string, signature st
 	// Recover the public key from the signature
 	pubKey, err := crypto.Ecrecover(prefixedHash.Bytes(), sigBytes)
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to recover public key: %w", err)
 	}
 
 	addr := common.BytesToAddress(crypto.Keccak256(pubKey[1:])[12:])
 
 	// Check if the recovered address matches the session address
-	return strings.ToLower(addr.Hex()) == strings.ToLower(sessionAddress)
+	if strings.ToLower(addr.Hex()) != strings.ToLower(sessionAddress) {
+		return fmt.Errorf("invalid signature")
+	}
+	return nil
 }
 
 // isValidSignatureP256R1 checks if the signature is valid for the given secp256r1 session
-func (intent *Intent) isValidSignatureP256R1(publicKey string, signature string) bool {
-	publicKeyBuff := common.FromHex(publicKey)[1:]
+func (intent *Intent) isValidSignatureP256R1(sessionId string, signature string) error {
+	// validate session address and signature
+	if !strings.HasPrefix(signature, "0x") || !strings.HasPrefix(sessionId, "0x") {
+		// invalid params
+		return fmt.Errorf("invalid sessionId or signature format")
+	}
+
+	// validate session id
+	sessionIdBytes := common.FromHex(sessionId)
+	if len(sessionIdBytes) != 65 {
+		return fmt.Errorf("invalid sessionId length")
+	}
+
+	// validate signature
+	signatureBytes := common.FromHex(signature)
+	if len(signatureBytes) != 64 {
+		return fmt.Errorf("invalid signature length")
+	}
+
+	// message hash
+	messageHash, _ := intent.Hash()
+	messageHash2 := sha256.Sum256(messageHash)
 
 	// public key
-	// TODO: check if can use ecdh instead of unmarshal
-	// NOTE: no way to convert ecdh pub key into elliptic pub key?
+	publicKeyBuff := common.FromHex(sessionId)[1:]
 	x, y := elliptic.Unmarshal(elliptic.P256(), publicKeyBuff)
 	if x == nil || y == nil {
-		return false
+		return fmt.Errorf("invalid public key")
 	}
 
 	pub := ecdsa.PublicKey{
@@ -164,27 +185,19 @@ func (intent *Intent) isValidSignatureP256R1(publicKey string, signature string)
 		Y:     y,
 	}
 
-	spew.Dump(pub)
-
-	// message hash
-	messageHash, _ := intent.Hash()
-	messageHash2 := sha256.Sum256(messageHash)
-
 	// signature
-	signatureBytes := common.FromHex(signature)
-	if len(signatureBytes) != 64 {
-		return false
-	}
-
 	r := new(big.Int).SetBytes(signatureBytes[:32])
 	s := new(big.Int).SetBytes(signatureBytes[32:64])
-	return ecdsa.Verify(&pub, messageHash2[:], r, s)
+	if !ecdsa.Verify(&pub, messageHash2[:], r, s) {
+		return fmt.Errorf("invalid signature")
+	}
+	return nil
 }
 
 func (intent *Intent) Signers() []string {
 	var signers []string
 	for _, signature := range intent.Signatures {
-		if intent.isValidSignature(signature.SessionId, signature.Signature) {
+		if err := intent.isValidSignature(signature.SessionId, signature.Signature); err == nil {
 			signers = append(signers, signature.SessionId)
 		}
 	}
