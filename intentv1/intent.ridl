@@ -1,0 +1,103 @@
+webrpc = v1
+
+name = sequence-waas-intents
+version = v0.1.0
+
+struct Signature
+  - sessionId: string
+  - signature: string
+
+# no way to generate string enums
+# enum IntentName: uint8
+#  - openSession
+#  - closeSession
+#  - validateSession
+#  - finishValidateSession
+#  - listSessions
+#  - getSession
+#  - sign
+#  - transaction
+
+struct Intent
+  - version: string
+  - name: string
+  - expires: uint64
+  - issued: uint64
+  - data: any
+  - signatures: []Signature
+
+struct SessionPacketProof
+  - email?: string
+  - idToken?: string
+
+struct IntentDataOpenSession
+  - sessionId: string
+  - proof: SessionPacketProof
+
+struct IntentDataCloseSession
+  - sessionId: string
+
+struct IntentDataValidateSession
+  - sessionId: string
+  - deviceMetadata: string
+
+struct IntentDataFinishValidateSession
+  - sessionId: string
+  - salt: string
+  - challenge: string
+
+struct IntentDataListSessions
+
+struct IntentDataGetSession
+  - sessionId: string
+
+struct IntentDataSign
+  - network: string
+  - message: string
+
+struct IntentDataTransaction
+  - network: string
+  - identifier: string
+  - transactions: []any
+
+# no way to generate string enums
+#enum TransactionType: uint8
+#  - transaction
+#  - erc20send
+#  - erc721send
+#  - erc1155send
+
+struct TransactionRaw
+  - type: string
+  - to: string
+  - value: string
+  - data: string
+
+struct TransactionERC20
+  - type: string
+  - token: string
+  - to: string
+  - value: string
+
+struct TransactionERC721
+  - type: string
+  - token: string
+  - to: string
+  - id: string
+  - safe?: bool
+  - data?: string
+
+struct TransactionERC1155Value
+  - id: string
+  - amount: string
+
+struct TransactionERC1155
+  - type: string
+  - token: string
+  - to: string
+  - vals: []TransactionERC1155Value
+  - data?: string
+
+struct IntentResponse
+  - code: string
+  - data: any
