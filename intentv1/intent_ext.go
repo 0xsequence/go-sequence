@@ -46,12 +46,12 @@ func (intent *Intent) IsValid() error {
 	}
 
 	// check if the intent is expired
-	if intent.Expires+IntentAllowedTimeDriftInSec < uint64(time.Now().Unix()) {
+	if intent.ExpiresAt+IntentAllowedTimeDriftInSec < uint64(time.Now().Unix()) {
 		return fmt.Errorf("intent expired")
 	}
 
 	// check if the intent is issued in the future
-	if intent.Issued-IntentAllowedTimeDriftInSec > uint64(time.Now().Unix()) {
+	if intent.IssuedAt-IntentAllowedTimeDriftInSec > uint64(time.Now().Unix()) {
 		return fmt.Errorf("intent issued in the future")
 	}
 
@@ -158,7 +158,7 @@ func (intent *Intent) isValidSignatureP256R1(sessionId string, signature string)
 
 	// validate session id
 	sessionIdBytes := common.FromHex(sessionId)
-	if len(sessionIdBytes) != 65 {
+	if len(sessionIdBytes) != 66 {
 		return fmt.Errorf("invalid sessionId length")
 	}
 

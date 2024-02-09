@@ -48,8 +48,8 @@ func TestIntentNewIntentTyped(t *testing.T) {
 	})
 
 	t.Run("transaction", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataTransaction{})
-		assert.Equal(t, "transaction", intent.Name)
+		intent := NewIntentTyped(IntentDataSendTransaction{})
+		assert.Equal(t, "sendTransaction", intent.Name)
 	})
 
 	t.Run("unknown", func(t *testing.T) {
@@ -138,7 +138,7 @@ func TestIntentIsValid(t *testing.T) {
 
 	t.Run("expired", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
-		intent.Expires = 0
+		intent.ExpiresAt = 0
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
@@ -152,7 +152,7 @@ func TestIntentIsValid(t *testing.T) {
 
 	t.Run("issuedInFuture", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
-		intent.Issued = uint64(1 << 63)
+		intent.IssuedAt = uint64(1 << 63)
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)

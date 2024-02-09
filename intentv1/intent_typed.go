@@ -23,8 +23,8 @@ func IntentDataTypeToName[T any](t *T) string {
 		return "getSession"
 	case *IntentDataSign:
 		return "sign"
-	case *IntentDataTransaction:
-		return "transaction"
+	case *IntentDataSendTransaction:
+		return "sendTransaction"
 	default:
 		return ""
 	}
@@ -38,11 +38,11 @@ type IntentTyped[T any] struct {
 func NewIntentTyped[T any](data T) *IntentTyped[T] {
 	return &IntentTyped[T]{
 		Intent: Intent{
-			Version: "1",
-			Expires: uint64(time.Now().Unix()) + IntentValidTimeInSec,
-			Issued:  uint64(time.Now().Unix()),
-			Name:    IntentDataTypeToName(&data),
-			Data:    data,
+			Version:   "1",
+			ExpiresAt: uint64(time.Now().Unix()) + IntentValidTimeInSec,
+			IssuedAt:  uint64(time.Now().Unix()),
+			Name:      IntentDataTypeToName(&data),
+			Data:      data,
 		},
 		Data: data,
 	}
