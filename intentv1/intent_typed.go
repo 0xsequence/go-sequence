@@ -86,7 +86,6 @@ func NewIntentTypedFromIntent[T any](intent *Intent) (*IntentTyped[T], error) {
 }
 
 func (i *IntentTyped[T]) ToIntent() *Intent {
-	var intentCopy = i.Intent
-	intentCopy.Data = i.Data
-	return &intentCopy
+	i.Intent.Data = i.Data
+	return &i.Intent
 }

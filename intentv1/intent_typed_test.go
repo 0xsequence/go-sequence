@@ -84,13 +84,15 @@ func TestIntentNewIntentTypedFromIntent(t *testing.T) {
 }
 
 func TestIntentIsValid(t *testing.T) {
-	signer, err := ethwallet.NewWalletFromRandomEntropy()
-	require.NoError(t, err)
 
 	t.Run("valid", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 
-		err = SignIntentWithWallet(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSession256K1(wallet)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -99,7 +101,11 @@ func TestIntentIsValid(t *testing.T) {
 	t.Run("valid_p256k1Signature", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 
-		err = SignIntentWithP256K1(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSession256K1(wallet)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -111,7 +117,8 @@ func TestIntentIsValid(t *testing.T) {
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
 
-		err = SignIntentWithP256R1(privateKey, intent)
+		session := NewSession256R1(privateKey)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -120,7 +127,10 @@ func TestIntentIsValid(t *testing.T) {
 	t.Run("valid_legacySignature", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 
-		err = SignIntentWithWalletLegacy(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		err = SignIntentWithWalletLegacy(wallet, intent)
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -130,7 +140,11 @@ func TestIntentIsValid(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 		intent.Expires = 0
 
-		err = SignIntentWithWalletLegacy(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSession256K1(wallet)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.ErrorContains(t, intent.IsValid(), "expired")
@@ -140,7 +154,11 @@ func TestIntentIsValid(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 		intent.Issued = uint64(1 << 63)
 
-		err = SignIntentWithWalletLegacy(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSession256K1(wallet)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.ErrorContains(t, intent.IsValid(), "issued in the future")
@@ -155,7 +173,11 @@ func TestIntentIsValid(t *testing.T) {
 	t.Run("invalidSignature", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
 
-		err = SignIntentWithWalletLegacy(signer, intent)
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSession256K1(wallet)
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		intent.Signatures[0].Signature = "0x1234"
