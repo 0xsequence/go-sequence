@@ -85,7 +85,7 @@ func NewIntentTypedFromIntent[T any](intent *Intent) (*IntentTyped[T], error) {
 	}
 }
 
-func (i *IntentTyped[T]) ToIntent() *Intent {
+func (i *IntentTyped[T]) AsIntent() *Intent {
 	i.Intent.Data = i.Data
 	return &i.Intent
 }
