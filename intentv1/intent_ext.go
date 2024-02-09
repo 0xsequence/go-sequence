@@ -25,6 +25,10 @@ const (
 	KeyTypeUnknown
 )
 
+type IntentDataValidator interface {
+	IsValid() error
+}
+
 func (intent *Intent) Hash() ([]byte, error) {
 	// copy intent and remove signatures
 	var intentCopy = *intent

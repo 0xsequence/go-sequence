@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/0xsequence/ethkit"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -183,5 +184,33 @@ func TestIntentIsValid(t *testing.T) {
 		intent.Signatures[0].Signature = "0x1234"
 
 		assert.ErrorContains(t, intent.IsValid(), "invalid signature")
+	})
+}
+
+func TestIntentDataValidator(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
+
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSessionP256K1(wallet)
+		err = session.Sign(intent.AsIntent())
+		require.NoError(t, err)
+
+		assert.NoError(t, intent.IsValid())
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+
+		wallet, err := ethwallet.NewWalletFromRandomEntropy()
+		require.NoError(t, err)
+
+		session := NewSessionP256K1(wallet)
+		err = session.Sign(intent.AsIntent())
+		require.NoError(t, err)
+
+		assert.ErrorContains(t, intent.IsValid(), "invalid intent data")
 	})
 }

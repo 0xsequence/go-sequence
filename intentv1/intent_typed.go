@@ -85,6 +85,23 @@ func NewIntentTypedFromIntent[T any](intent *Intent) (*IntentTyped[T], error) {
 	}
 }
 
+func (i *IntentTyped[T]) IsValid() error {
+	// check if the intent is valid
+	if err := i.Intent.IsValid(); err != nil {
+		return err
+	}
+
+	// check if the intent data is valid
+	var data any = &i.Data
+	if validator, ok := data.(IntentDataValidator); ok {
+		if err := validator.IsValid(); err != nil {
+			return fmt.Errorf("invalid intent data: %w", err)
+		}
+	}
+	// the intent is valid
+	return nil
+}
+
 func (i *IntentTyped[T]) AsIntent() *Intent {
 	i.Intent.Data = i.Data
 	return &i.Intent
