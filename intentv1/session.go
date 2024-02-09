@@ -21,7 +21,7 @@ type session256K1 struct {
 	wallet *ethwallet.Wallet
 }
 
-func NewSession256K1(wallet *ethwallet.Wallet) Session {
+func NewSessionP256K1(wallet *ethwallet.Wallet) Session {
 	return &session256K1{wallet: wallet}
 }
 
@@ -58,7 +58,7 @@ type session256R1 struct {
 	privateKey *ecdsa.PrivateKey
 }
 
-func NewSession256R1(privateKey *ecdsa.PrivateKey) Session {
+func NewSessionP256R1(privateKey *ecdsa.PrivateKey) Session {
 	return &session256R1{privateKey: privateKey}
 }
 

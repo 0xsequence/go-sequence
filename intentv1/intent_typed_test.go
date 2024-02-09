@@ -91,7 +91,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		session := NewSession256K1(wallet)
+		session := NewSessionP256K1(wallet)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
@@ -104,7 +104,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		session := NewSession256K1(wallet)
+		session := NewSessionP256K1(wallet)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
@@ -117,7 +117,7 @@ func TestIntentIsValid(t *testing.T) {
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
 
-		session := NewSession256R1(privateKey)
+		session := NewSessionP256R1(privateKey)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
@@ -143,7 +143,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		session := NewSession256K1(wallet)
+		session := NewSessionP256K1(wallet)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
@@ -157,7 +157,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		session := NewSession256K1(wallet)
+		session := NewSessionP256K1(wallet)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
@@ -176,7 +176,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		session := NewSession256K1(wallet)
+		session := NewSessionP256K1(wallet)
 		err = session.Sign(intent.AsIntent())
 		require.NoError(t, err)
 
