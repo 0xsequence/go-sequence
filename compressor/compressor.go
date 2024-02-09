@@ -206,8 +206,8 @@ func (cm *Compressor) IsSaneCompression(
 		return fmt.Errorf("exec data does not match input")
 	}
 
-	if !bytes.Equal(decompressed, ed2) {
-		return fmt.Errorf("exec data does not match input")
+	if !bytes.Equal(decompressed, ed2) && !bytes.Equal(decompressed, ed1) {
+		return fmt.Errorf("decompressed exec data does not match input")
 	}
 
 	return nil
