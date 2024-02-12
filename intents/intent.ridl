@@ -33,7 +33,6 @@ struct IntentDataOpenSession
 
 struct IntentDataCloseSession
   - sessionId: string
-  - wallet: string
 
 struct IntentDataValidateSession
   - sessionId: string
@@ -42,10 +41,13 @@ struct IntentDataValidateSession
 
 struct IntentDataFinishValidateSession
   - sessionId: string
+  - wallet:  string
   - salt: string
   - challenge: string
 
 struct IntentDataListSessions
+  - wallet: string
+
 
 struct IntentDataGetSession
   - sessionId: string
@@ -111,24 +113,56 @@ struct IntentResponse
   - code: string
   - data: any
 
+# no way to generate string enums
+#enum IntentResponseCode: string
+# - sessionOpened
+# - validationRequired
+# - validationStarted
+# - validationFinished
+# - signedMessage
+# - transactionReceipt
+# - transactionFailed
+# - getSessionResponse
+
 struct IntentResponseSessionOpened
   - sessionId: string
+  - wallet: string
 
 struct IntentResponseSessionClosed
 
 struct IntentResponseValidateSession
 
-struct IntentResponseFinishValidateSession
+struct IntentResponseValidationRequired
+  - sessionId: string
+
+struct IntentResponseValidationStarted
+  - salt: string
+
+struct IntentResponseValidationFinished
+  - isValid: bool
 
 struct IntentResponseListSessions
   - sessions: []string
 
 struct IntentResponseGetSession
-  - isValid: bool
+  - sessionId: string
+  - wallet: string
+  - validated: bool
 
-struct IntentResponseSignMessage
+struct IntentResponseSignedMessage
   - signature: string
+  - message: string
 
-struct IntentResponseSendTransaction
+struct IntentResponseTransactionReceipt
+  - request:       any
+  - txHash:        string
+  - metaTxHash:    string
+  - receipt:       any
+  - nativeReceipt: any
+  - simulations:   any
 
-struct IntentResponseSendFail
+struct IntentResponseTransactionFailed
+  - error: string
+  - request: any
+  - simulations: any
+

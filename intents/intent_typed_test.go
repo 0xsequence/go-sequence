@@ -13,44 +13,44 @@ import (
 )
 
 func TestIntentNewIntentTyped(t *testing.T) {
-	t.Run("openSession", func(t *testing.T) {
+	t.Run(IntentNameOpenSession, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
-		assert.Equal(t, "openSession", intent.Name)
+		assert.Equal(t, IntentNameOpenSession, intent.Name)
 	})
 
-	t.Run("closeSession", func(t *testing.T) {
+	t.Run(IntentNameCloseSession, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataCloseSession{SessionId: "0x1234"})
-		assert.Equal(t, "closeSession", intent.Name)
+		assert.Equal(t, IntentNameCloseSession, intent.Name)
 	})
 
-	t.Run("validateSession", func(t *testing.T) {
+	t.Run(IntentNameValidateSession, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataValidateSession{SessionId: "0x1234"})
-		assert.Equal(t, "validateSession", intent.Name)
+		assert.Equal(t, IntentNameValidateSession, intent.Name)
 	})
 
-	t.Run("finishValidateSession", func(t *testing.T) {
+	t.Run(IntentNameFinishValidateSession, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataFinishValidateSession{SessionId: "0x1234"})
-		assert.Equal(t, "finishValidateSession", intent.Name)
+		assert.Equal(t, IntentNameFinishValidateSession, intent.Name)
 	})
 
-	t.Run("listSessions", func(t *testing.T) {
+	t.Run(IntentNameListSessions, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataListSessions{})
-		assert.Equal(t, "listSessions", intent.Name)
+		assert.Equal(t, IntentNameListSessions, intent.Name)
 	})
 
-	t.Run("getSession", func(t *testing.T) {
+	t.Run(IntentNameGetSession, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataGetSession{SessionId: "0x1234"})
-		assert.Equal(t, "getSession", intent.Name)
+		assert.Equal(t, IntentNameGetSession, intent.Name)
 	})
 
-	t.Run("sign", func(t *testing.T) {
+	t.Run(IntentNameSignMessage, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataSignMessage{Network: "ethereum", Message: "0x1234"})
-		assert.Equal(t, "signMessage", intent.Name)
+		assert.Equal(t, IntentNameSignMessage, intent.Name)
 	})
 
-	t.Run("transaction", func(t *testing.T) {
+	t.Run(IntentNameSendTransaction, func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataSendTransaction{})
-		assert.Equal(t, "sendTransaction", intent.Name)
+		assert.Equal(t, IntentNameSendTransaction, intent.Name)
 	})
 
 	t.Run("unknown", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestIntentNewIntentTypedFromIntent(t *testing.T) {
 	t.Run("openSession", func(t *testing.T) {
 		intent := Intent{
 			Version: "1",
-			Name:    "openSession",
+			Name:    IntentNameOpenSession,
 			Data:    map[string]interface{}{"sessionId": "0x1234"},
 		}
 

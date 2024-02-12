@@ -25,6 +25,28 @@ const (
 	KeyTypeUnknown
 )
 
+const (
+	IntentNameOpenSession           = "openSession"
+	IntentNameCloseSession          = "closeSession"
+	IntentNameValidateSession       = "validateSession"
+	IntentNameFinishValidateSession = "finishValidateSession"
+	IntentNameListSessions          = "listSessions"
+	IntentNameGetSession            = "getSession"
+	IntentNameSignMessage           = "signMessage"
+	IntentNameSendTransaction       = "sendTransaction"
+)
+
+const (
+	IntentResponseCodeSessionOpened      = "sessionOpened"
+	IntentResponseCodeValidationRequired = "validationRequired"
+	IntentResponseCodeValidationStarted  = "validationStarted"
+	IntentResponseCodeValidationFinished = "validationFinished"
+	IntentResponseCodeSignedMessage      = "signedMessage"
+	IntentResponseCodeTransactionReceipt = "transactionReceipt"
+	IntentResponseCodeTransactionFailed  = "transactionFailed"
+	IntentResponseCodeGetSessionResponse = "getSessionResponse"
+)
+
 type IntentDataValidator interface {
 	IsValid() error
 }

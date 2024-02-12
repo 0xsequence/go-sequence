@@ -10,21 +10,21 @@ func IntentDataTypeToName[T any](t *T) string {
 	var data any = t
 	switch data.(type) {
 	case *IntentDataOpenSession:
-		return "openSession"
+		return IntentNameOpenSession
 	case *IntentDataCloseSession:
-		return "closeSession"
+		return IntentNameCloseSession
 	case *IntentDataValidateSession:
-		return "validateSession"
+		return IntentNameValidateSession
 	case *IntentDataFinishValidateSession:
-		return "finishValidateSession"
+		return IntentNameFinishValidateSession
 	case *IntentDataListSessions:
-		return "listSessions"
+		return IntentNameListSessions
 	case *IntentDataGetSession:
-		return "getSession"
+		return IntentNameGetSession
 	case *IntentDataSignMessage:
-		return "signMessage"
+		return IntentNameSignMessage
 	case *IntentDataSendTransaction:
-		return "sendTransaction"
+		return IntentNameSendTransaction
 	default:
 		return ""
 	}
