@@ -33,9 +33,11 @@ struct IntentDataOpenSession
 
 struct IntentDataCloseSession
   - sessionId: string
+  - wallet: string
 
 struct IntentDataValidateSession
   - sessionId: string
+  - wallet: string
   - deviceMetadata: string
 
 struct IntentDataFinishValidateSession
@@ -47,15 +49,19 @@ struct IntentDataListSessions
 
 struct IntentDataGetSession
   - sessionId: string
+  - wallet: string
 
 struct IntentDataSign
   - network: string
+  - wallet:  string
   - message: string
 
 struct IntentDataSendTransaction
   - network: string
+  - wallet:  string
   - identifier: string
   - transactions: []any
+    + go.field.type = []json.RawMessage
 
 struct TransactionRaw
   - type: string
