@@ -45,7 +45,7 @@ func TestIntentNewIntentTyped(t *testing.T) {
 
 	t.Run("sign", func(t *testing.T) {
 		intent := NewIntentTyped(IntentDataSignMessage{Network: "ethereum", Message: "0x1234"})
-		assert.Equal(t, "sign", intent.Name)
+		assert.Equal(t, "signMessage", intent.Name)
 	})
 
 	t.Run("transaction", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestIntentNewIntentTypedFromIntent(t *testing.T) {
 func TestIntentIsValid(t *testing.T) {
 
 	t.Run("valid", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("valid_p256k1Signature", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
@@ -113,7 +113,7 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("valid_p256r1Signature", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
@@ -126,7 +126,7 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("valid_legacySignature", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("expired", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 		intent.ExpiresAt = 0
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
@@ -152,7 +152,7 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("issuedInFuture", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 		intent.IssuedAt = uint64(1 << 63)
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
@@ -166,13 +166,13 @@ func TestIntentIsValid(t *testing.T) {
 	})
 
 	t.Run("noSignatures", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		assert.ErrorContains(t, intent.IsValid(), "no signatures")
 	})
 
 	t.Run("invalidSignature", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{SessionId: "0x1234", Email: ethkit.ToPtr("test@test.com")})
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
