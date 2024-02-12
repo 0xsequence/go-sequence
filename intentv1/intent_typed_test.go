@@ -44,7 +44,7 @@ func TestIntentNewIntentTyped(t *testing.T) {
 	})
 
 	t.Run("sign", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataSign{Network: "ethereum", Message: "0x1234"})
+		intent := NewIntentTyped(IntentDataSignMessage{Network: "ethereum", Message: "0x1234"})
 		assert.Equal(t, "sign", intent.Name)
 	})
 

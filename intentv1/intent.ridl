@@ -23,7 +23,7 @@ struct Signature
 #  - finishValidateSession
 #  - listSessions
 #  - getSession
-#  - sign
+#  - signMessage
 #  - sendTransaction
 
 struct IntentDataOpenSession
@@ -51,7 +51,7 @@ struct IntentDataGetSession
   - sessionId: string
   - wallet: string
 
-struct IntentDataSign
+struct IntentDataSignMessage
   - network: string
   - wallet:  string
   - message: string
