@@ -33,13 +33,13 @@ func TestRecoverTransactionIntent(t *testing.T) {
 			},
 			{
 			  "type": "erc20send",
-			  "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			  "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 			  "to": "0x7b1Bd3474D789e18e2E329E2c53F819B6E687b4A",
 			  "value": "1000"
 			},
 			{
 			  "type": "erc721send",
-			  "token": "0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d",
+			  "tokenAddress": "0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d",
 			  "to": "0x17fFA2d95b58228e1ECb0C6Ac25A6EfD20BA08E4",
 			  "id": "7",
 			  "safe": true,
@@ -47,7 +47,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 			},
 			{
 			  "type": "erc1155send",
-			  "token": "0x631998e91476da5b870d741192fc5cbc55f5a52e",
+			  "tokenAddress": "0x631998e91476da5b870d741192fc5cbc55f5a52e",
 			  "to": "0x91E8aC543C5fEDf9F3Ef8b9dA1500dB84305681F",
 			  "vals": [
 				{

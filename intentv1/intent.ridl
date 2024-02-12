@@ -94,6 +94,12 @@ struct TransactionERC1155Value
   - id: string
   - amount: string
 
+struct TransactionDelayedEncode
+  - to: string
+  - value: string
+  - data: any
+     + go.field.type = json.RawMessage
+
 struct TransactionERC1155
   - type: string
   - tokenAddress: string
