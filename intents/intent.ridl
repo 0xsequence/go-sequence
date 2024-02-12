@@ -110,3 +110,25 @@ struct TransactionERC1155
 struct IntentResponse
   - code: string
   - data: any
+
+struct IntentResponseSessionOpened
+  - sessionId: string
+
+struct IntentResponseSessionClosed
+
+struct IntentResponseValidateSession
+
+struct IntentResponseFinishValidateSession
+
+struct IntentResponseListSessions
+  - sessions: []string
+
+struct IntentResponseGetSession
+  - isValid: bool
+
+struct IntentResponseSignMessage
+  - signature: string
+
+struct IntentResponseSendTransaction
+
+struct IntentResponseSendFail
