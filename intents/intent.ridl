@@ -16,7 +16,7 @@ struct Signature
   - signature: string
 
 # no way to generate string enums
-# enum IntentName: uint8
+# enum IntentName: string
 #  - openSession
 #  - closeSession
 #  - validateSession
@@ -72,7 +72,7 @@ struct TransactionRaw
   - data: string
 
 # no way to generate string enums
-#enum TransactionType: uint8
+#enum TransactionType: string
 #  - transaction
 #  - erc20send
 #  - erc721send
