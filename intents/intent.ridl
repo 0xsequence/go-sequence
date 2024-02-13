@@ -77,6 +77,7 @@ struct TransactionRaw
 #  - erc20send
 #  - erc721send
 #  - erc1155send
+#  - delayedEncode
 
 struct TransactionERC20
   - type: string
@@ -97,6 +98,7 @@ struct TransactionERC1155Value
   - amount: string
 
 struct TransactionDelayedEncode
+  - type: string
   - to: string
   - value: string
   - data: any
