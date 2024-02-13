@@ -10,9 +10,10 @@ struct Intent
   - issuedAt: uint64
   - data: any
   - signatures: []Signature
+    + go.tag.json = omitempty
 
 struct Signature
-  - sessionId: string
+  - sessionID: string
   - signature: string
 
 # no way to generate string enums
@@ -27,20 +28,25 @@ struct Signature
 #  - sendTransaction
 
 struct IntentDataOpenSession
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
   - email?: string
+    + go.tag.json = omitempty
   - idToken?: string
+    + go.tag.json = omitempty
 
 struct IntentDataCloseSession
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
 
 struct IntentDataValidateSession
-  - sessionId: string
+  - sessionID: string
   - wallet: string
   - deviceMetadata: string
 
 struct IntentDataFinishValidateSession
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
   - wallet:  string
   - salt: string
   - challenge: string
@@ -50,7 +56,8 @@ struct IntentDataListSessions
 
 
 struct IntentDataGetSession
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
   - wallet: string
 
 struct IntentDataSignMessage
@@ -95,6 +102,7 @@ struct TransactionERC721
 
 struct TransactionERC1155Value
   - id: string
+    + go.field.name = ID
   - amount: string
 
 struct TransactionDelayedEncode
@@ -127,7 +135,8 @@ struct IntentResponse
 # - getSessionResponse
 
 struct IntentResponseSessionOpened
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
   - wallet: string
 
 struct IntentResponseSessionClosed
@@ -135,7 +144,8 @@ struct IntentResponseSessionClosed
 struct IntentResponseValidateSession
 
 struct IntentResponseValidationRequired
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
 
 struct IntentResponseValidationStarted
   - salt: string
@@ -147,7 +157,8 @@ struct IntentResponseListSessions
   - sessions: []string
 
 struct IntentResponseGetSession
-  - sessionId: string
+  - sessionID: string
+    + go.field.name = SessionID
   - wallet: string
   - validated: bool
 

@@ -3,7 +3,7 @@ package intents
 import "fmt"
 
 func (id *IntentDataOpenSession) IsValid() error {
-	if id.SessionId == "" {
+	if id.SessionID == "" {
 		return fmt.Errorf("session id is empty")
 	}
 

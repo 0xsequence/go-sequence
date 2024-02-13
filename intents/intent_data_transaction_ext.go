@@ -165,9 +165,9 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		var parsedAmounts []*big.Int
 
 		for _, val := range tx.Vals {
-			id, ok := sequence.ParseHexOrDec(val.Id)
+			id, ok := sequence.ParseHexOrDec(val.ID)
 			if !ok {
-				return nil, fmt.Errorf("invalid id '%s'", val.Id)
+				return nil, fmt.Errorf("invalid id '%s'", val.ID)
 			}
 
 			amount, ok := sequence.ParseHexOrDec(val.Amount)

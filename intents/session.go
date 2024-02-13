@@ -13,7 +13,7 @@ import (
 )
 
 type Session interface {
-	SessionId() string
+	SessionID() string
 	Sign(intent *Intent) error
 }
 
@@ -25,7 +25,7 @@ func NewSessionP256K1(wallet *ethwallet.Wallet) Session {
 	return &session256K1{wallet: wallet}
 }
 
-func (s session256K1) SessionId() string {
+func (s session256K1) SessionID() string {
 	return strings.ToLower(
 		fmt.Sprintf(
 			"0x%s",
@@ -48,7 +48,7 @@ func (s session256K1) Sign(intent *Intent) error {
 	}
 
 	intent.Signatures = append(intent.Signatures, &Signature{
-		SessionId: s.SessionId(),
+		SessionID: s.SessionID(),
 		Signature: bytesToSignature(signature),
 	})
 	return nil
@@ -62,7 +62,7 @@ func NewSessionP256R1(privateKey *ecdsa.PrivateKey) Session {
 	return &session256R1{privateKey: privateKey}
 }
 
-func (s session256R1) SessionId() string {
+func (s session256R1) SessionID() string {
 	pubKey := elliptic.Marshal(s.privateKey.Curve, s.privateKey.PublicKey.X, s.privateKey.PublicKey.Y)
 	return strings.ToLower(
 		fmt.Sprintf(
@@ -90,7 +90,7 @@ func (s session256R1) Sign(intent *Intent) error {
 	signature := append(sr.Bytes(), ss.Bytes()...)
 
 	intent.Signatures = append(intent.Signatures, &Signature{
-		SessionId: s.SessionId(),
+		SessionID: s.SessionID(),
 		Signature: bytesToSignature(signature),
 	})
 	return nil
@@ -108,7 +108,7 @@ func SignIntentWithWalletLegacy[T any](wallet *ethwallet.Wallet, intent *IntentT
 	}
 
 	intent.Signatures = append(intent.Signatures, &Signature{
-		SessionId: strings.ToLower(wallet.Address().String()),
+		SessionID: strings.ToLower(wallet.Address().String()),
 		Signature: strings.ToLower(fmt.Sprintf("0x%s", common.Bytes2Hex(signature))),
 	})
 	return nil

@@ -223,8 +223,8 @@ func (intent *Intent) isValidSignatureP256R1(sessionId string, signature string)
 func (intent *Intent) Signers() []string {
 	var signers []string
 	for _, signature := range intent.Signatures {
-		if err := intent.isValidSignature(signature.SessionId, signature.Signature); err == nil {
-			signers = append(signers, signature.SessionId)
+		if err := intent.isValidSignature(signature.SessionID, signature.Signature); err == nil {
+			signers = append(signers, signature.SessionID)
 		}
 	}
 	return signers
