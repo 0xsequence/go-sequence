@@ -10,7 +10,7 @@ struct Intent
   - issuedAt: uint64
   - data: any
   - signatures: []Signature
-    + go.tag.json = omitempty
+    + go.tag.json = ,omitempty
 
 struct Signature
   - sessionId: string
@@ -32,9 +32,9 @@ struct IntentDataOpenSession
   - sessionId: string
     + go.field.name = SessionID
   - email?: string
-    + go.tag.json = omitempty
+    + go.tag.json = ,omitempty
   - idToken?: string
-    + go.tag.json = omitempty
+    + go.tag.json = ,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
