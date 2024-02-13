@@ -103,5 +103,6 @@ func (i *IntentTyped[T]) IsValid() error {
 }
 
 func (i *IntentTyped[T]) AsIntent() *Intent {
+	i.Intent.Data = i.Data
 	return &i.Intent
 }
