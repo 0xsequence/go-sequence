@@ -1,8 +1,7 @@
-package packets
+package intents
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -10,28 +9,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 )
 
-type SignMessagePacket struct {
-	BasePacketForWallet
-	Network string `json:"network"`
-	Message string `json:"message"`
-}
-
-const SignMessagePacketCode = "signMessage"
-
-func (p *SignMessagePacket) Unmarshal(packet json.RawMessage) error {
-	err := json.Unmarshal(packet, &p)
-	if err != nil {
-		return err
-	}
-
-	if p.Code != SignMessagePacketCode {
-		return fmt.Errorf("packet code is not '%s', got '%s'", SignMessagePacketCode, p.Code)
-	}
-
-	return nil
-}
-
-func (p *SignMessagePacket) chainID() (*big.Int, error) {
+func (p *IntentDataSignMessage) chainID() (*big.Int, error) {
 	n, ok := sequence.ParseHexOrDec(p.Network)
 	if !ok {
 		return nil, fmt.Errorf("invalid network id '%s'", p.Network)
@@ -40,15 +18,15 @@ func (p *SignMessagePacket) chainID() (*big.Int, error) {
 	return n, nil
 }
 
-func (p *SignMessagePacket) message() []byte {
+func (p *IntentDataSignMessage) message() []byte {
 	return common.FromHex(p.Message)
 }
 
-func (p *SignMessagePacket) wallet() common.Address {
+func (p *IntentDataSignMessage) wallet() common.Address {
 	return common.HexToAddress(p.Wallet)
 }
 
-func (p *SignMessagePacket) subdigest() ([]byte, error) {
+func (p *IntentDataSignMessage) subdigest() ([]byte, error) {
 	chainID, err := p.chainID()
 	if err != nil {
 		return nil, err
@@ -60,7 +38,7 @@ func (p *SignMessagePacket) subdigest() ([]byte, error) {
 // A SignMessagePacket (intent) *MUST* be mapped to a regular "SignMessage" Sequence action, this means that
 // it must adhere to the following rules:
 // - the subdigest must match `SubDigest(chainID, Wallet, Digest(Message))`
-func (p *SignMessagePacket) IsValidInterpretation(subdigest common.Hash) bool {
+func (p *IntentDataSignMessage) IsValidInterpretation(subdigest common.Hash) bool {
 	selfSubDigest, err := p.subdigest()
 	if err != nil {
 		return false

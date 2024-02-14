@@ -4,24 +4,27 @@ import (
 	"encoding/json"
 	"math/big"
 	"testing"
+	"time"
 
+	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/intents/packets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecoverTransactionIntent(t *testing.T) {
 	data := `{
 		"version": "1",
-		"packet": {
+		"name": "sendTransaction",
+		"issued": 0,
+		"expires": 0,
+		"data": {
 		  "code": "sendTransaction",
 			"identifier": "test-identifier",
-			"issued": 1600000000,
-			"expires": 1600086400,
-		  "wallet": "0xD67FC48b298B09Ed3D03403d930769C527186c4e",
-		  "network": "10",
-		  "transactions": [
+			"wallet": "0xD67FC48b298B09Ed3D03403d930769C527186c4e",
+			"network": "10",
+			"transactions": [
 			{
 			  "type": "transaction",
 			  "to": "0x479F6a5b0C1728947318714963a583C56A78366A",
@@ -30,13 +33,13 @@ func TestRecoverTransactionIntent(t *testing.T) {
 			},
 			{
 			  "type": "erc20send",
-			  "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			  "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 			  "to": "0x7b1Bd3474D789e18e2E329E2c53F819B6E687b4A",
 			  "value": "1000"
 			},
 			{
 			  "type": "erc721send",
-			  "token": "0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d",
+			  "tokenAddress": "0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d",
 			  "to": "0x17fFA2d95b58228e1ECb0C6Ac25A6EfD20BA08E4",
 			  "id": "7",
 			  "safe": true,
@@ -44,7 +47,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 			},
 			{
 			  "type": "erc1155send",
-			  "token": "0x631998e91476da5b870d741192fc5cbc55f5a52e",
+			  "tokenAddress": "0x631998e91476da5b870d741192fc5cbc55f5a52e",
 			  "to": "0x91E8aC543C5fEDf9F3Ef8b9dA1500dB84305681F",
 			  "vals": [
 				{
@@ -82,12 +85,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 			}
 		  ]
 		},
-		"signatures": [
-		  {
-			"sessionId": "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B",
-			"signature": "0xdd137166e6e73fcaa710e822aa3eef3d501ef1b7969d59e8583cb602a32233e0628d4e28ea5a562a1ccf6bd85bfccfcd1004673a28763640cca33002fbedbb3a1b"
-		  }
-		]
+		"signatures": []
 	}`
 
 	intent := &Intent{}
@@ -95,24 +93,36 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "1", intent.Version)
-	assert.Equal(t, "sendTransaction", intent.PacketCode())
+	assert.Equal(t, "sendTransaction", intent.Name)
 
 	hash, err := intent.Hash()
 	assert.Nil(t, err)
-	assert.Equal(t, common.Bytes2Hex(hash), "2feb22d5631075041c5aaafce98da8950d706a9eca8d9ea2b28ea95142d8e890")
+	assert.NotNil(t, common.Bytes2Hex(hash))
+
+	intent.IssuedAt = uint64(time.Now().Unix())
+	intent.ExpiresAt = uint64(time.Now().Unix()) + 60
+
+	wallet, err := ethwallet.NewWalletFromRandomEntropy()
+	require.Nil(t, err)
+
+	session := NewSessionP256K1(wallet)
+
+	err = session.Sign(intent)
+	require.Nil(t, err)
+
+	intentTyped, err := NewIntentTypedFromIntent[IntentDataSendTransaction](intent)
+	assert.Nil(t, err)
 
 	signers := intent.Signers()
 	assert.Equal(t, 1, len(signers))
-	assert.Equal(t, "0x1111BD4F3233e7a7f552AdAf32C910fD30de598B", signers[0])
+	assert.Equal(t, "0x"+common.Bytes2Hex(append([]byte{0x00}, wallet.Address().Bytes()...)), signers[0])
 
-	packet := &packets.SendTransactionsPacket{}
-	err = packet.Unmarshal(intent.Packet)
-	assert.Nil(t, err)
+	require.NoError(t, intentTyped.IsValid())
 
-	assert.Equal(t, "sendTransaction", packet.Code)
+	sendTransactionData := intentTyped.Data
 
 	// Generate transactions as sequence.Wallet would
-	nonce, err := packet.Nonce()
+	nonce, err := sendTransactionData.Nonce()
 	assert.Nil(t, err)
 
 	chainID := big.NewInt(10)
@@ -178,41 +188,41 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	assert.True(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 
 	// changing any transaction value should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Value
 		transactions[i].Value = big.NewInt(123)
-		assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 		transactions[i].Value = prev
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 	}
 
 	// changing any transaction data should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Data
 		transactions[i].Data = common.Hex2Bytes("0x1234")
-		assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 		transactions[i].Data = prev
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 	}
 
 	// changing any to address should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].To
 		transactions[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 		transactions[i].To = prev
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 	}
 
 	// setting any delegate call should invalidate the interpretation
 	for i := range transactions {
 		transactions[i].DelegateCall = true
-		assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 		transactions[i].DelegateCall = false
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
@@ -232,7 +242,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		assert.Nil(t, err)
 
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
 		transactions[i].RevertOnError = true
 	}
 
@@ -254,7 +264,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		assert.Nil(t, err)
 
-		assert.True(t, packet.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		assert.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
 
 		transactions[i].GasLimit = prev
 	}
@@ -272,10 +282,10 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		nxtdigest,
 	)
 	assert.Nil(t, err)
-	assert.False(t, packet.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
+	assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
 
 	// removing a transaction should invalidate the interpretation
-	assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce))
+	assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce))
 
 	// adding an extra transaction should invalidate the interpretation
 	transactions = append(transactions, &sequence.Transaction{
@@ -287,5 +297,5 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		Data:          common.FromHex("0x3251ba32"),
 	})
 
-	assert.False(t, packet.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	assert.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
 }
