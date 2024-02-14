@@ -70,7 +70,7 @@ struct IntentDataSignMessage
 struct IntentDataSendTransaction
   - network: string
   - wallet:  string
-  - identifier: string
+  - identifier: string # is used to generate nonce space
   - transactions: []any
     + go.field.type = []json.RawMessage
 

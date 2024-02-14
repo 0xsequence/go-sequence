@@ -93,7 +93,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -106,7 +106,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -119,7 +119,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256R1(privateKey)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -145,7 +145,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.ErrorContains(t, intent.IsValid(), "expired")
@@ -159,7 +159,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.ErrorContains(t, intent.IsValid(), "issued in the future")
@@ -178,7 +178,7 @@ func TestIntentIsValid(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		intent.Signatures[0].Signature = "0x1234"
@@ -195,7 +195,7 @@ func TestIntentDataValidator(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -208,7 +208,7 @@ func TestIntentDataValidator(t *testing.T) {
 		require.NoError(t, err)
 
 		session := NewSessionP256K1(wallet)
-		err = session.Sign(intent.AsIntent())
+		err = session.Sign(intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.ErrorContains(t, intent.IsValid(), "invalid intent data")
