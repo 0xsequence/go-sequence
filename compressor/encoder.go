@@ -398,12 +398,16 @@ func (c *Encoder) WriteBytesOptimized(dest *CBuffer, bytes []byte, saveWord bool
 	// we generate a snapshot of the dest buffer and try to encode it as a signature, if it fails
 	// or if the result is bigger than the original bytes, we restore the snapshot and continue.
 	// Notice: pass `false` to `mayUseBytes` or else this will be an infinite loop
-	snapshot := dest.Snapshot()
-	t, err := c.WriteSignature(dest, bytes, false)
-	if err == nil && dest.Len() < len(bytes)+3+len(snapshot.Commited) {
-		return t, nil
+	// DO NOT use this method if storage is set to false
+	// it is never worth it if we need to use calldata
+	if dest.Refs.useContractStorage {
+		snapshot := dest.Snapshot()
+		t, err := c.WriteSignature(dest, bytes, false)
+		if err == nil && dest.Len() < len(bytes)+3+len(snapshot.Commited) {
+			return t, nil
+		}
+		dest.Restore(snapshot)
 	}
-	dest.Restore(snapshot)
 
 	// If the bytes are a multiple of 32 + 4 bytes (max 6 * 32 + 4) then it
 	// can be encoded as an ABI call with 0 to 6 parameters
@@ -637,7 +641,7 @@ func (c *Encoder) WriteSignature(dest *CBuffer, signature []byte, mayUseBytes bo
 	}()
 
 	// First byte determines the signature type
-	if mayUseBytes && (len(signature) == 0) {
+	if mayUseBytes && (len(signature) == 0 || !dest.Refs.useContractStorage) {
 		// Guestmodule signatures are empty
 		return c.WriteBytesOptimized(dest, signature, false)
 	}
