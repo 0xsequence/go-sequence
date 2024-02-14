@@ -42,7 +42,8 @@ func ToBigInt(b *big.Int) BigInt {
 	if b == nil {
 		return BigInt{}
 	}
-	return BigInt(*b)
+	c := big.NewInt(0).Set(b)
+	return BigInt(*c)
 }
 
 func ToBigIntArray(bs []*big.Int) []BigInt {
