@@ -13,11 +13,14 @@ import (
 // For JSON values we encoded BigInt's as strings.
 //
 // For Database values we encoded BigInt's as NUMERIC(78).
-type BigInt big.Int
+type BigInt struct {
+	inner *big.Int
+}
 
 func NewBigInt(n int64) BigInt {
-	b := big.NewInt(n)
-	return BigInt(*b)
+	return BigInt{
+		inner: big.NewInt(n),
+	}
 }
 
 func NewBigIntFromNumberString(hs string) BigInt {
@@ -35,14 +38,14 @@ func NewBigIntFromString(s string, base int) BigInt {
 		n, _ := ParseNumberString(s, base)
 		b = big.NewInt(n)
 	}
-	return BigInt(*b)
+	return BigInt{inner: b}
 }
 
 func ToBigInt(b *big.Int) BigInt {
 	if b == nil {
 		return BigInt{}
 	}
-	return BigInt(*b)
+	return BigInt{inner: new(big.Int).Set(b)}
 }
 
 func ToBigIntArray(bs []*big.Int) []BigInt {
@@ -70,12 +73,11 @@ func ToBigIntFromInt64(n int64) BigInt {
 }
 
 func (b *BigInt) SetString(s string, base int) bool {
-	v := big.Int(*b)
-	n, ok := v.SetString(s, base)
+	n, ok := b.inner.SetString(s, base)
 	if !ok {
-		return false
+		return ok
 	}
-	*b = BigInt(*n)
+	b.inner = n
 	return true
 }
 
@@ -84,8 +86,7 @@ func (b BigInt) String() string {
 }
 
 func (b BigInt) Int() *big.Int {
-	v := big.Int(b)
-	return &v
+	return b.inner
 }
 
 func (b BigInt) Uint64() uint64 {
@@ -97,13 +98,13 @@ func (b BigInt) Int64() int64 {
 }
 
 func (b *BigInt) Add(n *big.Int) {
-	z := b.Int().Add(b.Int(), n)
-	*b = BigInt(*z)
+	z := b.inner.Add(b.inner, n)
+	b.inner = z
 }
 
 func (b *BigInt) Sub(n *big.Int) {
-	z := b.Int().Sub(b.Int(), n)
-	*b = BigInt(*z)
+	z := b.inner.Sub(b.inner, n)
+	b.inner = z
 }
 
 func (b BigInt) Equals(n *big.Int) bool {
@@ -139,7 +140,7 @@ func (b *BigInt) UnmarshalText(text []byte) error {
 		return nil
 	}
 	i, _ := big.NewInt(0).SetString(string(text[1:len(text)-1]), 10)
-	*b = BigInt(*i)
+	b.inner = i
 	return nil
 }
 
@@ -194,7 +195,7 @@ func (b *BigInt) Scan(src interface{}) error {
 		i = i.Mul(i, big.NewInt(1).Exp(big.NewInt(10), exp, nil))
 	}
 
-	*b = BigInt(*i)
+	b.inner = i
 
 	return nil
 }
