@@ -1,4 +1,4 @@
-package packets
+package intents
 
 import (
 	"encoding/json"

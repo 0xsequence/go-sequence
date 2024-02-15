@@ -1,4 +1,4 @@
-package packets
+package intents
 
 import (
 	"bytes"
@@ -13,30 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
-type SendTransactionsPacket struct {
-	BasePacketForWallet
-	Identifier   string            `json:"identifier"`
-	Wallet       string            `json:"wallet"`
-	Network      string            `json:"network"`
-	Transactions []json.RawMessage `json:"transactions"`
-}
-
-const SendTransactionCode = "sendTransaction"
-
-func (p *SendTransactionsPacket) Unmarshal(packet json.RawMessage) error {
-	err := json.Unmarshal(packet, &p)
-	if err != nil {
-		return err
-	}
-
-	if p.Code != SendTransactionCode {
-		return fmt.Errorf("packet code is not '%s', got '%s'", SendTransactionCode, p.Code)
-	}
-
-	return nil
-}
-
-func (p *SendTransactionsPacket) chainID() (*big.Int, error) {
+func (p *IntentDataSendTransaction) chainID() (*big.Int, error) {
 	n, ok := sequence.ParseHexOrDec(p.Network)
 	if !ok {
 		return nil, fmt.Errorf("invalid network id '%s'", p.Network)
@@ -45,7 +22,7 @@ func (p *SendTransactionsPacket) chainID() (*big.Int, error) {
 	return n, nil
 }
 
-func (p *SendTransactionsPacket) wallet() common.Address {
+func (p *IntentDataSendTransaction) wallet() common.Address {
 	return common.HexToAddress(p.Wallet)
 }
 
@@ -55,38 +32,34 @@ type ExpectedValuesForTransaction struct {
 	Data  []byte
 }
 
-func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (*ExpectedValuesForTransaction, error) {
-	// Get the subpacket type
-	var subpacketType struct {
+func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*ExpectedValuesForTransaction, error) {
+	// Get the tx type
+	var baseTransactionType struct {
 		Type string `json:"type"`
 	}
 
-	err := json.Unmarshal(*subpacket, &subpacketType)
+	err := json.Unmarshal(*txRaw, &baseTransactionType)
 	if err != nil {
 		return nil, err
 	}
 
-	switch subpacketType.Type {
+	switch baseTransactionType.Type {
 	case "transaction":
-		// This packet explicitly defines the transaction values
-		var subpacketTransactionType struct {
-			To    string `json:"to"`
-			Value string `json:"value"`
-			Data  string `json:"data"`
-		}
+		// This struct explicitly defines the transaction values
+		var tx TransactionRaw
 
-		err := json.Unmarshal(*subpacket, &subpacketTransactionType)
+		err := json.Unmarshal(*txRaw, &tx)
 		if err != nil {
 			return nil, err
 		}
 
-		to := common.HexToAddress(subpacketTransactionType.To)
-		value, ok := sequence.ParseHexOrDec(subpacketTransactionType.Value)
+		to := common.HexToAddress(tx.To)
+		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
-			return nil, fmt.Errorf("invalid value '%s'", subpacketTransactionType.Value)
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
 		}
 
-		data := common.FromHex(subpacketTransactionType.Data)
+		data := common.FromHex(tx.Data)
 
 		return &ExpectedValuesForTransaction{
 			To:    &to,
@@ -95,25 +68,21 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 		}, nil
 
 	case "erc20send":
-		// This packet defines the transaction values for an ERC20 transfer
+		// This struct defines the transaction values for an ERC20 transfer
 		// so this should be an ABI encoded transfer call to `to`. The `value`
 		// field must be 0.
-		var subpacketERC20SendType struct {
-			Token string `json:"token"`
-			To    string `json:"to"`
-			Value string `json:"value"`
-		}
+		var tx TransactionERC20
 
-		err := json.Unmarshal(*subpacket, &subpacketERC20SendType)
+		err := json.Unmarshal(*txRaw, &tx)
 		if err != nil {
 			return nil, err
 		}
 
-		to := common.HexToAddress(subpacketERC20SendType.To)
-		token := common.HexToAddress(subpacketERC20SendType.Token)
-		value, ok := sequence.ParseHexOrDec(subpacketERC20SendType.Value)
+		to := common.HexToAddress(tx.To)
+		token := common.HexToAddress(tx.TokenAddress)
+		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
-			return nil, fmt.Errorf("invalid value '%s'", subpacketERC20SendType.Value)
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
 		}
 
 		// Encode the transfer call
@@ -129,39 +98,36 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 		}, nil
 
 	case "erc721send":
-		// This packet defines the transaction values for an ERC721 transfer
+		// This struct defines the transaction values for an ERC721 transfer
 		// so this should be an ABI encoded transfer call to `to`. The `value`
 		// field must be 0.
-		var subpacketERC721SendType struct {
-			Token string `json:"token"`
-			To    string `json:"to"`
-			ID    string `json:"id"`
-			Safe  bool   `json:"safe,omitempty"`
-			Data  string `json:"data,omitempty"`
-		}
+		var tx TransactionERC721
 
 		// Safe defaults to false
-		if err := json.Unmarshal(*subpacket, &subpacketERC721SendType); err != nil {
+		if err := json.Unmarshal(*txRaw, &tx); err != nil {
 			return nil, err
 		}
 
 		// If data is not empty, then safe *must* be true
 
-		to := common.HexToAddress(subpacketERC721SendType.To)
-		token := common.HexToAddress(subpacketERC721SendType.Token)
-		id, ok := sequence.ParseHexOrDec(subpacketERC721SendType.ID)
+		to := common.HexToAddress(tx.To)
+		token := common.HexToAddress(tx.TokenAddress)
+		id, ok := sequence.ParseHexOrDec(tx.Id)
 		if !ok {
-			return nil, fmt.Errorf("invalid id '%s'", subpacketERC721SendType.ID)
+			return nil, fmt.Errorf("invalid id '%s'", tx.Id)
 		}
-		data := common.FromHex(subpacketERC721SendType.Data)
+		var data []byte
+		if tx.Data != nil {
+			data = common.FromHex(*tx.Data)
+		}
 
 		// If data is not empty, then safe *must* be true
-		if len(data) > 0 && !subpacketERC721SendType.Safe {
+		if len(data) > 0 && tx.Safe != nil && !*tx.Safe {
 			return nil, fmt.Errorf("safe must be true if data is not empty")
 		}
 
 		var encodedData []byte
-		if subpacketERC721SendType.Safe {
+		if tx.Safe != nil && *tx.Safe {
 			// Encode the safe transfer call
 			encodedData, err = ethcoder.AbiEncodeMethodCalldata("safeTransferFrom(address,address,uint256,bytes)", []interface{}{p.wallet(), to, id, data})
 			if err != nil {
@@ -182,33 +148,23 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 		}, nil
 
 	case "erc1155send":
-		// This packet defines the transaction values for an ERC1155 transfer
+		// This struct defines the transaction values for an ERC1155 transfer
 		// so this should be an ABI encoded transfer call to `to`. The `value`
 		// field must be 0.
-		type subpacketERC1155SendValsType struct {
-			ID     string `json:"id"`
-			Amount string `json:"amount"`
-		}
+		var tx TransactionERC1155
 
-		var subpacketERC1155SendType struct {
-			Token string                         `json:"token"`
-			To    string                         `json:"to"`
-			Vals  []subpacketERC1155SendValsType `json:"vals"`
-			Data  string                         `json:"data,omitempty"`
-		}
-
-		err := json.Unmarshal(*subpacket, &subpacketERC1155SendType)
+		err := json.Unmarshal(*txRaw, &tx)
 		if err != nil {
 			return nil, err
 		}
 
-		to := common.HexToAddress(subpacketERC1155SendType.To)
-		token := common.HexToAddress(subpacketERC1155SendType.Token)
+		to := common.HexToAddress(tx.To)
+		token := common.HexToAddress(tx.TokenAddress)
 
 		var parsedIDs []*big.Int
 		var parsedAmounts []*big.Int
 
-		for _, val := range subpacketERC1155SendType.Vals {
+		for _, val := range tx.Vals {
 			id, ok := sequence.ParseHexOrDec(val.ID)
 			if !ok {
 				return nil, fmt.Errorf("invalid id '%s'", val.ID)
@@ -223,7 +179,10 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 			parsedAmounts = append(parsedAmounts, amount)
 		}
 
-		data := common.FromHex(subpacketERC1155SendType.Data)
+		var data []byte
+		if tx.Data != nil {
+			data = common.FromHex(*tx.Data)
+		}
 
 		encodedData, err := ethcoder.AbiEncodeMethodCalldata("safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)", []interface{}{p.wallet(), to, parsedIDs, parsedAmounts, data})
 
@@ -238,19 +197,15 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 		}, nil
 
 	case "delayedEncode":
-		var subpacketDelayedEncodeType struct {
-			To    string          `json:"to"`
-			Value string          `json:"value"`
-			Data  json.RawMessage `json:"data"`
-		}
+		var tx TransactionDelayedEncode
 
-		err := json.Unmarshal(*subpacket, &subpacketDelayedEncodeType)
+		err := json.Unmarshal(*txRaw, &tx)
 		if err != nil {
 			return nil, err
 		}
 
 		nst := &delayedEncodeType{}
-		err = json.Unmarshal(subpacketDelayedEncodeType.Data, nst)
+		err = json.Unmarshal(tx.Data, nst)
 		if err != nil {
 			return nil, err
 		}
@@ -260,10 +215,10 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 			return nil, err
 		}
 
-		to := common.HexToAddress(subpacketDelayedEncodeType.To)
-		value, ok := sequence.ParseHexOrDec(subpacketDelayedEncodeType.Value)
+		to := common.HexToAddress(tx.To)
+		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
-			return nil, fmt.Errorf("invalid value '%s'", subpacketDelayedEncodeType.Value)
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
 		}
 
 		return &ExpectedValuesForTransaction{
@@ -272,11 +227,11 @@ func (p *SendTransactionsPacket) ExpectedValuesFor(subpacket *json.RawMessage) (
 			Data:  common.FromHex(encoded),
 		}, nil
 	default:
-		return nil, fmt.Errorf("invalid subpacket type '%s'", subpacketType.Type)
+		return nil, fmt.Errorf("invalid transaction type '%s'", baseTransactionType.Type)
 	}
 }
 
-func (p *SendTransactionsPacket) Nonce() (*big.Int, error) {
+func (p *IntentDataSendTransaction) Nonce() (*big.Int, error) {
 	// Hash the identifier, it will be used as the nonce
 	// space. The nonce number is always 0.
 	hashed := ethcoder.Keccak256([]byte(p.Identifier))
@@ -285,7 +240,7 @@ func (p *SendTransactionsPacket) Nonce() (*big.Int, error) {
 	return sequence.EncodeNonce(big.NewInt(0).SetBytes(hashed[:20]), common.Big0)
 }
 
-func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
+func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
 	// Nonce must be the expected one
 	// (defined by the identifier)
 	enonce, err := p.Nonce()
@@ -319,7 +274,7 @@ func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, tx
 		return false
 	}
 
-	// Now check that every transaction maps 1:1 to the transactions in the packet
+	// Now check that every transaction maps 1:1 to the transactions in the intent
 	// meaning that they follow the intent signed by it
 	if len(txns) != len(p.Transactions) {
 		return false
@@ -354,11 +309,11 @@ func (p *SendTransactionsPacket) IsValidInterpretation(subdigest common.Hash, tx
 type SendTransactionResponse struct {
 	Code string `json:"code"`
 	Data struct {
-		Request       *SendTransactionsPacket `json:"request"`
-		TxHash        string                  `json:"txHash"`
-		Receipt       *proto.MetaTxnReceipt   `json:"receipt"`
-		NativeReceipt *types.Receipt          `json:"nativeReceipt"`
-		Simulations   []*proto.SimulateResult `json:"simulations"`
+		Request       *IntentDataSendTransaction `json:"request"`
+		TxHash        string                     `json:"txHash"`
+		Receipt       *proto.MetaTxnReceipt      `json:"receipt"`
+		NativeReceipt *types.Receipt             `json:"nativeReceipt"`
+		Simulations   []*proto.SimulateResult    `json:"simulations"`
 	}
 }
 
@@ -367,8 +322,8 @@ const SendTransactionResponseCode = "transactionReceipt"
 type SendTransactionFailed struct {
 	Code string `json:"code"`
 	Data struct {
-		Request     *SendTransactionsPacket `json:"request"`
-		Simulations []*proto.SimulateResult `json:"simulations"`
+		Request     *IntentDataSendTransaction `json:"request"`
+		Simulations []*proto.SimulateResult    `json:"simulations"`
 	}
 }
 
