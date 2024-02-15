@@ -131,7 +131,7 @@ func TestIntentIsValid(t *testing.T) {
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
 
-		err = SignIntentWithWalletLegacy(wallet, intent)
+		err = SignIntentWithWalletLegacy(wallet, intent.ToIntent())
 		require.NoError(t, err)
 
 		assert.NoError(t, intent.IsValid())
@@ -213,4 +213,31 @@ func TestIntentDataValidator(t *testing.T) {
 
 		assert.ErrorContains(t, intent.IsValid(), "invalid intent data")
 	})
+}
+
+func TestIntent_Hash(t *testing.T) {
+	wallet, _ := ethwallet.NewWalletFromRandomEntropy()
+
+	session := NewSessionP256K1(wallet)
+
+	intentTyped := NewIntentTyped(IntentDataOpenSession{SessionID: "0x1234", Email: ethkit.ToPtr("test@test.com")})
+
+	intent := Intent{
+		Version:   intentTyped.Version,
+		Name:      intentTyped.Name,
+		ExpiresAt: intentTyped.ExpiresAt,
+		IssuedAt:  intentTyped.IssuedAt,
+		Data:      map[string]interface{}{"sessionId": "0x1234", "email": "test@test.com"},
+	}
+
+	err := session.Sign(intentTyped.ToIntent())
+	require.NoError(t, err)
+
+	err = session.Sign(&intent)
+	require.NoError(t, err)
+
+	hashIntentTyped, _ := intentTyped.Hash()
+	hashIntent, _ := intent.Hash()
+
+	assert.Equal(t, hashIntentTyped, hashIntent)
 }
