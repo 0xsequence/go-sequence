@@ -59,7 +59,7 @@ func TestRecoverMessageIntent(t *testing.T) {
 	subdigest, err := sequence.SubDigest(
 		big.NewInt(1),
 		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		sequence.MessageDigest(common.Hex2Bytes("deadbeef")),
+		sequence.MessageDigest(sequence.MessageToEIP191(common.Hex2Bytes("deadbeef"))),
 	)
 
 	assert.Nil(t, err)

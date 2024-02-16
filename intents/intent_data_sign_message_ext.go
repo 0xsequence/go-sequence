@@ -32,7 +32,13 @@ func (p *IntentDataSignMessage) subdigest() ([]byte, error) {
 		return nil, err
 	}
 
-	return sequence.SubDigest(chainID, p.wallet(), sequence.MessageDigest(p.message()))
+	// Make sure the message is EIP191 encoded
+	msgData := p.message()
+	if !sequence.IsEIP191Message(msgData) {
+		msgData = sequence.MessageToEIP191(msgData)
+	}
+
+	return sequence.SubDigest(chainID, p.wallet(), sequence.MessageDigest(msgData))
 }
 
 // A SignMessagePacket (intent) *MUST* be mapped to a regular "SignMessage" Sequence action, this means that
