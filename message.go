@@ -6,7 +6,7 @@ import (
 )
 
 func IsEIP191Message(msg []byte) bool {
-	return len(msg) > 0 && msg[0] == 0x19
+	return bytes.HasPrefix(msg, []byte("\x19Ethereum Signed Message:\n"))
 }
 
 func MessageToEIP191(msg []byte) []byte {

@@ -25,6 +25,15 @@ func TestIsEIP191Message(t *testing.T) {
 			t.Error("expected non-EIP191 message")
 		}
 	})
+
+	t.Run("empty-EIP191", func(t *testing.T) {
+		// non-EIP191 message
+		msg := []byte("")
+		ok := sequence.IsEIP191Message(msg)
+		if ok {
+			t.Error("expected non-EIP191 message")
+		}
+	})
 }
 
 func TestMessageToEIP191(t *testing.T) {
