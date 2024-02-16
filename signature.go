@@ -1,6 +1,7 @@
 package sequence
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -216,6 +217,20 @@ func V2IsValidUndeployedSignature(walletAddress common.Address, digest common.Ha
 
 func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
+func IsEIP191Message(msg []byte) bool {
+	return len(msg) > 0 && msg[0] == 0x19
+}
+
+func MessageToEIP191(msg []byte) []byte {
+	if !IsEIP191Message(msg) {
+		return bytes.Join([][]byte{
+			[]byte("\x19Ethereum Signed Message:\n"),
+			[]byte(fmt.Sprintf("%v", len(msg))),
+			msg}, nil)
+	}
+	return msg
 }
 
 func MessageDigest(message []byte) common.Hash {
