@@ -172,24 +172,7 @@ func IsValidMessageSignature(address common.Address, message []byte, signature [
 }
 
 func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(provider, walletAddress, digest, seqSig)
-	if eip6492isValid {
-		return true, nil
-	}
-
-	// NOTICE: This is legacy code, we only need it while we deploy EIP-6492
-	// on prod, otherwise we need to coordinate both.
-	// as soon as we have EIP-6492 running on prod we can remove this.
-	generalIsValid, err := GeneralIsValidSignature(walletAddress, digest, seqSig, walletContexts, chainID, provider)
-	if err != nil {
-		return false, err
-	}
-
-	if generalIsValid {
-		log.Errorf("WARNING: Legacy signature validation used, please upgrade to EIP-6492: %s, %s, %s", walletAddress, digest, common.Bytes2Hex(seqSig))
-	}
-
-	return generalIsValid, nil
+	return eip6492.ValidateEIP6492Offchain(provider, walletAddress, digest, seqSig)
 }
 
 func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
