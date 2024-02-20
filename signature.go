@@ -157,9 +157,10 @@ func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, s
 	return isValid, nil
 }
 
-func IsValidMessageSignature(address common.Address, message []byte, signature []byte, chainID *big.Int, provider *ethrpc.Provider, log logger.Logger) (bool, error) {
-	if log == nil {
-		log = logger.Nop()
+func IsValidMessageSignature(address common.Address, message []byte, signature []byte, chainID *big.Int, provider *ethrpc.Provider, optLogger *logger.Logger) (bool, error) {
+	log := logger.Nop()
+	if optLogger != nil {
+		log = *optLogger
 	}
 
 	isValid, err := ethwallet.IsValid191Signature(address, message, signature)
