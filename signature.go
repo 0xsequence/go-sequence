@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
@@ -154,6 +155,19 @@ func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, s
 	}
 
 	return isValid, nil
+}
+
+func IsValidMessageSignature(address common.Address, message []byte, signature []byte, chainID *big.Int, provider *ethrpc.Provider, log logger.Logger) (bool, error) {
+	if log == nil {
+		log = logger.Nop()
+	}
+
+	isValid, err := ethwallet.IsValid191Signature(address, message, signature)
+	if err == nil && isValid {
+		return true, nil
+	}
+
+	return IsValidSignature(log, address, MessageDigest(accounts.TextHash(message)), signature, SequenceContexts(), chainID, provider)
 }
 
 func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
