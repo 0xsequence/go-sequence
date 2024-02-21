@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/json"
 	"testing"
 
 	"github.com/0xsequence/ethkit"
@@ -240,4 +241,32 @@ func TestIntent_Hash(t *testing.T) {
 	hashIntent, _ := intent.Hash()
 
 	assert.Equal(t, hashIntentTyped, hashIntent)
+}
+
+func TestIntentTyped_Serialization_DoubleData(t *testing.T) {
+	intent := Intent{
+		Version:   "1",
+		Name:      "openSession",
+		ExpiresAt: 0,
+		IssuedAt:  0,
+		Data:      map[string]interface{}{"sessionId": "0x1234", "email": "test@test.com"},
+	}
+
+	intentTyped, err := NewIntentTypedFromIntent[IntentDataOpenSession](&intent)
+	require.NoError(t, err)
+
+	intentTypedJSON, err := json.Marshal(intentTyped)
+	require.NoError(t, err)
+
+	var intentMap map[string]any
+	err = json.Unmarshal(intentTypedJSON, &intentMap)
+	require.NoError(t, err)
+
+	assert.Equal(t, "1", intentMap["version"])
+	assert.Equal(t, "openSession", intentMap["name"])
+	assert.Equal(t, "0x1234", intentMap["data"].(map[string]any)["sessionId"])
+	assert.Equal(t, "test@test.com", intentMap["data"].(map[string]any)["email"])
+	assert.Equal(t, float64(0), intentMap["expiresAt"])
+	assert.Equal(t, float64(0), intentMap["issuedAt"])
+	assert.Equal(t, nil, intentMap["Data"])
 }
