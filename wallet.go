@@ -430,8 +430,7 @@ func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, erro
 }
 
 func (w *Wallet[C]) SignMessage(msg []byte) ([]byte, error) {
-	ctx := context.Background()
-	return w.SignDigest(ctx, MessageDigest(msg))
+	return w.SignDigest(context.Background(), MessageDigest(msg))
 }
 
 var _ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
