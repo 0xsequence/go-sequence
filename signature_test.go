@@ -1,7 +1,6 @@
 package sequence_test
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -47,7 +46,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 	err = wallet.Connect(provider, nil)
 	assert.NoError(t, err)
 
-	signature, _, err := wallet.SignMessage(context.Background(), accounts.TextHash([]byte(message)))
+	signature, err := wallet.SignMessage(accounts.TextHash([]byte(message)))
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())

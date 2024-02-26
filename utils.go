@@ -3,6 +3,7 @@ package sequence
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -85,4 +86,12 @@ func DecodeRevertReason(logs []*types.Log) []string {
 		reasons = append(reasons, reason)
 	}
 	return reasons
+}
+
+func ParseHexOrDec(s string) (*big.Int, bool) {
+	if len(s) > 2 && s[0:2] == "0x" {
+		return new(big.Int).SetString(s[2:], 16)
+	}
+
+	return new(big.Int).SetString(s, 10)
 }

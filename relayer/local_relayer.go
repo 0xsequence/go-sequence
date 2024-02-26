@@ -14,7 +14,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -116,6 +118,11 @@ func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig core.WalletCon
 	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 
+func (r *LocalRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
 	// a wallet creation call)
@@ -127,6 +134,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(
 		r,
+		signedTxs.WalletAddress,
 		signedTxs.WalletConfig,
 		signedTxs.WalletContext,
 		signedTxs.Transactions,
@@ -137,12 +145,44 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
-	// send to guest module if factory address is the recipient (in order to deploy wallet)
-	// todo: split wallet create and other transactions
-	for _, txn := range signedTxs.Transactions {
-		if txn.To == signedTxs.WalletContext.FactoryAddress {
+	if r.IsDeployTransaction(signedTxs) {
+		to = signedTxs.WalletContext.GuestModuleAddress
+	} else {
+		isDeployed, err := sequence.IsWalletDeployed(r.GetProvider(), to)
+		if err != nil {
+			return "", nil, nil, err
+		}
+
+		if !isDeployed {
+			_, factoryAddress, deployData, err := sequence.EncodeWalletDeployment(signedTxs.WalletConfig, signedTxs.WalletContext)
+			if err != nil {
+				return "", nil, nil, err
+			}
+
+			txns := sequence.Transactions{
+				{
+					RevertOnError: true,
+					To:            factoryAddress,
+					Data:          deployData,
+				},
+				{
+					RevertOnError: true,
+					To:            to,
+					Data:          execdata,
+				},
+			}
+
+			encodedTxns, err := txns.EncodedTransactions()
+			if err != nil {
+				return "", nil, nil, err
+			}
+
+			execdata, err = contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+			if err != nil {
+				return "", nil, nil, err
+			}
+
 			to = signedTxs.WalletContext.GuestModuleAddress
-			break
 		}
 	}
 
@@ -189,4 +229,18 @@ func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, o
 		status = result.Status
 	}
 	return status, receipt.Receipt(), nil
+}
+
+func (r *LocalRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions) bool {
+	for _, txn := range signedTxs.Transactions {
+		if txn.To == signedTxs.WalletContext.FactoryAddress {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *LocalRelayer) Client() proto.Relayer {
+	// no relayer used
+	return nil
 }

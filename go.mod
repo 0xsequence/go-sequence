@@ -11,6 +11,7 @@ require (
 	github.com/0xsequence/go-ethauth v0.13.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
+	github.com/gibson042/canonicaljson-go v1.0.3
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.8.1
 	github.com/goware/logger v0.3.0
@@ -40,6 +41,7 @@ require (
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect

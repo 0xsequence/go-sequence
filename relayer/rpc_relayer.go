@@ -29,8 +29,6 @@ type RpcRelayer struct {
 
 var _ sequence.Relayer = &RpcRelayer{}
 
-type Options = proto.Options
-
 // NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
 func NewRpcRelayer(relayerURL string, projectAccessKey string, provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, options ...Options) (*RpcRelayer, error) {
@@ -43,7 +41,7 @@ func NewRpcRelayer(relayerURL string, projectAccessKey string, provider *ethrpc.
 		return nil, fmt.Errorf("relayerURL is invalid: %w", err)
 	}
 
-	service := proto.NewRelayer(relayerURL, projectAccessKey, options...)
+	service := NewRelayer(relayerURL, projectAccessKey, options...)
 
 	return &RpcRelayer{
 		provider:        provider,
@@ -115,17 +113,57 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
+func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
+	to, execdata, err := sequence.EncodeTransactionsForRelaying(
+		r,
+		txs.WalletAddress,
+		txs.WalletConfig,
+		txs.WalletContext,
+		txs.Transactions,
+		txs.Nonce,
+		txs.Signature,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*sequence.RelayerSimulateResult
+	for _, r := range res {
+		results = append(results, &sequence.RelayerSimulateResult{
+			Executed:  r.Executed,
+			Succeeded: r.Succeeded,
+			Result:    r.Result,
+			Reason:    r.Reason,
+			GasUsed:   r.GasUsed,
+			GasLimit:  r.GasLimit,
+		})
+	}
+	return results, nil
+}
+
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
-	if err != nil {
-		return "", nil, nil, err
+	walletAddress := signedTxs.WalletAddress
+	var err error
+
+	if walletAddress == (common.Address{}) {
+		walletAddress, err = sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
+		if err != nil {
+			return "", nil, nil, err
+		}
 	}
 
 	to, execdata, err := sequence.EncodeTransactionsForRelaying(
 		r,
+		signedTxs.WalletAddress,
 		signedTxs.WalletConfig,
 		signedTxs.WalletContext,
 		signedTxs.Transactions,
@@ -136,13 +174,8 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		return "", nil, nil, err
 	}
 
-	// send to guest module if factory address is the recipient (in order to deploy wallet)
-	// todo: split wallet create and other transactions
-	for _, txn := range signedTxs.Transactions {
-		if txn.To == signedTxs.WalletContext.FactoryAddress {
-			to = signedTxs.WalletContext.GuestModuleAddress
-			break
-		}
+	if r.IsDeployTransaction(signedTxs) {
+		to = signedTxs.WalletContext.GuestModuleAddress
 	}
 
 	call := &proto.MetaTxn{
@@ -229,12 +262,25 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
 		}
-		return proto.MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
+		return MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
 	}
 }
 
+func (r *RpcRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions) bool {
+	for _, txn := range signedTxs.Transactions {
+		if txn.To == signedTxs.WalletContext.FactoryAddress {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RpcRelayer) Client() proto.Relayer {
+	return r.Service
+}
+
 func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
-	if walletConfigV1 := config.(*v1.WalletConfig); walletConfigV1 != nil {
+	if walletConfigV1, ok := config.(*v1.WalletConfig); ok {
 		var signers []*proto.WalletSigner
 		for _, signer := range walletConfigV1.Signers_ {
 			signers = append(signers, &proto.WalletSigner{
@@ -255,8 +301,27 @@ func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, 
 			Threshold: walletConfigV1.Threshold_,
 			ChainId:   &chainID,
 		}, nil
-	} else if walletConfigV2 := config.(*v2.WalletConfig); walletConfigV2 != nil {
-		// todo: implement v2
+	} else if walletConfigV2, ok := config.(*v2.WalletConfig); ok {
+		var signers []*proto.WalletSigner
+		for address, weight := range walletConfigV2.Signers() {
+			signers = append(signers, &proto.WalletSigner{
+				Address: address.Hex(),
+				Weight:  uint8(weight),
+			})
+		}
+
+		result, err := r.provider.ChainID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		chainID := result.Uint64()
+
+		return &proto.WalletConfig{
+			Address:   walletAddress.Hex(),
+			Signers:   signers,
+			Threshold: walletConfigV2.Threshold_,
+			ChainId:   &chainID,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("relayer: unknown wallet config version")

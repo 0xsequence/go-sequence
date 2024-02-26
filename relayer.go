@@ -15,7 +15,17 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
+
+type RelayerSimulateResult struct {
+	Executed  bool
+	Succeeded bool
+	Result    *string
+	Reason    *string
+	GasUsed   uint
+	GasLimit  uint
+}
 
 type Relayer interface {
 	// ..
@@ -23,6 +33,9 @@ type Relayer interface {
 
 	// ..
 	EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
+
+	// ..
+	Simulate(ctx context.Context, txs *SignedTransactions) ([]*RelayerSimulateResult, error)
 
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
@@ -34,6 +47,9 @@ type Relayer interface {
 
 	// ..
 	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
+
+	// ..
+	Client() proto.Relayer
 
 	// TODO, in future when needed..
 	// GasRefundOptions()
@@ -55,7 +71,7 @@ const (
 )
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
-func EncodeTransactionsForRelaying(relayer Relayer, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
 	// TODO/NOTE: first version, we assume the wallet is deployed, then we can add bundlecreation after.
 	// .....
 
@@ -64,9 +80,12 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletConfig core.WalletConf
 	}
 
 	// Encode transaction to be sent to a deployed wallet
-	walletAddress, err := AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return common.Address{}, nil, err
+	var err error
+	if walletAddress == (common.Address{}) {
+		walletAddress, err = AddressFromWalletConfig(walletConfig, walletContext)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
 	}
 
 	encodedTxns, err := txns.EncodedTransactions()

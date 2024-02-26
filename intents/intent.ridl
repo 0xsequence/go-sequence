@@ -1,0 +1,183 @@
+webrpc = v1
+
+name = sequence-waas-intents
+version = v0.1.0
+
+struct Intent
+  - version: string
+  - name: string
+  - expiresAt: uint64
+  - issuedAt: uint64
+  - data: any
+  - signatures: []Signature
+    + go.tag.json = signatures,omitempty
+
+struct Signature
+  - sessionId: string
+     + go.field.name = SessionID
+  - signature: string
+
+# no way to generate string enums
+# enum IntentName: string
+#  - openSession
+#  - closeSession
+#  - validateSession
+#  - finishValidateSession
+#  - listSessions
+#  - getSession
+#  - signMessage
+#  - sendTransaction
+
+struct IntentDataOpenSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - email?: string
+    + go.tag.json = email,omitempty
+  - idToken?: string
+    + go.tag.json = idToken,omitempty
+
+struct IntentDataCloseSession
+  - sessionId: string
+    + go.field.name = SessionID
+
+struct IntentDataValidateSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+  - deviceMetadata: string
+
+struct IntentDataFinishValidateSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet:  string
+  - salt: string
+  - challenge: string
+
+struct IntentDataListSessions
+  - wallet: string
+
+
+struct IntentDataGetSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+
+struct IntentDataSignMessage
+  - network: string
+  - wallet:  string
+  - message: string
+
+struct IntentDataSendTransaction
+  - network: string
+  - wallet:  string
+  - identifier: string # is used to generate nonce space
+  - transactions: []any
+    + go.field.type = []json.RawMessage
+
+struct TransactionRaw
+  - type: string
+  - to: string
+  - value: string
+  - data: string
+
+# no way to generate string enums
+#enum TransactionType: string
+#  - transaction
+#  - erc20send
+#  - erc721send
+#  - erc1155send
+#  - delayedEncode
+
+struct TransactionERC20
+  - type: string
+  - tokenAddress: string
+  - to: string
+  - value: string
+
+struct TransactionERC721
+  - type: string
+  - tokenAddress: string
+  - to: string
+  - id: string
+  - safe?: bool
+  - data?: string
+
+struct TransactionERC1155Value
+  - id: string
+    + go.field.name = ID
+  - amount: string
+
+struct TransactionDelayedEncode
+  - type: string
+  - to: string
+  - value: string
+  - data: any
+     + go.field.type = json.RawMessage
+
+struct TransactionERC1155
+  - type: string
+  - tokenAddress: string
+  - to: string
+  - vals: []TransactionERC1155Value
+  - data?: string
+
+struct IntentResponse
+  - code: string
+  - data: any
+
+# no way to generate string enums
+#enum IntentResponseCode: string
+# - sessionOpened
+# - validationRequired
+# - validationStarted
+# - validationFinished
+# - signedMessage
+# - transactionReceipt
+# - transactionFailed
+# - getSessionResponse
+
+struct IntentResponseSessionOpened
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+
+struct IntentResponseSessionClosed
+
+struct IntentResponseValidateSession
+
+struct IntentResponseValidationRequired
+  - sessionId: string
+    + go.field.name = SessionID
+
+struct IntentResponseValidationStarted
+  - salt: string
+
+struct IntentResponseValidationFinished
+  - isValid: bool
+
+struct IntentResponseListSessions
+  - sessions: []string
+
+struct IntentResponseGetSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+  - validated: bool
+
+struct IntentResponseSignedMessage
+  - signature: string
+  - message: string
+
+struct IntentResponseTransactionReceipt
+  - request:       any
+  - txHash:        string
+  - metaTxHash:    string
+  - receipt:       any
+  - nativeReceipt: any
+  - simulations:   any
+
+struct IntentResponseTransactionFailed
+  - error: string
+  - request: any
+  - simulations: any
+
