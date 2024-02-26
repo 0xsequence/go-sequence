@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/0xsequence/ethkit"
 	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
@@ -16,8 +17,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
-	v1 "github.com/0xsequence/go-sequence/core/v1"
-	v2 "github.com/0xsequence/go-sequence/core/v2"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -59,12 +58,7 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.Wa
 		return nil, err
 	}
 
-	config, err := r.protoConfig(ctx, walletConfig, walletAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), config, hexutil.Encode(requestData))
+	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), walletConfig, hexutil.Encode(requestData))
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +138,7 @@ func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransacti
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote *sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	walletAddress := signedTxs.WalletAddress
 	var err error
 
@@ -180,7 +174,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call)
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, (*string)(quote))
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}
@@ -199,6 +193,31 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: 2nd argument will be nil, we may even want to remove it from here...
 	return sequence.MetaTxnID(metaTxnID), nil, waitReceipt, nil
+}
+
+func (r *RpcRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTransactions) ([]*sequence.RelayerFeeOption, *sequence.RelayerFeeQuote, error) {
+	data, err := signedTxs.Execdata()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	options, _, quote, err := r.Service.FeeOptions(
+		ctx,
+		signedTxs.WalletAddress.String(),
+		signedTxs.WalletAddress.String(),
+		"0x"+common.Bytes2Hex(data),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	retQuote := ethkit.ToPtr(sequence.RelayerFeeQuote(""))
+	if quote != nil {
+		*retQuote = sequence.RelayerFeeQuote(*quote)
+	}
+
+	return convFeeOptionsToRelayerFeeOptions(options), retQuote, nil
 }
 
 // ....
@@ -273,50 +292,37 @@ func (r *RpcRelayer) Client() proto.Relayer {
 	return r.Service
 }
 
-func (r *RpcRelayer) protoConfig(ctx context.Context, config core.WalletConfig, walletAddress common.Address) (*proto.WalletConfig, error) {
-	if walletConfigV1, ok := config.(*v1.WalletConfig); ok {
-		var signers []*proto.WalletSigner
-		for _, signer := range walletConfigV1.Signers_ {
-			signers = append(signers, &proto.WalletSigner{
-				Address: signer.Address.Hex(),
-				Weight:  signer.Weight,
-			})
-		}
-
-		result, err := r.provider.ChainID(ctx)
-		if err != nil {
-			return nil, err
-		}
-		chainID := result.Uint64()
-
-		return &proto.WalletConfig{
-			Address:   walletAddress.Hex(),
-			Signers:   signers,
-			Threshold: walletConfigV1.Threshold_,
-			ChainId:   &chainID,
-		}, nil
-	} else if walletConfigV2, ok := config.(*v2.WalletConfig); ok {
-		var signers []*proto.WalletSigner
-		for address, weight := range walletConfigV2.Signers() {
-			signers = append(signers, &proto.WalletSigner{
-				Address: address.Hex(),
-				Weight:  uint8(weight),
-			})
-		}
-
-		result, err := r.provider.ChainID(ctx)
-		if err != nil {
-			return nil, err
-		}
-		chainID := result.Uint64()
-
-		return &proto.WalletConfig{
-			Address:   walletAddress.Hex(),
-			Signers:   signers,
-			Threshold: walletConfigV2.Threshold_,
-			ChainId:   &chainID,
-		}, nil
+func convFeeTokenToRelayerFeeToken(token *proto.FeeToken) sequence.RelayerFeeToken {
+	var contractAddress *common.Address
+	if token.ContractAddress != nil {
+		contractAddress = ethkit.ToPtr(common.HexToAddress(*token.ContractAddress))
 	}
 
-	return nil, fmt.Errorf("relayer: unknown wallet config version")
+	return sequence.RelayerFeeToken{
+		ChainID:         big.NewInt(0).SetUint64(token.ChainId),
+		Name:            token.Name,
+		Symbol:          token.Symbol,
+		Type:            sequence.RelayerFeeTokenType(*token.Type),
+		Decimals:        token.Decimals,
+		LogoURL:         token.LogoURL,
+		ContractAddress: contractAddress,
+	}
+}
+
+func convFeeOptionToRelayerFeeOption(option *proto.FeeOption) *sequence.RelayerFeeOption {
+	value, _ := big.NewInt(0).SetString(option.Value, 10)
+	return &sequence.RelayerFeeOption{
+		Token:    convFeeTokenToRelayerFeeToken(option.Token),
+		To:       common.HexToAddress(option.To),
+		Value:    value,
+		GasLimit: big.NewInt(0).SetUint64(uint64(option.GasLimit)),
+	}
+}
+
+func convFeeOptionsToRelayerFeeOptions(options []*proto.FeeOption) []*sequence.RelayerFeeOption {
+	var feeOptions []*sequence.RelayerFeeOption
+	for _, option := range options {
+		feeOptions = append(feeOptions, convFeeOptionToRelayerFeeOption(option))
+	}
+	return feeOptions
 }

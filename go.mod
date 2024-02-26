@@ -13,6 +13,7 @@ require (
 	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.8.0
 	github.com/goware/logger v0.3.0
+	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.1
 )
 
