@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -53,19 +54,80 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 	}
 }
 
+// This method is duplicated code from: `compressor/contract.go`
+// can't be used directly, because it would create a circular dependency
+func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transaction *types.Transaction) (common.Address, []byte, error) {
+	data := transaction.Data()
+
+	if len(data) == 0 {
+		return common.Address{}, nil, fmt.Errorf("empty transaction data")
+	}
+
+	if data[0] != byte(0x00) {
+		return common.Address{}, nil, fmt.Errorf("not compressed data")
+	}
+
+	// Replace first byte with `METHOD_DECOMPRESS_1` (0x06)
+	// and call `.to`
+	c2 := make([]byte, len(data))
+	copy(c2, data)
+	c2[0] = byte(0x06)
+
+	res, err := provider.CallContract(ctx, ethereum.CallMsg{
+		To:   transaction.To(),
+		Data: c2,
+	}, nil)
+
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	if len(res) < 32 {
+		return common.Address{}, nil, fmt.Errorf("decompressed data too short")
+	}
+
+	addr := common.BytesToAddress(res[len(res)-32:])
+	return addr, res[:len(res)-32], nil
+}
+
+func TryDecodeCalldata(
+	ctx context.Context,
+	provider *ethrpc.Provider,
+	transaction *types.Transaction,
+) (common.Address, Transactions, *big.Int, []byte, error) {
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	if err == nil {
+		return *transaction.To(), decodedTransactions, decodedNonce, decodedSignature, nil
+	}
+
+	// Try decoding it decompressed
+	addr, decompressed, err2 := DecompressCalldata(ctx, provider, transaction)
+	if err2 != nil {
+		// Don't bubble up the decompression error, as it might not be a decompression error
+		return common.Address{}, nil, nil, nil, err
+	}
+
+	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed)
+	if err != nil {
+		return common.Address{}, nil, nil, nil, err
+	}
+
+	return addr, decodedTransactions, decodedNonce, decodedSignature, nil
+}
+
 func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider) ([]*Receipt, []*types.Log, error) {
 	transaction, _, err := provider.TransactionByHash(ctx, receipt.TxHash)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	wallet, decodedTransactions, decodedNonce, decodedSignature, err := TryDecodeCalldata(ctx, provider, transaction)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
-	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, *transaction.To(), transaction.ChainId(), isGuestExecute)
+	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, wallet, transaction.ChainId(), isGuestExecute)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -132,14 +132,20 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	}
 }
 
+// V1NewWalletSingleOwner creates a new Sequence v1 wallet with a single owner.
+//
+// Deprecated: use NewWalletSingleOwner instead. V1NewWalletSingleOwner is kept for historical
+// compatibility and should not be used.
 func V1NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v1.WalletConfig], error) {
 	return GenericNewWalletSingleOwner[*v1.WalletConfig](owner, optContext...)
 }
 
+// V2NewWalletSingleOwner creates a new Sequence v2 wallet with a single owner.
 func V2NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
 	return GenericNewWalletSingleOwner[*v2.WalletConfig](owner, optContext...)
 }
 
+// NewWalletSingleOwner creates a new Sequence v2 wallet with a single owner.
 func NewWalletSingleOwner(owner Signer, optContext ...WalletContext) (*Wallet[*v2.WalletConfig], error) {
 	return V2NewWalletSingleOwner(owner, optContext...)
 }

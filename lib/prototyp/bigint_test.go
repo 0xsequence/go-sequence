@@ -2,6 +2,7 @@ package prototyp
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -68,5 +69,12 @@ func TestBigIntInvalidInput(t *testing.T) {
 	// if invalid, it will parse out the number
 	b = NewBigIntFromHexString("/0xaBc-$$2Efg")
 	assert.Equal(t, int64(0xaBc2Ef), b.Int64())
+}
 
+func TestBigIntCopy(t *testing.T) {
+	a := ToBigInt(big.NewInt(1))
+	b := ToBigInt(a.Int())
+	a.Sub(big.NewInt(1))
+	fmt.Println(a.String())
+	fmt.Println(b.String())
 }
