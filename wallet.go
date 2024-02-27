@@ -575,8 +575,8 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	}, nil
 }
 
-func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	return w.SendTransactions(ctx, signedTxns, nil)
+func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	return w.SendTransactions(ctx, signedTxns, quote)
 }
 
 func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
