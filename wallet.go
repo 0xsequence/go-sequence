@@ -586,15 +586,11 @@ func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTran
 	return w.relayer.Relay(ctx, signedTxns, quote)
 }
 
-func (w *Wallet[C]) FeeOptions(ctx context.Context, txns Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
+func (w *Wallet[C]) FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
 	if w.relayer == nil {
 		return []*RelayerFeeOption{}, nil, ErrRelayerNotSet
 	}
 
-	signedTxs, err := w.SignTransactions(ctx, txns)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot sign transactions: %w", err)
-	}
 	return w.relayer.FeeOptions(ctx, signedTxs)
 }
 

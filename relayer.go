@@ -43,7 +43,7 @@ type RelayerFeeToken struct {
 	Decimals        *uint32
 	LogoURL         string
 	ContractAddress *common.Address
-	tokenID         *big.Int
+	TokenID         *big.Int
 }
 
 type RelayerFeeOption struct {

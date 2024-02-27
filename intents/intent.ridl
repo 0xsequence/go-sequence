@@ -193,9 +193,9 @@ struct FeeToken
   - tokenID?: string
 
 enum FeeTokenType: uint32
-  - UNKNOWN
-  - ERC20_TOKEN
-  - ERC1155_TOKEN
+  - unknown
+  - erc20Token
+  - erc1155Token
 
 struct IntentResponseFeeOptions
   - feeOptions: []FeeOption
