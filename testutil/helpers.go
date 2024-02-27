@@ -141,7 +141,7 @@ func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet
 	signedTx, err := wallet.SignTransactions(context.Background(), stxs)
 	assert.NoError(t, err)
 
-	metaTxnID, tx, waitReceipt, err := wallet.SendTransactions(context.Background(), signedTx, nil)
+	metaTxnID, tx, waitReceipt, err := wallet.SendTransactions(context.Background(), signedTx)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, metaTxnID)
 	assert.NotNil(t, tx)

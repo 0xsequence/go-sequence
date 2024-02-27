@@ -575,14 +575,20 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	}, nil
 }
 
-func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	return w.SendTransactions(ctx, signedTxns, quote)
+func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	return w.SendTransactions(ctx, signedTxns, feeQuote...)
 }
 
-func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
+
+	var quote *RelayerFeeQuote
+	if len(feeQuote) > 0 {
+		quote = feeQuote[0]
+	}
+
 	return w.relayer.Relay(ctx, signedTxns, quote)
 }
 
