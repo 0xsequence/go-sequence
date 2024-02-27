@@ -23,6 +23,8 @@ func IntentDataTypeToName[T any](t *T) string {
 		return IntentNameGetSession
 	case *IntentDataSignMessage:
 		return IntentNameSignMessage
+	case *IntentDataFeeOptions:
+		return IntentNameFeeOptions
 	case *IntentDataSendTransaction:
 		return IntentNameSendTransaction
 	default:

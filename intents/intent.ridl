@@ -56,7 +56,6 @@ struct IntentDataFinishValidateSession
 struct IntentDataListSessions
   - wallet: string
 
-
 struct IntentDataGetSession
   - sessionId: string
     + go.field.name = SessionID
@@ -67,12 +66,21 @@ struct IntentDataSignMessage
   - wallet:  string
   - message: string
 
+struct IntentDataFeeOptions
+  - network: string
+  - wallet:  string
+  - identifier: string # is used to generate nonce space
+  - transactions: []any
+    + go.field.type = []json.RawMessage
+
 struct IntentDataSendTransaction
   - network: string
   - wallet:  string
   - identifier: string # is used to generate nonce space
   - transactions: []any
     + go.field.type = []json.RawMessage
+  - transactionsFeeQuote?: string
+    + go.tag.json = transactionsFeeQuote,omitempty
 
 struct TransactionRaw
   - type: string
@@ -167,6 +175,32 @@ struct IntentResponseGetSession
 struct IntentResponseSignedMessage
   - signature: string
   - message: string
+
+struct FeeOption
+  - token: FeeToken
+  - to: string
+  - value: string
+  - gasLimit: uint
+
+struct FeeToken
+  - chainId: uint64
+  - name: string
+  - symbol: string
+  - type: FeeTokenType
+  - decimals?: uint32
+  - logoURL: string
+  - contractAddress?: string
+  - tokenID?: string
+
+enum FeeTokenType: uint32
+  - UNKNOWN
+  - ERC20_TOKEN
+  - ERC1155_TOKEN
+
+struct IntentResponseFeeOptions
+  - feeOptions: []FeeOption
+  - feeQuote?: string
+    + go.tag.json = feeQuote,omitempty
 
 struct IntentResponseTransactionReceipt
   - request:       any
