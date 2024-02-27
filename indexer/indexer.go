@@ -10,7 +10,9 @@ type Options struct {
 	JWTAuthToken string
 }
 
-func NewIndexer(indexerServiceURL string, projectAccessKey string, options ...Options) Indexer {
+// NewIndexer creates a new Sequence Indexer client instance. See https://docs.sequence.xyz for a list of
+// indexer urls, and please see https://sequence.build to get a `projectAccessKey`.
+func NewIndexer(indexerURL string, projectAccessKey string, options ...Options) Indexer {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -27,7 +29,7 @@ func NewIndexer(indexerServiceURL string, projectAccessKey string, options ...Op
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	return NewIndexerClient(indexerServiceURL, client)
+	return NewIndexerClient(indexerURL, client)
 }
 
 type httpclient struct {

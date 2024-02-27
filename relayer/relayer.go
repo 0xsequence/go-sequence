@@ -13,7 +13,9 @@ type Options struct {
 	JWTAuthToken string
 }
 
-func NewRelayerClient(relayerServiceURL string, projectAccessKey string, options ...Options) proto.Relayer {
+// NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
+// relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
+func NewRelayer(relayerURL string, projectAccessKey string, options ...Options) proto.Relayer {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -30,7 +32,7 @@ func NewRelayerClient(relayerServiceURL string, projectAccessKey string, options
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	return proto.NewRelayerClient(relayerServiceURL, client)
+	return proto.NewRelayerClient(relayerURL, client)
 }
 
 type httpclient struct {

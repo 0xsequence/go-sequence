@@ -32,7 +32,7 @@ func IntentDataTypeToName[T any](t *T) string {
 
 type IntentTyped[T any] struct {
 	Intent
-	Data T
+	Data T `json:"data"`
 }
 
 func NewIntentTyped[T any](data T) *IntentTyped[T] {
