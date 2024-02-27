@@ -81,7 +81,7 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -126,7 +126,7 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -189,7 +189,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -250,7 +250,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -311,7 +311,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -370,7 +370,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -427,7 +427,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -482,7 +482,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -541,7 +541,7 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -598,7 +598,7 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -690,7 +690,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -780,7 +780,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -873,7 +873,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -964,7 +964,7 @@ func TestEstimateSequenceNestedSigners(t *testing.T) {
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed, nil)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())

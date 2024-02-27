@@ -576,14 +576,26 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 }
 
 func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	return w.SendTransactions(ctx, signedTxns)
+	return w.SendTransactions(ctx, signedTxns, nil)
 }
 
-func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
-	return w.relayer.Relay(ctx, signedTxns)
+	return w.relayer.Relay(ctx, signedTxns, quote)
+}
+
+func (w *Wallet[C]) FeeOptions(ctx context.Context, txns Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
+	if w.relayer == nil {
+		return []*RelayerFeeOption{}, nil, ErrRelayerNotSet
+	}
+
+	signedTxs, err := w.SignTransactions(ctx, txns)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot sign transactions: %w", err)
+	}
+	return w.relayer.FeeOptions(ctx, signedTxs)
 }
 
 func (w *Wallet[C]) IsDeployed() (bool, error) {
@@ -625,7 +637,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, err
 	}
 
-	return w.relayer.Relay(ctx, signerTxn)
+	return w.relayer.Relay(ctx, signerTxn, nil)
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future
