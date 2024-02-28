@@ -592,11 +592,63 @@ func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTran
 	return w.relayer.Relay(ctx, signedTxns, quote)
 }
 
-func (w *Wallet[C]) FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
+func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
 	if w.relayer == nil {
 		return []*RelayerFeeOption{}, nil, ErrRelayerNotSet
 	}
 
+	// prepare for signed txs
+	nonce, err := txs.Nonce()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
+	}
+
+	if nonce == nil {
+		nonce, err = w.GetNonce()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	bundle := Transaction{
+		Transactions: txs,
+		Nonce:        nonce,
+	}
+
+	// get transactions digest
+	digest, err := bundle.Digest()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot get digest from transactions: %w", err)
+	}
+
+	// prepare for estimator
+	estimator := NewEstimator()
+
+	areEOAs, err := estimator.AreEOAs(ctx, w.provider, w.config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("estimator areEOAs error: %w", err)
+	}
+
+	willSign, err := estimator.PickSigners(ctx, w.config, areEOAs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("estimator pickSigners error: %w", err)
+	}
+
+	sig := estimator.BuildStubSignature(w.config, willSign, areEOAs)
+
+	// signed txs
+	signedTxs := &SignedTransactions{
+		ChainID:       w.chainID,
+		WalletAddress: w.address,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  txs,
+		Nonce:         nonce,
+		Digest:        digest,
+		Signature:     sig,
+	}
+
+	// get fee options
 	return w.relayer.FeeOptions(ctx, signedTxs)
 }
 
