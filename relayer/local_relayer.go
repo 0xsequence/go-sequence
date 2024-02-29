@@ -123,7 +123,7 @@ func (r *LocalRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransac
 	panic("implement me")
 }
 
-func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote *sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
 	// a wallet creation call)
 

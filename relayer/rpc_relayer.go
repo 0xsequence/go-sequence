@@ -144,7 +144,7 @@ func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransacti
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote *sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	walletAddress := signedTxs.WalletAddress
 	var err error
 
@@ -178,9 +178,14 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		WalletAddress: walletAddress.Hex(),
 	}
 
+	var txQuote *string
+	if len(quote) > 0 {
+		txQuote = (*string)(quote[0])
+	}
+
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, (*string)(quote))
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote)
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}

@@ -691,7 +691,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, err
 	}
 
-	return w.relayer.Relay(ctx, signerTxn, nil)
+	return w.relayer.Relay(ctx, signerTxn)
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future

@@ -71,7 +71,7 @@ type Relayer interface {
 	// Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 	// request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-	Relay(ctx context.Context, signedTxs *SignedTransactions, quote *RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
+	Relay(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	//
 	FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error)
