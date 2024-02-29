@@ -586,12 +586,7 @@ func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTran
 		return "", nil, nil, ErrRelayerNotSet
 	}
 
-	var quote *RelayerFeeQuote
-	if len(feeQuote) > 0 {
-		quote = feeQuote[0]
-	}
-
-	return w.relayer.Relay(ctx, signedTxns, quote)
+	return w.relayer.Relay(ctx, signedTxns, feeQuote...)
 }
 
 func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
