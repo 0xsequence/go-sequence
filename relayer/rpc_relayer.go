@@ -218,9 +218,9 @@ func (r *RpcRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedT
 		return nil, nil, err
 	}
 
-	retQuote := ethkit.ToPtr(sequence.RelayerFeeQuote(""))
+	var retQuote *sequence.RelayerFeeQuote
 	if quote != nil {
-		*retQuote = sequence.RelayerFeeQuote(*quote)
+		retQuote = ethkit.ToPtr(sequence.RelayerFeeQuote(*quote))
 	}
 
 	return convFeeOptionsToRelayerFeeOptions(options), retQuote, nil

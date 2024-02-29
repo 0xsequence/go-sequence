@@ -67,6 +67,7 @@ func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signe
 		config:          walletOptions.Config,
 		context:         seqContext,
 		address:         address,
+		estimator:       NewEstimator(),
 		skipSortSigners: walletOptions.SkipSortSigners,
 	}
 	w.signers = signers
@@ -198,10 +199,11 @@ type Wallet[C core.WalletConfig] struct {
 	config  C
 	signers []Signer
 
-	provider *ethrpc.Provider
-	relayer  Relayer
-	sessions proto.Sessions
-	address  common.Address
+	provider  *ethrpc.Provider
+	estimator *Estimator
+	relayer   Relayer
+	sessions  proto.Sessions
+	address   common.Address
 
 	skipSortSigners bool
 
@@ -621,20 +623,18 @@ func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*Relaye
 		return nil, nil, fmt.Errorf("cannot get digest from transactions: %w", err)
 	}
 
-	// prepare for estimator
-	estimator := NewEstimator()
-
-	areEOAs, err := estimator.AreEOAs(ctx, w.provider, w.config)
+	// prepare for fee estimation
+	areEOAs, err := w.estimator.AreEOAs(ctx, w.provider, w.config)
 	if err != nil {
 		return nil, nil, fmt.Errorf("estimator areEOAs error: %w", err)
 	}
 
-	willSign, err := estimator.PickSigners(ctx, w.config, areEOAs)
+	willSign, err := w.estimator.PickSigners(ctx, w.config, areEOAs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("estimator pickSigners error: %w", err)
 	}
 
-	sig := estimator.BuildStubSignature(w.config, willSign, areEOAs)
+	sig := w.estimator.BuildStubSignature(w.config, willSign, areEOAs)
 
 	// signed txs
 	signedTxs := &SignedTransactions{
