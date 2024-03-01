@@ -19,6 +19,7 @@ const (
 	IntentNameListSessions          = "listSessions"
 	IntentNameGetSession            = "getSession"
 	IntentNameSignMessage           = "signMessage"
+	IntentNameFeeOptions            = "feeOptions"
 	IntentNameSendTransaction       = "sendTransaction"
 )
 
@@ -28,6 +29,7 @@ const (
 	IntentResponseCodeValidationStarted  = "validationStarted"
 	IntentResponseCodeValidationFinished = "validationFinished"
 	IntentResponseCodeSignedMessage      = "signedMessage"
+	IntentResponseCodeFeeOptions         = "feeOptions"
 	IntentResponseCodeTransactionReceipt = "transactionReceipt"
 	IntentResponseCodeTransactionFailed  = "transactionFailed"
 	IntentResponseCodeGetSessionResponse = "getSessionResponse"

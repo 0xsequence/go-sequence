@@ -67,6 +67,7 @@ func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signe
 		config:          walletOptions.Config,
 		context:         seqContext,
 		address:         address,
+		estimator:       NewEstimator(),
 		skipSortSigners: walletOptions.SkipSortSigners,
 	}
 	w.signers = signers
@@ -198,10 +199,11 @@ type Wallet[C core.WalletConfig] struct {
 	config  C
 	signers []Signer
 
-	provider *ethrpc.Provider
-	relayer  Relayer
-	sessions proto.Sessions
-	address  common.Address
+	provider  *ethrpc.Provider
+	estimator *Estimator
+	relayer   Relayer
+	sessions  proto.Sessions
+	address   common.Address
 
 	skipSortSigners bool
 
@@ -575,15 +577,74 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	}, nil
 }
 
-func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	return w.SendTransactions(ctx, signedTxns)
+func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	return w.SendTransactions(ctx, signedTxns, feeQuote...)
 }
 
-func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
-	return w.relayer.Relay(ctx, signedTxns)
+
+	return w.relayer.Relay(ctx, signedTxns, feeQuote...)
+}
+
+func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
+	if w.relayer == nil {
+		return []*RelayerFeeOption{}, nil, ErrRelayerNotSet
+	}
+
+	// prepare for signed txs
+	nonce, err := txs.Nonce()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
+	}
+
+	if nonce == nil {
+		nonce, err = w.GetNonce()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	bundle := Transaction{
+		Transactions: txs,
+		Nonce:        nonce,
+	}
+
+	// get transactions digest
+	digest, err := bundle.Digest()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot get digest from transactions: %w", err)
+	}
+
+	// prepare for fee estimation
+	areEOAs, err := w.estimator.AreEOAs(ctx, w.provider, w.config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("estimator areEOAs error: %w", err)
+	}
+
+	willSign, err := w.estimator.PickSigners(ctx, w.config, areEOAs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("estimator pickSigners error: %w", err)
+	}
+
+	sig := w.estimator.BuildStubSignature(w.config, willSign, areEOAs)
+
+	// signed txs
+	signedTxs := &SignedTransactions{
+		ChainID:       w.chainID,
+		WalletAddress: w.address,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  txs,
+		Nonce:         nonce,
+		Digest:        digest,
+		Signature:     sig,
+	}
+
+	// get fee options
+	return w.relayer.FeeOptions(ctx, signedTxs)
 }
 
 func (w *Wallet[C]) IsDeployed() (bool, error) {
