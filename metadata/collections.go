@@ -9,13 +9,16 @@ import (
 	"path/filepath"
 )
 
-type CollectionRest struct {
-	httpClient  *httpclient
-	metadataURL string
+type CollectionsService struct {
+	Collections
+	options          Options
+	projectAccessKey string
+	httpclient       HTTPClient
 }
 
-// NewCollectionREST creates a new Sequence Metadata client instance for REST Collections endpoints.
-func NewCollectionREST(projectAccessKey string, options ...Options) CollectionRest {
+// NewCollections creates a new Sequence Metadata Collections client instance. Please see
+// https://sequence.build to get a `projectAccessKey` and service-level account JWTAuthToken.
+func NewCollections(projectAccessKey string, options ...Options) CollectionsService {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -25,11 +28,9 @@ func NewCollectionREST(projectAccessKey string, options ...Options) CollectionRe
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
-
 	if opts.HTTPClient == nil {
 		client.client = http.DefaultClient
 	}
-
 	if opts.JWTAuthToken != "" {
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
@@ -37,19 +38,25 @@ func NewCollectionREST(projectAccessKey string, options ...Options) CollectionRe
 	metadataServiceURL := "https://metadata.sequence.app"
 	if opts.MetadataServiceURL != "" {
 		metadataServiceURL = opts.MetadataServiceURL
+	} else {
+		opts.MetadataServiceURL = metadataServiceURL
 	}
 
-	return CollectionRest{
-		httpClient:  client,
-		metadataURL: metadataServiceURL,
+	serviceClient := NewCollectionsClient(metadataServiceURL, client)
+
+	return CollectionsService{
+		Collections:      serviceClient,
+		options:          opts,
+		projectAccessKey: projectAccessKey,
+		httpclient:       client,
 	}
 }
 
-func (c *CollectionRest) AssetUpload(projectID, collectionID, tokenID, assetID string, fileContent io.Reader) (*http.Response, error) {
+func (c *CollectionsService) UploadAsset(projectID, collectionID, tokenID, assetFilename string, fileContent io.Reader) (*http.Response, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	fileWriter, err := writer.CreateFormFile("file", filepath.Base(assetID))
+	fileWriter, err := writer.CreateFormFile("file", filepath.Base(assetFilename))
 	if err != nil {
 		return nil, fmt.Errorf("create form file: %w", err)
 	}
@@ -61,7 +68,7 @@ func (c *CollectionRest) AssetUpload(projectID, collectionID, tokenID, assetID s
 
 	writer.Close()
 
-	endpointURL := fmt.Sprintf("%s/collections/%s/%s/%s/upload/%s", c.metadataURL, projectID, collectionID, tokenID, assetID)
+	endpointURL := fmt.Sprintf("%s/collections/%s/%s/%s/upload/%s", c.options.MetadataServiceURL, projectID, collectionID, tokenID, assetFilename)
 	req, err := http.NewRequest(http.MethodPut, endpointURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
@@ -69,7 +76,7 @@ func (c *CollectionRest) AssetUpload(projectID, collectionID, tokenID, assetID s
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := c.httpClient.client.Do(req)
+	resp, err := c.httpclient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("do: %w", err)
 	}
