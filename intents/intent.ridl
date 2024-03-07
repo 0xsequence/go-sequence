@@ -27,6 +27,7 @@ struct Signature
 #  - getSession
 #  - signMessage
 #  - sendTransaction
+#  - getTransactionReceipt
 
 struct IntentDataOpenSession
   - sessionId: string
@@ -81,6 +82,11 @@ struct IntentDataSendTransaction
     + go.field.type = []json.RawMessage
   - transactionsFeeQuote?: string
     + go.tag.json = transactionsFeeQuote,omitempty
+
+struct IntentDataGetTransactionReceipt
+  - network: string
+  - wallet: string
+  - metaTxHash: string
 
 struct TransactionRaw
   - type: string

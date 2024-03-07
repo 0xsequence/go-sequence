@@ -21,6 +21,7 @@ const (
 	IntentNameSignMessage           = "signMessage"
 	IntentNameFeeOptions            = "feeOptions"
 	IntentNameSendTransaction       = "sendTransaction"
+	IntentNameGetTransactionReceipt = "getTransactionReceipt"
 )
 
 const (
