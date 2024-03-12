@@ -27,6 +27,8 @@ func IntentDataTypeToName[T any](t *T) string {
 		return IntentNameFeeOptions
 	case *IntentDataSendTransaction:
 		return IntentNameSendTransaction
+	case *IntentDataGetTransactionReceipt:
+		return IntentNameGetTransactionReceipt
 	default:
 		return ""
 	}
