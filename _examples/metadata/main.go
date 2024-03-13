@@ -22,4 +22,28 @@ func main() {
 		log.Fatal(err)
 	}
 	spew.Dump(collectibleInfo)
+
+	//
+	// Collections service example
+	//
+
+	// serviceToken := "<your service token here -- get it at https://sequence.build>"
+	// seqCollections := metadata.NewCollections(serviceToken)
+
+	// page, cols, err := seqCollections.ListCollections(context.Background(), nil, nil)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// spew.Dump(page)
+	// spew.Dump(cols)
+
+	// // TODO: put in your own file here
+	// data, _ := os.ReadFile("/Users/peter/Desktop/bw-gopher.png")
+
+	// asset, err := seqCollections.UploadAsset(context.Background(), 1, 1, 1, bytes.NewReader(data))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("asset uploaded!", asset.URL)
+	// spew.Dump(asset)
 }
