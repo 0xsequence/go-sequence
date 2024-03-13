@@ -36,6 +36,9 @@ struct IntentDataOpenSession
     + go.tag.json = email,omitempty
   - idToken?: string
     + go.tag.json = idToken,omitempty
+  # the user defined nonce that will be included in session opened proof
+  - proofNonce?: string
+    + go.tag.json = proofNonce,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
@@ -154,6 +157,15 @@ struct IntentResponseSessionOpened
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
+  - proof: SessionOpenedProof
+
+struct SessionOpenedProof
+  # The wallet address
+  - wallet: string
+  # The message contents: “Registered <sessionId> <wallet> <proofNonce?>”
+  - message: string
+  # The signature of the message
+  - signature: string
 
 struct IntentResponseSessionClosed
 
