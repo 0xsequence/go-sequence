@@ -162,7 +162,7 @@ struct IntentResponseSessionOpened
 struct SessionOpenedProof
   # The wallet address
   - wallet: string
-  # The message contents: “Registered <sessionId> <wallet> <proofNonce?>”
+  # The message contents: “OpenedSession <sessionId> <wallet> <nonce?>”
   - message: string
   # The signature of the message
   - signature: string
