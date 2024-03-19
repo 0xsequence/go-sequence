@@ -25,6 +25,7 @@ struct Signature
 #  - finishValidateSession
 #  - listSessions
 #  - getSession
+#  - authProof
 #  - signMessage
 #  - sendTransaction
 #  - getTransactionReceipt
@@ -36,9 +37,6 @@ struct IntentDataOpenSession
     + go.tag.json = email,omitempty
   - idToken?: string
     + go.tag.json = idToken,omitempty
-  # the user defined nonce that will be included in session opened proof
-  - proofNonce?: string
-    + go.tag.json = proofNonce,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
@@ -64,6 +62,11 @@ struct IntentDataGetSession
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
+
+struct IntentDataAuthProof
+  - network: string
+  - wallet: string
+  - nonce?: string
 
 struct IntentDataSignMessage
   - network: string
@@ -148,6 +151,7 @@ struct IntentResponse
 # - validationRequired
 # - validationStarted
 # - validationFinished
+# - authProof
 # - signedMessage
 # - transactionReceipt
 # - transactionFailed
@@ -157,15 +161,6 @@ struct IntentResponseSessionOpened
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
-  - proof: SessionOpenedProof
-
-struct SessionOpenedProof
-  # The wallet address
-  - wallet: string
-  # The message contents: “OpenedSession <sessionId> <wallet> <nonce?>”
-  - message: string
-  # The signature of the message
-  - signature: string
 
 struct IntentResponseSessionClosed
 
@@ -189,6 +184,15 @@ struct IntentResponseGetSession
     + go.field.name = SessionID
   - wallet: string
   - validated: bool
+
+struct IntentResponseAuthProof
+  - sessionId: string
+    + go.field.name = SessionID
+  - network: string
+  - wallet: string
+  # The message contents: “OpenedSession <sessionId> <wallet> <nonce?>” hex encoded
+  - message: string
+  - signature: string
 
 struct IntentResponseSignedMessage
   - signature: string
