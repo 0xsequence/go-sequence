@@ -25,7 +25,7 @@ struct Signature
 #  - finishValidateSession
 #  - listSessions
 #  - getSession
-#  - authProof
+#  - sessionAuthProof
 #  - signMessage
 #  - sendTransaction
 #  - getTransactionReceipt
@@ -63,7 +63,7 @@ struct IntentDataGetSession
     + go.field.name = SessionID
   - wallet: string
 
-struct IntentDataAuthProof
+struct IntentDataSessionAuthProof
   - network: string
   - wallet: string
   - nonce?: string
@@ -151,7 +151,7 @@ struct IntentResponse
 # - validationRequired
 # - validationStarted
 # - validationFinished
-# - authProof
+# - sessionAuthProof
 # - signedMessage
 # - transactionReceipt
 # - transactionFailed
@@ -185,7 +185,7 @@ struct IntentResponseGetSession
   - wallet: string
   - validated: bool
 
-struct IntentResponseAuthProof
+struct IntentResponseSessionAuthProof
   - sessionId: string
     + go.field.name = SessionID
   - network: string
