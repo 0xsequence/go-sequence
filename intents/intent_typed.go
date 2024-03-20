@@ -21,8 +21,8 @@ func IntentDataTypeToName[T any](t *T) string {
 		return IntentNameListSessions
 	case *IntentDataGetSession:
 		return IntentNameGetSession
-	case *IntentDataAuthProof:
-		return IntentNameAuthProof
+	case *IntentDataSessionAuthProof:
+		return IntentNameSessionAuthProof
 	case *IntentDataSignMessage:
 		return IntentNameSignMessage
 	case *IntentDataFeeOptions:

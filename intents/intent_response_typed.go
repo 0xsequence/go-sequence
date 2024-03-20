@@ -14,8 +14,8 @@ func IntentResponseTypeToCode[T any](t *T) string {
 		return IntentResponseCodeValidationStarted
 	case *IntentResponseValidationFinished:
 		return IntentResponseCodeValidationFinished
-	case *IntentResponseAuthProof:
-		return IntentResponseCodeAuthProof
+	case *IntentResponseSessionAuthProof:
+		return IntentResponseCodeSessionAuthProof
 	case *IntentResponseSignedMessage:
 		return IntentResponseCodeSignedMessage
 	case *IntentResponseFeeOptions:
