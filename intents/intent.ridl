@@ -190,7 +190,7 @@ struct IntentResponseSessionAuthProof
     + go.field.name = SessionID
   - network: string
   - wallet: string
-  # The message contents: “OpenedSession <sessionId> <wallet> <nonce?>” hex encoded
+  # The message contents: “SessionAuthProof <sessionId> <wallet> <nonce?>” hex encoded
   - message: string
   - signature: string
 

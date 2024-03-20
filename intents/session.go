@@ -274,9 +274,9 @@ func bytesToSignature(sig []byte) string {
 	return strings.ToLower(fmt.Sprintf("0x%s", common.Bytes2Hex(sig)))
 }
 
-func OpenSessionProofMessage(sessionId string, wallet string, nonce *string) string {
+func SessionAuthProofMessage(sessionId string, wallet string, nonce *string) string {
 	if nonce == nil {
-		return fmt.Sprintf("OpenedSession %s %s", sessionId, wallet)
+		return fmt.Sprintf("SessionAuthProof %s %s", sessionId, wallet)
 	}
-	return fmt.Sprintf("OpenedSession %s %s %s", sessionId, wallet, *nonce)
+	return fmt.Sprintf("SessionAuthProof %s %s %s", sessionId, wallet, *nonce)
 }
