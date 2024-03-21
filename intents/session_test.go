@@ -9,8 +9,8 @@ import (
 
 func TestOpenSessionProofMessage(t *testing.T) {
 	// no nonce provided
-	assert.Equal(t, "OpenedSession r1:0x01 0x02", OpenSessionProofMessage("r1:0x01", "0x02", nil))
+	assert.Equal(t, "SessionAuthProof r1:0x01 0x02", SessionAuthProofMessage("r1:0x01", "0x02", nil))
 
 	// nonce provided
-	assert.Equal(t, "OpenedSession r1:0x01 0x02 0x03", OpenSessionProofMessage("r1:0x01", "0x02", ethkit.ToPtr("0x03")))
+	assert.Equal(t, "SessionAuthProof r1:0x01 0x02 0x03", SessionAuthProofMessage("r1:0x01", "0x02", ethkit.ToPtr("0x03")))
 }
