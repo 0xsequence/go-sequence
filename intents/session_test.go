@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOpenSessionProofMessage(t *testing.T) {
+func TestSessionAuthProofMessage(t *testing.T) {
 	// no nonce provided
 	assert.Equal(t, "SessionAuthProof r1:0x01 0x02", SessionAuthProofMessage("r1:0x01", "0x02", nil))
 
