@@ -11,35 +11,6 @@ import (
 const IntentValidTimeInSec = 60
 const IntentAllowedTimeDriftInSec = 5
 
-const (
-	IntentNameOpenSession           = "openSession"
-	IntentNameCloseSession          = "closeSession"
-	IntentNameValidateSession       = "validateSession"
-	IntentNameFinishValidateSession = "finishValidateSession"
-	IntentNameListSessions          = "listSessions"
-	IntentNameGetSession            = "getSession"
-	IntentNameSessionAuthProof      = "sessionAuthProof"
-	IntentNameSignMessage           = "signMessage"
-	IntentNameFeeOptions            = "feeOptions"
-	IntentNameSendTransaction       = "sendTransaction"
-	IntentNameGetTransactionReceipt = "getTransactionReceipt"
-)
-
-const (
-	IntentResponseCodeSessionOpened      = "sessionOpened"
-	IntentResponseCodeValidationRequired = "validationRequired"
-	IntentResponseCodeValidationStarted  = "validationStarted"
-	IntentResponseCodeValidationFinished = "validationFinished"
-	IntentResponseCodeSessionClosed      = "sessionClosed"
-	IntentResponseCodeSessionsListed     = "sessionsListed"
-	IntentResponseCodeSessionAuthProof   = "sessionAuthProof"
-	IntentResponseCodeSignedMessage      = "signedMessage"
-	IntentResponseCodeFeeOptions         = "feeOptions"
-	IntentResponseCodeTransactionReceipt = "transactionReceipt"
-	IntentResponseCodeTransactionFailed  = "transactionFailed"
-	IntentResponseCodeGetSessionResponse = "getSessionResponse"
-)
-
 type IntentDataValidator interface {
 	IsValid() error
 }

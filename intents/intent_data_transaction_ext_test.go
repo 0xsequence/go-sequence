@@ -8,9 +8,10 @@ import (
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/0xsequence/go-sequence"
 )
 
 func TestRecoverTransactionIntent(t *testing.T) {
@@ -93,7 +94,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "1", intent.Version)
-	assert.Equal(t, "sendTransaction", intent.Name)
+	assert.Equal(t, IntentName_sendTransaction, intent.Name)
 
 	hash, err := intent.Hash()
 	assert.Nil(t, err)

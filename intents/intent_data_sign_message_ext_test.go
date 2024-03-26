@@ -8,9 +8,10 @@ import (
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/0xsequence/go-sequence"
 )
 
 func TestRecoverMessageIntent(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRecoverMessageIntent(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "1", intent.Version)
-	assert.Equal(t, "signMessage", intent.Name)
+	assert.Equal(t, IntentName_signMessage, intent.Name)
 
 	hash, err := intent.Hash()
 	assert.Nil(t, err)

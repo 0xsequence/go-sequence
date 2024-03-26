@@ -6,31 +6,37 @@ import (
 	"time"
 )
 
-func IntentDataTypeToName[T any](t *T) string {
+func IntentDataTypeToName[T any](t *T) IntentName {
 	var data any = t
 	switch data.(type) {
 	case *IntentDataOpenSession:
-		return IntentNameOpenSession
+		return IntentName_openSession
 	case *IntentDataCloseSession:
-		return IntentNameCloseSession
+		return IntentName_closeSession
 	case *IntentDataValidateSession:
-		return IntentNameValidateSession
+		return IntentName_validateSession
 	case *IntentDataFinishValidateSession:
-		return IntentNameFinishValidateSession
+		return IntentName_finishValidateSession
 	case *IntentDataListSessions:
-		return IntentNameListSessions
+		return IntentName_listSessions
 	case *IntentDataGetSession:
-		return IntentNameGetSession
+		return IntentName_getSession
 	case *IntentDataSessionAuthProof:
-		return IntentNameSessionAuthProof
+		return IntentName_sessionAuthProof
 	case *IntentDataSignMessage:
-		return IntentNameSignMessage
+		return IntentName_signMessage
 	case *IntentDataFeeOptions:
-		return IntentNameFeeOptions
+		return IntentName_feeOptions
 	case *IntentDataSendTransaction:
-		return IntentNameSendTransaction
+		return IntentName_sendTransaction
 	case *IntentDataGetTransactionReceipt:
-		return IntentNameGetTransactionReceipt
+		return IntentName_getTransactionReceipt
+	case *IntentDataListAccounts:
+		return IntentName_listAccounts
+	case *IntentDataFederateAccount:
+		return IntentName_federateAccount
+	case *IntentDataRemoveAccount:
+		return IntentName_removeAccount
 	default:
 		return ""
 	}
