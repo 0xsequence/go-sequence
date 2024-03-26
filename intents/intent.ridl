@@ -164,6 +164,7 @@ struct IntentResponse
 
 enum IntentResponseCode: string
   - sessionOpened
+  - sessionClosed
   - validationRequired
   - validationStarted
   - validationFinished
