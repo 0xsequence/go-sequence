@@ -1,16 +1,13 @@
 package sequence
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
-	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -130,117 +127,4 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address
 	}
 
 	return walletAddress, execdata, nil
-}
-
-// DEPRECATED
-// this method is horribly inefficient and we now have the new receipt_fetcher.go impl.
-func LegacyWaitForMetaTxn(ctx context.Context, provider *ethrpc.Provider, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error) {
-	// Use optional timeout if passed, otherwise use deadline on the provided ctx, or finally,
-	// set a default timeout of 120 seconds.
-	var cancel context.CancelFunc
-	if len(optTimeout) > 0 {
-		ctx, cancel = context.WithTimeout(ctx, optTimeout[0])
-		defer cancel()
-	} else {
-		if _, ok := ctx.Deadline(); !ok {
-			ctx, cancel = context.WithTimeout(ctx, 120*time.Second)
-			defer cancel()
-		}
-	}
-
-	metaTxIdBytes := common.Hex2Bytes(string(metaTxnID))
-
-	// All transactions must change nonces
-	// so load all nonce changes and search the logs
-	nonceChangedTopics := [][]common.Hash{{NonceChangeEventSig}}
-
-	var fromBlock uint64
-
-	// Load all logs until we found the receipt or we reach timeout
-	for {
-		select {
-		case <-ctx.Done():
-			err := ctx.Err()
-			if errors.Is(err, context.DeadlineExceeded) {
-				return 0, nil, fmt.Errorf("waiting for meta transaction timeout for %v: %w", metaTxnID, err)
-			} else if err != nil {
-				return 0, nil, fmt.Errorf("failed waiting for meta transaction for %v: %w", metaTxnID, err)
-			} else {
-				return 0, nil, nil
-			}
-		default:
-		}
-
-		latestBlock, err := provider.BlockNumber(ctx)
-		if err != nil {
-			time.Sleep(time.Second)
-			continue
-		}
-
-		if fromBlock == 0 {
-			del := uint64(200)      // TODO: make it an option..
-			if latestBlock >= del { // clamp
-				fromBlock = latestBlock - del
-			} else {
-				fromBlock = latestBlock
-			}
-		}
-
-		query := ethereum.FilterQuery{
-			FromBlock: big.NewInt(0).SetUint64(fromBlock),
-			ToBlock:   big.NewInt(0).SetUint64(latestBlock),
-			Topics:    nonceChangedTopics,
-		}
-
-		logs, err := provider.FilterLogs(ctx, query)
-		if err != nil {
-			time.Sleep(time.Second)
-			continue
-		}
-
-		for _, log := range logs {
-			// NOTE: unfortunately we have to fetch the entire receipt of this NonceChanged receipt between
-			// these blocks, so that we may then check the log data of that respective txn to find the
-			// MetaTxnExecuted or MetaTxnFailed status.
-			//
-			// TODO: this method would HUGELY benefit to use goware/cachestore so we don't asks nodes
-			// for the same transaction receipts we just fetched.
-			tx, err := provider.TransactionReceipt(ctx, log.TxHash)
-			if err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
-					break
-				}
-				time.Sleep(1500 * time.Millisecond)
-				continue
-			}
-
-			for _, txLog := range tx.Logs {
-				status := MetaTxnStatusUnknown
-
-				// Success transactions have no topics and the metaTxId is the data
-				if len(txLog.Topics) == 0 && bytes.Equal(txLog.Data, metaTxIdBytes) {
-					status = MetaTxnExecuted
-				}
-
-				// Failed transactions have the TxFailed topic and the data begins with the metaTxInd
-				if status == 0 && (len(txLog.Topics) == 1 && bytes.Equal(txLog.Topics[0].Bytes(), V1TxFailedEventSig.Bytes()) && bytes.HasPrefix(txLog.Data, metaTxIdBytes)) {
-					status = MetaTxnFailed
-				}
-
-				if status > 0 {
-					return status, tx, nil
-				}
-			}
-		}
-
-		// advance the cursor
-		time.Sleep(time.Second)
-
-		del := uint64(12)       // NOTE: we go back in case of reorgs, etc.
-		if latestBlock >= del { // clamp
-			fromBlock = latestBlock - del
-		} else {
-			fromBlock = latestBlock
-		}
-	}
 }
