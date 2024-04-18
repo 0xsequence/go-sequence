@@ -56,8 +56,13 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 
 // This method is duplicated code from: `compressor/contract.go`
 // can't be used directly, because it would create a circular dependency
-func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transaction *types.Transaction) (common.Address, []byte, error) {
-	data := transaction.Data()
+func DecompressCalldata(
+	ctx context.Context,
+	provider *ethrpc.Provider,
+	toAddress common.Address,
+	calldata []byte,
+) (common.Address, []byte, error) {
+	data := calldata
 
 	if len(data) == 0 {
 		return common.Address{}, nil, fmt.Errorf("empty transaction data")
@@ -74,7 +79,7 @@ func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transact
 	c2[0] = byte(0x06)
 
 	res, err := provider.CallContract(ctx, ethereum.CallMsg{
-		To:   transaction.To(),
+		To:   &toAddress,
 		Data: c2,
 	}, nil)
 
@@ -93,18 +98,26 @@ func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transact
 func TryDecodeCalldata(
 	ctx context.Context,
 	provider *ethrpc.Provider,
-	transaction *types.Transaction,
+	toAddress common.Address,
+	calldata []byte,
+	decompressCzip bool,
 ) (common.Address, Transactions, *big.Int, []byte, error) {
-	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(calldata)
 	if err == nil {
-		return *transaction.To(), decodedTransactions, decodedNonce, decodedSignature, nil
+		return toAddress, decodedTransactions, decodedNonce, decodedSignature, nil
 	}
 
+	var addr common.Address
+	var decompressed []byte
+	var err2 error
+
 	// Try decoding it decompressed
-	addr, decompressed, err2 := DecompressCalldata(ctx, provider, transaction)
-	if err2 != nil {
-		// Don't bubble up the decompression error, as it might not be a decompression error
-		return common.Address{}, nil, nil, nil, err
+	if decompressCzip {
+		addr, decompressed, err2 = DecompressCalldata(ctx, provider, toAddress, calldata)
+		if err2 != nil {
+			// Don't bubble up the decompression error, as it might not be a decompression error
+			return common.Address{}, nil, nil, nil, err
+		}
 	}
 
 	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed)
@@ -115,19 +128,33 @@ func TryDecodeCalldata(
 	return addr, decodedTransactions, decodedNonce, decodedSignature, nil
 }
 
-func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider) ([]*Receipt, []*types.Log, error) {
-	transaction, _, err := provider.TransactionByHash(ctx, receipt.TxHash)
+func DecodeReceipt(
+	ctx context.Context,
+	receipt *types.Receipt,
+	provider *ethrpc.Provider,
+	calldata []byte,
+	decompressCzip bool,
+) ([]*Receipt, []*types.Log, error) {
+	if calldata == nil {
+		transaction, _, err := provider.TransactionByHash(ctx, receipt.TxHash)
+		if err != nil {
+			return nil, nil, err
+		}
+		calldata = transaction.Data()
+	}
+
+	chainID, err := provider.ChainID(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	wallet, decodedTransactions, decodedNonce, decodedSignature, err := TryDecodeCalldata(ctx, provider, transaction)
+	wallet, decodedTransactions, decodedNonce, decodedSignature, err := TryDecodeCalldata(ctx, provider, receipt.To, calldata, decompressCzip)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
-	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, wallet, transaction.ChainId(), isGuestExecute)
+	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, wallet, chainID, isGuestExecute)
 	if err != nil {
 		return nil, nil, err
 	}

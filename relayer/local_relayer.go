@@ -123,7 +123,7 @@ func (r *LocalRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransac
 	panic("implement me")
 }
 
-func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, sequence.WaitReceipt, error) {
 	// NOTE: this implementation assumes the wallet is deployed and does not do automatic bundle creation (aka prepending / bundling
 	// a wallet creation call)
 
@@ -208,27 +208,33 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return metaTxnID, nil, nil, err
 	}
 
-	ntx, waitReceipt, err := sender.SendTransaction(ctx, signedTx)
+	ntx, _, err = sender.SendTransaction(ctx, signedTx)
 	if err != nil {
 		return metaTxnID, nil, nil, err
+	}
+
+	waitReceipt := func(ctx context.Context) (*types.Receipt, *proto.MetaTxnReceipt, error) {
+		// NOTE: to timeout the request, pass a ctx from context.WithTimeout
+		_, receipt, metaTxnReceipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID))
+		return receipt, metaTxnReceipt, err
 	}
 
 	return metaTxnID, ntx, waitReceipt, nil
 }
 
-func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, *proto.MetaTxnReceipt, error) {
 	if r.receiptListener == nil {
-		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
+		return 0, nil, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
 	}
 	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	var status sequence.MetaTxnStatus
 	if result != nil {
 		status = result.Status
 	}
-	return status, receipt.Receipt(), nil
+	return status, receipt.Receipt(), nil, nil // XXXXXX
 }
 
 func (r *LocalRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTransactions) ([]*sequence.RelayerFeeOption, *sequence.RelayerFeeQuote, error) {

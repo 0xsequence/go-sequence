@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -68,13 +67,13 @@ type Relayer interface {
 	// Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 	// request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-	Relay(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
+	Relay(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, WaitReceipt, error)
 
 	//
 	FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
+	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, *proto.MetaTxnReceipt, error)
 
 	// ..
 	Client() proto.Relayer
@@ -97,6 +96,8 @@ const (
 	MetaTxnFailed
 	MetaTxnReverted
 )
+
+type WaitReceipt func(ctx context.Context) (*types.Receipt, *proto.MetaTxnReceipt, error)
 
 // returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
 func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
