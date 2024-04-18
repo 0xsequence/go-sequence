@@ -11,7 +11,6 @@ import (
 	"github.com/0xsequence/ethkit"
 	"github.com/0xsequence/ethkit/ethreceipts"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
@@ -144,7 +143,7 @@ func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransacti
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, sequence.WaitReceipt, error) {
 	walletAddress := signedTxs.WalletAddress
 	var err error
 
@@ -196,10 +195,10 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		return "", nil, nil, proto.Failf("failed to relay meta transaction: server returned empty metaTxnID")
 	}
 
-	waitReceipt := func(ctx context.Context) (*types.Receipt, error) {
+	waitReceipt := func(ctx context.Context) (*types.Receipt, *proto.MetaTxnReceipt, error) {
 		// NOTE: to timeout the request, pass a ctx from context.WithTimeout
-		_, receipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID))
-		return receipt, err
+		_, receipt, metaTxnReceipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID))
+		return receipt, metaTxnReceipt, err
 	}
 
 	// TODO: 2nd argument will be nil, we may even want to remove it from here...
@@ -232,7 +231,7 @@ func (r *RpcRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedT
 }
 
 // ....
-func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, *proto.MetaTxnReceipt, error) {
 	// Fetch the meta transaction receipt from the relayer service
 	if r.receiptListener == nil {
 		return r.waitMetaTxnReceipt(ctx, metaTxnID, optTimeout...)
@@ -241,16 +240,18 @@ func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, opt
 	// Fetch the meta transaction receipt from the receipt listener
 	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	var status sequence.MetaTxnStatus
 	if result != nil {
 		status = result.Status
 	}
-	return status, receipt.Receipt(), nil
+	// TODO: need to get from receipt listener result to a sequence meta txn receipt ..
+	// TODO: can copy bunch of code from GetMetaTxnReceipt .. using sequence.DecodeReceipt(receipt) etc..
+	return status, receipt.Receipt(), nil, nil // XXXX
 }
 
-func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, *proto.MetaTxnReceipt, error) {
 	// TODO: in future GetMetaTxnReceipt() will be renamed to WaitTransactionReceipt()
 
 	var clear context.CancelFunc
@@ -264,9 +265,9 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 		case <-ctx.Done():
 			err := ctx.Err()
 			if err != nil {
-				return 0, nil, err
+				return 0, nil, nil, err
 			}
-			return 0, nil, nil
+			return 0, nil, nil, nil
 		default:
 		}
 
@@ -278,15 +279,15 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 			continue
 		}
 		if err != nil {
-			return sequence.MetaTxnStatusUnknown, nil, err
+			return sequence.MetaTxnStatusUnknown, nil, nil, err
 		}
 		txnReceipt := metaTxnReceipt.TxnReceipt
 		var receipt *types.Receipt
 		err = json.Unmarshal([]byte(txnReceipt), &receipt)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
+			return 0, nil, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
 		}
-		return MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
+		return MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, metaTxnReceipt, nil
 	}
 }
 

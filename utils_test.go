@@ -40,7 +40,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, tx)
 
-		receipt, err := waitReceipt(context.Background())
+		receipt, _, err := waitReceipt(context.Background())
 		assert.NoError(t, err)
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
@@ -77,7 +77,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, tx)
 
-		receipt, err := waitReceipt(context.Background())
+		receipt, _, err := waitReceipt(context.Background())
 		assert.NoError(t, err)
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 

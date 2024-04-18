@@ -13,11 +13,12 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
 var zeroAddress = common.Address{}
 
-func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
+func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, WaitReceipt, error) {
 	if sender.GetProvider() == nil {
 		return common.Address{}, nil, nil, ErrProviderNotSet
 	}
@@ -48,7 +49,12 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 
 	tx, waitReceipt, err := sender.SendTransaction(context.Background(), signedDeployTx)
 
-	return walletAddress, tx, waitReceipt, nil
+	metaTxnWaitReceipt := func(ctx context.Context) (*types.Receipt, *proto.MetaTxnReceipt, error) {
+		receipt, err := waitReceipt(ctx)
+		return receipt, nil, err
+	}
+
+	return walletAddress, tx, metaTxnWaitReceipt, err
 }
 
 func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
