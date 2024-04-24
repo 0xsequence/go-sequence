@@ -40,6 +40,9 @@ struct IntentDataOpenSession
     + go.tag.json = email,omitempty
   - idToken?: string
     + go.tag.json = idToken,omitempty
+  - forceCreateAccount?: bool
+    + go.field.type = bool
+    + go.tag.json = forceCreateAccount,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
