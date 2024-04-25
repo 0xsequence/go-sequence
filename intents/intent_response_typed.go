@@ -5,27 +5,33 @@ import (
 	"fmt"
 )
 
-func IntentResponseTypeToCode[T any](t *T) string {
+func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 	var data any = t
 	switch data.(type) {
 	case *IntentResponseSessionOpened:
-		return IntentResponseCodeSessionOpened
+		return IntentResponseCode_sessionOpened
 	case *IntentResponseValidationStarted:
-		return IntentResponseCodeValidationStarted
+		return IntentResponseCode_validationStarted
 	case *IntentResponseValidationFinished:
-		return IntentResponseCodeValidationFinished
+		return IntentResponseCode_validationFinished
 	case *IntentResponseSessionAuthProof:
-		return IntentResponseCodeSessionAuthProof
+		return IntentResponseCode_sessionAuthProof
 	case *IntentResponseSignedMessage:
-		return IntentResponseCodeSignedMessage
+		return IntentResponseCode_signedMessage
 	case *IntentResponseFeeOptions:
-		return IntentResponseCodeFeeOptions
+		return IntentResponseCode_feeOptions
 	case *IntentResponseTransactionReceipt:
-		return IntentResponseCodeTransactionReceipt
+		return IntentResponseCode_transactionReceipt
 	case *IntentResponseTransactionFailed:
-		return IntentResponseCodeTransactionFailed
+		return IntentResponseCode_transactionFailed
 	case *IntentResponseGetSession:
-		return IntentResponseCodeGetSessionResponse
+		return IntentResponseCode_getSessionResponse
+	case *IntentResponseAccountList:
+		return IntentResponseCode_accountList
+	case *IntentResponseAccountFederated:
+		return IntentResponseCode_accountFederated
+	case *IntentResponseAccountRemoved:
+		return IntentResponseCode_accountRemoved
 	default:
 		return ""
 	}

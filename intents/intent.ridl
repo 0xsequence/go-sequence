@@ -5,7 +5,7 @@ version = v0.1.0
 
 struct Intent
   - version: string
-  - name: string
+  - name: IntentName
   - expiresAt: uint64
   - issuedAt: uint64
   - data: any
@@ -17,18 +17,21 @@ struct Signature
      + go.field.name = SessionID
   - signature: string
 
-# no way to generate string enums
-# enum IntentName: string
-#  - openSession
-#  - closeSession
-#  - validateSession
-#  - finishValidateSession
-#  - listSessions
-#  - getSession
-#  - sessionAuthProof
-#  - signMessage
-#  - sendTransaction
-#  - getTransactionReceipt
+ enum IntentName: string
+  - openSession
+  - closeSession
+  - validateSession
+  - finishValidateSession
+  - listSessions
+  - getSession
+  - sessionAuthProof
+  - feeOptions
+  - signMessage
+  - sendTransaction
+  - getTransactionReceipt
+  - federateAccount
+  - removeAccount
+  - listAccounts
 
 struct IntentDataOpenSession
   - sessionId: string
@@ -37,6 +40,9 @@ struct IntentDataOpenSession
     + go.tag.json = email,omitempty
   - idToken?: string
     + go.tag.json = idToken,omitempty
+  - forceCreateAccount?: bool
+    + go.field.type = bool
+    + go.tag.json = forceCreateAccount,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
@@ -94,19 +100,33 @@ struct IntentDataGetTransactionReceipt
   - wallet: string
   - metaTxHash: string
 
+struct IntentDataFederateAccount
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+  - idToken: string
+    + go.tag.json = idToken,omitempty
+
+struct IntentDataListAccounts
+  - wallet: string
+
+struct IntentDataRemoveAccount
+  - wallet: string
+  - accountId: string
+    + go.field.name = AccountID
+
 struct TransactionRaw
   - type: string
   - to: string
   - value: string
   - data: string
 
-# no way to generate string enums
-#enum TransactionType: string
-#  - transaction
-#  - erc20send
-#  - erc721send
-#  - erc1155send
-#  - delayedEncode
+enum TransactionType: string
+  - transaction
+  - erc20send
+  - erc721send
+  - erc1155send
+  - delayedEncode
 
 struct TransactionERC20
   - type: string
@@ -142,20 +162,25 @@ struct TransactionERC1155
   - data?: string
 
 struct IntentResponse
-  - code: string
+  - code: IntentResponseCode
   - data: any
 
-# no way to generate string enums
-#enum IntentResponseCode: string
-# - sessionOpened
-# - validationRequired
-# - validationStarted
-# - validationFinished
-# - sessionAuthProof
-# - signedMessage
-# - transactionReceipt
-# - transactionFailed
-# - getSessionResponse
+enum IntentResponseCode: string
+  - sessionOpened
+  - sessionClosed
+  - sessionList
+  - validationRequired
+  - validationStarted
+  - validationFinished
+  - sessionAuthProof
+  - signedMessage
+  - feeOptions
+  - transactionReceipt
+  - transactionFailed
+  - getSessionResponse
+  - accountList
+  - accountFederated
+  - accountRemoved
 
 struct IntentResponseSessionOpened
   - sessionId: string
@@ -237,3 +262,24 @@ struct IntentResponseTransactionFailed
   - request: any
   - simulations: any
 
+struct IntentResponseAccountList
+  - accounts: []Account
+
+struct IntentResponseAccountFederated
+  - account: Account
+
+struct IntentResponseAccountRemoved
+
+enum IdentityType: string
+  - None
+  - Guest
+  - OIDC
+
+struct Account
+  - id: string
+    + go.field.name = ID
+  - type: IdentityType
+    + go.field.type = IdentityType
+  - issuer: string
+  - email?: string
+    + go.tag.json = email,omitempty
