@@ -13,7 +13,7 @@ type Options struct {
 
 // NewMetadata creates a new Sequence Metadata client instance. Please see
 // https://sequence.build to get a `projectAccessKey`.
-func NewMetadata(projectAccessKey string, options ...Options) Metadata {
+func NewMetadata(projectAccessKey string, options ...Options) MetadataClient {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]

@@ -15,7 +15,7 @@ type Options struct {
 
 // NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
-func NewRelayer(relayerURL string, projectAccessKey string, options ...Options) proto.Relayer {
+func NewRelayer(relayerURL string, projectAccessKey string, options ...Options) proto.RelayerClient {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -53,7 +53,7 @@ func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
 
 func MetaTxnStatusFromString(s string) sequence.MetaTxnStatus {
 	var ethTxnStatus proto.ETHTxnStatus
-	ethTxnStatus.UnmarshalJSON([]byte(s))
+	ethTxnStatus.UnmarshalText([]byte(s))
 
 	switch ethTxnStatus {
 	case proto.ETHTxnStatus_UNKNOWN:

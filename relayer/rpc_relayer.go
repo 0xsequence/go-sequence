@@ -190,10 +190,10 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}
 	if !ok {
-		return sequence.MetaTxnID(metaTxnID), nil, nil, proto.Failf("failed to relay meta transaction: unknown reason")
+		return sequence.MetaTxnID(metaTxnID), nil, nil, fmt.Errorf("failed to relay meta transaction: unknown reason")
 	}
 	if metaTxnID == "" {
-		return "", nil, nil, proto.Failf("failed to relay meta transaction: server returned empty metaTxnID")
+		return "", nil, nil, fmt.Errorf("failed to relay meta transaction: server returned empty metaTxnID")
 	}
 
 	waitReceipt := func(ctx context.Context) (*types.Receipt, error) {
@@ -313,7 +313,7 @@ func convFeeTokenToRelayerFeeToken(token *proto.FeeToken) sequence.RelayerFeeTok
 		ChainID:         big.NewInt(0).SetUint64(token.ChainId),
 		Name:            token.Name,
 		Symbol:          token.Symbol,
-		Type:            sequence.RelayerFeeTokenType(*token.Type),
+		Type:            sequence.RelayerFeeTokenType(token.Type),
 		Decimals:        token.Decimals,
 		LogoURL:         token.LogoURL,
 		ContractAddress: contractAddress,

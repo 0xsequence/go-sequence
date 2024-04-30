@@ -12,7 +12,6 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gibson042/canonicaljson-go v1.0.3
-	github.com/goware/breaker v0.1.2
 	github.com/goware/cachestore v0.8.1
 	github.com/goware/logger v0.3.0
 	github.com/shopspring/decimal v1.3.1
@@ -31,6 +30,7 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/goware/breaker v0.1.2 // indirect
 	github.com/goware/calc v0.2.0 // indirect
 	github.com/goware/channel v0.4.1 // indirect
 	github.com/goware/singleflight v0.2.0 // indirect

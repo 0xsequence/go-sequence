@@ -12,7 +12,7 @@ type Options struct {
 
 // NewIndexer creates a new Sequence Indexer client instance. See https://docs.sequence.xyz for a list of
 // indexer urls, and please see https://sequence.build to get a `projectAccessKey`.
-func NewIndexer(indexerURL string, projectAccessKey string, options ...Options) Indexer {
+func NewIndexer(indexerURL string, projectAccessKey string, options ...Options) IndexerClient {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
