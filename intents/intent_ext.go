@@ -63,3 +63,9 @@ func (intent *Intent) Signers() []string {
 	}
 	return signers
 }
+
+// IntentName stringer helper method, even thought IntentName is a string type, it's useful to
+// have a String() method to satisfy the fmt.Stringer interface
+func (n IntentName) String() string {
+	return string(n)
+}
