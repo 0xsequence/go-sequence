@@ -17,7 +17,8 @@ struct Signature
      + go.field.name = SessionID
   - signature: string
 
- enum IntentName: string
+enum IntentName: string
+  - initiateAuth
   - openSession
   - closeSession
   - validateSession
@@ -32,17 +33,31 @@ struct Signature
   - federateAccount
   - removeAccount
   - listAccounts
+  - getIdToken
+
+struct IntentDataInitiateAuth
+  - sessionId: string
+    + go.field.name = SessionID
+  - identityType: IdentityType
+  - verifier: string
 
 struct IntentDataOpenSession
   - sessionId: string
     + go.field.name = SessionID
+  - verifier?: string
+    + go.field.type = string
+    + go.tag.json = verifier,omitempty
+  - challenge?: string
+    + go.field.type = string
+    + go.tag.json = challenge,omitempty
+  - forceCreateAccount?: bool
+    + go.field.type = bool
+    + go.tag.json = forceCreateAccount,omitempty
+  # Deprecated
   - email?: string
     + go.tag.json = email,omitempty
   - idToken?: string
     + go.tag.json = idToken,omitempty
-  - forceCreateAccount?: bool
-    + go.field.type = bool
-    + go.tag.json = forceCreateAccount,omitempty
 
 struct IntentDataCloseSession
   - sessionId: string
@@ -104,8 +119,12 @@ struct IntentDataFederateAccount
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
-  - idToken: string
-    + go.tag.json = idToken,omitempty
+  - email?: string
+    + go.field.type = string
+    + go.tag.json = email,omitempty
+  - challenge?: string
+    + go.field.type = string
+    + go.tag.json = challenge,omitempty
 
 struct IntentDataListAccounts
   - wallet: string
@@ -114,6 +133,13 @@ struct IntentDataRemoveAccount
   - wallet: string
   - accountId: string
     + go.field.name = AccountID
+
+struct IntentDataGetIdToken
+  - sessionId: string
+    + go.field.name = SessionID
+  - wallet: string
+  - nonce?: string
+    + go.field.type = string
 
 struct TransactionRaw
   - type: string
@@ -166,6 +192,7 @@ struct IntentResponse
   - data: any
 
 enum IntentResponseCode: string
+  - authInitiated
   - sessionOpened
   - sessionClosed
   - sessionList
@@ -181,6 +208,14 @@ enum IntentResponseCode: string
   - accountList
   - accountFederated
   - accountRemoved
+  - idToken
+
+struct IntentResponseAuthInitiated
+  - sessionId: string
+    + go.field.name = SessionID
+  - identityType: IdentityType
+  - expiresIn: int
+  - challenge?: string
 
 struct IntentResponseSessionOpened
   - sessionId: string
@@ -270,16 +305,22 @@ struct IntentResponseAccountFederated
 
 struct IntentResponseAccountRemoved
 
+struct IntentResponseIdToken
+  - idToken: string
+  - expiresIn: int
+
 enum IdentityType: string
   - None
   - Guest
   - OIDC
+  - Email
 
 struct Account
   - id: string
     + go.field.name = ID
   - type: IdentityType
     + go.field.type = IdentityType
-  - issuer: string
+  - issuer?: string
+    + go.tag.json = issuer,omitempty
   - email?: string
     + go.tag.json = email,omitempty
