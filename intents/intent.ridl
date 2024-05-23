@@ -40,6 +40,7 @@ struct IntentDataInitiateAuth
     + go.field.name = SessionID
   - identityType: IdentityType
   - verifier: string
+  - metadata?: string
 
 struct IntentDataOpenSession
   - sessionId: string
@@ -47,9 +48,9 @@ struct IntentDataOpenSession
   - verifier?: string
     + go.field.type = string
     + go.tag.json = verifier,omitempty
-  - challenge?: string
+  - answer?: string
     + go.field.type = string
-    + go.tag.json = challenge,omitempty
+    + go.tag.json = answer,omitempty
   - forceCreateAccount?: bool
     + go.field.type = bool
     + go.tag.json = forceCreateAccount,omitempty
@@ -119,12 +120,12 @@ struct IntentDataFederateAccount
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
-  - email?: string
+  - verifier?: string
     + go.field.type = string
-    + go.tag.json = email,omitempty
-  - challenge?: string
+    + go.tag.json = verifier,omitempty
+  - answer?: string
     + go.field.type = string
-    + go.tag.json = challenge,omitempty
+    + go.tag.json = answer,omitempty
 
 struct IntentDataListAccounts
   - wallet: string
