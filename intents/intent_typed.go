@@ -9,6 +9,8 @@ import (
 func IntentDataTypeToName[T any](t *T) IntentName {
 	var data any = t
 	switch data.(type) {
+	case *IntentDataInitiateAuth:
+		return IntentName_initiateAuth
 	case *IntentDataOpenSession:
 		return IntentName_openSession
 	case *IntentDataCloseSession:
@@ -37,6 +39,8 @@ func IntentDataTypeToName[T any](t *T) IntentName {
 		return IntentName_federateAccount
 	case *IntentDataRemoveAccount:
 		return IntentName_removeAccount
+	case *IntentDataGetIdToken:
+		return IntentName_getIdToken
 	default:
 		return ""
 	}

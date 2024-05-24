@@ -8,6 +8,8 @@ import (
 func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 	var data any = t
 	switch data.(type) {
+	case *IntentResponseAuthInitiated:
+		return IntentResponseCode_authInitiated
 	case *IntentResponseSessionOpened:
 		return IntentResponseCode_sessionOpened
 	case *IntentResponseValidationStarted:
@@ -32,6 +34,8 @@ func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 		return IntentResponseCode_accountFederated
 	case *IntentResponseAccountRemoved:
 		return IntentResponseCode_accountRemoved
+	case *IntentResponseIdToken:
+		return IntentResponseCode_idToken
 	default:
 		return ""
 	}
