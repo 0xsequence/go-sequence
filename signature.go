@@ -168,7 +168,7 @@ func IsValidMessageSignature(address common.Address, message []byte, signature [
 		return true, nil
 	}
 
-	return IsValidSignature(log, address, MessageDigest(accounts.TextHash(message)), signature, SequenceContexts(), chainID, provider)
+	return IsValidSignature(log, address, common.BytesToHash(accounts.TextHash(message)), signature, SequenceContexts(), chainID, provider)
 }
 
 func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
