@@ -41,11 +41,14 @@ struct IntentDataInitiateAuth
   - identityType: IdentityType
   - verifier: string
   - metadata?: string
+    + go.tag.json = metadata,omitempty
 
 struct IntentDataOpenSession
   - sessionId: string
     + go.field.name = SessionID
   - identityType: IdentityType
+    + go.field.type = IdentityType
+    + go.tag.json = identityType,omitempty
   - verifier?: string
     + go.field.type = string
     + go.tag.json = verifier,omitempty
@@ -122,6 +125,7 @@ struct IntentDataFederateAccount
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
+  - identityType: IdentityType
   - verifier?: string
     + go.field.type = string
     + go.tag.json = verifier,omitempty

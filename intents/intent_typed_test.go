@@ -203,7 +203,7 @@ func TestIntentDataValidator(t *testing.T) {
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		intent := NewIntentTyped(IntentDataOpenSession{SessionID: "0x1234"})
+		intent := NewIntentTyped(IntentDataOpenSession{})
 
 		wallet, err := ethwallet.NewWalletFromRandomEntropy()
 		require.NoError(t, err)
