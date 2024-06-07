@@ -146,7 +146,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	}
 
 	from := call.From
-	if from.Hash().Big().Cmp(common.Big0) == 0 {
+	if from == (common.Address{}) {
 		from = stubAddress()
 	}
 

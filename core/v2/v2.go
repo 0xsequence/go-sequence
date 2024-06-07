@@ -1771,7 +1771,8 @@ func decodeWalletConfigTreeAddressLeaf(object any) (*WalletConfigTreeAddressLeaf
 }
 
 func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
-	hash := l.Address.Hash()
+	var hash common.Hash
+	hash.SetBytes(l.Address.Bytes())
 	hash[common.HashLength-common.AddressLength-1] = l.Weight
 	return core.ImageHash{Hash: hash, Preimage: l}
 }
