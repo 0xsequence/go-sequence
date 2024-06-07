@@ -771,9 +771,11 @@ func (l *signatureTreeDynamicSignatureLeaf) write(writer io.Writer) error {
 type WalletConfigSigners []*WalletConfigSigner
 
 func (s WalletConfigSigners) Len() int { return len(s) }
+
 func (s WalletConfigSigners) Less(i, j int) bool {
-	return s[i].Address.Hash().Big().Cmp(s[j].Address.Hash().Big()) < 0
+	return s[i].Address.Big().Cmp(s[j].Address.Big()) < 0
 }
+
 func (s WalletConfigSigners) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 type WalletConfig struct {
