@@ -321,7 +321,7 @@ enum IdentityType: string
   - Guest
   - OIDC
   - Email
-  - Playfab
+  - PlayFab
 
 struct Account
   - id: string
