@@ -322,6 +322,7 @@ enum IdentityType: string
   - OIDC
   - Email
   - PlayFab
+  - Stytch
 
 struct Account
   - id: string
