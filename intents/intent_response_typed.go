@@ -12,6 +12,8 @@ func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 		return IntentResponseCode_authInitiated
 	case *IntentResponseSessionOpened:
 		return IntentResponseCode_sessionOpened
+	case *IntentResponseSessionClosed:
+		return IntentResponseCode_sessionClosed
 	case *IntentResponseValidationStarted:
 		return IntentResponseCode_validationStarted
 	case *IntentResponseValidationFinished:
