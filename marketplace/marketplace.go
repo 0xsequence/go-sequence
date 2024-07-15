@@ -6,7 +6,7 @@ import (
 )
 
 type Options struct {
-	MarketplaceApiUrl string
+	MarketplaceAPIURL string
 	JWTAuthToken      string
 	HTTPClient        HTTPClient
 }
@@ -21,21 +21,23 @@ func NewMarketplaceAdmin(projectAccessKey string, chainHandle string, options ..
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
-	if opts.HTTPClient == nil {
+
+	if client.client == nil {
 		client.client = http.DefaultClient
 	}
+
 	if opts.JWTAuthToken != "" {
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
 	// prod: https://marketplace-api.sequence.app
 	// dev: https://dev-marketplace-api.sequence.app
-	apiUrl := fmt.Sprintf("https://marketplace-api.sequence.app/%s", chainHandle)
-	if opts.MarketplaceApiUrl != "" {
-		apiUrl = opts.MarketplaceApiUrl + "/" + chainHandle
+	apiURL := fmt.Sprintf("https://marketplace-api.sequence.app/%s", chainHandle)
+	if opts.MarketplaceAPIURL != "" {
+		apiURL = opts.MarketplaceAPIURL + "/" + chainHandle
 	}
 
-	return NewAdminClient(apiUrl, client.client)
+	return NewAdminClient(apiURL, client)
 }
 
 type httpclient struct {
@@ -50,7 +52,7 @@ func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	if c.jwtAuthHeader != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("BEARER %s", c.jwtAuthHeader))
+		req.Header.Set("Authorization", c.jwtAuthHeader)
 	}
 
 	return c.client.Do(req)
