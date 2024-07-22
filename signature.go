@@ -271,6 +271,51 @@ func EIP6492Signature(signature []byte, config core.WalletConfig) ([]byte, error
 	return signature, nil
 }
 
+func EIP6492SignatureWithMultipleDeployments(signature []byte, configs []core.WalletConfig) ([]byte, error) {
+	if len(configs) == 1 {
+		return EIP6492Signature(signature, configs[0])
+	}
+
+	var txns Transactions
+	for _, config := range configs {
+		context := SequenceContextForWalletConfig(config)
+		factory := context.FactoryAddress
+		if factory == (common.Address{}) {
+			return nil, fmt.Errorf("unknown factory address for wallet config type %T", config)
+		}
+
+		mainModule := context.MainModuleAddress
+		imageHash := config.ImageHash().Hash
+		deploy, err := contracts.V2.WalletFactory.ABI.Pack("deploy", mainModule, imageHash)
+		if err != nil {
+			return nil, fmt.Errorf("unable to encode deploy call: %w", err)
+		}
+
+		txns = append(txns, &Transaction{
+			RevertOnError: true,
+			To:            factory,
+			Data:          deploy,
+		})
+	}
+
+	encodedTxns, err := txns.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	execdata, err := contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{sequenceContextV2.GuestModuleAddress, execdata, signature})
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
+	}
+	signature = append(signature, eip6492.EIP6492MagicBytes...)
+	return signature, nil
+}
+
 func UnwrapEIP6492Signature(signature []byte) ([]byte, error) {
 	if !bytes.HasSuffix(signature, eip6492.EIP6492MagicBytes) {
 		return signature, nil

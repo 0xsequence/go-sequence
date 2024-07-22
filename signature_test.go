@@ -9,7 +9,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -55,6 +57,36 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
+	assert.NoError(t, err)
+
+	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	assert.NoError(t, err)
+	assert.True(t, isValid)
+}
+
+func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployments(t *testing.T) {
+	message := "hello world!"
+
+	eoa, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	require.NoError(t, err)
+
+	walletChild, err := sequence.NewWalletSingleOwner(wallet)
+	require.NoError(t, err)
+
+	provider, err := ethrpc.NewProvider(rpcURLEthereum)
+	assert.NoError(t, err)
+
+	err = wallet.Connect(provider, nil)
+	assert.NoError(t, err)
+
+	_, eip191Message := accounts.TextAndHash([]byte(message))
+
+	signature, err := wallet.SignMessage([]byte(eip191Message))
+	assert.NoError(t, err)
+
+	signature, err = sequence.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})
 	assert.NoError(t, err)
 
 	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
