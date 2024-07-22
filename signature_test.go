@@ -81,15 +81,18 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 	err = wallet.Connect(provider, nil)
 	assert.NoError(t, err)
 
+	err = walletChild.Connect(provider, nil)
+	assert.NoError(t, err)
+
 	_, eip191Message := accounts.TextAndHash([]byte(message))
 
-	signature, err := wallet.SignMessage([]byte(eip191Message))
+	signature, err := walletChild.SignMessage([]byte(eip191Message))
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := sequence.IsValidMessageSignature(walletChild.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
