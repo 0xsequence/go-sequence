@@ -124,8 +124,12 @@ func (h Hash) IsValidTxnHash() bool {
 	return true
 }
 
-func (h Hash) Bytes() []byte {
-	return h.Hash().Bytes()
+func (h Hash) Bytes() ([]byte, error) {
+	s := h.String()
+	if len(s) < 2 {
+		return []byte{}, nil
+	}
+	return hex.DecodeString(s[2:])
 }
 
 func (h *Hash) Hash() common.Hash {
@@ -133,11 +137,7 @@ func (h *Hash) Hash() common.Hash {
 }
 
 func (h Hash) Value() (driver.Value, error) {
-	s := h.String()
-	if len(s) < 2 {
-		return []byte{}, nil
-	}
-	return hex.DecodeString(s[2:])
+	return h.Bytes()
 }
 
 func (h *Hash) Scan(src interface{}) error {
