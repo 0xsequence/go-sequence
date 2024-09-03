@@ -156,7 +156,7 @@ func (s *signature) Recover(ctx context.Context, digest core.Digest, wallet comm
 	return s.RecoverSubdigest(ctx, subdigest, provider, signerSignatures...)
 }
 
-func (s *signature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *signature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
@@ -165,7 +165,7 @@ func (s *signature) RecoverSubdigest(ctx context.Context, subDigest core.Subdige
 	var total big.Int
 
 	for i, leaf := range s.leaves {
-		signer, weight, err := leaf.recover(ctx, subDigest, provider, signerSignatures[0])
+		signer, weight, err := leaf.recover(ctx, subdigest, provider, signerSignatures[0])
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to recover signer for leaf %v: %w", i, err)
 		}

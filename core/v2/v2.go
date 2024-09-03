@@ -175,12 +175,12 @@ func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wall
 	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet, chainID), provider, signerSignatures...)
 }
 
-func (s *regularSignature) RecoverSubdigest(ctx context.Context, subDigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *regularSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
 
-	tree, weight, err := s.tree.recover(ctx, subDigest, provider, signerSignatures[0])
+	tree, weight, err := s.tree.recover(ctx, subdigest, provider, signerSignatures[0])
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover wallet config: %w", err)
 	}
