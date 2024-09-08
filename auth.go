@@ -100,7 +100,7 @@ func EIP6492ValidateSignature() ethauth.ValidatorFunc {
 			return false, "", fmt.Errorf("sig is invalid: %w", err)
 		}
 
-		isValid, err := eip6492.ValidateEIP6492Offchain(provider, signer, hash, sig)
+		isValid, err := eip6492.ValidateEIP6492Offchain(ctx, provider, signer, hash, sig, nil)
 		if err != nil {
 			return false, "", fmt.Errorf("failed to validate: %w", err)
 		}

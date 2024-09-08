@@ -173,7 +173,7 @@ func IsValidMessageSignature(address common.Address, message []byte, signature [
 }
 
 func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(provider, walletAddress, digest, seqSig)
+	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(context.Background(), provider, walletAddress, digest, seqSig, nil)
 	if eip6492isValid {
 		return true, nil
 	}
