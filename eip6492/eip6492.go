@@ -3,6 +3,7 @@ package eip6492
 import (
 	"bytes"
 	"context"
+	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
@@ -194,6 +195,7 @@ func ValidateEIP6492Offchain(
 	signer common.Address,
 	hash common.Hash,
 	signature []byte,
+	block *big.Int,
 ) (bool, error) {
 	base, err := ethcoder.AbiCoder(
 		[]string{"address", "bytes32", "bytes"}, []interface{}{
@@ -217,7 +219,7 @@ func ValidateEIP6492Offchain(
 		Data: packed,
 	}
 
-	result, err := provider.CallContract(ctx, msg, nil)
+	result, err := provider.CallContract(ctx, msg, block)
 	if err != nil {
 		return false, err
 	}
