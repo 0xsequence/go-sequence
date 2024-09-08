@@ -189,6 +189,7 @@ const EIP_6492_SUFFIX = "0x64926492649264926492649264926492649264926492649264926
 var EIP6492MagicBytes = hexutil.MustDecode(EIP_6492_SUFFIX)
 
 func ValidateEIP6492Offchain(
+	ctx context.Context,
 	provider *ethrpc.Provider,
 	signer common.Address,
 	hash common.Hash,
@@ -216,7 +217,7 @@ func ValidateEIP6492Offchain(
 		Data: packed,
 	}
 
-	result, err := provider.CallContract(context.Background(), msg, nil)
+	result, err := provider.CallContract(ctx, msg, nil)
 	if err != nil {
 		return false, err
 	}
