@@ -139,7 +139,10 @@ func (b *BigInt) UnmarshalText(text []byte) error {
 	if len(text) <= 2 || t == "null" || t == "" {
 		return nil
 	}
-	i, _ := big.NewInt(0).SetString(string(text[1:len(text)-1]), 10)
+	i, ok := big.NewInt(0).SetString(string(text[1:len(text)-1]), 10)
+	if !ok {
+		return fmt.Errorf("BigInt.UnmarshalText: failed to unmarshal %q", text)
+	}
 	*b = BigInt(*i)
 	return nil
 }
