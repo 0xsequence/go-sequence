@@ -22,4 +22,5 @@ package tools
 
 import (
 	_ "github.com/0xsequence/ethkit/cmd/ethkit"
+	_ "github.com/webrpc/webrpc/cmd/webrpc-gen"
 )
