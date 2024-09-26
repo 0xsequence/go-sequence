@@ -116,54 +116,24 @@ func getMethodFromAbi(abi string, method string) (string, []string, error) {
 		} `json:"inputs"`
 	}
 
+	//
+	// First attempt to parse `abi` string as a plain method abi
+	// ie. transferFrom(address,address,uint256)
+	//
+
 	// Handle the case for already encoded method abi
 	if strings.Contains(abi, "(") && strings.Contains(abi, ")") && strings.HasPrefix(abi, method) {
-		// We may or may not have name information
-		// transferFrom(address,address,uint256)
-		// vs
-		// transferFrom(address from,address to,uint256 val)
-
-		// Start by obtaning only the args
-		args := strings.Split(abi, "(")[1]
-		args = strings.Split(args, ")")[0]
-
-		// Split the args by comma, to get the individual types
-		argTypes := strings.Split(args, ",")
-
-		order := make([]string, len(argTypes))
-		types := make([]string, len(argTypes))
-
-		incompleteNaming := false
-
-		for i, arg := range argTypes {
-			// If starts with space, trim it
-			arg = strings.TrimLeft(arg, " ")
-
-			if strings.Contains(arg, " ") {
-				// We have name information, so we need to extract it
-				spl := strings.Split(arg, " ")
-
-				order[i] = spl[1]
-				types[i] = spl[0]
-
-			} else {
-				// We don't have name information, so we must
-				// mark this case as incomplete
-				incompleteNaming = true
-
-				// Assume that arg is the type
-				types[i] = arg
-			}
+		eventDef, err := ethcoder.ParseEventDef(abi)
+		if err != nil {
+			return "", nil, err
 		}
-
-		if incompleteNaming {
-			order = nil
-		}
-
-		// Re encode abi, now without name information
-		fnc := method + "(" + strings.Join(types, ",") + ")"
-		return fnc, order, nil
+		return eventDef.Sig, eventDef.ArgNames, nil
 	}
+
+	//
+	// If above didn't work, attempt to parse `abi` string as
+	// a JSON object of the full abi definition
+	//
 
 	// Handle array of function abis and single function abi
 	var abis []FunctionAbi

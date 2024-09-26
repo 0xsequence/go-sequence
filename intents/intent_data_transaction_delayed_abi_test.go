@@ -46,7 +46,7 @@ func TestGetMethodFromABI(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "transfer(address,uint256)", res)
-	assert.Nil(t, order)
+	assert.Equal(t, []string{"arg1", "arg2"}, order)
 
 	// From plain method, with named args
 	res, order, err = getMethodFromAbi(`transfer(address _to,uint256 _value, bytes _mas)`, "transfer")
@@ -60,7 +60,7 @@ func TestGetMethodFromABI(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, "transfer(address,uint256,bytes)", res)
-	assert.Nil(t, order)
+	assert.Equal(t, []string{"_to", "arg2", "_mas"}, order)
 }
 
 func TestEncodeDelayedABI(t *testing.T) {
