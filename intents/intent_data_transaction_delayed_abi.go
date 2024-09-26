@@ -111,8 +111,10 @@ func getMethodFromAbi(abi string, method string) (string, []string, error) {
 	// ie. transferFrom(address,address,uint256)
 	//
 
-	// Handle the case for already encoded method abi
-	if strings.Contains(abi, "(") && strings.Contains(abi, ")") && strings.HasPrefix(abi, method) {
+	// Handle the case for already encoded method abi.
+	// NOTE: we do not need the know the `method` argument here.
+	abi = strings.TrimSpace(abi)
+	if len(abi) > 0 && strings.Contains(abi, "(") && abi[len(abi)-1] == ')' {
 		// NOTE: even though the ethcoder function is `ParseEventDef`, designed for event type parsing
 		// the abi format for a single function structure is the same, so it works. Perhaps we will rename
 		// `ParseEventDef` in the future, or just add another method with a different name.
