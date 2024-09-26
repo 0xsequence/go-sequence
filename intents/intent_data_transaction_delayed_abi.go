@@ -106,16 +106,6 @@ func EncodeDelayedABI(data *delayedEncodeType) (string, error) {
 // - transferFrom(address,address,uint256)
 // making sure that the method matches the returned one
 func getMethodFromAbi(abi string, method string) (string, []string, error) {
-	type FunctionAbi struct {
-		Name   string `json:"name"`
-		Type   string `json:"type"`
-		Inputs []struct {
-			InternalType string `json:"internalType"`
-			Name         string `json:"name"`
-			Type         string `json:"type"`
-		} `json:"inputs"`
-	}
-
 	//
 	// First attempt to parse `abi` string as a plain method abi
 	// ie. transferFrom(address,address,uint256)
@@ -123,6 +113,9 @@ func getMethodFromAbi(abi string, method string) (string, []string, error) {
 
 	// Handle the case for already encoded method abi
 	if strings.Contains(abi, "(") && strings.Contains(abi, ")") && strings.HasPrefix(abi, method) {
+		// NOTE: even though the ethcoder function is `ParseEventDef`, designed for event type parsing
+		// the abi format for a single function structure is the same, so it works. Perhaps we will rename
+		// `ParseEventDef` in the future, or just add another method with a different name.
 		eventDef, err := ethcoder.ParseEventDef(abi)
 		if err != nil {
 			return "", nil, err
@@ -134,6 +127,16 @@ func getMethodFromAbi(abi string, method string) (string, []string, error) {
 	// If above didn't work, attempt to parse `abi` string as
 	// a JSON object of the full abi definition
 	//
+
+	type FunctionAbi struct {
+		Name   string `json:"name"`
+		Type   string `json:"type"`
+		Inputs []struct {
+			InternalType string `json:"internalType"`
+			Name         string `json:"name"`
+			Type         string `json:"type"`
+		} `json:"inputs"`
+	}
 
 	// Handle array of function abis and single function abi
 	var abis []FunctionAbi
