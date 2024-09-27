@@ -8,14 +8,14 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
 
-// NOTE: this is deprecated
+// Deprecated: use EncodeContractCall instead
 type delayedEncodeType struct {
 	Abi  string          `json:"abi"`
 	Func string          `json:"func"`
 	Args json.RawMessage `json:"args"`
 }
 
-// NOTE: this is deprecated, use EncodeContractCall instead
+// Deprecated: use EncodeContractCall instead
 func EncodeDelayedABI(data *delayedEncodeType) (string, error) {
 	// Get the method from the abi
 	method, order, err := getMethodFromAbi(data.Abi, data.Func)

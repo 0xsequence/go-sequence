@@ -54,13 +54,12 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		}
 
 		to := common.HexToAddress(tx.To)
-		txValue := "0"
-		if tx.Value != nil {
-			txValue = *tx.Value
+		if tx.Value == "" {
+			tx.Value = "0"
 		}
-		value, ok := sequence.ParseHexOrDec(txValue)
+		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
-			return nil, fmt.Errorf("invalid value '%s'", txValue)
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
 		}
 
 		data := common.FromHex(tx.Data)
@@ -221,13 +220,12 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		}
 
 		to := common.HexToAddress(tx.To)
-		txValue := "0"
-		if tx.Value != nil {
-			txValue = *tx.Value
+		if tx.Value == "" {
+			tx.Value = "0"
 		}
-		value, ok := sequence.ParseHexOrDec(txValue)
+		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
-			return nil, fmt.Errorf("invalid value '%s'", txValue)
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
 		}
 
 		return &ExpectedValuesForTransaction{

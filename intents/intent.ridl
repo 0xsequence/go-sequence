@@ -152,6 +152,7 @@ struct TransactionRaw
   - type: string
   - to: string
   - value?: string
+    + go.field.type = string
   - data: string
 
 struct AbiData
@@ -186,7 +187,7 @@ struct TransactionERC1155Value
     + go.field.name = ID
   - amount: string
 
-# NOTE: TransactionDelayedEncode is deprecated, please use TransactionContractCall instead
+# Deprecated: TransactionDelayedEncode is not type safe, please use TransactionContractCall instead
 struct TransactionDelayedEncode
   - type: string
   - to: string
@@ -198,6 +199,7 @@ struct TransactionContractCall
   - type: string
   - to: string
   - value?: string
+    + go.field.type = string
   - data: AbiData
     + go.field.type = AbiData
 

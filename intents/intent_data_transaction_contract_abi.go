@@ -45,8 +45,10 @@ func EncodeContractCall(data *contractCallType) (string, error) {
 				return "", fmt.Errorf("nested args expected to be an array")
 			}
 
+			abi, _ := nst["abi"].(string)
+
 			enc[i], err = EncodeContractCall(&contractCallType{
-				Abi:  nst["abi"].(string), // TODO: should error check this..? or will it return "" ?
+				Abi:  abi,
 				Func: funcName,
 				Args: args,
 			})
