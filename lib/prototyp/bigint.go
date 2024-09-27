@@ -20,7 +20,20 @@ func NewBigInt(n int64) BigInt {
 	return BigInt(*b)
 }
 
+// Decimal number string
 func NewBigIntFromNumberString(hs string) BigInt {
+	return NewBigIntFromDecimalString(hs)
+}
+
+func NewBigIntFromBinaryString(hs string) BigInt {
+	return NewBigIntFromString(hs, 2)
+}
+
+func NewBigIntFromOctalString(hs string) BigInt {
+	return NewBigIntFromString(hs, 8)
+}
+
+func NewBigIntFromDecimalString(hs string) BigInt {
 	return NewBigIntFromString(hs, 10)
 }
 
@@ -30,11 +43,16 @@ func NewBigIntFromHexString(hs string) BigInt {
 
 func NewBigIntFromString(s string, base int) BigInt {
 	b := big.NewInt(0)
+	if base != 0 && (2 > base || base > big.MaxBase) {
+		return BigInt{}
+	}
+
 	b, ok := b.SetString(s, base)
 	if !ok {
 		n, _ := ParseNumberString(s, base)
 		b = big.NewInt(n)
 	}
+
 	return BigInt(*b)
 }
 
@@ -228,22 +246,50 @@ func (b *BigInt) UnmarshalBinary(buff []byte) error {
 
 func ParseNumberString(s string, base int) (int64, bool) {
 	var ns strings.Builder
-	if base == 10 {
+	switch base {
+	case 2:
 		for _, char := range s {
+			// 0-9 || B || b
+			if (char >= 48 && char <= 57) || char == 45 || char == 66 || char == 98 {
+				ns.WriteRune(char)
+			}
+		}
+		s = ns.String()
+		s = strings.TrimPrefix(s, "0B")
+		s = strings.TrimPrefix(s, "0b")
+
+	case 8:
+		for _, char := range s {
+			// 0-9 || O || o
+			if (char >= 48 && char <= 57) || char == 79 || char == 111 {
+				ns.WriteRune(char)
+			}
+		}
+		s = ns.String()
+		s = strings.TrimPrefix(s, "0O")
+		s = strings.TrimPrefix(s, "0o")
+
+	case 10:
+		for _, char := range s {
+			// 0-9
 			if char >= 48 && char <= 57 {
 				ns.WriteRune(char)
 			}
 		}
 		s = ns.String()
-	} else if base == 16 {
+
+	case 16:
 		for _, char := range s {
-			if (char >= 48 && char <= 57) || (char == 120) || (char >= 65 && char <= 70) || (char >= 97 && char <= 102) {
+			// 0-9 || A-Z || a-z || X || x
+			if (char >= 48 && char <= 57) || (char >= 65 && char <= 70) || (char >= 97 && char <= 102) || char == 88 || char == 120 {
 				ns.WriteRune(char)
 			}
 		}
+
 		s = ns.String()
+		s = strings.TrimPrefix(s, "0X")
 		s = strings.TrimPrefix(s, "0x")
-	} else {
+	default:
 		return 0, false
 	}
 
@@ -251,6 +297,7 @@ func ParseNumberString(s string, base int) (int64, bool) {
 	if err != nil {
 		return 0, false
 	}
+
 	return n, true
 }
 

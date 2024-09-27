@@ -2,7 +2,6 @@ package prototyp
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -58,6 +57,46 @@ func TestBigIntScan(t *testing.T) {
 	assert.Error(t, b.Scan("1."))
 }
 
+func TestBigIntFromBaseString(t *testing.T) {
+	testCases := []struct {
+		fn       func(string) BigInt
+		input    string
+		expected int64
+		testName string
+	}{
+		// Binary tests
+		{NewBigIntFromBinaryString, "00101010", 42, "Binary 42"},
+		{NewBigIntFromBinaryString, "-00101010", -42, "Binary -42"},
+		{NewBigIntFromBinaryString, "0B00101010", 42, "Binary with 0B 42"},
+		{NewBigIntFromBinaryString, "0b00101010", 42, "Binary with 0b 42"},
+
+		// Octal tests
+		{NewBigIntFromOctalString, "52", 42, "Octal 42"},
+		{NewBigIntFromOctalString, "-52", -42, "Octal -42"},
+		{NewBigIntFromOctalString, "0O52", 42, "Octal with 0O 42"},
+		{NewBigIntFromOctalString, "0o52", 42, "Octal with 0o 42"},
+
+		// Decimal tests
+		{NewBigIntFromDecimalString, "42", 42, "Decimal 42"},
+		{NewBigIntFromDecimalString, "-42", -42, "Decimal -42"},
+
+		// Hexadecimal tests
+		{NewBigIntFromHexString, "2A", 42, "Hex 2A"},
+		{NewBigIntFromHexString, "2a", 42, "Hex 2a"},
+		{NewBigIntFromHexString, "-2A", -42, "Hex -2A"},
+		{NewBigIntFromHexString, "-2a", -42, "Hex -2a"},
+		{NewBigIntFromHexString, "0x2a", 42, "Hex with 0x 42"},
+		{NewBigIntFromHexString, "0X2a", 42, "Hex with 0X 42"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			b := tc.fn(tc.input)
+			assert.Equal(t, tc.expected, b.Int64())
+		})
+	}
+}
+
 func TestBigIntInvalidInput(t *testing.T) {
 	b := NewBigIntFromNumberString("1234")
 	assert.Equal(t, int64(1234), b.Int64())
@@ -69,12 +108,17 @@ func TestBigIntInvalidInput(t *testing.T) {
 	// if invalid, it will parse out the number
 	b = NewBigIntFromHexString("/0xaBc-$$2Efg")
 	assert.Equal(t, int64(0xaBc2Ef), b.Int64())
+
+	// should return 0, since base is not valid
+	b = NewBigIntFromString("1234", 666)
+	assert.Equal(t, int64(0), b.Int64())
 }
 
 func TestBigIntCopy(t *testing.T) {
 	a := ToBigInt(big.NewInt(1))
 	b := ToBigInt(a.Int())
 	a.Sub(big.NewInt(1))
-	fmt.Println(a.String())
-	fmt.Println(b.String())
+
+	assert.Equal(t, int64(0), a.Int64())
+	assert.Equal(t, int64(1), b.Int64())
 }
