@@ -92,6 +92,5 @@ func ParseHexOrDec(s string) (*big.Int, bool) {
 	if len(s) > 2 && s[0:2] == "0x" {
 		return new(big.Int).SetString(s[2:], 16)
 	}
-
 	return new(big.Int).SetString(s, 10)
 }

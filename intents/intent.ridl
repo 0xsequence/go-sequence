@@ -151,15 +151,22 @@ struct IntentDataGetIdToken
 struct TransactionRaw
   - type: string
   - to: string
-  - value: string
+  - value?: string
+    + go.field.type = string
   - data: string
 
+struct AbiData
+  - abi: string
+  - func?: string
+  - args: []any
+  
 enum TransactionType: string
   - transaction
   - erc20send
   - erc721send
   - erc1155send
   - delayedEncode
+  - contractCall
 
 struct TransactionERC20
   - type: string
@@ -180,12 +187,21 @@ struct TransactionERC1155Value
     + go.field.name = ID
   - amount: string
 
+# Deprecated: TransactionDelayedEncode is not type safe, please use TransactionContractCall instead
 struct TransactionDelayedEncode
   - type: string
   - to: string
   - value: string
   - data: any
      + go.field.type = json.RawMessage
+
+struct TransactionContractCall
+  - type: string
+  - to: string
+  - value?: string
+    + go.field.type = string
+  - data: AbiData
+    + go.field.type = AbiData
 
 struct TransactionERC1155
   - type: string

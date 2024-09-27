@@ -54,6 +54,9 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		}
 
 		to := common.HexToAddress(tx.To)
+		if tx.Value == "" {
+			tx.Value = "0"
+		}
 		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
 			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
@@ -196,6 +199,43 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 			Data:  encodedData,
 		}, nil
 
+	case "contractCall":
+		var tx TransactionContractCall
+
+		err := json.Unmarshal(*txRaw, &tx)
+		if err != nil {
+			return nil, err
+		}
+
+		nst := &contractCallType{}
+		nst.Abi = tx.Data.Abi
+		if tx.Data.Func != nil {
+			nst.Func = *tx.Data.Func
+		}
+		nst.Args = tx.Data.Args
+
+		encoded, err := EncodeContractCall(nst)
+		if err != nil {
+			return nil, err
+		}
+
+		to := common.HexToAddress(tx.To)
+		if tx.Value == "" {
+			tx.Value = "0"
+		}
+		value, ok := sequence.ParseHexOrDec(tx.Value)
+		if !ok {
+			return nil, fmt.Errorf("invalid value '%s'", tx.Value)
+		}
+
+		return &ExpectedValuesForTransaction{
+			To:    &to,
+			Value: value,
+			Data:  common.FromHex(encoded),
+		}, nil
+
+	// NOTE: 'delayedEncode' is deprecated, should use 'contractCall' instead, we're leaving
+	// it here for backwards compatibility.
 	case "delayedEncode":
 		var tx TransactionDelayedEncode
 
@@ -214,7 +254,6 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		if err != nil {
 			return nil, err
 		}
-
 		to := common.HexToAddress(tx.To)
 		value, ok := sequence.ParseHexOrDec(tx.Value)
 		if !ok {
@@ -281,7 +320,7 @@ func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash,
 	}
 
 	for i, txn := range txns {
-		if txn.DelegateCall != false {
+		if txn.DelegateCall {
 			return false
 		}
 
