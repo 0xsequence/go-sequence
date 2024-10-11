@@ -34,6 +34,7 @@ enum IntentName: string
   - removeAccount
   - listAccounts
   - getIdToken
+  - adoptChildWallet
 
 struct IntentDataInitiateAuth
   - sessionId: string
@@ -141,6 +142,16 @@ struct IntentDataRemoveAccount
   - accountId: string
     + go.field.name = AccountID
 
+struct IntentDataAdoptChildWallet
+  - network: string
+  - wallet: string
+  - adopter: string
+  - adopterProof: AdopterProof
+
+struct AdopterProof
+  - message: string
+  - signature: string
+
 struct IntentDataGetIdToken
   - sessionId: string
     + go.field.name = SessionID
@@ -216,6 +227,7 @@ enum IntentResponseCode: string
   - accountFederated
   - accountRemoved
   - idToken
+  - childwalletAdopted
 
 struct IntentResponseAuthInitiated
   - sessionId: string
@@ -317,6 +329,8 @@ struct IntentResponseAccountRemoved
 struct IntentResponseIdToken
   - idToken: string
   - expiresIn: int
+
+struct IntentResponseChildWalletAdopted
 
 enum IdentityType: string
   - None

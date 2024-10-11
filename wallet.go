@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -461,6 +462,8 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	if err != nil {
 		return nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
 	}
+
+	fmt.Println("PARENT SignDigest: ", common.Bytes2Hex(subDigest))
 
 	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		signer, _ := w.GetSigner(signerAddress)

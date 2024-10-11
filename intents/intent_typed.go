@@ -39,6 +39,8 @@ func IntentDataTypeToName[T any](t *T) IntentName {
 		return IntentName_federateAccount
 	case *IntentDataRemoveAccount:
 		return IntentName_removeAccount
+	case *IntentDataAdoptChildWallet:
+		return IntentName_adoptChildWallet
 	case *IntentDataGetIdToken:
 		return IntentName_getIdToken
 	default:
