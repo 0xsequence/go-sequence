@@ -50,14 +50,12 @@ func TestEncodeDelayedABI(t *testing.T) {
 
 	// Encode nested bytes, passed as function
 
-	// TODO/NOTE: this makes no sense, we are making up an abi type of transferFrom just to encode a uint256
 	nestedEncodeType1 := &delayedEncodeType{
 		Abi:  `transferFrom(uint256)`,
 		Func: "transferFrom",
 		Args: json.RawMessage(`["481923749816926378123"]`),
 	}
 
-	// TODO/NOTE: this makes no sense, we are making up a random abi just so we can encode a string..
 	nestedEncodeType2 := &delayedEncodeType{
 		Abi:  `hola(string)`,
 		Func: "hola",

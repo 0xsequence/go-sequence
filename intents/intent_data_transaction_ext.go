@@ -11,6 +11,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func (p *IntentDataSendTransaction) chainID() (*big.Int, error) {
@@ -214,6 +215,8 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 		}
 		nst.Args = tx.Data.Args
 
+		spew.Dump("$$$WEE$$", nst)
+
 		encoded, err := EncodeContractCall(nst)
 		if err != nil {
 			return nil, err
@@ -279,16 +282,16 @@ func (p *IntentDataSendTransaction) Nonce() (*big.Int, error) {
 	return sequence.EncodeNonce(big.NewInt(0).SetBytes(hashed[:20]), common.Big0)
 }
 
-func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) bool {
+func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) (bool, error) {
 	// Nonce must be the expected one
 	// (defined by the identifier)
 	enonce, err := p.Nonce()
 	if err != nil {
-		return false
+		return false, fmt.Errorf("invalid nonce: %w", err)
 	}
 
 	if enonce.Cmp(nonce) != 0 {
-		return false
+		return false, fmt.Errorf("invalid nonce")
 	}
 
 	// Compare the digest with the provided transactions
@@ -300,49 +303,49 @@ func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash,
 
 	calcDigest, err := bundle.Digest()
 	if err != nil {
-		return false
+		return false, fmt.Errorf("invalid bundle digest: %w", err)
 	}
 
 	chainID, err := p.chainID()
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	calcSubdigest, err := sequence.SubDigest(chainID, p.wallet(), calcDigest)
 	if err != nil || !bytes.Equal(calcSubdigest, subdigest[:]) {
-		return false
+		return false, fmt.Errorf("invalid subdigest: %w", err)
 	}
 
 	// Now check that every transaction maps 1:1 to the transactions in the intent
 	// meaning that they follow the intent signed by it
 	if len(txns) != len(p.Transactions) {
-		return false
+		return false, fmt.Errorf("intent transaction count mismatch")
 	}
 
 	for i, txn := range txns {
 		if txn.DelegateCall {
-			return false
+			return false, fmt.Errorf("delegate call not allowed")
 		}
 
 		expected, err := p.ExpectedValuesFor(&p.Transactions[i])
 		if err != nil {
-			return false
+			return false, fmt.Errorf("invalid transaction: %w", err)
 		}
 
 		if !bytes.Equal(txn.To.Bytes(), expected.To.Bytes()) {
-			return false
+			return false, fmt.Errorf("invalid to address")
 		}
 
 		if txn.Value.Cmp(expected.Value) != 0 {
-			return false
+			return false, fmt.Errorf("invalid value")
 		}
 
 		if !bytes.Equal(txn.Data, expected.Data) {
-			return false
+			return false, fmt.Errorf("invalid data")
 		}
 	}
 
-	return true
+	return true, nil
 }
 
 type SendTransactionResponse struct {

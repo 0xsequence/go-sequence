@@ -69,7 +69,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 					"args": [
 						"48774435471364917511246724398022004900255301025912680232738918790354204737320",
 						"1000000000000000000",
-						"[\"0x8541D65829f98f7D71A4655cCD7B2bB8494673bF\"]",
+						["0x8541D65829f98f7D71A4655cCD7B2bB8494673bF"],
 						{
 							"abi": "notExpired(uint256,string)",
 							"args": [
@@ -185,41 +185,53 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	isValid, err := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	require.NoError(t, err)
+	require.True(t, isValid)
 
 	// changing any transaction value should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Value
 		transactions[i].Value = big.NewInt(123)
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.Error(t, err)
+		require.False(t, isValid)
 		transactions[i].Value = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.NoError(t, err)
+		require.True(t, isValid)
 	}
 
 	// changing any transaction data should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Data
 		transactions[i].Data = common.Hex2Bytes("0x1234")
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].Data = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// changing any to address should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].To
 		transactions[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].To = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
 	for i := range transactions {
 		transactions[i].DelegateCall = true
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].DelegateCall = false
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
@@ -239,7 +251,8 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		require.True(t, ok)
 		transactions[i].RevertOnError = true
 	}
 
@@ -261,7 +274,8 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		require.True(t, ok)
 
 		transactions[i].GasLimit = prev
 	}
@@ -279,10 +293,12 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		nxtdigest,
 	)
 	require.Nil(t, err)
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
+	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123))
+	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce)
+	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
 	transactions = append(transactions, &sequence.Transaction{
@@ -294,11 +310,12 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		Data:          common.FromHex("0x3251ba32"),
 	})
 
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	require.False(t, ok)
 }
 
 // NOTE: DelayedEncode is deprecated, see TestRecoverTransactionIntent below which uses contractCall
-func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
+func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	data := `{
 		"version": "1",
 		"name": "sendTransaction",
@@ -473,41 +490,50 @@ func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	require.True(t, ok)
 
 	// changing any transaction value should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Value
 		transactions[i].Value = big.NewInt(123)
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].Value = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// changing any transaction data should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].Data
 		transactions[i].Data = common.Hex2Bytes("0x1234")
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].Data = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// changing any to address should invalidate the interpretation
 	for i := range transactions {
 		prev := transactions[i].To
 		transactions[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].To = prev
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
 	for i := range transactions {
 		transactions[i].DelegateCall = true
-		require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.False(t, ok)
 		transactions[i].DelegateCall = false
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
@@ -527,7 +553,8 @@ func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		require.True(t, ok)
 		transactions[i].RevertOnError = true
 	}
 
@@ -549,7 +576,8 @@ func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		require.True(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce))
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		require.True(t, ok)
 
 		transactions[i].GasLimit = prev
 	}
@@ -567,10 +595,12 @@ func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
 		nxtdigest,
 	)
 	require.Nil(t, err)
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123)))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123))
+	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce)
+	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
 	transactions = append(transactions, &sequence.Transaction{
@@ -582,5 +612,6 @@ func Test2RecoverTransactionIntentWithDelayedEncode(t *testing.T) {
 		Data:          common.FromHex("0x3251ba32"),
 	})
 
-	require.False(t, sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	require.False(t, ok)
 }
