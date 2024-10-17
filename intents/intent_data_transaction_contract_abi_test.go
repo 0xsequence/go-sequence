@@ -11,54 +11,55 @@ import (
 
 func TestGetMethodFromABI(t *testing.T) {
 	// From ABI, alone, in array
-	res, order, err := getMethodFromAbi(`[{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}]`, "transfer")
+	res, argNames, argTypes, err := getMethodFromAbi(`[{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}]`, "transfer")
 	assert.Nil(t, err)
 
-	assert.Equal(t, "transfer(address,uint256)", res)
-	assert.Equal(t, []string{"_to", "_value"}, order)
+	require.Equal(t, "transfer(address,uint256)", res)
+	require.Equal(t, []string{"_to", "_value"}, argNames)
+	require.Equal(t, []string{"address", "uint256"}, argTypes)
 
 	// From ABI, alone, as object
-	res, order, err = getMethodFromAbi(`{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}`, "transfer")
+	res, order, _, err := getMethodFromAbi(`{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}`, "transfer")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "transfer(address,uint256)", res)
 	assert.Equal(t, []string{"_to", "_value"}, order)
 
 	// From ABI, with many args
-	res, order, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "fillOrKillOrder")
+	res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "fillOrKillOrder")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "fillOrKillOrder(bytes32,uint256,address[],bytes)", res)
 	assert.Equal(t, []string{"_orderId", "_maxCost", "_fees", "_data"}, order)
 
-	res, order, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "notExpired")
+	res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "notExpired")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "notExpired(uint256,string)", res)
 	assert.Equal(t, []string{"_val", "_data"}, order)
 
-	res, order, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "otherMethods")
+	res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "otherMethods")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "otherMethods()", res)
 	assert.Equal(t, []string{}, order)
 
 	// From plain method, without named args
-	res, order, err = getMethodFromAbi(`transfer(address,uint256)`, "transfer")
+	res, order, _, err = getMethodFromAbi(`transfer(address,uint256)`, "transfer")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "transfer(address,uint256)", res)
 	assert.Equal(t, []string{"arg1", "arg2"}, order)
 
 	// From plain method, with named args
-	res, order, err = getMethodFromAbi(`transfer(address _to,uint256 _value, bytes _mas)`, "transfer")
+	res, order, _, err = getMethodFromAbi(`transfer(address _to,uint256 _value, bytes _mas)`, "transfer")
 	assert.Nil(t, err)
 
 	assert.Equal(t, "transfer(address,uint256,bytes)", res)
 	assert.Equal(t, []string{"_to", "_value", "_mas"}, order)
 
 	// Mixed plain method should return nil order
-	res, order, err = getMethodFromAbi(`transfer(address _to,uint256, bytes _mas)`, "transfer")
+	res, order, _, err = getMethodFromAbi(`transfer(address _to,uint256, bytes _mas)`, "transfer")
 
 	assert.Nil(t, err)
 	assert.Equal(t, "transfer(address,uint256,bytes)", res)
@@ -159,4 +160,17 @@ func TestEncodeContractCall(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.Equal(t, "0x23b872dd00000000000000000000000013915b1ea28fd2e8197c88ff9d2422182e83bf250000000000000000000000004ad47f1611c78c824ff3892c4ae1cc04637d64620000000000000000000000000000000000000000000000000000000000000009", res)
+
+	// ...
+	res, err = EncodeContractCall(&contractCallType{
+		Abi: `fillOrder(uint256 orderId, uint256 maxCost, address[] fees, (uint256 a, address b) extra)`,
+		Args: []any{
+			"48774435471364917511246724398022004900255301025912680232738918790354204737320",
+			"1000000000000000000",
+			[]string{"0x8541D65829f98f7D71A4655cCD7B2bB8494673bF"},
+			[]string{"123456789", "0x1231f65f29f98e7D71A4655cCD7B2bc441211feb"},
+		},
+	})
+	require.Nil(t, err)
+	require.Equal(t, "0x326a62086bd55a2877890bd58871eefe886770a7734077a74981910a75d7b1f044b5bf280000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000075bcd150000000000000000000000001231f65f29f98e7d71a4655ccd7b2bc441211feb00000000000000000000000000000000000000000000000000000000000000010000000000000000000000008541d65829f98f7d71a4655ccd7b2bb8494673bf", res)
 }

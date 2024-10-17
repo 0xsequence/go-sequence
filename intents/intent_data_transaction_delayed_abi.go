@@ -18,7 +18,7 @@ type delayedEncodeType struct {
 // Deprecated: use EncodeContractCall instead
 func EncodeDelayedABI(data *delayedEncodeType) (string, error) {
 	// Get the method from the abi
-	method, order, err := getMethodFromAbi(data.Abi, data.Func)
+	method, order, _, err := getMethodFromAbi(data.Abi, data.Func)
 	if err != nil {
 		return "", err
 	}
