@@ -4,8 +4,66 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGetMethodFromABI(t *testing.T) {
+	// From ABI, alone, in array
+	_, res, argNames, argTypes, err := getMethodFromAbi(`[{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}]`, "transfer")
+	assert.Nil(t, err)
+
+	require.Equal(t, "transfer(address,uint256)", res)
+	require.Equal(t, []string{"_to", "_value"}, argNames)
+	require.Equal(t, []string{"address", "uint256"}, argTypes)
+
+	// From ABI, alone, as object
+	_, res, order, _, err := getMethodFromAbi(`{"name":"transfer","type":"function","inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}`, "transfer")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "transfer(address,uint256)", res)
+	assert.Equal(t, []string{"_to", "_value"}, order)
+
+	// From ABI, with many args
+	_, res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "fillOrKillOrder")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "fillOrKillOrder(bytes32,uint256,address[],bytes)", res)
+	assert.Equal(t, []string{"_orderId", "_maxCost", "_fees", "_data"}, order)
+
+	_, res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "notExpired")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "notExpired(uint256,string)", res)
+	assert.Equal(t, []string{"_val", "_data"}, order)
+
+	_, res, order, _, err = getMethodFromAbi(`[{"inputs":[{"internalType":"bytes32","name":"_orderId","type":"bytes32"},{"internalType":"uint256","name":"_maxCost","type":"uint256"},{"internalType":"address[]","name":"_fees","type":"address[]"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"fillOrKillOrder","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_val","type":"uint256"},{"internalType":"string","name":"_data","type":"string"}],"name":"notExpired","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[],"name":"otherMethods","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "otherMethods")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "otherMethods()", res)
+	assert.Equal(t, []string{}, order)
+
+	// From plain method, without named args
+	_, res, order, _, err = getMethodFromAbi(`transfer(address,uint256)`, "transfer")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "transfer(address,uint256)", res)
+	assert.Equal(t, []string{"arg1", "arg2"}, order)
+
+	// From plain method, with named args
+	_, res, order, _, err = getMethodFromAbi(`transfer(address _to,uint256 _value, bytes _mas)`, "transfer")
+	assert.Nil(t, err)
+
+	assert.Equal(t, "transfer(address,uint256,bytes)", res)
+	assert.Equal(t, []string{"_to", "_value", "_mas"}, order)
+
+	// Mixed plain method should return nil order
+	_, res, order, _, err = getMethodFromAbi(`transfer(address _to,uint256, bytes _mas)`, "transfer")
+
+	assert.Nil(t, err)
+	assert.Equal(t, "transfer(address,uint256,bytes)", res)
+	assert.Equal(t, []string{"_to", "arg2", "_mas"}, order)
+}
 
 func TestEncodeDelayedABI(t *testing.T) {
 	// Encode simple transferFrom, not named

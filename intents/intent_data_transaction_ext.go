@@ -11,7 +11,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/relayer/proto"
-	"github.com/davecgh/go-spew/spew"
 )
 
 func (p *IntentDataSendTransaction) chainID() (*big.Int, error) {
@@ -214,8 +213,6 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 			nst.Func = *tx.Data.Func
 		}
 		nst.Args = tx.Data.Args
-
-		spew.Dump("$$$WEE$$", nst)
 
 		encoded, err := EncodeContractCall(nst)
 		if err != nil {

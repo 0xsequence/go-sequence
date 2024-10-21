@@ -314,7 +314,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	require.False(t, ok)
 }
 
-// NOTE: DelayedEncode is deprecated, see TestRecoverTransactionIntent below which uses contractCall
+// NOTE: DelayedEncode is deprecated, see TestRecoverTransactionIntent below which uses contractCall type
 func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	data := `{
 		"version": "1",
