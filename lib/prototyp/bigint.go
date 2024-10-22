@@ -250,7 +250,7 @@ func ParseNumberString(s string, base int) (int64, bool) {
 	case 2:
 		for _, char := range s {
 			// 0-9 || B || b
-			if (char >= 48 && char <= 57) || char == 45 || char == 66 || char == 98 {
+			if (char >= 48 && char <= 57) || char == 66 || char == 98 {
 				ns.WriteRune(char)
 			}
 		}
