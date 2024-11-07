@@ -38,11 +38,11 @@ var (
 )
 
 type CallOverride struct {
-	Code      string
-	Balance   *big.Int
-	Nonce     *big.Int
-	StateDiff []*StateOverride
-	State     []*StateOverride
+	Code      string           `json:"code"`
+	Balance   *big.Int         `json:"balance"`
+	Nonce     *big.Int         `json:"nonce"`
+	StateDiff []*StateOverride `json:"stateDiff"`
+	State     []*StateOverride `json:"state"`
 }
 
 type StateOverride struct {
