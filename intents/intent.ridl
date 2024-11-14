@@ -168,11 +168,13 @@ struct IntentDataGetAdopter
 struct IntentDataConfirmIntent
   - wallet: string
   - confirmationID: string
+    + go.field.name = ConfirmationID
   - challengeAnswer: string
 
 struct IntentDataGetConfirmationStatus
   - wallet: string
   - confirmationID: string
+    + go.field.name = ConfirmationID
 
 struct TransactionRaw
   - type: string
@@ -370,7 +372,8 @@ struct IntentResponseAdopter
   - adopterAddress: string
 
 struct IntentResponseConfirmationRequired
-  - confirmationID: string
+  - confirmationId: string
+    + go.field.name = ConfirmationID
   - salt: string
   - challengeType: ChallengeType
   - challengeDestination?: string
