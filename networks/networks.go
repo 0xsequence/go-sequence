@@ -1,80 +1,87 @@
 package networks
 
 import (
+	"strconv"
+
 	"github.com/0xsequence/ethkit/ethproviders"
 )
 
-type Networks map[string]*Network
+type Networks map[ChainID]*Network
 
-type Network struct {
-	ID    uint64      `toml:"id"`
-	Name  string      `toml:"name"`
-	Title string      `toml:"title"`
-	Type  NetworkType `toml:"type"`
+type ChainID string
 
-	LogoURL string `toml:"logoUrl"`
-
-	ENSAddress string `toml:"ensAddress"`
-
-	AuthChain  bool `toml:"authChain"`
-	Deprecated bool `toml:"deprecated"`
-	Disabled   bool `toml:"disabled"`
-
-	NodeURL    string `toml:"nodeUrl"`
-	IndexerURL string `toml:"indexerUrl"`
-	RelayerURL string `toml:"relayerUrl"`
-
-	InternalNodeURL    string `toml:"internalNodeUrl"`
-	InternalIndexerURL string `toml:"internalIndexerUrl"`
-	InternalRelayerURL string `toml:"internalRelayerUrl"`
-
-	WSEnabled bool   `toml:"wsEnabled"`
-	WSURL     string `toml:"wsUrl"`
-
-	BlockExplorer *BlockExplorerConfig `toml:"blockExplorer"`
-
-	NativeToken *Currency   `toml:"nativeToken"`
-	Currencies  []*Currency `toml:"currencies"`
-
-	NodeGateway *NodeGatewayNetwork `toml:"nodeGateway"`
+func (c ChainID) Uint64() uint64 {
+	u, _ := strconv.ParseUint(c.String(), 10, 64)
+	return u
 }
 
-type Currency struct {
-	ContractAddress *string       `toml:"contractAddress"`
-	Name            string        `toml:"name"`
-	Symbol          string        `toml:"symbol"`
-	Decimals        uint64        `toml:"decimals"`
-	ImageURL        string        `toml:"imageUrl"`
-	Native          bool          `toml:"native"`
-	Default         bool          `toml:"default"`
-	Group           CurrencyGroup `toml:"group"`
+func (c ChainID) String() string {
+	return string(c)
+}
+
+type Network struct {
+	ChainID    uint64      `toml:"chain_id"    json:"chainId,omitempty"`
+	Name       string      `toml:"name"        json:"name,omitempty"`
+	Title      string      `toml:"title"       json:"title,omitempty"`
+	Type       NetworkType `toml:"type"        json:"type,omitempty"`
+	LogoURL    string      `toml:"logo_url"    json:"logoUrl,omitempty"`
+	ENSAddress string      `toml:"ens_address" json:"ensAddress,omitempty"`
+	AuthChain  bool        `toml:"auth_chain"  json:"authChain,omitempty"`
+	Deprecated bool        `toml:"deprecated"  json:"deprecated,omitempty"`
+	Disabled   bool        `toml:"disabled"    json:"disabled,omitempty"`
+	WSEnabled  bool        `toml:"ws_enabled"  json:"wsEnabled,omitempty"`
+	WSURL      string      `toml:"ws_url"      json:"wsUrl,omitempty"`
+
+	BlockExplorer *BlockExplorerConfig `toml:"block_explorer" json:"blockExplorer,omitempty"`
+	NodeGateway   *NodeGatewayNetwork  `toml:"node_gateway"   json:"nodeGateway,omitempty"`
+
+	NodeURL            string `toml:"node_url"             json:"nodeUrl,omitempty"`
+	IndexerURL         string `toml:"indexer_url"          json:"indexerUrl,omitempty"`
+	RelayerURL         string `toml:"relayer_url"          json:"relayerUrl,omitempty"`
+	InternalNodeURL    string `toml:"internal_node_url"    json:"-"`
+	InternalIndexerURL string `toml:"internal_indexer_url" json:"-"`
+	InternalRelayerURL string `toml:"internal_relayer_url" json:"-"`
+
+	NativeToken *Currency   `toml:"native_token" json:"nativeToken,omitempty"`
+	Currencies  []*Currency `toml:"currencies"   json:"currencies,omitempty"`
 }
 
 type BlockExplorerConfig struct {
-	Name       string `toml:"name"`
-	RootURL    string `toml:"rootUrl"`
-	AddressURL string `toml:"addressUrl"`
-	TxnHashURL string `toml:"txnHashUrl"`
+	Name       string `toml:"name"         json:"name,omitempty"`
+	RootURL    string `toml:"root_url"     json:"rootUrl,omitempty"`
+	AddressURL string `toml:"address_url"  json:"addressUrl,omitempty"`
+	TxnHashURL string `toml:"txn_hash_url" json:"txnHashUrl,omitempty"`
 }
 
 type NodeGatewayNetwork struct {
-	Endpoints             []*NodeGatewayEndpoint `toml:"endpoints"`
-	Finality              uint64                 `toml:"finality"`
-	MonitorDisabled       bool                   `toml:"monitorDisabled"`
-	MonitorPollInterval   string                 `toml:"monitorPollInterval"`
-	MonitorBlockRetention uint64                 `toml:"monitorBlockRetention"`
-	AlertsOff             bool                   `toml:"alertsOff"`
-	Important             bool                   `toml:"important"`
+	Endpoints             []*NodeGatewayEndpoint `toml:"endpoints"               json:"endpoints,omitempty"`
+	Finality              uint64                 `toml:"finality"                json:"finality,omitempty"`
+	MonitorDisabled       bool                   `toml:"monitor_disabled"        json:"monitorDisabled,omitempty"`
+	MonitorPollInterval   string                 `toml:"monitor_poll_interval"   json:"monitorPollInterval,omitempty"`
+	MonitorBlockRetention uint64                 `toml:"monitor_block_retention" json:"monitorBlockRetention,omitempty"`
+	AlertsOff             bool                   `toml:"alerts_off"              json:"alertsOff,omitempty"`
+	Important             bool                   `toml:"important"               json:"important,omitempty"`
 }
 
 type NodeGatewayEndpoint struct {
-	Label       string   `toml:"label"`
-	Priority    int      `toml:"priority"`
-	URL         string   `toml:"url"`
-	WSURL       string   `toml:"wsurl"`
-	SkipMethods []string `toml:"skipMethods"`
-	AuxMethodNs []string `toml:"auxMethodNs"`
-	Disabled    bool     `toml:"disabled"`
+	Label       string   `toml:"label"         json:"label,omitempty"`
+	Priority    int      `toml:"priority"      json:"priority,omitempty"`
+	URL         string   `toml:"url"           json:"url,omitempty"`
+	WSURL       string   `toml:"ws_url"        json:"wsUrl,omitempty"`
+	SkipMethods []string `toml:"skip_methods"  json:"skipMethods,omitempty"`
+	AuxMethodNs []string `toml:"aux_method_ns" json:"auxMethodNs,omitempty"`
+	Disabled    bool     `toml:"disabled"      json:"disabled,omitempty"`
+}
+
+type Currency struct {
+	ContractAddress *string       `toml:"contract_address" json:"contractAddress,omitempty"`
+	Name            string        `toml:"name"             json:"name,omitempty"`
+	Symbol          string        `toml:"symbol"           json:"symbol,omitempty"`
+	Decimals        uint64        `toml:"decimals"         json:"decimals,omitempty"`
+	ImageURL        string        `toml:"image_url"        json:"imageUrl,omitempty"`
+	Native          bool          `toml:"native"           json:"native,omitempty"`
+	Default         bool          `toml:"default"          json:"default,omitempty"`
+	Group           CurrencyGroup `toml:"group"            json:"group,omitempty"`
 }
 
 type NetworkType uint8
@@ -170,7 +177,7 @@ func (n Networks) EthProvidersConfig() ethproviders.Config {
 	res := ethproviders.Config{}
 	for _, network := range n {
 		res[network.Name] = ethproviders.NetworkConfig{
-			ID:        network.ID,
+			ID:        network.ChainID,
 			URL:       network.NodeURL,
 			WSEnabled: network.WSEnabled,
 			WSURL:     network.WSURL,
