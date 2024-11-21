@@ -36,6 +36,12 @@ func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 		return IntentResponseCode_accountFederated
 	case *IntentResponseAccountRemoved:
 		return IntentResponseCode_accountRemoved
+	case *IntentResponseChildWalletAdopted:
+		return IntentResponseCode_childWalletAdopted
+	case *IntentResponseAdopter:
+		return IntentResponseCode_adopter
+	case *IntentResponseConfirmationRequired:
+		return IntentResponseCode_confirmationRequired
 	case *IntentResponseIdToken:
 		return IntentResponseCode_idToken
 	default:

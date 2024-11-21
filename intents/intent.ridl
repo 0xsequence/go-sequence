@@ -34,6 +34,10 @@ enum IntentName: string
   - removeAccount
   - listAccounts
   - getIdToken
+  - adoptChildWallet
+  - getAdopter
+  - confirmIntent
+  - getConfirmationStatus
 
 struct IntentDataInitiateAuth
   - sessionId: string
@@ -141,12 +145,36 @@ struct IntentDataRemoveAccount
   - accountId: string
     + go.field.name = AccountID
 
+struct IntentDataAdoptChildWallet
+  - network: string
+  - wallet: string
+  - adopter: string
+  - adopterProof: AdopterProof
+
+struct AdopterProof
+  - message: string
+  - signature: string
+
 struct IntentDataGetIdToken
   - sessionId: string
     + go.field.name = SessionID
   - wallet: string
   - nonce?: string
     + go.field.type = string
+
+struct IntentDataGetAdopter
+  - wallet: string
+
+struct IntentDataConfirmIntent
+  - wallet: string
+  - confirmationID: string
+    + go.field.name = ConfirmationID
+  - challengeAnswer: string
+
+struct IntentDataGetConfirmationStatus
+  - wallet: string
+  - confirmationID: string
+    + go.field.name = ConfirmationID
 
 struct TransactionRaw
   - type: string
@@ -159,7 +187,7 @@ struct AbiData
   - abi: string
   - func?: string
   - args: []any
-  
+
 enum TransactionType: string
   - transaction
   - erc20send
@@ -232,6 +260,9 @@ enum IntentResponseCode: string
   - accountFederated
   - accountRemoved
   - idToken
+  - adopter
+  - childWalletAdopted
+  - confirmationRequired
 
 struct IntentResponseAuthInitiated
   - sessionId: string
@@ -334,6 +365,20 @@ struct IntentResponseIdToken
   - idToken: string
   - expiresIn: int
 
+struct IntentResponseChildWalletAdopted
+  - adopterAddress: string
+
+struct IntentResponseAdopter
+  - adopterAddress: string
+
+struct IntentResponseConfirmationRequired
+  - confirmationId: string
+    + go.field.name = ConfirmationID
+  - salt: string
+  - challengeType: ChallengeType
+  - challengeDestination?: string
+  - expiresIn: int
+
 enum IdentityType: string
   - None
   - Guest
@@ -351,3 +396,6 @@ struct Account
     + go.tag.json = issuer,omitempty
   - email?: string
     + go.tag.json = email,omitempty
+
+enum ChallengeType: string
+  - EmailOTP
