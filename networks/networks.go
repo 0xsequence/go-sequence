@@ -1,23 +1,10 @@
 package networks
 
 import (
-	"strconv"
-
 	"github.com/0xsequence/ethkit/ethproviders"
 )
 
-type Networks map[ChainID]*Network
-
-type ChainID string
-
-func (c ChainID) Uint64() uint64 {
-	u, _ := strconv.ParseUint(c.String(), 10, 64)
-	return u
-}
-
-func (c ChainID) String() string {
-	return string(c)
-}
+type Networks map[string]*Network
 
 type Network struct {
 	ChainID    uint64      `toml:"chain_id"    json:"chainId,omitempty"`
@@ -33,7 +20,6 @@ type Network struct {
 	WSURL      string      `toml:"ws_url"      json:"wsUrl,omitempty"`
 
 	BlockExplorer *BlockExplorerConfig `toml:"block_explorer" json:"blockExplorer,omitempty"`
-	NodeGateway   *NodeGatewayNetwork  `toml:"node_gateway"   json:"nodeGateway,omitempty"`
 
 	NodeURL            string `toml:"node_url"             json:"nodeUrl,omitempty"`
 	IndexerURL         string `toml:"indexer_url"          json:"indexerUrl,omitempty"`
@@ -51,26 +37,6 @@ type BlockExplorerConfig struct {
 	RootURL    string `toml:"root_url"     json:"rootUrl,omitempty"`
 	AddressURL string `toml:"address_url"  json:"addressUrl,omitempty"`
 	TxnHashURL string `toml:"txn_hash_url" json:"txnHashUrl,omitempty"`
-}
-
-type NodeGatewayNetwork struct {
-	Endpoints             []*NodeGatewayEndpoint `toml:"endpoints"               json:"endpoints,omitempty"`
-	Finality              uint64                 `toml:"finality"                json:"finality,omitempty"`
-	MonitorDisabled       bool                   `toml:"monitor_disabled"        json:"monitorDisabled,omitempty"`
-	MonitorPollInterval   string                 `toml:"monitor_poll_interval"   json:"monitorPollInterval,omitempty"`
-	MonitorBlockRetention uint64                 `toml:"monitor_block_retention" json:"monitorBlockRetention,omitempty"`
-	AlertsOff             bool                   `toml:"alerts_off"              json:"alertsOff,omitempty"`
-	Important             bool                   `toml:"important"               json:"important,omitempty"`
-}
-
-type NodeGatewayEndpoint struct {
-	Label       string   `toml:"label"         json:"label,omitempty"`
-	Priority    int      `toml:"priority"      json:"priority,omitempty"`
-	URL         string   `toml:"url"           json:"url,omitempty"`
-	WSURL       string   `toml:"ws_url"        json:"wsUrl,omitempty"`
-	SkipMethods []string `toml:"skip_methods"  json:"skipMethods,omitempty"`
-	AuxMethodNs []string `toml:"aux_method_ns" json:"auxMethodNs,omitempty"`
-	Disabled    bool     `toml:"disabled"      json:"disabled,omitempty"`
 }
 
 type Currency struct {
