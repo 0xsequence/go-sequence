@@ -10,22 +10,18 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/ethrpc"
-	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
-	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/eip6492"
 )
 
 const (
 	nestedLeafImageHashPrefix    = "Sequence nested config:\n"
 	subdigestLeafImageHashPrefix = "Sequence static digest:\n"
 )
-
-var isValidSignatureMagicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
 
 var Core core.Core[*WalletConfig, core.Signature[*WalletConfig]] = v2Core{}
 
@@ -1055,27 +1051,22 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 
 	case dynamicSignatureTypeEIP1271:
 		effectiveWeight := l.weight
+		signature := l.signature
 
 		if provider != nil {
-			contract := ethcontract.NewContractCaller(l.address, contracts.IERC1271.ABI, provider)
-
-			var results []any
-			err := contract.Call(&bind.CallOpts{Context: ctx}, &results, "isValidSignature", subdigest.Hash, l.signature)
+			isValid, err := eip6492.ValidateEIP6492Offchain(ctx, provider, l.address, subdigest.Hash, signature, nil)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to call isValidSignature on %v: %w", l.address, err)
+				return nil, nil, fmt.Errorf("unable to validate signature for %v: %w", l.address, err)
 			}
-
-			if len(results) != 1 {
-				return nil, nil, fmt.Errorf("expected single return value from isValidSignature, got %v", len(results))
+			if !isValid {
+				return nil, nil, fmt.Errorf("invalid eip1271 signature for %v", l.address)
 			}
-
-			magicValue, ok := results[0].([4]byte)
-			if !ok {
-				return nil, nil, fmt.Errorf("expected [4]byte return value from isValidSignature, got %T", results[0])
-			}
-
-			if magicValue != isValidSignatureMagicValue {
-				return nil, nil, fmt.Errorf("isValidSignature returned %v, expected %v", hexutil.Encode(magicValue[:]), hexutil.Encode(isValidSignatureMagicValue[:]))
+			if eip6492.IsEIP6492Signature(signature) {
+				// Decode the signature and use the nested signature for config recovery
+				_, _, signature, err = eip6492.DecodeEIP6492Signature(signature)
+				if err != nil {
+					return nil, nil, fmt.Errorf("unable to decode eip6492 signature: %w", err)
+				}
 			}
 		} else {
 			// Set the effective weight to 0
@@ -1087,7 +1078,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, subdige
 		signerSignatures.Insert(l.address, core.SignerSignature{
 			Subdigest: subdigest,
 			Type:      l.type_.signerSignatureType(),
-			Signature: l.signature,
+			Signature: signature,
 		})
 
 		return &WalletConfigTreeAddressLeaf{
