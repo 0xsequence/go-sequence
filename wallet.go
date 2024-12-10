@@ -499,7 +499,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 		}
 	}
 
-	res, _, err := w.buildSignature(ctx, sign)
+	res, _, err := w.buildSignature(ctx, sign, chainID)
 	return res, err
 }
 
@@ -729,12 +729,23 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 	}
 }
 
-func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction) ([]byte, core.Signature[C], error) {
+func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction, chainID *big.Int) ([]byte, core.Signature[C], error) {
 	var coreWalletConfig core.WalletConfig = w.config
 	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
-		sig, err := config.BuildRegularSignature(ctx, sign, false)
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
+		var (
+			sig core.Signature[*v2.WalletConfig]
+			err error
+		)
+		if chainID.Sign() == 0 {
+			sig, err = config.BuildNoChainIDSignature(ctx, sign, false)
+			if err != nil {
+				return nil, nil, fmt.Errorf("SignDigest, BuildNoChainIDSignature: %w", err)
+			}
+		} else {
+			sig, err = config.BuildRegularSignature(ctx, sign, false)
+			if err != nil {
+				return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
+			}
 		}
 
 		sigEnc, err := sig.Data()
