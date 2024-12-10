@@ -736,7 +736,7 @@ func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunctio
 			sig core.Signature[*v2.WalletConfig]
 			err error
 		)
-		if chainID.Cmp(big.NewInt(0)) == 0 {
+		if chainID.Sign() == 0 {
 			sig, err = config.BuildNoChainIDSignature(ctx, sign, false)
 			if err != nil {
 				return nil, nil, fmt.Errorf("SignDigest, BuildNoChainIDSignature: %w", err)
