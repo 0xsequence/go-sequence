@@ -22,6 +22,8 @@ func IntentResponseTypeToCode[T any](t *T) IntentResponseCode {
 		return IntentResponseCode_sessionAuthProof
 	case *IntentResponseSignedMessage:
 		return IntentResponseCode_signedMessage
+	case *IntentResponseSignedTypedData:
+		return IntentResponseCode_signedTypedData
 	case *IntentResponseFeeOptions:
 		return IntentResponseCode_feeOptions
 	case *IntentResponseTransactionReceipt:
