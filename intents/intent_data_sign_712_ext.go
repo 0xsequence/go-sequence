@@ -73,9 +73,6 @@ func (p *IntentDataSignTypedData) subdigest() ([]byte, error) {
 	return sequence.SubDigest(chainID, p.wallet(), sequence.MessageDigest(msgData))
 }
 
-// A SignMessagePacket (intent) *MUST* be mapped to a regular "SignMessage" Sequence action, this means that
-// it must adhere to the following rules:
-// - the subdigest must match `SubDigest(chainID, Wallet, Digest(Message))`
 func (p *IntentDataSignTypedData) IsValidInterpretation(subdigest common.Hash) bool {
 	selfSubDigest, err := p.subdigest()
 	if err != nil {
