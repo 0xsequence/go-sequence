@@ -109,6 +109,7 @@ struct IntentDataSignTypedData
   - network: string
   - wallet: string
   - typedData: any
+    + go.field.type = *ethcoder.TypedData
 
 struct IntentDataFeeOptions
   - network: string

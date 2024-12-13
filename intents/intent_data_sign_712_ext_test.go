@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
@@ -79,15 +78,11 @@ func TestRecoverTypedDataIntent(t *testing.T) {
 	intentTyped, err := NewIntentTypedFromIntent[IntentDataSignTypedData](intent)
 	require.NoError(t, err)
 
-	typedData, ok := intentTyped.Data.TypedData.(*ethcoder.TypedData)
-	require.True(t, ok)
-	require.NotNil(t, typedData)
-
 	signers := intent.Signers()
 	require.Equal(t, 1, len(signers))
 	require.Equal(t, "0x"+common.Bytes2Hex(append([]byte{0x00}, wallet.Address().Bytes()...)), signers[0])
 
-	messageDigest, err := typedData.EncodeDigest()
+	messageDigest, err := intentTyped.Data.TypedData.EncodeDigest()
 	require.NoError(t, err)
 	require.NotNil(t, messageDigest)
 

@@ -2,38 +2,12 @@ package intents
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
 )
-
-func (p *IntentDataSignTypedData) UnmarshalJSON(data []byte) error {
-	type Raw struct {
-		Network   string          `json:"network"`
-		Wallet    string          `json:"wallet"`
-		TypedData json.RawMessage `json:"typedData"`
-	}
-
-	dec := json.NewDecoder(bytes.NewReader(data))
-	var raw Raw
-	if err := dec.Decode(&raw); err != nil {
-		return err
-	}
-
-	typedData, err := ethcoder.TypedDataFromJSON(string(raw.TypedData))
-	if err != nil {
-		return err
-	}
-
-	p.Network = raw.Network
-	p.Wallet = raw.Wallet
-	p.TypedData = typedData
-	return nil
-}
 
 func (p *IntentDataSignTypedData) chainID() (*big.Int, error) {
 	n, ok := sequence.ParseHexOrDec(p.Network)
@@ -44,12 +18,12 @@ func (p *IntentDataSignTypedData) chainID() (*big.Int, error) {
 }
 
 func (p *IntentDataSignTypedData) message() ([]byte, error) {
-	typedData, ok := p.TypedData.(*ethcoder.TypedData)
-	if !ok {
-		return nil, fmt.Errorf("typedData field is not a valid typed data object")
-	}
+	// typedData, ok := p.TypedData.(*ethcoder.TypedData)
+	// if !ok {
+	// 	return nil, fmt.Errorf("typedData field is not a valid typed data object")
+	// }
 
-	_, encodedMessage, err := typedData.Encode()
+	_, encodedMessage, err := p.TypedData.Encode()
 	if err != nil {
 		return nil, err
 	}
@@ -81,3 +55,27 @@ func (p *IntentDataSignTypedData) IsValidInterpretation(subdigest common.Hash) b
 
 	return bytes.Equal(selfSubDigest, subdigest[:])
 }
+
+// func (p *IntentDataSignTypedData) UnmarshalJSON(data []byte) error {
+// 	type Raw struct {
+// 		Network   string          `json:"network"`
+// 		Wallet    string          `json:"wallet"`
+// 		TypedData json.RawMessage `json:"typedData"`
+// 	}
+
+// 	dec := json.NewDecoder(bytes.NewReader(data))
+// 	var raw Raw
+// 	if err := dec.Decode(&raw); err != nil {
+// 		return err
+// 	}
+
+// 	typedData, err := ethcoder.TypedDataFromJSON(string(raw.TypedData))
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	p.Network = raw.Network
+// 	p.Wallet = raw.Wallet
+// 	p.TypedData = typedData
+// 	return nil
+// }
