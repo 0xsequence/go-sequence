@@ -28,6 +28,7 @@ enum IntentName: string
   - sessionAuthProof
   - feeOptions
   - signMessage
+  - signTypedData
   - sendTransaction
   - getTransactionReceipt
   - federateAccount
@@ -82,7 +83,7 @@ struct IntentDataValidateSession
 struct IntentDataFinishValidateSession
   - sessionId: string
     + go.field.name = SessionID
-  - wallet:  string
+  - wallet: string
   - salt: string
   - challenge: string
 
@@ -101,19 +102,25 @@ struct IntentDataSessionAuthProof
 
 struct IntentDataSignMessage
   - network: string
-  - wallet:  string
+  - wallet: string
   - message: string
+
+struct IntentDataSignTypedData
+  - network: string
+  - wallet: string
+  - typedData: any
+    + go.field.type = *ethcoder.TypedData
 
 struct IntentDataFeeOptions
   - network: string
-  - wallet:  string
+  - wallet: string
   - identifier: string # is used to generate nonce space
   - transactions: []any
     + go.field.type = []json.RawMessage
 
 struct IntentDataSendTransaction
   - network: string
-  - wallet:  string
+  - wallet: string
   - identifier: string # is used to generate nonce space
   - transactions: []any
     + go.field.type = []json.RawMessage
@@ -252,6 +259,7 @@ enum IntentResponseCode: string
   - validationFinished
   - sessionAuthProof
   - signedMessage
+  - signedTypedData
   - feeOptions
   - transactionReceipt
   - transactionFailed
@@ -311,6 +319,10 @@ struct IntentResponseSessionAuthProof
 struct IntentResponseSignedMessage
   - signature: string
   - message: string
+
+struct IntentResponseSignedTypedData
+  - signature: string
+  - encodedTypedData: string
 
 struct FeeOption
   - token: FeeToken
