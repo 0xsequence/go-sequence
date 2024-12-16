@@ -3,6 +3,7 @@ package eip6492
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -188,6 +189,29 @@ const EIP_6492_OFFCHAIN_DEPLOY_CODE = "0x608060405234801561001057600080fd5b50604
 const EIP_6492_SUFFIX = "0x6492649264926492649264926492649264926492649264926492649264926492"
 
 var EIP6492MagicBytes = hexutil.MustDecode(EIP_6492_SUFFIX)
+
+func IsEIP6492Signature(signature []byte) bool {
+	return bytes.HasSuffix(signature, EIP6492MagicBytes)
+}
+
+func DecodeEIP6492Signature(signature []byte) (common.Address, []byte, []byte, error) {
+	if !IsEIP6492Signature(signature) {
+		return common.Address{}, nil, nil, fmt.Errorf("not an eip6492 signature")
+	}
+
+	// Strip the magic bytes
+	signature = signature[:len(signature)-32]
+
+	var create2Factory common.Address
+	var factoryCalldata []byte
+	var sigToValidate []byte
+
+	if err := ethcoder.AbiDecoder([]string{"address", "bytes", "bytes"}, signature, []interface{}{&create2Factory, &factoryCalldata, &sigToValidate}); err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	return create2Factory, factoryCalldata, sigToValidate, nil
+}
 
 func ValidateEIP6492Offchain(
 	ctx context.Context,
