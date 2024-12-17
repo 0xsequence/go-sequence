@@ -435,6 +435,18 @@ func (w *Wallet[C]) SignMessage(msg []byte) ([]byte, error) {
 	return w.SignDigest(context.Background(), MessageDigest(msg))
 }
 
+func (w *Wallet[C]) SignTypedData(typedData *ethcoder.TypedData) ([]byte, []byte, error) {
+	digest, encodedTypedData, err := typedData.Encode()
+	if err != nil {
+		return nil, nil, err
+	}
+	signature, err := w.SignDigest(context.Background(), common.Hash(digest))
+	if err != nil {
+		return nil, nil, err
+	}
+	return signature, encodedTypedData, nil
+}
+
 var _ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
 var _ MessageSigner = (*Wallet[*v2.WalletConfig])(nil)
 

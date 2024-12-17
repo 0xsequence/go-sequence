@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts"
@@ -60,6 +61,69 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 	assert.NoError(t, err)
 
 	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	assert.NoError(t, err)
+	assert.True(t, isValid)
+}
+
+func TestIsValidSignatureEIP712Sequence(t *testing.T) {
+	eoa, err := ethwallet.NewWalletFromRandomEntropy()
+	assert.NoError(t, err)
+	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	assert.NoError(t, err)
+
+	provider, err := ethrpc.NewProvider(rpcURLEthereum)
+	assert.NoError(t, err)
+
+	err = wallet.Connect(provider, nil)
+	assert.NoError(t, err)
+
+	typedDataJson := `{
+		"types": {
+			"EIP712Domain": [
+				{ "name": "name", "type": "string" },
+				{ "name": "version", "type": "string" },
+				{ "name": "chainId", "type": "uint256" },
+				{ "name": "verifyingContract", "type": "address" },
+				{ "name": "salt", "type": "bytes32" }
+			],
+			"ExampleMessage": [
+				{ "name": "message", "type": "string" },
+				{ "name": "value", "type": "uint256" },
+				{ "name": "from", "type": "address" },
+				{ "name": "to", "type": "address" }
+			]
+		},
+		"domain": {
+			"name": "EIP712Example",
+			"version": "1",
+			"chainId": 5,
+			"verifyingContract": "0xc0ffee254729296a45a3885639AC7E10F9d54979",
+			"salt": "0x70736575646f2d72616e646f6d2076616c756500000000000000000000000000"
+		},
+		"message": {
+			"message": "Test message",
+			"value": 10000,
+			"from": "0xc0ffee254729296a45a3885639AC7E10F9d54979",
+			"to": "0xc0ffee254729296a45a3885639AC7E10F9d54979"
+		}
+	}`
+
+	typedData, err := ethcoder.TypedDataFromJSON(typedDataJson)
+	require.NoError(t, err)
+
+	// domainHash, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
+	// require.NoError(t, err)
+	// require.Equal(t, "0xe073fe030277efdf89d39322ac9321f17774fce4f686e14ff161942bbae5fdcd", ethcoder.HexEncode(domainHash))
+
+	sig, encodedTypedData, err := wallet.SignTypedData(typedData)
+	require.NoError(t, err)
+	require.NotNil(t, sig)
+	require.NotNil(t, encodedTypedData)
+
+	signature, err := sequence.EIP6492Signature(sig, wallet.GetWalletConfig())
+	assert.NoError(t, err)
+
+	isValid, err := sequence.IsValidTypedDataSignature(wallet.Address(), encodedTypedData, signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }

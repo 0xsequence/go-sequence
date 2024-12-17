@@ -172,6 +172,21 @@ func IsValidMessageSignature(address common.Address, message []byte, signature [
 	return IsValidSignature(log, address, common.BytesToHash(accounts.TextHash(message)), signature, SequenceContexts(), chainID, provider)
 }
 
+func IsValidTypedDataSignature(address common.Address, encodedTypedData []byte, signature []byte, chainID *big.Int, provider *ethrpc.Provider, optLogger *logger.Logger) (bool, error) {
+	log := logger.Nop()
+	if optLogger != nil {
+		log = *optLogger
+	}
+
+	isValid, err := ethwallet.IsValid191Signature(address, encodedTypedData, signature)
+	if err == nil && isValid {
+		return true, nil
+	}
+
+	typedDataDigest := common.BytesToHash(ethcoder.Keccak256(encodedTypedData))
+	return IsValidSignature(log, address, typedDataDigest, signature, SequenceContexts(), chainID, provider)
+}
+
 func IsValidSignature(log logger.Logger, walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
 	eip6492isValid, _ := eip6492.ValidateEIP6492Offchain(context.Background(), provider, walletAddress, digest, seqSig, nil)
 	if eip6492isValid {
