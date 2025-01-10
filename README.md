@@ -10,7 +10,7 @@ For documentation on sequence, please see our [docs](https://docs.sequence.xyz) 
 
 ## Developing the go-sequence library
 
-1. `make boostrap` -- will install node modules of ./testutil/chain
+1. `make bootstrap` -- will install node modules of ./testutil/chain
 2. `make start-testchain` -- starts the test ethereum chain (id 1337)
 3. (in a separate terminal) `make test` -- runs test suite
 
