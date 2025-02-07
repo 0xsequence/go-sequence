@@ -185,7 +185,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote)
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote, nil)
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}
