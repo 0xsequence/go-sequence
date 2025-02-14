@@ -17,7 +17,11 @@ func TestIntentMachineTransactionVerbose(t *testing.T) {
 	t.Run("v2", func(t *testing.T) {
 		// Create normal txn of: callmockContract.testCall(55, 0x112255)
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
+		assert.NoError(t, err)
+
+		calldata2, err := callmockContract.Encode("testCall", big.NewInt(66), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
 		stx := &sequence.Transaction{
@@ -25,8 +29,13 @@ func TestIntentMachineTransactionVerbose(t *testing.T) {
 			Data: calldata,
 		}
 
+		stx2 := &sequence.Transaction{
+			To:   callmockContract.Address,
+			Data: calldata2,
+		}
+
 		// Ensure dummy sequence wallet from seed 1 is deployed w/ the intent config
-		wallet, err := testChain.V2DummySequenceWalletWithIntentConfig(1, []*sequence.Transaction{stx})
+		wallet, err := testChain.V2DummySequenceWalletWithIntentConfig(1, []*sequence.Transaction{stx, stx2})
 		assert.NoError(t, err)
 		assert.NotNil(t, wallet)
 
