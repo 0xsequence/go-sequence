@@ -22,41 +22,49 @@ func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
 	return bundle, nil
 }
 
-// CreateIntentSubdigestLeaves iterates over the provided transactions,
-// validates that each transaction meets the following criteria:
+// `CreateIntentSubdigestLeaves` iterates over each batch of transactions,
+// validates that each transaction in the batch meets the following criteria:
 //   - DelegateCall must be false,
 //   - RevertOnError must be true,
 //   - Nonce must be non-nil and equal to 0.
 //
-// For each valid transaction, it computes the digest and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentSubdigestLeaves(txns []*Transaction) ([]*v2.WalletConfigTreeSubdigestLeaf, error) {
+// For each valid batch, it creates a bundle of transactions, computes its digest,
+// and creates a new WalletConfigTreeSubdigestLeaf.
+func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v2.WalletConfigTreeSubdigestLeaf, error) {
 	var leaves []*v2.WalletConfigTreeSubdigestLeaf
 
-	for i, tx := range txns {
-		// Validate the transaction fields:
-		if tx.DelegateCall {
-			return nil, fmt.Errorf("transaction at index %d: DelegateCall must be false", i)
-		}
-		if !tx.RevertOnError {
-			return nil, fmt.Errorf("transaction at index %d: RevertOnError must be true", i)
-		}
-		if tx.Nonce == nil {
-			return nil, fmt.Errorf("transaction at index %d: Nonce is nil", i)
-		}
-		if tx.Nonce.Cmp(big.NewInt(0)) != 0 {
-			return nil, fmt.Errorf("transaction at index %d: Nonce must be 0", i)
+	for batchIndex, batch := range batchTxns {
+		// Optional: Ensure the batch is not empty.
+		if len(batch) == 0 {
+			return nil, fmt.Errorf("batch at index %d is empty", batchIndex)
 		}
 
-		// Create the intent bundle.
-		bundle, err := CreateIntentBundle(txns)
+		// Validate each transaction in the batch.
+		for j, tx := range batch {
+			if tx.DelegateCall {
+				return nil, fmt.Errorf("batch %d, transaction %d: DelegateCall must be false", batchIndex, j)
+			}
+			if !tx.RevertOnError {
+				return nil, fmt.Errorf("batch %d, transaction %d: RevertOnError must be true", batchIndex, j)
+			}
+			if tx.Nonce == nil {
+				return nil, fmt.Errorf("batch %d, transaction %d: Nonce is nil", batchIndex, j)
+			}
+			if tx.Nonce.Cmp(big.NewInt(0)) != 0 {
+				return nil, fmt.Errorf("batch %d, transaction %d: Nonce must be 0", batchIndex, j)
+			}
+		}
+
+		// Create the intent bundle for this batch.
+		bundle, err := CreateIntentBundle(batch)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create intent bundle: %w", err)
+			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
 
-		// Compute digest of the transaction.
+		// Compute digest of the bundle.
 		digest, err := bundle.Digest()
 		if err != nil {
-			return nil, fmt.Errorf("failed to compute digest for transaction at index %d: %w", i, err)
+			return nil, fmt.Errorf("failed to compute digest for batch %d: %w", batchIndex, err)
 		}
 
 		// Create a subdigest leaf with the computed digest.
@@ -69,11 +77,10 @@ func CreateIntentSubdigestLeaves(txns []*Transaction) ([]*v2.WalletConfigTreeSub
 	return leaves, nil
 }
 
-// CreateIntentConfiguration creates a wallet configuration where the intent's transactions
-// are grouped into the initial subdigest. It uses the subdigest leaves constructed from the txns.
-func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (*v2.WalletConfig, error) {
-	// Create the subdigest leaves from the transactions.
-	leaves, err := CreateIntentSubdigestLeaves(txns)
+// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v2.WalletConfig, error) {
+	// Create the subdigest leaves from the batched transactions.
+	leaves, err := CreateIntentSubdigestLeaves(batches)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +98,6 @@ func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (
 	}
 
 	// Construct the new wallet config using:
-	//  • the main signer leaf as the left branch, and
-	//  • a nested tree node containing the subdigest leaves as the right branch.
 	config := &v2.WalletConfig{
 		Threshold_:  1,
 		Checkpoint_: 0,
@@ -105,24 +110,24 @@ func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (
 	return config, nil
 }
 
-// `CreateIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction digest only.
-func CreateIntentConfigurationSignature(mainSigner common.Address, txns []*Transaction) ([]byte, error) {
-	// Create the intent configuration
-	config, err := CreateIntentConfiguration(mainSigner, txns)
+// `CreateIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
+func CreateIntentConfigurationSignature(mainSigner common.Address, batches [][]*Transaction) ([]byte, error) {
+	// Create the intent configuration using the batched transactions.
+	config, err := CreateIntentConfiguration(mainSigner, batches)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build a no chain ID signature with an empty callback function
+	// Build a no chain ID signature with an empty callback function.
 	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// For all signers, return a zero value, since intent signatures are not signed by the main signer
+		// For all signers, return a zero value, since intent signatures are not signed by the main signer.
 		return 0, nil, nil
 	}, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build no chain ID signature: %w", err)
 	}
 
-	// Get the signature data
+	// Get the signature data.
 	data, err := sig.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature data: %w", err)
