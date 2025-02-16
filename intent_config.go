@@ -28,7 +28,7 @@ func createIntentBundle(txns []*Transaction) (common.Hash, error) {
 	return digest, nil
 }
 
-// CreateIntentConfiguration creates a wallet configuration where the intent's transactions are grouped into the initial subdigest
+// `CreateIntentConfiguration` creates a wallet configuration where the intent's transactions are grouped into the initial subdigest
 func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (*v2.WalletConfig, error) {
 	// Create the bundle digest
 	digest, err := createIntentBundle(txns)
@@ -60,8 +60,7 @@ func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (
 	return config, nil
 }
 
-// CreateIntentConfigurationSignature creates a signature for the intent configuration that can be used
-// to bypass chain ID validation. The signature is based on the transaction digest only.
+// `CreateIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction digest only.
 func CreateIntentConfigurationSignature(mainSigner common.Address, txns []*Transaction) ([]byte, error) {
 	// Create the intent configuration
 	config, err := CreateIntentConfiguration(mainSigner, txns)
