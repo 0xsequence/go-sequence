@@ -266,17 +266,13 @@ func (s *regularSignature) String() string {
 	return hexutil.Encode(data)
 }
 
-type NoChainIDSignature struct {
+type noChainIDSignature struct {
 	threshold  uint16
 	checkpoint uint32
 	tree       signatureTree
 }
 
-func (s *NoChainIDSignature) GetTree() signatureTree {
-	return s.tree
-}
-
-func decodeNoChainIDSignature(data []byte) (*NoChainIDSignature, error) {
+func decodeNoChainIDSignature(data []byte) (*noChainIDSignature, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("missing no chain ID signature type")
 	}
@@ -303,22 +299,22 @@ func decodeNoChainIDSignature(data []byte) (*NoChainIDSignature, error) {
 		return nil, fmt.Errorf("unable to decode no chain ID signature: %w", err)
 	}
 
-	return &NoChainIDSignature{threshold, checkpoint, tree}, nil
+	return &noChainIDSignature{threshold, checkpoint, tree}, nil
 }
 
-func (s *NoChainIDSignature) Threshold() uint16 {
+func (s *noChainIDSignature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *NoChainIDSignature) Checkpoint() uint32 {
+func (s *noChainIDSignature) Checkpoint() uint32 {
 	return s.checkpoint
 }
 
-func (s *NoChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
 }
 
-func (s *NoChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *noChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
@@ -335,8 +331,8 @@ func (s *NoChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest cor
 	}, weight, nil
 }
 
-func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
-	other_, ok := other.(*NoChainIDSignature)
+func (s *noChainIDSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
+	other_, ok := other.(*noChainIDSignature)
 	if !ok {
 		return nil, fmt.Errorf("expected no chain ID signature, got %T", other)
 	}
@@ -354,22 +350,22 @@ func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature
 		return nil, fmt.Errorf("unable to join signature trees: %w", err)
 	}
 
-	return &NoChainIDSignature{
+	return &noChainIDSignature{
 		threshold:  s.threshold,
 		checkpoint: s.checkpoint,
 		tree:       tree,
 	}, nil
 }
 
-func (s *NoChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
-	return &NoChainIDSignature{
+func (s *noChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
+	return &noChainIDSignature{
 		threshold:  s.threshold,
 		checkpoint: s.checkpoint,
 		tree:       s.tree.reduce(),
 	}
 }
 
-func (s *NoChainIDSignature) Data() ([]byte, error) {
+func (s *noChainIDSignature) Data() ([]byte, error) {
 	var buffer bytes.Buffer
 
 	err := s.Write(&buffer)
@@ -380,7 +376,7 @@ func (s *NoChainIDSignature) Data() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (s *NoChainIDSignature) Write(writer io.Writer) error {
+func (s *noChainIDSignature) Write(writer io.Writer) error {
 	_, err := writer.Write([]byte{byte(signatureTypeNoChainID)})
 	if err != nil {
 		return fmt.Errorf("unable to write no chain ID signature type: %w", err)
@@ -404,7 +400,7 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 	return nil
 }
 
-func (s *NoChainIDSignature) String() string {
+func (s *noChainIDSignature) String() string {
 	data, _ := s.Data()
 	return hexutil.Encode(data)
 }
@@ -1246,8 +1242,6 @@ func decodeSignatureTreeBranchLeaf(data *[]byte) (signatureTree, error) {
 type signatureTreeSubdigestLeaf struct{ core.Subdigest }
 
 func decodeSignatureTreeSubdigestLeaf(data *[]byte) (signatureTreeSubdigestLeaf, error) {
-	fmt.Printf("DECODING SUBDIGEST LEAF")
-
 	next := *data
 
 	if len(next) < 1+common.HashLength {
@@ -1263,9 +1257,6 @@ func decodeSignatureTreeSubdigestLeaf(data *[]byte) (signatureTreeSubdigestLeaf,
 	}
 
 	*data = next
-
-	fmt.Println("HASH:")
-	fmt.Println(common.BytesToHash(hash))
 
 	return signatureTreeSubdigestLeaf{core.Subdigest{Hash: common.BytesToHash(hash)}}, nil
 }
@@ -1589,7 +1580,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 	}
 
 	if isValid {
-		return &NoChainIDSignature{
+		return &noChainIDSignature{
 			threshold:  c.Threshold_,
 			checkpoint: c.Checkpoint_,
 			tree:       c.Tree.buildSignatureTree(signerSignatures),
