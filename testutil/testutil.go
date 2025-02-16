@@ -596,7 +596,7 @@ func (c *TestChain) V2DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	return genericWallet, nil
 }
 
-func (c *TestChain) V2DummySequenceWalletWithIntentConfig(seed uint64, txs []*sequence.Transaction, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
+func (c *TestChain) V2DummySequenceWalletWithIntentConfig(seed uint64, batchTxs [][]*sequence.Transaction, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
 	if err != nil {
@@ -604,7 +604,7 @@ func (c *TestChain) V2DummySequenceWalletWithIntentConfig(seed uint64, txs []*se
 	}
 
 	// Create an intent config
-	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), txs)
+	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), batchTxs)
 	if err != nil {
 		return nil, err
 	}

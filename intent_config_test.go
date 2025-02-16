@@ -24,15 +24,19 @@ func TestCreateIntentSubdigestLeaves_Valid(t *testing.T) {
 		// other required fields for stx (if any) are assumed to be set.
 	}
 
-	// Use the valid transaction in a slice.
+	// Use the valid transaction in a slice (representing one batch).
 	txns := []*sequence.Transaction{stx}
+	batches := [][]*sequence.Transaction{txns}
 
-	leaves, err := sequence.CreateIntentSubdigestLeaves(txns)
+	bundle, err := sequence.CreateIntentBundle(txns)
+	require.NoError(t, err)
+
+	leaves, err := sequence.CreateIntentSubdigestLeaves(batches)
 	require.NoError(t, err)
 	require.Len(t, leaves, 1, "expected one subdigest leaf")
 
 	// Verify that the leaf's digest matches the transaction's digest.
-	digest, err := stx.Digest()
+	digest, err := bundle.Digest()
 	require.NoError(t, err)
 	require.Equal(t, digest, leaves[0].Subdigest.Hash, "digests do not match")
 }
@@ -45,11 +49,12 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 		Nonce:         big.NewInt(0),
 	}
 	txns := []*sequence.Transaction{stx}
+	batches := [][]*sequence.Transaction{txns}
 
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, txns)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, batches)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -72,12 +77,15 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	}
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
+		// Wrap the transaction in a batch.
+		batches := [][]*sequence.Transaction{{stx}}
+
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*sequence.Transaction{stx})
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []*sequence.Transaction{stx})
+		signature, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Print the eoa1's address
@@ -150,11 +158,11 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 			Nonce:         big.NewInt(0),
 		}
 
-		// Create signatures for both transactions
-		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []*sequence.Transaction{tx1})
+		// Create signatures for each transaction as separate batches.
+		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), [][]*sequence.Transaction{{tx1}})
 		require.NoError(t, err)
 
-		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []*sequence.Transaction{tx2})
+		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), [][]*sequence.Transaction{{tx2}})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -162,11 +170,14 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	})
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
+		// Wrap the transaction in a batch.
+		batches := [][]*sequence.Transaction{{stx}}
+
 		// Create the same transaction twice
-		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []*sequence.Transaction{stx})
+		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
-		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []*sequence.Transaction{stx})
+		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -193,9 +204,10 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 		Data:          []byte("transaction2"),
 	}
 	txns := []*sequence.Transaction{stx1, stx2}
+	batches := [][]*sequence.Transaction{txns}
 
 	// Create a signature
-	sig, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), txns)
+	sig, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -209,6 +221,6 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	bundleDigest, err := bundle.Digest()
 	require.NoError(t, err)
 
-	// Expect that the signature (in hex) contains the substrings of both transactions' digests.
-	assert.Contains(t, sigHex, bundleDigest.Hex()[2:], "signature should contain stx1 digest")
+	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
+	assert.Contains(t, sigHex, bundleDigest.Hex()[2:], "signature should contain transaction bundle digest")
 }
