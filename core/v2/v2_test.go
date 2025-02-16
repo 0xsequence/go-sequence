@@ -34,6 +34,12 @@ func TestDecodeSignature(t *testing.T) {
 		spew.Dump(decodedSignature)
 		fmt.Println()
 
+		if regSig, ok := decodedSignature.(*NoChainIDSignature); ok {
+			spew.Dump(regSig.tree)
+		} else {
+			fmt.Println("signature type does not expose wallet config tree")
+		}
+
 		reEncodedSignature, err := decodedSignature.Data()
 		assert.NoErrorf(t, err, "unable to re-encode signature %v", i)
 
@@ -289,10 +295,10 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		joinedSig, err := sig1.Join(subdigest, sig2)
 		require.NoError(t, err)
 
-		sig1Tree := sig1.(*noChainIDSignature).tree
-		sig2Tree := sig2.(*noChainIDSignature).tree
+		sig1Tree := sig1.(*NoChainIDSignature).tree
+		sig2Tree := sig2.(*NoChainIDSignature).tree
 
-		joinedSigTree := joinedSig.(*noChainIDSignature).tree
+		joinedSigTree := joinedSig.(*NoChainIDSignature).tree
 
 		assert.Equal(t, sig1Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left)
 		assert.Equal(t, sig2Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).right)
@@ -363,10 +369,10 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		joinedSig, err := sig1.Join(subdigest, sig2)
 		require.NoError(t, err)
 
-		sig1Tree := sig1.(*noChainIDSignature).tree
-		sig2Tree := sig2.(*noChainIDSignature).tree
+		sig1Tree := sig1.(*NoChainIDSignature).tree
+		sig2Tree := sig2.(*NoChainIDSignature).tree
 
-		joinedSigTree := joinedSig.(*noChainIDSignature).tree
+		joinedSigTree := joinedSig.(*NoChainIDSignature).tree
 
 		assert.Equal(t, sig1Tree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left, joinedSigTree.(*signatureTreeNode).left.(*signatureTreeNode).left.(*signatureTreeNode).left)
 		assert.Equal(t, sig2Tree.(*signatureTreeNode).right.(*signatureTreeNode).right, joinedSigTree.(*signatureTreeNode).right.(*signatureTreeNode).right)

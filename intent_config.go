@@ -63,24 +63,16 @@ func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (
 // CreateIntentConfigurationSignature creates a signature for the intent configuration that can be used
 // to bypass chain ID validation. The signature is based on the transaction digest only.
 func CreateIntentConfigurationSignature(mainSigner common.Address, txns []*Transaction) ([]byte, error) {
-	// Create the bundle digest
-	digest, err := createIntentBundle(txns)
+	// Create the intent configuration
+	config, err := CreateIntentConfiguration(mainSigner, txns)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a temporary wallet config for signing
-	config := &v2.WalletConfig{
-		Threshold_:  1,
-		Checkpoint_: 0,
-		Tree: &v2.WalletConfigTreeSubdigestLeaf{
-			Subdigest: core.Subdigest{Hash: digest},
-		},
-	}
-
-	// Build a no chain ID signature
+	// Build a no chain ID signature with an empty callback function
 	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		return core.SignerSignatureTypeEIP712, nil, nil
+		// For all signers, return a zero value, since intent signatures are not signed by the main signer
+		return 0, nil, nil
 	}, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build no chain ID signature: %w", err)
