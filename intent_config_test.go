@@ -69,14 +69,6 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		// Verify signature type by checking the first byte
 		require.Equal(t, byte(0x02), signature[0], "signature should be a NoChainID signature type")
 
-		// Get the `signatureTree` and print it
-		if regSig, ok := sig.(*v2.NoChainIDSignature); ok {
-			fmt.Println("DUMPING TREE")
-			spew.Dump(regSig.GetTree())
-		} else {
-			fmt.Println("signature type does not expose wallet config tree")
-		}
-
 		// Print the image hash of the subdigest
 		fmt.Println(subdigestLeaf.ImageHash())
 
