@@ -15,6 +15,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCreateIntentSubdigestLeaves_Valid(t *testing.T) {
+	// Create a valid transaction (stx) with required fields.
+	stx := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(0),
+		// other required fields for stx (if any) are assumed to be set.
+	}
+
+	// Use the valid transaction in a slice.
+	txns := []*sequence.Transaction{stx}
+
+	leaves, err := sequence.CreateIntentSubdigestLeaves(txns)
+	require.NoError(t, err)
+	require.Len(t, leaves, 1, "expected one subdigest leaf")
+
+	// Verify that the leaf's digest matches the transaction's digest.
+	digest, err := stx.Digest()
+	require.NoError(t, err)
+	require.Equal(t, digest, leaves[0].Subdigest.Hash, "digests do not match")
+}
+
+func TestCreateIntentConfiguration_Valid(t *testing.T) {
+	// Create a valid transaction.
+	stx := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(0),
+	}
+	txns := []*sequence.Transaction{stx}
+
+	// Use a valid main signer address.
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, txns)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+}
+
 func TestCreateIntentConfigurationSignature(t *testing.T) {
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
@@ -26,8 +65,10 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	assert.NoError(t, err)
 
 	stx := &sequence.Transaction{
-		To:   callmockContract.Address,
-		Data: calldata,
+		To:            callmockContract.Address,
+		Data:          calldata,
+		RevertOnError: true,
+		Nonce:         big.NewInt(0),
 	}
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
@@ -96,13 +137,17 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		tx1 := &sequence.Transaction{
-			To:   callmockContract.Address,
-			Data: calldata1,
+			To:            callmockContract.Address,
+			Data:          calldata1,
+			RevertOnError: true,
+			Nonce:         big.NewInt(0),
 		}
 
 		tx2 := &sequence.Transaction{
-			To:   callmockContract.Address,
-			Data: calldata2,
+			To:            callmockContract.Address,
+			Data:          calldata2,
+			RevertOnError: true,
+			Nonce:         big.NewInt(0),
 		}
 
 		// Create signatures for both transactions
@@ -127,4 +172,43 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		// Verify signatures are the same
 		require.Equal(t, sig1, sig2, "same transactions should produce same signatures")
 	})
+}
+
+func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
+	// Create test wallets
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	// Create two valid transactions with different Data fields so their digests differ.
+	stx1 := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(0),
+		Data:          []byte("transaction1"),
+	}
+	stx2 := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(0),
+		Data:          []byte("transaction2"),
+	}
+	txns := []*sequence.Transaction{stx1, stx2}
+
+	// Create a signature
+	sig, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), txns)
+	require.NoError(t, err)
+
+	// Convert the full signature into a hex string.
+	sigHex := common.Bytes2Hex(sig)
+
+	// Create the bundle from the transactions
+	bundle, err := sequence.CreateIntentBundle(txns)
+	require.NoError(t, err)
+
+	// Compute the digest of the bundle
+	bundleDigest, err := bundle.Digest()
+	require.NoError(t, err)
+
+	// Expect that the signature (in hex) contains the substrings of both transactions' digests.
+	assert.Contains(t, sigHex, bundleDigest.Hex()[2:], "signature should contain stx1 digest")
 }

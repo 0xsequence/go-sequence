@@ -10,8 +10,8 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 )
 
-// createIntentBundle creates a bundle of transactions with the initial nonce 0
-func createIntentBundle(txns []*Transaction) (common.Hash, error) {
+// `CreateIntentBundle` creates a bundle of transactions with the initial nonce 0
+func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
 	bundle := Transaction{
 		DelegateCall:  false,
 		RevertOnError: true,
@@ -19,41 +19,86 @@ func createIntentBundle(txns []*Transaction) (common.Hash, error) {
 		Nonce:         big.NewInt(0),
 	}
 
-	// Compute the digest for the bundle
-	digest, err := bundle.Digest()
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to compute bundle digest: %w", err)
-	}
-
-	return digest, nil
+	return bundle, nil
 }
 
-// `CreateIntentConfiguration` creates a wallet configuration where the intent's transactions are grouped into the initial subdigest
+// CreateIntentSubdigestLeaves iterates over the provided transactions,
+// validates that each transaction meets the following criteria:
+//   - DelegateCall must be false,
+//   - RevertOnError must be true,
+//   - Nonce must be non-nil and equal to 0.
+//
+// For each valid transaction, it computes the digest and creates a new WalletConfigTreeSubdigestLeaf.
+func CreateIntentSubdigestLeaves(txns []*Transaction) ([]*v2.WalletConfigTreeSubdigestLeaf, error) {
+	var leaves []*v2.WalletConfigTreeSubdigestLeaf
+
+	for i, tx := range txns {
+		// Validate the transaction fields:
+		if tx.DelegateCall {
+			return nil, fmt.Errorf("transaction at index %d: DelegateCall must be false", i)
+		}
+		if !tx.RevertOnError {
+			return nil, fmt.Errorf("transaction at index %d: RevertOnError must be true", i)
+		}
+		if tx.Nonce == nil {
+			return nil, fmt.Errorf("transaction at index %d: Nonce is nil", i)
+		}
+		if tx.Nonce.Cmp(big.NewInt(0)) != 0 {
+			return nil, fmt.Errorf("transaction at index %d: Nonce must be 0", i)
+		}
+
+		// Create the intent bundle.
+		bundle, err := CreateIntentBundle(txns)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create intent bundle: %w", err)
+		}
+
+		// Compute digest of the transaction.
+		digest, err := bundle.Digest()
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute digest for transaction at index %d: %w", i, err)
+		}
+
+		// Create a subdigest leaf with the computed digest.
+		leaf := &v2.WalletConfigTreeSubdigestLeaf{
+			Subdigest: core.Subdigest{Hash: digest},
+		}
+		leaves = append(leaves, leaf)
+	}
+
+	return leaves, nil
+}
+
+// CreateIntentConfiguration creates a wallet configuration where the intent's transactions
+// are grouped into the initial subdigest. It uses the subdigest leaves constructed from the txns.
 func CreateIntentConfiguration(mainSigner common.Address, txns []*Transaction) (*v2.WalletConfig, error) {
-	// Create the bundle digest
-	digest, err := createIntentBundle(txns)
+	// Create the subdigest leaves from the transactions.
+	leaves, err := CreateIntentSubdigestLeaves(txns)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the main signer leaf (with weight 1)
+	// Convert the slice of subdigest leaves into a slice of v2.WalletConfigTree.
+	var treeNodes []v2.WalletConfigTree
+	for _, leaf := range leaves {
+		treeNodes = append(treeNodes, leaf)
+	}
+
+	// Create the main signer leaf (with weight 1).
 	mainSignerLeaf := &v2.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
 	}
 
-	// Create a leaf node from the computed subdigest.
-	subdigestLeaf := &v2.WalletConfigTreeSubdigestLeaf{
-		Subdigest: core.Subdigest{Hash: digest},
-	}
-
-	// Construct the new wallet config using the main signer (as the first leaf) and a tree node for the subdigest.
+	// Construct the new wallet config using:
+	//  • the main signer leaf as the left branch, and
+	//  • a nested tree node containing the subdigest leaves as the right branch.
 	config := &v2.WalletConfig{
 		Threshold_:  1,
 		Checkpoint_: 0,
 		Tree: v2.WalletConfigTreeNodes(
 			mainSignerLeaf,
-			v2.WalletConfigTreeNodes(subdigestLeaf),
+			v2.WalletConfigTreeNodes(treeNodes...),
 		),
 	}
 
