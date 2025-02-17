@@ -34,6 +34,19 @@ func TestDecodeSignature(t *testing.T) {
 		spew.Dump(decodedSignature)
 		fmt.Println()
 
+		switch sig := decodedSignature.(type) {
+		case *regularSignature:
+			if sig.tree != nil {
+				spew.Dump(sig.tree)
+			}
+		case *noChainIDSignature:
+			if sig.tree != nil {
+				spew.Dump(sig.tree)
+			}
+		default:
+			fmt.Printf("Unexpected signature type: %T\n", decodedSignature)
+		}
+
 		reEncodedSignature, err := decodedSignature.Data()
 		assert.NoErrorf(t, err, "unable to re-encode signature %v", i)
 
