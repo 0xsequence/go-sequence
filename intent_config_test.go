@@ -281,24 +281,9 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	require.Len(t, balances, 1)
 	require.Equal(t, "100", balances[0])
 
-	// Build the overall bundle.
-	bundle, err := sequence.CreateIntentBundle(txns)
+	// Get the signed transactions
+	signedTxns, err := wallet.GetSignedIntentTransactions(context.Background(), txns, configSig)
 	require.NoError(t, err)
-
-	// Get the digest of the bundle
-	bundleDigest, err := bundle.Digest()
-	require.NoError(t, err)
-
-	// Create a SignedTransactions
-	signedTxns := &sequence.SignedTransactions{
-		ChainID:       testChain.ChainID(),
-		WalletAddress: wallet.Address(),
-		WalletConfig:  wallet.GetWalletConfig(),
-		WalletContext: wallet.GetWalletContext(),
-		Transactions:  txns,
-		Signature:     configSig,
-		Digest:        bundleDigest,
-	}
 
 	// Send the transaction bundle – note that we do not use wallet.SignTransaction here
 	// since we are testing that a pre-generated configuration signature works.

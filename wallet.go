@@ -589,6 +589,71 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	}, nil
 }
 
+func (w *Wallet[C]) GetSignedIntentTransaction(ctx context.Context, txn *Transaction, sig []byte) (*SignedTransactions, error) {
+	return w.GetSignedIntentTransactions(ctx, Transactions{txn}, sig)
+}
+
+func (w *Wallet[C]) GetSignedIntentTransactions(ctx context.Context, txns Transactions, sig []byte) (*SignedTransactions, error) {
+	if len(txns) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+	}
+
+	var err error
+
+	// If a transaction has 0 gasLimit and not revertOnError
+	// compute all new gas limits
+	estimateGas := false
+	for _, txn := range txns {
+		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
+			estimateGas = true
+			break
+		}
+	}
+	if estimateGas {
+		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
+		if err != nil {
+			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
+		}
+	}
+
+	// load nonce from transactions
+	nonce, err := txns.Nonce()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
+	}
+
+	// if nonce is undefined
+	// load latest nonce from wallet
+	if nonce == nil {
+		nonce, err = w.GetNonce()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	bundle := Transaction{
+		Transactions: txns,
+		Nonce:        nonce,
+	}
+
+	// Get transactions digest
+	digest, err := bundle.Digest()
+	if err != nil {
+		return nil, err
+	}
+
+	return &SignedTransactions{
+		ChainID:       w.chainID,
+		WalletAddress: w.address,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  txns,
+		Nonce:         nonce,
+		Digest:        digest,
+		Signature:     sig,
+	}, nil
+}
+
 func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	return w.SendTransactions(ctx, signedTxns, feeQuote...)
 }
