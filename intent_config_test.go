@@ -1,6 +1,7 @@
 package sequence_test
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -10,6 +11,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+
+	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -223,4 +226,101 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 
 	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
 	assert.Contains(t, sigHex, bundleDigest.Hex()[2:], "signature should contain transaction bundle digest")
+}
+
+func TestConfigurationSignatureERC20Transfer(t *testing.T) {
+	// Create the test main signer
+	mainSigner, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
+	// Deploy the ERC20 mock contract.
+	erc20, _ := testChain.Deploy(t, "ERC20Mock")
+
+	// Now, we want to transfer 50 tokens from the wallet to a recipient.
+	recipient := common.HexToAddress("0x3333333333333333333333333333333333333333")
+	transferCalldata, err := erc20.Encode("transfer", recipient, big.NewInt(50))
+	require.NoError(t, err)
+
+	// Create a transaction that calls the ERC20 transfer.
+	// (Since the wallet holds the tokens, a normal transfer works to "spend" tokens.)
+	tx := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		To:            erc20.Address,
+		Data:          transferCalldata,
+		// For a newly deployed wallet the nonce is 0.
+		Nonce: big.NewInt(0),
+	}
+
+	// Wrap the transaction in a single batch.
+	txns := []*sequence.Transaction{tx}
+	batches := [][]*sequence.Transaction{txns}
+
+	// Generate a configuration signature for the batch.
+	// (The configuration signature "attests" that the wallet owner authorizes
+	// this bundle of transactions.)
+	configSig, err := sequence.CreateIntentConfigurationSignature(mainSigner.Address(), batches)
+	require.NoError(t, err)
+	// For a NoChainID signature the version byte is expected to be 0x02.
+	assert.Equal(t, byte(0x02), configSig[0], "configuration signature should start with 0x02")
+
+	// Use a v2 dummy Sequence wallet
+	wallet, err := testChain.V2DummySequenceWalletWithIntentConfig(1, batches)
+	require.NoError(t, err)
+	require.NotNil(t, wallet)
+
+	// Mint 100 tokens to the wallet.
+	mintCalldata, err := erc20.Encode("mockMint", wallet.Address(), big.NewInt(100))
+	require.NoError(t, err)
+	err = testutil.SignAndSend(t, wallet, erc20.Address, mintCalldata)
+	require.NoError(t, err)
+
+	// Verify that the wallet received 100 tokens.
+	balances, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{wallet.Address().Hex()})
+	require.NoError(t, err)
+	require.Len(t, balances, 1)
+	require.Equal(t, "100", balances[0])
+
+	// Build the overall bundle.
+	bundle, err := sequence.CreateIntentBundle(txns)
+	require.NoError(t, err)
+
+	// Get the digest of the bundle
+	bundleDigest, err := bundle.Digest()
+	require.NoError(t, err)
+
+	// Create a SignedTransactions
+	signedTxns := &sequence.SignedTransactions{
+		ChainID:       testChain.ChainID(),
+		WalletAddress: wallet.Address(),
+		WalletConfig:  wallet.GetWalletConfig(),
+		WalletContext: wallet.GetWalletContext(),
+		Transactions:  txns,
+		Signature:     configSig,
+		Digest:        bundleDigest,
+	}
+
+	// Send the transaction bundle – note that we do not use wallet.SignTransaction here
+	// since we are testing that a pre-generated configuration signature works.
+	metaTxnID, sentTx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTxns)
+	require.NoError(t, err)
+	require.NotEmpty(t, metaTxnID)
+	require.NotNil(t, sentTx)
+
+	receipt, err := waitReceipt(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), receipt.Status, "meta transaction should execute successfully")
+
+	// Verify that the transfer took place:
+	// the wallet's token balance should have dropped from 100 to 50
+	// and the recipient should have received 50 tokens.
+	walletBalance, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{wallet.Address().Hex()})
+	require.NoError(t, err)
+	require.Len(t, walletBalance, 1)
+	require.Equal(t, "50", walletBalance[0], "wallet balance should be reduced to 50")
+
+	recipientBalance, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{recipient.Hex()})
+	require.NoError(t, err)
+	require.Len(t, recipientBalance, 1)
+	require.Equal(t, "50", recipientBalance[0], "recipient should receive 50 tokens")
 }
