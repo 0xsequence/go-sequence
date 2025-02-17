@@ -26,7 +26,6 @@ func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
 // validates that each transaction in the batch meets the following criteria:
 //   - DelegateCall must be false,
 //   - RevertOnError must be true,
-//   - Nonce must be non-nil and equal to 0.
 //
 // For each valid batch, it creates a bundle of transactions, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
@@ -46,12 +45,6 @@ func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v2.WalletConfig
 			}
 			if !tx.RevertOnError {
 				return nil, fmt.Errorf("batch %d, transaction %d: RevertOnError must be true", batchIndex, j)
-			}
-			if tx.Nonce == nil {
-				return nil, fmt.Errorf("batch %d, transaction %d: Nonce is nil", batchIndex, j)
-			}
-			if tx.Nonce.Cmp(big.NewInt(0)) != 0 {
-				return nil, fmt.Errorf("batch %d, transaction %d: Nonce must be 0", batchIndex, j)
 			}
 		}
 

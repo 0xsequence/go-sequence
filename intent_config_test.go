@@ -248,8 +248,6 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 		RevertOnError: true,
 		To:            erc20.Address,
 		Data:          transferCalldata,
-		// For a newly deployed wallet the nonce is 0.
-		Nonce: big.NewInt(0),
 	}
 
 	// Wrap the transaction in a single batch.
