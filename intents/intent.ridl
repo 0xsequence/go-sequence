@@ -77,7 +77,8 @@ struct IntentDataOpenScopedSession
   - scopedSessionId: string
     + go.field.name = ScopedSessionID
   - wallet: string
-  - scope: string
+  - projectId: uint64
+    + go.field.name = ProjectID
 
 struct IntentDataCloseSession
   - sessionId: string
