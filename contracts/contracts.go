@@ -63,6 +63,7 @@ var (
 )
 
 func init() {
+	// TODO: namespace this to "V1"
 	WalletFactory = artifact("WALLET_FACTORY", walletfactory1.WalletFactoryABI, walletfactory1.WalletFactoryBin)
 	WalletMainModule = artifact("WALLET_MAIN", walletmain1.WalletMainABI, walletmain1.WalletMainBin)
 	WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable1.WalletUpgradableABI, walletupgradable1.WalletUpgradableBin)
