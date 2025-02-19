@@ -7,7 +7,7 @@ bootstrap:
 	cd ./testutil/chain && pnpm install
 
 build:
-	go build ./...
+	go build -o ./...
 
 test: wait-on-chain check-testchain-running go-test
 
