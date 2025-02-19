@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -585,4 +586,20 @@ func TestWalletLazyDeployment(t *testing.T) {
 	bal, err := testChain.Provider.BalanceAt(context.Background(), eoa1.Address(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(1), bal)
+}
+
+func TestWalletAddressV3(t *testing.T) {
+	t.Run("v3", func(t *testing.T) {
+		eoa, err := ethwallet.NewWalletFromPrivateKey("2bf2dfccb8c9fb4bb4d46ac9e2b537c373b44ae4c2ee66de92e02f132f7c2237")
+		assert.NoError(t, err)
+		assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
+
+		w, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, sequence.WalletContext{
+			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
+			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "0x686F888A26CD92E859E504d14Db1c19c58b28b7f", w.Address().Hex())
+	})
 }
