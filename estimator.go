@@ -17,7 +17,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
+	walletgasestimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
