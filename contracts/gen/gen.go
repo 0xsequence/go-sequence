@@ -1,14 +1,14 @@
 //
 // sequence wallet-contracts v1
 //
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletfactory --type=WalletFactory --outFile=./walletfactory/wallet_factory.gen.go --artifactsFile=../artifacts/wallet-contracts/Factory.sol/Factory.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletmain --type=WalletMain --outFile=./walletmain/wallet_main_module.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModule.sol/MainModule.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletupgradable --type=WalletUpgradable --outFile=./walletupgradable/wallet_main_module_upgradable.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleUpgradable.sol/MainModuleUpgradable.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./walletguest/wallet_guest_module.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/GuestModule.sol/GuestModule.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletUtils --outFile=./walletutils/wallet_utils.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/SequenceUtils.sol/SequenceUtils.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletRequireFreshSigner --outFile=./walletutils/wallet_require_fresh_signer.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/libs/RequireFreshSigner.sol/RequireFreshSigner.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletfactory --type=WalletFactory --outFile=./v1/walletfactory/wallet_factory.gen.go --artifactsFile=../artifacts/wallet-contracts/Factory.sol/Factory.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletmain --type=WalletMain --outFile=./v1/walletmain/wallet_main_module.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModule.sol/MainModule.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletupgradable --type=WalletUpgradable --outFile=./v1/walletupgradable/wallet_main_module_upgradable.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleUpgradable.sol/MainModuleUpgradable.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./v1/walletguest/wallet_guest_module.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/GuestModule.sol/GuestModule.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletUtils --outFile=./v1/walletutils/wallet_utils.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/SequenceUtils.sol/SequenceUtils.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletRequireFreshSigner --outFile=./v1/walletutils/wallet_require_fresh_signer.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/libs/RequireFreshSigner.sol/RequireFreshSigner.json
 
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployed=true
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./v1/walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployed=true
 
 //
 // sequence wallet-contracts v2
