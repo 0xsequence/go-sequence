@@ -14,6 +14,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
@@ -98,6 +99,51 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 
 	t.Run("v2", func(t *testing.T) {
 		wallet, err := testChain.V2DummySequenceWallet(1)
+		assert.NoError(t, err)
+
+		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+		clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+		assert.NoError(t, err)
+		testutil.SignAndSend(t, wallet, callmockContract.Address, clearData)
+
+		calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
+		assert.NoError(t, err)
+
+		txs := sequence.Transactions{
+			&sequence.Transaction{
+				To:   callmockContract.Address,
+				Data: calldata,
+			},
+		}
+
+		estimator := sequence.NewEstimator()
+		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+
+		assert.NoError(t, err)
+		assert.NotZero(t, estimated)
+		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+
+		signed, err := wallet.SignTransactions(context.Background(), txs)
+		assert.NoError(t, err)
+
+		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		assert.NoError(t, err)
+
+		receipt, err := wait(context.Background())
+		assert.NoError(t, err)
+
+		assert.LessOrEqual(t, receipt.GasUsed, estimated)
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
+
+		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+		assert.NoError(t, err)
+		assert.Len(t, ret, 1)
+		assert.Equal(t, "3", ret[0])
+	})
+
+	t.Run("v3", func(t *testing.T) {
+		wallet, err := testChain.V3DummySequenceWallet(1)
 		assert.NoError(t, err)
 
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
@@ -1411,6 +1457,55 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		}
 
 		wallet, err := testChain.V2DummySequenceWallet(1)
+		assert.NoError(t, err)
+
+		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+
+		clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
+		assert.NoError(t, err)
+		testutil.SignAndSend(t, wallet, callmockContract.Address, clearData)
+
+		calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
+		assert.NoError(t, err)
+
+		txs := sequence.Transactions{
+			&sequence.Transaction{
+				To:    callmockContract.Address,
+				Data:  calldata,
+				Nonce: testChain.RandomNonce(),
+			},
+		}
+
+		// run the estimator several times (results should be cached and reused so this loop should be pretty fast)
+		for i := 0; i < 100; i++ {
+			estimator := sequence.NewEstimator()
+			estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), walletConfig, wallet.GetWalletContext(), txs)
+
+			assert.NoError(t, err)
+			assert.NotZero(t, estimated)
+			assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		}
+	})
+
+	t.Run("v3", func(t *testing.T) {
+		wallets := []v3.WalletConfigTree{}
+
+		for i := 0; i < 80; i++ {
+			randomWallet, err := ethwallet.NewWalletFromRandomEntropy()
+			assert.NoError(t, err)
+
+			wallets = append(wallets, &v3.WalletConfigTreeAddressLeaf{
+				Weight:  1,
+				Address: randomWallet.Address(),
+			})
+		}
+
+		walletConfig := &v3.WalletConfig{
+			Threshold_: 2,
+			Tree:       v3.WalletConfigTreeNodes(wallets...),
+		}
+
+		wallet, err := testChain.v3DummySequenceWallet(1)
 		assert.NoError(t, err)
 
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
