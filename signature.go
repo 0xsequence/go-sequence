@@ -19,6 +19,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/eip6492"
 	"github.com/goware/logger"
 )
@@ -56,6 +57,10 @@ func V2DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfi
 	return GenericDecodeSignature[*v2.WalletConfig](sequenceSignature)
 }
 
+func V3DecodeSignature(sequenceSignature []byte) (core.Signature[*v3.WalletConfig], error) {
+	return GenericDecodeSignature[*v3.WalletConfig](sequenceSignature)
+}
+
 func DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
 	return V2DecodeSignature(sequenceSignature)
 }
@@ -86,6 +91,10 @@ func V1RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common
 
 func V2RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
 	return GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
+}
+
+func V3RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v3.WalletConfig, *big.Int, error) {
+	return GenericRecoverWalletConfigFromDigest[*v3.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
 }
 
 func RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
@@ -144,13 +153,22 @@ func V2IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig
 	return GenericIsValidSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
+func V3IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidSignature[*v3.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
 func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	isValid, err := V2IsValidSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
-	if err == nil {
+	isValid, err3 := V3IsValidSignature(walletAddress, digest, seqSig, walletContexts[3], chainID, provider)
+	if err3 == nil {
 		return isValid, nil
 	}
 
-	isValid, err2 := V1IsValidSignature(walletAddress, digest, seqSig, walletContexts[1], chainID, provider)
+	isValid, err2 := V2IsValidSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
+	if err2 == nil {
+		return isValid, nil
+	}
+
+	isValid, err := V1IsValidSignature(walletAddress, digest, seqSig, walletContexts[1], chainID, provider)
 	if err2 != nil {
 		return false, fmt.Errorf("failed to validate: %v, %v", err, err2)
 	}
@@ -252,7 +270,16 @@ func V2IsValidUndeployedSignature(walletAddress common.Address, digest common.Ha
 	return GenericIsValidUndeployedSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
+func V3IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidUndeployedSignature[*v3.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
 func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	isValid, err := V3IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+	if err == nil {
+		return isValid, nil
+	}
+
 	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 

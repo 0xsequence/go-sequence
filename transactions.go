@@ -360,6 +360,16 @@ var (
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
 	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+
+	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v3)
+	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
+	// TxExecuted(bytes32 indexed _tx, uint256 _index)
+	V3TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+
+	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v3)
+	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
+	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
+	V3TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
 )
 
 // EncodeNonce with space
