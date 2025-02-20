@@ -21,7 +21,7 @@ func main() {
 		// newSignatureCmd(),
 		// newPermissionCmd(),
 		// newSessionCmd(),
-		// newServerCmd(),
+		newServerCmd(),
 		newAddressCmd(),
 	)
 
