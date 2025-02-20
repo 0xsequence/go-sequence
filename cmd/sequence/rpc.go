@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -41,6 +42,13 @@ type AddressCalculateParams struct {
 	Factory      string `json:"factory"`
 	Module       string `json:"module"`
 	CreationCode string `json:"creationCode,omitempty"`
+}
+
+type ConfigNewParams struct {
+	Threshold  string `json:"threshold"`
+	Checkpoint string `json:"checkpoint"`
+	From       string `json:"from"`
+	Content    string `json:"content"`
 }
 
 func successResponse(id interface{}, result interface{}) JsonRpcSuccessResponse {
@@ -86,6 +94,34 @@ func handleAddressCalculate(params json.RawMessage) (interface{}, error) {
 	return address.Hex(), nil
 }
 
+func handleConfigNew(params json.RawMessage) (interface{}, error) {
+	var p ConfigNewParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	threshold, ok := new(big.Int).SetString(p.Threshold, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid threshold: %s", p.Threshold)
+	}
+
+	checkpoint, ok := new(big.Int).SetString(p.Checkpoint, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid checkpoint: %s", p.Checkpoint)
+	}
+
+	if p.From != "flat" {
+		return nil, fmt.Errorf("unsupported 'from' format: %s", p.From)
+	}
+
+	config, err := createConfig(uint16(threshold.Uint64()), uint32(checkpoint.Uint64()), []string{p.Content})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create config: %w", err)
+	}
+
+	return config, nil
+}
+
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
 	if !silent {
 		log.Printf("[%s] %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
@@ -123,6 +159,8 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 	switch req.Method {
 	case "address_calculate":
 		result, err = handleAddressCalculate(req.Params)
+	case "config_new":
+		result, err = handleConfigNew(req.Params)
 	default:
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32601, fmt.Sprintf("Method not found: %s", req.Method), nil))
 		return
@@ -133,12 +171,8 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		return
 	}
 
-	response := successResponse(req.ID, result)
-	if debug && !silent {
-		log.Printf("Response details: %+v", response)
-	}
-
-	json.NewEncoder(w).Encode(response)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(successResponse(req.ID, result))
 }
 
 func startRPCServer(host string, port int, debug bool, silent bool) error {
