@@ -169,7 +169,7 @@ func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, s
 	}
 
 	isValid, err := V1IsValidSignature(walletAddress, digest, seqSig, walletContexts[1], chainID, provider)
-	if err2 != nil {
+	if err != nil {
 		return false, fmt.Errorf("failed to validate: %v, %v", err, err2)
 	}
 
