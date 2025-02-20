@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 )
 
@@ -103,7 +104,6 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 
 	var signatures []SignatureElement
 	if p.Signatures != "" {
-		p.Signatures = strings.TrimPrefix(p.Signatures, "0x")
 		sigParts := strings.Split(p.Signatures, ":")
 		if len(sigParts) >= 2 {
 			sig := SignatureElement{
@@ -129,6 +129,9 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 						r := common.HexToHash(sig.Values[0]).Bytes()
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+						log.Printf("Eth sign: %+v", append(append(r, s...), v))
+
 						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
 					case "hash":
 						if len(sig.Values) != 3 {
@@ -137,15 +140,34 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 						r := common.HexToHash(sig.Values[0]).Bytes()
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+						log.Printf("Hash: %+v", append(append(r, s...), v))
+
 						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
 					case "erc1271":
 						if len(sig.Values) != 1 {
 							continue
 						}
+
+						log.Printf("Erc1271: %+v", sig.Values[0])
 						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+					case "sapient", "sapient_compact":
+						if len(sig.Values) != 1 {
+							continue
+						}
+
+						log.Printf("Sapient: %+v", sig.Values[0])
+
+						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+					default:
+						log.Printf("Unsupported signature type: %s", sig.Type)
+						continue
 					}
 				}
 			}
+
+			log.Printf("No signer found")
+
 			return 0, nil, core.ErrSigningNoSigner
 		})
 	} else {
@@ -160,6 +182,9 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 						r := common.HexToHash(sig.Values[0]).Bytes()
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+						log.Printf("Eth sign: %+v", append(append(r, s...), v))
+
 						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
 					case "hash":
 						if len(sig.Values) != 3 {
@@ -168,15 +193,35 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 						r := common.HexToHash(sig.Values[0]).Bytes()
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+						log.Printf("Hash: %+v", append(append(r, s...), v))
+
 						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
 					case "erc1271":
 						if len(sig.Values) != 1 {
 							continue
 						}
+
+						log.Printf("Erc1271: %+v", sig.Values[0])
+
 						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+					case "sapient", "sapient_compact":
+						if len(sig.Values) != 1 {
+							continue
+						}
+
+						log.Printf("Sapient: %+v", sig.Values[0])
+
+						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+					default:
+						log.Printf("Unsupported signature type: %s", sig.Type)
+						continue
 					}
 				}
 			}
+
+			log.Printf("No signer found")
+
 			return 0, nil, core.ErrSigningNoSigner
 		})
 	}
@@ -185,6 +230,8 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 		return nil, fmt.Errorf("failed to build signature: %w", err)
 	}
 
+	spew.Dump(signature)
+
 	data, err := signature.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode signature: %w", err)
@@ -192,7 +239,6 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 
 	return "0x" + common.Bytes2Hex(data), nil
 }
-
 func newSignatureCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "signature",
@@ -213,11 +259,19 @@ func newSignatureCmd() *cobra.Command {
 			if signatures == "" {
 				return fmt.Errorf("signatures are required")
 			}
-			inputJSON, err := json.Marshal(input)
-			if err != nil {
-				return fmt.Errorf("failed to marshal input: %w", err)
+
+			params := SignatureEncodeParams{
+				Input:      json.RawMessage(input),
+				Signatures: signatures,
+				ChainId:    chainId,
 			}
-			result, err := signatureEncode(inputJSON)
+
+			paramsJSON, err := json.Marshal(params)
+			if err != nil {
+				return fmt.Errorf("failed to marshal params: %w", err)
+			}
+
+			result, err := signatureEncode(paramsJSON)
 			if err != nil {
 				return err
 			}
@@ -229,7 +283,7 @@ func newSignatureCmd() *cobra.Command {
 
 	encodeCmd.Flags().StringVarP(&input, "input", "i", "", "Input config")
 	encodeCmd.Flags().StringVarP(&signatures, "signatures", "s", "", "Signatures")
-	encodeCmd.Flags().BoolVarP(&chainId, "chainId", "c", false, "Chain ID")
+	encodeCmd.Flags().BoolVarP(&chainId, "chainId", "c", true, "Chain ID")
 
 	cmd.AddCommand(encodeCmd)
 

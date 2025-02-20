@@ -1635,7 +1635,7 @@ func (l *signatureTreeSapientCompactLeaf) write(writer io.Writer) error {
 
 type WalletConfig struct {
 	Threshold_ uint16 `json:"threshold" toml:"threshold"`
-	// contract code is uint64
+	// WARNING: contract code is uint64
 	Checkpoint_ uint64           `json:"checkpoint" toml:"checkpoint"`
 	Tree        WalletConfigTree `json:"tree" toml:"tree"`
 }
