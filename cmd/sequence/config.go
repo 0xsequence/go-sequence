@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -211,7 +212,7 @@ func parseElement(element string) (ConfigElement, error) {
 	}
 }
 
-func createConfig(threshold uint16, checkpoint uint32, elements []string) (*v3.WalletConfig, error) {
+func createConfig(threshold uint16, checkpoint uint64, elements []string) (*v3.WalletConfig, error) {
 	log.Printf("Creating config with threshold: %d, checkpoint: %d, elements: %v", threshold, checkpoint, elements)
 
 	var configElements []ConfigElement
@@ -247,7 +248,7 @@ func newConfigCmd() *cobra.Command {
 	}
 
 	var threshold uint16
-	var checkpoint uint32
+	var checkpoint uint64
 
 	newCmd := &cobra.Command{
 		Use:   "new [elements...]",
@@ -269,9 +270,11 @@ func newConfigCmd() *cobra.Command {
 	}
 
 	newCmd.Flags().Uint16VarP(&threshold, "threshold", "t", 1, "Threshold value for the configuration")
-	newCmd.Flags().Uint32VarP(&checkpoint, "checkpoint", "c", 0, "Checkpoint value for the configuration")
+	newCmd.Flags().Uint64VarP(&checkpoint, "checkpoint", "c", 0, "Checkpoint value for the configuration")
 
 	cmd.AddCommand(newCmd)
+
+	log.SetOutput(os.Stderr)
 
 	return cmd
 }

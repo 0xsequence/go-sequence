@@ -112,7 +112,7 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("invalid checkpoint: %s", p.Checkpoint)
 	}
-	if !checkpoint.IsUint64() || checkpoint.Uint64() > uint64(^uint32(0)) {
+	if !checkpoint.IsUint64() {
 		return nil, fmt.Errorf("checkpoint too large: %s", p.Checkpoint)
 	}
 
@@ -121,12 +121,20 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 	}
 
 	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", p.Threshold, p.Checkpoint, p.Content)
-	config, err := createConfig(uint16(threshold.Uint64()), uint32(checkpoint.Uint64()), []string{p.Content})
+	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), []string{p.Content})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config: %w", err)
 	}
 
-	return config, nil
+	// Encode the config as JSON
+	jsonConfig, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	log.Printf("Created config: %s", string(jsonConfig))
+
+	return string(jsonConfig), nil
 }
 
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
