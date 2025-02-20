@@ -9,12 +9,12 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
-	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
 
 type ConfigElement interface {
-	ToTree() v2.WalletConfigTree
+	ToTree() v3.WalletConfigTree
 }
 
 type SignerElement struct {
@@ -22,8 +22,8 @@ type SignerElement struct {
 	Weight  uint8
 }
 
-func (s *SignerElement) ToTree() v2.WalletConfigTree {
-	return &v2.WalletConfigTreeAddressLeaf{
+func (s *SignerElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeAddressLeaf{
 		Weight:  s.Weight,
 		Address: s.Address,
 	}
@@ -33,8 +33,8 @@ type SubdigestElement struct {
 	Digest core.Subdigest
 }
 
-func (s *SubdigestElement) ToTree() v2.WalletConfigTree {
-	return &v2.WalletConfigTreeSubdigestLeaf{
+func (s *SubdigestElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeSubdigestLeaf{
 		Subdigest: s.Digest,
 	}
 }
@@ -45,15 +45,15 @@ type NestedElement struct {
 	Elements  []ConfigElement
 }
 
-func (n *NestedElement) ToTree() v2.WalletConfigTree {
-	var trees []v2.WalletConfigTree
+func (n *NestedElement) ToTree() v3.WalletConfigTree {
+	var trees []v3.WalletConfigTree
 	for _, element := range n.Elements {
 		trees = append(trees, element.ToTree())
 	}
-	return &v2.WalletConfigTreeNestedLeaf{
+	return &v3.WalletConfigTreeNestedLeaf{
 		Weight:    n.Weight,
 		Threshold: n.Threshold,
-		Tree:      v2.WalletConfigTreeNodes(trees...),
+		Tree:      v3.WalletConfigTreeNodes(trees...),
 	}
 }
 
@@ -61,8 +61,8 @@ type NodeElement struct {
 	Hash core.ImageHash
 }
 
-func (n *NodeElement) ToTree() v2.WalletConfigTree {
-	return &v2.WalletConfigTreeNodeLeaf{
+func (n *NodeElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeNodeLeaf{
 		Node: n.Hash,
 	}
 }
@@ -77,9 +77,7 @@ func parseNestedElement(element string) (*NestedElement, error) {
 	}
 
 	header := strings.TrimSpace(element[:headerEnd])
-	if strings.HasSuffix(header, ":") {
-		header = header[:len(header)-1]
-	}
+	header = strings.TrimSuffix(header, ":")
 	log.Printf("Header: %q", header)
 
 	parts := strings.Split(header, ":")
@@ -213,7 +211,7 @@ func parseElement(element string) (ConfigElement, error) {
 	}
 }
 
-func createConfig(threshold uint16, checkpoint uint32, elements []string) (*v2.WalletConfig, error) {
+func createConfig(threshold uint16, checkpoint uint32, elements []string) (*v3.WalletConfig, error) {
 	log.Printf("Creating config with elements: %v", elements)
 
 	var configElements []ConfigElement
@@ -228,15 +226,15 @@ func createConfig(threshold uint16, checkpoint uint32, elements []string) (*v2.W
 		configElements = append(configElements, configElement)
 	}
 
-	var trees []v2.WalletConfigTree
+	var trees []v3.WalletConfigTree
 	for _, element := range configElements {
 		trees = append(trees, element.ToTree())
 	}
 
-	config := &v2.WalletConfig{
+	config := &v3.WalletConfig{
 		Threshold_:  threshold,
 		Checkpoint_: checkpoint,
-		Tree:        v2.WalletConfigTreeNodes(trees...),
+		Tree:        v3.WalletConfigTreeNodes(trees...),
 	}
 
 	return config, nil
