@@ -156,14 +156,12 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 		from: {Code: gasEstimatorCode},
 	}
 
-	if overrides != nil {
-		for key, value := range overrides {
-			if key == from {
-				return nil, fmt.Errorf("can't override address from")
-			}
-
-			finalOverrides[key] = value
+	for key, value := range overrides {
+		if key == from {
+			return nil, fmt.Errorf("can't override address from")
 		}
+
+		finalOverrides[key] = value
 	}
 
 	estimator := ethcontract.NewContractCaller(from, contracts.GasEstimator.ABI, provider)
@@ -290,10 +288,10 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 }
 
 func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletConfig, isEoa map[common.Address]bool) (map[common.Address]bool, error) {
-	type SortedSigner struct {
-		s *v1.WalletConfigSigner
-		i int
-	}
+	// type SortedSigner struct {
+	// 	s *v1.WalletConfigSigner
+	// 	i int
+	// }
 
 	// Create a copy of the signers array
 	// this will be sorted and used to pick the worst case scenario for the signers
@@ -539,7 +537,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			execData, err = contracts.V3.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			execData, err = contracts.V3.Stage1Module.Encode("execute", encTxs, nonce, signature)
 			if err != nil {
 				return 0, err
 			}

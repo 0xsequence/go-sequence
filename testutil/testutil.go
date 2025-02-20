@@ -390,30 +390,30 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletMainModule.ABI, contracts.V3.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress)
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage1Module.ABI, contracts.V3.Stage1Module.Bin, 0, nil, 7000000, walletFactoryAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V3.WalletMainModuleUpgradable.ABI, contracts.V3.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
+	stage2ModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage2Module.ABI, contracts.V3.Stage2Module.Bin, 0, nil, 7000000, walletFactoryAddress, stage1ModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 7000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage1Module.ABI, contracts.V3.Stage1Module.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contracts.V2.WalletUtils.ABI, contracts.V2.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contracts.V3.WalletGasEstimator.ABI, contracts.V3.WalletGasEstimator.Bin, 0, nil, 7000000, walletFactoryAddress, stage1ModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
 	return sequence.WalletContext{
 		FactoryAddress:              walletFactoryAddress,
-		MainModuleAddress:           mainModuleAddress,
-		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
+		MainModuleAddress:           stage1ModuleAddress,
+		MainModuleUpgradableAddress: stage2ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
 	}, nil
