@@ -11,6 +11,6 @@
     "generate": "go generate ./gen"
   },
   "devDependencies": {
-    "@openzeppelin/contracts": "4.3.3"
+    "@openzeppelin/contracts": "5.2.0"
   }
 }

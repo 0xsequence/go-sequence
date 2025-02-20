@@ -237,7 +237,7 @@
         },
         {
           "internalType": "bool",
-          "name": "_approved",
+          "name": "approved",
           "type": "bool"
         }
       ],
@@ -301,7 +301,7 @@
       "outputs": [
         {
           "internalType": "uint256",
-          "name": "tokenId",
+          "name": "",
           "type": "uint256"
         }
       ],
