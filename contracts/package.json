@@ -4,8 +4,8 @@
   "private": true,
   "license": "none",
   "scripts": {
-    "gen": "yarn artifacts",
-    "artifacts": "yarn artifacts-copy:erc20 && yarn artifacts-copy:erc721 && yarn generate",
+    "gen": "pnpm artifacts",
+    "artifacts": "pnpm artifacts-copy:erc20 && pnpm artifacts-copy:erc721 && pnpm generate",
     "artifacts-copy:erc20": "rm -rf ./artifacts/erc20 && mkdir ./artifacts/erc20 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC20*.json ./artifacts/erc20",
     "artifacts-copy:erc721": "rm -rf ./artifacts/erc721 && mkdir ./artifacts/erc721 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC721*.json ./artifacts/erc721",
     "generate": "go generate ./gen"
