@@ -4,7 +4,7 @@ all:
 	@echo "See Makefile contents for details."
 
 bootstrap:
-	cd ./testutil/chain && yarn install
+	cd ./testutil/chain && pnpm install
 
 build:
 	go build ./...
@@ -15,19 +15,19 @@ go-test:
 	go clean -testcache && go test $(TEST_FLAGS) -run=$(TEST) ./...
 
 test-concurrently:
-	cd ./testutil/chain && yarn test
+	cd ./testutil/chain && pnpm test
 
 start-testchain:
-	cd ./testutil/chain && yarn start:geth
+	cd ./testutil/chain && pnpm start:geth
 
 start-testchain-verbose:
-	cd ./testutil/chain && yarn start:geth:verbose
+	cd ./testutil/chain && pnpm start:geth:verbose
 
 start-testchain-anvil:
-	cd ./testutil/chain && yarn start:anvil
+	cd ./testutil/chain && pnpm start:anvil
 
 start-testchain-anvil-verbose:
-	cd ./testutil/chain && yarn start:anvil:verbose
+	cd ./testutil/chain && pnpm start:anvil:verbose
 
 clean:
 	@go clean -testcache
@@ -37,4 +37,4 @@ check-testchain-running:
 	|| { echo "*****"; echo "Oops! testchain is not running. Please run 'make start-testchain' in another terminal or use 'test-concurrently'."; echo "*****"; exit 1; }
 
 wait-on-chain:
-	cd ./testutil/chain && yarn wait:server
+	cd ./testutil/chain && pnpm wait:server
