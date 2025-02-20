@@ -505,7 +505,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	}
 
 	var chainID *big.Int
-	if optChainID != nil && len(optChainID) > 0 {
+	if len(optChainID) > 0 {
 		chainID = optChainID[0]
 	} else {
 		chainID = w.chainID

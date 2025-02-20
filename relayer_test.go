@@ -168,6 +168,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 			RevertOnError: false,
 		}
 		err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+		assert.NoError(t, err)
 	}
 
 	// Get transactions digest

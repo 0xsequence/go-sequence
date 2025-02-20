@@ -16,7 +16,7 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-var zeroAddress = common.Address{}
+// var zeroAddress = common.Address{}
 
 func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if sender.GetProvider() == nil {
@@ -41,6 +41,9 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 		// or fix it with a contract patch
 		GasLimit: 131072,
 	})
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 
 	signedDeployTx, err := sender.SignTx(deployTx, chainID)
 	if err != nil {
@@ -48,6 +51,9 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 	}
 
 	tx, waitReceipt, err := sender.SendTransaction(context.Background(), signedDeployTx)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 
 	return walletAddress, tx, waitReceipt, nil
 }

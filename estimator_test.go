@@ -43,6 +43,7 @@ func TestEstimateSimpleTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, waitReceipt, err := wallet.SendTransaction(context.Background(), stx)
+	assert.NoError(t, err)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
@@ -202,6 +203,8 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
 		wallet2, err := testChain.V1DummySequenceWallet(1)
+		assert.NoError(t, err)
+
 		clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
 		assert.NoError(t, err)
 		testutil.SignAndSend(t, wallet2, callmockContract.Address, clearData)
@@ -221,6 +224,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+		assert.NoError(t, err)
 
 		err = testChain.DeploySequenceWallet(wallet)
 		assert.NoError(t, err)
@@ -263,6 +267,8 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
 		wallet2, err := testChain.V2DummySequenceWallet(1)
+		assert.NoError(t, err)
+
 		clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
 		assert.NoError(t, err)
 		testutil.SignAndSend(t, wallet2, callmockContract.Address, clearData)
@@ -282,6 +288,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+		assert.NoError(t, err)
 
 		err = testChain.DeploySequenceWallet(wallet)
 		assert.NoError(t, err)
@@ -324,6 +331,8 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 
 		wallet2, err := testChain.V3DummySequenceWallet(1)
+		assert.NoError(t, err)
+
 		clearData, err := callmockContract.Encode("testCall", big.NewInt(0), ethcoder.MustHexDecode("0x"))
 		assert.NoError(t, err)
 		testutil.SignAndSend(t, wallet2, callmockContract.Address, clearData)
@@ -343,6 +352,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), txs)
+		assert.NoError(t, err)
 
 		err = testChain.DeploySequenceWallet(wallet)
 		assert.NoError(t, err)

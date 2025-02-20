@@ -918,7 +918,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		encodedTxns, err := guestBundle.EncodedTransactions()
 		assert.NoError(t, err)
 
-		execdata, err := contracts.V3.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+		execdata, err := contracts.V3.Stage1Module.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 		assert.NoError(t, err)
 
 		metaTxnID, _, err := sequence.ComputeMetaTxnID(
