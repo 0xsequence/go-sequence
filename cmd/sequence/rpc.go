@@ -104,16 +104,23 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("invalid threshold: %s", p.Threshold)
 	}
+	if !threshold.IsUint64() || threshold.Uint64() > uint64(^uint16(0)) {
+		return nil, fmt.Errorf("threshold too large: %s", p.Threshold)
+	}
 
 	checkpoint, ok := new(big.Int).SetString(p.Checkpoint, 10)
 	if !ok {
 		return nil, fmt.Errorf("invalid checkpoint: %s", p.Checkpoint)
+	}
+	if !checkpoint.IsUint64() || checkpoint.Uint64() > uint64(^uint32(0)) {
+		return nil, fmt.Errorf("checkpoint too large: %s", p.Checkpoint)
 	}
 
 	if p.From != "flat" {
 		return nil, fmt.Errorf("unsupported 'from' format: %s", p.From)
 	}
 
+	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", p.Threshold, p.Checkpoint, p.Content)
 	config, err := createConfig(uint16(threshold.Uint64()), uint32(checkpoint.Uint64()), []string{p.Content})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config: %w", err)
