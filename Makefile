@@ -20,6 +20,12 @@ start-testchain:
 start-testchain-verbose:
 	cd ./testutil/chain && yarn start:geth:verbose
 
+start-testchain-anvil:
+	cd ./testutil/chain && yarn start:anvil
+
+start-testchain-anvil-verbose:
+	cd ./testutil/chain && yarn start:anvil:verbose
+
 clean:
 	@go clean -testcache
 
