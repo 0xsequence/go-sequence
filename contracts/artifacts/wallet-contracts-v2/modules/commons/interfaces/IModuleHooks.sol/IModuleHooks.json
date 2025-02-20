@@ -26,6 +26,25 @@
       "type": "error"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes4",
+          "name": "_signature",
+          "type": "bytes4"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "_implementation",
+          "type": "address"
+        }
+      ],
+      "name": "DefinedHook",
+      "type": "event"
+    },
+    {
       "inputs": [
         {
           "internalType": "bytes4",
