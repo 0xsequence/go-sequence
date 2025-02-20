@@ -16,14 +16,13 @@ func main() {
 
 	rootCmd.AddCommand(
 		// newPayloadCmd(),
-		// newConfigCmd(),
+		newConfigCmd(),
 		// newDevToolsCmd(),
-		// newSignatureCmd(),
+		newSignatureCmd(),
 		// newPermissionCmd(),
 		// newSessionCmd(),
 		newServerCmd(),
 		newAddressCmd(),
-		newConfigCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
