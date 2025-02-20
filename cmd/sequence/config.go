@@ -212,7 +212,7 @@ func parseElement(element string) (ConfigElement, error) {
 }
 
 func createConfig(threshold uint16, checkpoint uint32, elements []string) (*v3.WalletConfig, error) {
-	log.Printf("Creating config with elements: %v", elements)
+	log.Printf("Creating config with threshold: %d, checkpoint: %d, elements: %v", threshold, checkpoint, elements)
 
 	var configElements []ConfigElement
 	for _, element := range elements {
