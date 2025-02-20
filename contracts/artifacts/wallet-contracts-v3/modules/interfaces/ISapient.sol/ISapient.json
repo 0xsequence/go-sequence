@@ -1,0 +1,119 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ISapient",
+  "sourceName": "src/modules/interfaces/ISapient.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "kind",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "noChainId",
+              "type": "bool"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "to",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "data",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "gasLimit",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "delegateCall",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "onlyFallback",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "behaviorOnError",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct Payload.Call[]",
+              "name": "calls",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "space",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "message",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "imageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "digest",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[]",
+              "name": "parentWallets",
+              "type": "address[]"
+            }
+          ],
+          "internalType": "struct Payload.Decoded",
+          "name": "_payload",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "isValidSapientSignature",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
