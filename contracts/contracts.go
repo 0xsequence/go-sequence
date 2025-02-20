@@ -10,28 +10,21 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
+	walletfactory1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
+	walletgasestimator1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
+	walletguest1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletguest"
+	walletmain1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletmain"
+	walletupgradable1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletupgradable"
+	walletutils1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletutils"
 	walletfactory2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletfactory"
 	walletgasestimator2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletgasestimator"
 	walletguest2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletguest"
 	walletmain2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletmain"
 	walletupgradable2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletupgradable"
 	walletutils2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletutils"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletfactory"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletguest"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletmain"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletupgradable"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletutils"
 )
 
 var (
-	WalletFactory,
-	WalletMainModule,
-	WalletMainModuleUpgradable,
-	WalletGuestModule,
-	WalletUtils,
-	WalletRequireFreshSigner,
-	WalletGasEstimator,
 	GasEstimator,
 	IERC1271,
 	ERC20Mock,
@@ -48,6 +41,16 @@ var (
 	_ ethartifact.Artifact
 )
 
+var V1 struct {
+	WalletFactory              ethartifact.Artifact
+	WalletMainModule           ethartifact.Artifact
+	WalletMainModuleUpgradable ethartifact.Artifact
+	WalletGuestModule          ethartifact.Artifact
+	WalletUtils                ethartifact.Artifact
+	WalletRequireFreshSigner   ethartifact.Artifact
+	WalletGasEstimator         ethartifact.Artifact
+}
+
 var V2 struct {
 	WalletFactory              ethartifact.Artifact
 	WalletMainModule           ethartifact.Artifact
@@ -63,13 +66,13 @@ var (
 )
 
 func init() {
-	WalletFactory = artifact("WALLET_FACTORY", walletfactory.WalletFactoryABI, walletfactory.WalletFactoryBin)
-	WalletMainModule = artifact("WALLET_MAIN", walletmain.WalletMainABI, walletmain.WalletMainBin)
-	WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable.WalletUpgradableABI, walletupgradable.WalletUpgradableBin)
-	WalletGuestModule = artifact("WALLET_GUEST", walletguest.WalletGuestABI, walletguest.WalletGuestBin)
-	WalletUtils = artifact("WALLET_UTILS", walletutils.WalletUtilsABI, walletutils.WalletUtilsBin)
-	WalletRequireFreshSigner = artifact("WALLET_REQUIRE_FRESH_SIGNER", walletutils.WalletRequireFreshSignerABI, walletutils.WalletRequireFreshSignerBin)
-	WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator.WalletGasEstimatorABI, walletgasestimator.WalletGasEstimatorBin, walletgasestimator.WalletGasEstimatorDeployedBin)
+	V1.WalletFactory = artifact("WALLET_FACTORY", walletfactory1.WalletFactoryABI, walletfactory1.WalletFactoryBin)
+	V1.WalletMainModule = artifact("WALLET_MAIN", walletmain1.WalletMainABI, walletmain1.WalletMainBin)
+	V1.WalletMainModuleUpgradable = artifact("WALLET_UPGRADABLE", walletupgradable1.WalletUpgradableABI, walletupgradable1.WalletUpgradableBin)
+	V1.WalletGuestModule = artifact("WALLET_GUEST", walletguest1.WalletGuestABI, walletguest1.WalletGuestBin)
+	V1.WalletUtils = artifact("WALLET_UTILS", walletutils1.WalletUtilsABI, walletutils1.WalletUtilsBin)
+	V1.WalletRequireFreshSigner = artifact("WALLET_REQUIRE_FRESH_SIGNER", walletutils1.WalletRequireFreshSignerABI, walletutils1.WalletRequireFreshSignerBin)
+	V1.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator1.WalletGasEstimatorABI, walletgasestimator1.WalletGasEstimatorBin, walletgasestimator1.WalletGasEstimatorDeployedBin)
 
 	V2.WalletFactory = artifact("WALLET_FACTORY", walletfactory2.WalletFactoryABI, walletfactory2.WalletFactoryBin)
 	V2.WalletMainModule = artifact("WALLET_MAIN", walletmain2.WalletMainABI, walletmain2.WalletMainBin)

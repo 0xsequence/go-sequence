@@ -36,7 +36,7 @@ func TestDeployer(t *testing.T) {
 	testSequenceContext := testutil.V1SequenceContext()
 
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
-	walletFactoryAddress, err := ud.Deploy(context.Background(), contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil, 1000000)
+	walletFactoryAddress, err := ud.Deploy(context.Background(), contracts.V1.WalletFactory.ABI, contracts.V1.WalletFactory.Bin, 0, nil, 1000000)
 	assert.NoError(t, err)
 	assert.Equal(t, testSequenceContext.FactoryAddress, walletFactoryAddress)
 }

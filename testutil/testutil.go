@@ -296,27 +296,27 @@ func (c *TestChain) V1DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.WalletFactory.ABI, contracts.WalletFactory.Bin, 0, nil, 7000000)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V1.WalletFactory.ABI, contracts.V1.WalletFactory.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contracts.WalletMainModule.ABI, contracts.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress)
+	mainModuleAddress, err := ud.Deploy(ctx, contracts.V1.WalletMainModule.ABI, contracts.V1.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.WalletMainModuleUpgradable.ABI, contracts.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V1.WalletMainModuleUpgradable.ABI, contracts.V1.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.WalletGuestModule.ABI, contracts.WalletGuestModule.Bin, 0, nil, 7000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V1.WalletGuestModule.ABI, contracts.V1.WalletGuestModule.Bin, 0, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contracts.WalletUtils.ABI, contracts.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contracts.V1.WalletUtils.ABI, contracts.V1.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V1DeploySequenceContext: %w", err)
 	}
