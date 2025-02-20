@@ -5,6 +5,11 @@
   "abi": [
     {
       "inputs": [],
+      "name": "EmptySignature",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "ImageHashIsZero",
       "type": "error"
     },

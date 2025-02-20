@@ -11,6 +11,17 @@
           "type": "bytes"
         }
       ],
+      "name": "CreateFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "_code",
+          "type": "bytes"
+        }
+      ],
       "name": "createContract",
       "outputs": [
         {

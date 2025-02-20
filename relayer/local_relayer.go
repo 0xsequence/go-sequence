@@ -177,7 +177,9 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				return "", nil, nil, err
 			}
 
-			execdata, err = contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+			// TODO: v1 ...? what about others..? I guess since its just for testing locally,
+			// we can just use v1. But I'd suggest we use v3 format once its ready.
+			execdata, err = contracts.V1.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 			if err != nil {
 				return "", nil, nil, err
 			}

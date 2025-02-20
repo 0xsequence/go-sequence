@@ -318,7 +318,7 @@ func EIP6492SignatureWithMultipleDeployments(signature []byte, configs []core.Wa
 		return nil, err
 	}
 
-	execdata, err := contracts.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+	execdata, err := contracts.V2.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 	if err != nil {
 		return nil, err
 	}

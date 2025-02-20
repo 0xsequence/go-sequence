@@ -59,7 +59,7 @@ func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext Wallet
 	}
 
 	if _, ok := walletConfig.(*v1.WalletConfig); ok {
-		deployData, err := contracts.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		deployData, err := contracts.V1.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
 		if err != nil {
 			return common.Address{}, common.Address{}, nil, err
 		}

@@ -5,20 +5,12 @@
   "license": "none",
   "scripts": {
     "gen": "yarn artifacts",
-    "artifacts": "mkdir -p ./artifacts/wallet-contracts-v2 && yarn artifacts-copy:wallet-contracts && yarn artifacts-copy:erc20 && yarn artifacts-copy:erc721 && yarn artifacts-copy:erc1155 && yarn artifacts-copy:erc20-meta-token && yarn artifacts-copy:niftyswap && yarn generate",
-    "artifacts-copy:wallet-contracts": "rm -rf ./artifacts/wallet-contracts-v2/* && cp -r ./node_modules/@0xsequence/wallet-contracts/artifacts/contracts/* ./artifacts/wallet-contracts-v2",
+    "artifacts": "yarn artifacts-copy:erc20 && yarn artifacts-copy:erc721 && yarn generate",
     "artifacts-copy:erc20": "rm -rf ./artifacts/erc20 && mkdir ./artifacts/erc20 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC20*.json ./artifacts/erc20",
     "artifacts-copy:erc721": "rm -rf ./artifacts/erc721 && mkdir ./artifacts/erc721 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC721*.json ./artifacts/erc721",
-    "artifacts-copy:erc1155": "rm -rf ./artifacts/erc1155 && cp -r ./node_modules/@0xsequence/erc-1155/artifacts/contracts ./artifacts/erc1155",
-    "artifacts-copy:erc20-meta-token": "rm -rf ./artifacts/erc20-meta-token && cp -r ./node_modules/@0xsequence/erc20-meta-token/artifacts/contracts ./artifacts/erc20-meta-token",
-    "artifacts-copy:niftyswap": "rm -rf ./artifacts/niftyswap && cp -r ./node_modules/@0xsequence/niftyswap/artifacts/contracts ./artifacts/niftyswap",
     "generate": "go generate ./gen"
   },
   "devDependencies": {
-    "@0xsequence/erc-1155": "^3.0.4",
-    "@0xsequence/erc20-meta-token": "^3.0.5",
-    "@0xsequence/niftyswap": "^4.2.0",
-    "@0xsequence/wallet-contracts": "1.9.6",
-    "@openzeppelin/contracts": "4.3.3"
+    "@openzeppelin/contracts": "5.2.0"
   }
 }

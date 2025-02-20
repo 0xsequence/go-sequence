@@ -161,9 +161,9 @@ func (t *Transaction) Execdata() ([]byte, error) {
 	}
 
 	if t.Signature != nil {
-		return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
+		return contracts.V1.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 	} else {
-		return contracts.WalletMainModule.Encode("selfExecute", encodedTxns)
+		return contracts.V1.WalletMainModule.Encode("selfExecute", encodedTxns)
 	}
 }
 
@@ -338,7 +338,7 @@ func (t *SignedTransactions) Execdata() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return contracts.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
+	return contracts.V1.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 }
 
 // Transaction events as defined in wallet-contracts IModuleCalls.sol
@@ -432,7 +432,7 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig core.WalletConfig, w
 		space = big.NewInt(0)
 	}
 
-	contract := ethcontract.NewContractCaller(walletAddress, contracts.WalletMainModule.ABI, provider)
+	contract := ethcontract.NewContractCaller(walletAddress, contracts.V1.WalletMainModule.ABI, provider)
 
 	var nonceResult *big.Int
 	results := []interface{}{&nonceResult}
@@ -474,8 +474,8 @@ func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
 	var signature []byte
 	var err error
 
-	executeMethod := contracts.WalletMainModule.ABI.Methods["execute"]
-	selfExecuteMethod := contracts.WalletMainModule.ABI.Methods["selfExecute"]
+	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
 
 	if bytes.Equal(data[:4], executeMethod.ID) {
 		var values []interface{}

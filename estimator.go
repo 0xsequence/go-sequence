@@ -17,7 +17,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/contracts/gen/walletgasestimator"
+	"github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -73,7 +73,7 @@ var defaultEstimator = &Estimator{
 }
 
 var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
-var walletGasEstimatorCode = hexutil.Encode(contracts.WalletGasEstimator.DeployedBin)
+var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
@@ -491,7 +491,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 		var execData []byte
 		if _, ok := walletConfig.(*v1.WalletConfig); ok {
-			execData, err = contracts.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			execData, err = contracts.V1.WalletMainModule.Encode("execute", encTxs, nonce, signature)
 			if err != nil {
 				return 0, err
 			}
@@ -531,7 +531,7 @@ func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		return nil, err
 	}
 
-	callData, err := contracts.WalletGasEstimator.Encode("simulateExecute", encoded)
+	callData, err := contracts.V1.WalletGasEstimator.Encode("simulateExecute", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -570,7 +570,7 @@ func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	}
 
 	var results []SimulateResult
-	err = contracts.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	err = contracts.V1.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
 	if err != nil {
 		return nil, err
 	}

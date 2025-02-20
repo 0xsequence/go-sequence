@@ -522,7 +522,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		encodedTxns, err := bundle.EncodedTransactions()
 		assert.NoError(t, err)
 
-		execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+		execdata, err := contracts.V1.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 		assert.NoError(t, err)
 
 		metaTxnID, _, err := sequence.ComputeMetaTxnID(
@@ -682,7 +682,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		encodedTxns, err := guestBundle.EncodedTransactions()
 		assert.NoError(t, err)
 
-		execdata, err := contracts.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+		execdata, err := contracts.V1.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 		assert.NoError(t, err)
 
 		metaTxnID, _, err := sequence.ComputeMetaTxnID(
