@@ -9,6 +9,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +50,10 @@ type ConfigNewParams struct {
 	Checkpoint string `json:"checkpoint"`
 	From       string `json:"from"`
 	Content    string `json:"content"`
+}
+
+type ConfigImageHashParams struct {
+	Input json.RawMessage `json:"input"`
 }
 
 func successResponse(id interface{}, result interface{}) JsonRpcSuccessResponse {
@@ -137,6 +142,27 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 	return string(jsonConfig), nil
 }
 
+func handleConfigImageHash(params json.RawMessage) (interface{}, error) {
+	var p ConfigImageHashParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	var rawConfig map[string]interface{}
+	if err := json.Unmarshal(p.Input, &rawConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse raw config: %w", err)
+	}
+
+	config, err := v3.Core.DecodeWalletConfig(rawConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode wallet config: %w", err)
+	}
+
+	imageHash := config.ImageHash()
+
+	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
+}
+
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
 	if !silent {
 		log.Printf("[%s] %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
@@ -176,6 +202,8 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleAddressCalculate(req.Params)
 	case "config_new":
 		result, err = handleConfigNew(req.Params)
+	case "config_imageHash":
+		result, err = handleConfigImageHash(req.Params)
 	default:
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32601, fmt.Sprintf("Method not found: %s", req.Method), nil))
 		return
