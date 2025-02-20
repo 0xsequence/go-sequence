@@ -131,7 +131,6 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 		return nil, fmt.Errorf("failed to create config: %w", err)
 	}
 
-	// Encode the config as JSON
 	jsonConfig, err := json.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config: %w", err)
@@ -161,6 +160,15 @@ func handleConfigImageHash(params json.RawMessage) (interface{}, error) {
 	imageHash := config.ImageHash()
 
 	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
+}
+
+func handleSignatureEncode(params json.RawMessage) (interface{}, error) {
+	var p SignatureEncodeParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return signatureEncode(params)
 }
 
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
@@ -204,6 +212,8 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleConfigNew(req.Params)
 	case "config_imageHash":
 		result, err = handleConfigImageHash(req.Params)
+	case "signature_encode":
+		result, err = handleSignatureEncode(req.Params)
 	default:
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32601, fmt.Sprintf("Method not found: %s", req.Method), nil))
 		return
@@ -251,7 +261,7 @@ func newServerCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Hostname to listen on")
-	cmd.Flags().IntVar(&port, "port", 9999, "Port to listen on")
+	cmd.Flags().IntVar(&port, "port", 9998, "Port to listen on")
 	cmd.Flags().BoolVar(&debug, "debug", false, "Enable debug logging")
 	cmd.Flags().BoolVar(&silent, "silent", false, "Disable all logging output")
 
