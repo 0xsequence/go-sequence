@@ -25,6 +25,13 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=gasestimator --type=GasEstimator --outFile=./gasestimator/gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/modules/utils/GasEstimator.sol/GasEstimator.json --includeDeployed=true
 
 //
+// sequence wallet-contracts v3
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletfactory --type=WalletFactory --outFile=./v3/walletfactory/wallet_factory.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Factory.sol/Factory.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletupgradable --type=WalletUpgradable --outFile=./v3/stage1_module.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage1Module.sol/Stage1Module.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletupgradable --type=WalletUpgradable --outFile=./v3/stage2_module.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
+
+//
 // tokens
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=tokens --type=IERC20 --outFile=./tokens/ierc20.gen.go --artifactsFile=../artifacts/erc20/IERC20.json
