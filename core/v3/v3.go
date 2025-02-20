@@ -88,7 +88,7 @@ func (v3Core) DecodeSignature(data []byte) (core.Signature[*WalletConfig], error
 	sig := &Signature{
 		NoChainId:        noChainId,
 		Threshold:        uint16(threshold),
-		Checkpoint:       uint32(checkpoint),
+		Checkpoint:       checkpoint,
 		Tree:             tree,
 		Checkpointer:     checkpointer,
 		CheckpointerData: checkpointerData,
@@ -119,7 +119,7 @@ func (v3Core) DecodeWalletConfig(object any) (*WalletConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf(`missing required "checkpoint" property`)
 	}
-	checkpoint_, err := toUint32(checkpoint)
+	checkpoint_, err := toUint64(checkpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert checkpoint: %w", err)
 	}
@@ -143,7 +143,7 @@ func (v3Core) DecodeWalletConfig(object any) (*WalletConfig, error) {
 type Signature struct {
 	NoChainId        bool
 	Threshold        uint16
-	Checkpoint       uint32
+	Checkpoint       uint64
 	Tree             signatureTree
 	Checkpointer     common.Address
 	CheckpointerData []byte
@@ -158,6 +158,10 @@ func (s *RegularSignature) Threshold() uint16 {
 }
 
 func (s *RegularSignature) Checkpoint() uint32 {
+	return uint32(s.Signature.Checkpoint)
+}
+
+func (s *RegularSignature) CheckpointV3() uint64 {
 	return s.Signature.Checkpoint
 }
 
@@ -187,7 +191,7 @@ func (s *RegularSignature) RecoverSubdigest(ctx context.Context, subdigest core.
 
 	return &WalletConfig{
 		Threshold_:  s.Threshold(),
-		Checkpoint_: s.Checkpoint(),
+		Checkpoint_: s.Signature.Checkpoint,
 		Tree:        tree,
 	}, weight, nil
 }
@@ -202,7 +206,7 @@ func (s *RegularSignature) Join(subdigest core.Subdigest, other core.Signature[*
 		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.Threshold(), other_.Threshold())
 	}
 
-	if s.Checkpoint() != other_.Checkpoint() {
+	if s.CheckpointV3() != other_.Signature.Checkpoint {
 		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.Checkpoint(), other_.Checkpoint())
 	}
 
@@ -214,7 +218,7 @@ func (s *RegularSignature) Join(subdigest core.Subdigest, other core.Signature[*
 	return &RegularSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.Checkpoint(),
+		Checkpoint:       s.CheckpointV3(),
 		Tree:             tree,
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -225,7 +229,7 @@ func (s *RegularSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wall
 	return &RegularSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.Checkpoint(),
+		Checkpoint:       s.CheckpointV3(),
 		Tree:             s.Tree.reduce(),
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -298,6 +302,10 @@ func (s *NoChainIDSignature) Threshold() uint16 {
 }
 
 func (s *NoChainIDSignature) Checkpoint() uint32 {
+	return uint32(s.Signature.Checkpoint)
+}
+
+func (s *NoChainIDSignature) CheckpointV3() uint64 {
 	return s.Signature.Checkpoint
 }
 
@@ -317,7 +325,7 @@ func (s *NoChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest cor
 
 	return &WalletConfig{
 		Threshold_:  s.Threshold(),
-		Checkpoint_: s.Checkpoint(),
+		Checkpoint_: s.Signature.Checkpoint,
 		Tree:        tree,
 	}, weight, nil
 }
@@ -332,8 +340,8 @@ func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature
 		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.Threshold(), other_.Threshold())
 	}
 
-	if s.Checkpoint() != other_.Checkpoint() {
-		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.Checkpoint(), other_.Checkpoint())
+	if s.CheckpointV3() != other_.Signature.Checkpoint {
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.CheckpointV3(), other_.Checkpoint())
 	}
 
 	tree, err := s.Tree.join(other_.Tree)
@@ -344,7 +352,7 @@ func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature
 	return &NoChainIDSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.Checkpoint(),
+		Checkpoint:       s.CheckpointV3(),
 		Tree:             tree,
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -355,7 +363,7 @@ func (s *NoChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wa
 	return &NoChainIDSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.Checkpoint(),
+		Checkpoint:       s.CheckpointV3(),
 		Tree:             s.Tree.reduce(),
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -469,7 +477,7 @@ func (s ChainedSignature) Threshold() uint16 {
 }
 
 func (s ChainedSignature) Checkpoint() uint32 {
-	return s[len(s)-1].Checkpoint()
+	return uint32(s[len(s)-1].Checkpoint())
 }
 
 func (s ChainedSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
@@ -1626,8 +1634,9 @@ func (l *signatureTreeSapientCompactLeaf) write(writer io.Writer) error {
 }
 
 type WalletConfig struct {
-	Threshold_  uint16           `json:"threshold" toml:"threshold"`
-	Checkpoint_ uint32           `json:"checkpoint" toml:"checkpoint"`
+	Threshold_ uint16 `json:"threshold" toml:"threshold"`
+	// contract code is uint64
+	Checkpoint_ uint64           `json:"checkpoint" toml:"checkpoint"`
 	Tree        WalletConfigTree `json:"tree" toml:"tree"`
 }
 
@@ -1636,7 +1645,7 @@ func (c *WalletConfig) Threshold() uint16 {
 }
 
 func (c *WalletConfig) Checkpoint() uint32 {
-	return c.Checkpoint_
+	return uint32(c.Checkpoint_)
 }
 
 func (c *WalletConfig) Signers() map[common.Address]uint16 {
@@ -2301,20 +2310,20 @@ func toUint16(number any) (uint16, error) {
 	}
 }
 
-func toUint32(number any) (uint32, error) {
+func toUint64(number any) (uint64, error) {
 	switch number := number.(type) {
 	case int64:
-		if number < 0 || number > 0xffffffff {
-			return 0, fmt.Errorf("%v does not fit in uint32", number)
+		if number < 0 {
+			return 0, fmt.Errorf("%v does not fit in uint64", number)
 		}
-		return uint32(number), nil
+		return uint64(number), nil
 	case float64:
-		if number < 0 || number > 0xffffffff {
-			return 0, fmt.Errorf("%v does not fit in uint32", number)
+		if number < 0 {
+			return 0, fmt.Errorf("%v does not fit in uint64", number)
 		}
-		return uint32(number), nil
+		return uint64(number), nil
 	default:
-		return 0, fmt.Errorf("unable to convert %v to uint32", number)
+		return 0, fmt.Errorf("unable to convert %v to uint64", number)
 	}
 }
 
