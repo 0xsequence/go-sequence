@@ -23,6 +23,7 @@ func main() {
 		// newSessionCmd(),
 		newServerCmd(),
 		newAddressCmd(),
+		newConfigCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
