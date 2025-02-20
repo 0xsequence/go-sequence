@@ -1,4 +1,3 @@
-// Sequence v3 core primitives
 package v3
 
 import (
@@ -7,7 +6,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
+	"math/bits"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -38,16 +39,13 @@ func (v3Core) DecodeSignature(data []byte) (core.Signature[*WalletConfig], error
 	signatureFlag := data[0]
 	data = data[1:]
 
-	// Extract signature type from bits [1..0]
 	signatureType := signatureFlag & 0x03
-	if signatureType == 0x01 { // Chained
+	if signatureType == 0x01 {
 		return decodeChainedSignature(data)
 	}
 
-	// Normal (00) or No Chain ID (10)
 	noChainId := (signatureType & 0x02) == 0x02
 
-	// Handle checkpointer if bit 6 is set
 	var checkpointer common.Address
 	var checkpointerData []byte
 	if signatureFlag&0x40 == 0x40 {
@@ -70,14 +68,12 @@ func (v3Core) DecodeSignature(data []byte) (core.Signature[*WalletConfig], error
 		data = data[size:]
 	}
 
-	// Checkpoint size from bits [4..2]
 	checkpointSize := (signatureFlag & 0x1c) >> 2
 	checkpoint, err := readUintX(checkpointSize, &data)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read checkpoint: %w", err)
 	}
 
-	// Threshold size from bit 5
 	thresholdSize := ((signatureFlag & 0x20) >> 5) + 1
 	threshold, err := readUintX(thresholdSize, &data)
 	if err != nil {
@@ -143,8 +139,6 @@ func (v3Core) DecodeWalletConfig(object any) (*WalletConfig, error) {
 		Tree:        tree_,
 	}, nil
 }
-
-// ### Signature Types
 
 type Signature struct {
 	NoChainId        bool
@@ -248,9 +242,9 @@ func (s *RegularSignature) Data() ([]byte, error) {
 }
 
 func (s *RegularSignature) Write(writer io.Writer) error {
-	flag := byte(0x00) // Normal signature type
+	flag := byte(0x00)
 	if s.Checkpointer != (common.Address{}) {
-		flag |= 0x40 // Checkpointer bit
+		flag |= 0x40
 	}
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
@@ -277,7 +271,7 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
 	}
 
-	err = binary.Write(writer, binary.BigEndian, s.Threshold)
+	err = binary.Write(writer, binary.BigEndian, s.Threshold())
 	if err != nil {
 		return fmt.Errorf("unable to write threshold: %w", err)
 	}
@@ -378,9 +372,9 @@ func (s *NoChainIDSignature) Data() ([]byte, error) {
 }
 
 func (s *NoChainIDSignature) Write(writer io.Writer) error {
-	flag := byte(0x02) // No Chain ID signature type
+	flag := byte(0x02)
 	if s.Checkpointer != (common.Address{}) {
-		flag |= 0x40 // Checkpointer bit
+		flag |= 0x40
 	}
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
@@ -508,8 +502,7 @@ func (s ChainedSignature) RecoverSubdigest(ctx context.Context, subdigest core.S
 }
 
 func (s ChainedSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {
-	// TODO: Implement me
-	panic("implement me")
+	return nil, fmt.Errorf("chained signatures do not support joining")
 }
 
 func (s ChainedSignature) Reduce(subdigest core.Subdigest) core.Signature[*WalletConfig] {
@@ -530,7 +523,7 @@ func (s ChainedSignature) Data() ([]byte, error) {
 }
 
 func (s ChainedSignature) Write(writer io.Writer) error {
-	_, err := writer.Write([]byte{0x01}) // Chained signature type
+	_, err := writer.Write([]byte{0x01})
 	if err != nil {
 		return fmt.Errorf("unable to write chained signature type: %w", err)
 	}
@@ -559,8 +552,6 @@ func (s ChainedSignature) String() string {
 	data, _ := s.Data()
 	return hexutil.Encode(data)
 }
-
-// ### Signature Tree
 
 type signatureTree interface {
 	recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error)
@@ -612,12 +603,12 @@ func decodeSignatureTreeLeaf(data *[]byte) (signatureTree, error) {
 		return decodeNestedLeaf(firstByte, data)
 	case FLAG_SIGNATURE_ETH_SIGN:
 		return decodeSignatureEthSignLeaf(firstByte, data)
-	// case FLAG_SIGNATURE_ANY_ADDRESS_SUBDIGEST:
-	// 	return decodeAnyAddressSubdigestLeaf(data)
-	// case FLAG_SIGNATURE_SAPIENT:
-	// 	return decodeSignatureSapientLeaf(firstByte, data)
-	// case FLAG_SIGNATURE_SAPIENT_COMPACT:
-	// 	return decodeSignatureSapientCompactLeaf(firstByte, data)
+	case FLAG_SIGNATURE_ANY_ADDRESS_SUBDIGEST:
+		return decodeAnyAddressSubdigestLeaf(data)
+	case FLAG_SIGNATURE_SAPIENT:
+		return decodeSignatureSapientLeaf(firstByte, data)
+	case FLAG_SIGNATURE_SAPIENT_COMPACT:
+		return decodeSignatureSapientCompactLeaf(firstByte, data)
 	default:
 		return nil, fmt.Errorf("unknown signature leaf flag %v", flag)
 	}
@@ -980,13 +971,35 @@ func (l *signatureTreeSignatureERC1271Leaf) reduceImageHash() (core.ImageHash, e
 }
 
 func (l *signatureTreeSignatureERC1271Leaf) write(writer io.Writer) error {
-	sizeSize := uint8(1) // Adjust based on actual size needed
-	_, err := writer.Write([]byte{FLAG_SIGNATURE_ERC1271<<4 | (sizeSize << 2) | l.Weight})
-	if err != nil {
-		return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
+	sigLen := uint64(len(l.Signature))
+	sizeSize := minBytesFor(sigLen)
+	if sizeSize > 3 {
+		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
 	}
 
-	_, err = writer.Write(l.Address.Bytes())
+	weightSize := minWeightBytes(uint64(l.Weight))
+	var firstByte byte
+	if weightSize == 0 && l.Weight <= 3 {
+		firstByte = FLAG_SIGNATURE_ERC1271<<4 | (byte(sizeSize) << 2) | l.Weight
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
+		}
+	} else if weightSize <= 1 {
+		firstByte = FLAG_SIGNATURE_ERC1271<<4 | (byte(sizeSize) << 2)
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
+		}
+		_, err = writer.Write([]byte{l.Weight})
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
+	} else {
+		return fmt.Errorf("weight %d requires %d bytes, exceeds maximum of 1", l.Weight, weightSize)
+	}
+
+	_, err := writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
@@ -1230,7 +1243,6 @@ func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
 	return nil
 }
 
-// Placeholder for other leaf types (implement similarly as needed)
 type signatureTreeSignatureEthSignLeaf struct {
 	Weight      uint8
 	R           [32]byte
@@ -1238,7 +1250,6 @@ type signatureTreeSignatureEthSignLeaf struct {
 }
 
 func decodeSignatureEthSignLeaf(firstByte byte, data *[]byte) (*signatureTreeSignatureEthSignLeaf, error) {
-	// Similar to decodeSignatureHashLeaf but with EthSign logic
 	weight := firstByte & 0x0f
 	if weight == 0 {
 		if len(*data) < 1 {
@@ -1308,26 +1319,311 @@ func (l *signatureTreeSignatureEthSignLeaf) write(writer io.Writer) error {
 	return nil
 }
 
-// Placeholder implementations (to be fully implemented as per v3 specs)
-// type signatureTreeAnyAddressSubdigestLeaf struct{ core.Subdigest }
+type signatureTreeAnyAddressSubdigestLeaf struct {
+	core.Subdigest
+}
 
-// func decodeAnyAddressSubdigestLeaf(data *[]byte) (*signatureTreeAnyAddressSubdigestLeaf, error) {
-// 	return &signatureTreeAnyAddressSubdigestLeaf{}, fmt.Errorf("not implemented")
-// }
+func decodeAnyAddressSubdigestLeaf(data *[]byte) (*signatureTreeAnyAddressSubdigestLeaf, error) {
+	if len(*data) < 32 {
+		return nil, fmt.Errorf("insufficient data for any address subdigest leaf")
+	}
+	hash := common.BytesToHash((*data)[:32])
+	*data = (*data)[32:]
+	return &signatureTreeAnyAddressSubdigestLeaf{core.Subdigest{Hash: hash}}, nil
+}
 
-// type signatureTreeSapientLeaf struct{}
+func (l *signatureTreeAnyAddressSubdigestLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+	anyAddressSubdigest := core.Subdigest{Hash: crypto.Keccak256Hash(subdigest.Bytes(), common.Address{}.Bytes())}
+	if anyAddressSubdigest.Hash == l.Subdigest.Hash {
+		return &WalletConfigTreeSubdigestLeaf{l.Subdigest}, new(big.Int).Set(maxUint256), nil
+	}
+	return &WalletConfigTreeSubdigestLeaf{l.Subdigest}, new(big.Int), nil
+}
 
-// func decodeSignatureSapientLeaf(firstByte byte, data *[]byte) (*signatureTreeSapientLeaf, error) {
-// 	return &signatureTreeSapientLeaf{}, fmt.Errorf("not implemented")
-// }
+func (l *signatureTreeAnyAddressSubdigestLeaf) reduce() signatureTree {
+	return l
+}
 
-// type signatureTreeSapientCompactLeaf struct{}
+func (l *signatureTreeAnyAddressSubdigestLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
+}
 
-// func decodeSignatureSapientCompactLeaf(firstByte byte, data *[]byte) (*signatureTreeSapientCompactLeaf, error) {
-// 	return &signatureTreeSapientCompactLeaf{}, fmt.Errorf("not implemented")
-// }
+func (l *signatureTreeAnyAddressSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
+	return core.ImageHash{Hash: crypto.Keccak256Hash(
+		[]byte("Sequence any address subdigest:\n"),
+		l.Subdigest.Bytes(),
+	)}, nil
+}
 
-// ### Wallet Config
+func (l *signatureTreeAnyAddressSubdigestLeaf) write(writer io.Writer) error {
+	_, err := writer.Write([]byte{FLAG_SIGNATURE_ANY_ADDRESS_SUBDIGEST << 4})
+	if err != nil {
+		return fmt.Errorf("unable to write any address subdigest leaf type: %w", err)
+	}
+	_, err = writer.Write(l.Subdigest.Bytes())
+	if err != nil {
+		return fmt.Errorf("unable to write subdigest: %w", err)
+	}
+	return nil
+}
+
+type signatureTreeSapientLeaf struct {
+	Weight    uint8
+	Address   common.Address
+	Signature []byte
+}
+
+func decodeSignatureSapientLeaf(firstByte byte, data *[]byte) (*signatureTreeSapientLeaf, error) {
+	weight := firstByte & 0x03
+	if weight == 0 {
+		if len(*data) < 1 {
+			return nil, fmt.Errorf("insufficient data for dynamic weight")
+		}
+		weight = (*data)[0]
+		*data = (*data)[1:]
+	}
+
+	if len(*data) < 20 {
+		return nil, fmt.Errorf("insufficient data for address")
+	}
+	addr := common.BytesToAddress((*data)[:20])
+	*data = (*data)[20:]
+
+	sizeSize := (firstByte & 0x0c) >> 2
+	size, err := readUintX(uint8(sizeSize), data)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read signature size: %w", err)
+	}
+
+	if len(*data) < int(size) {
+		return nil, fmt.Errorf("insufficient data for signature")
+	}
+	signature := make([]byte, size)
+	copy(signature, (*data)[:size])
+	*data = (*data)[size:]
+
+	return &signatureTreeSapientLeaf{
+		Weight:    weight,
+		Address:   addr,
+		Signature: signature,
+	}, nil
+}
+
+func (l *signatureTreeSapientLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+	if provider == nil {
+		return &WalletConfigTreeAddressLeaf{
+			Weight:  l.Weight,
+			Address: l.Address,
+		}, new(big.Int), nil
+	}
+
+	result := ValidateSapientSignature(ctx, provider, l.Address, subdigest, l.Signature, l.Weight)
+	if result.Error != nil {
+		return nil, nil, result.Error
+	}
+	if !result.IsValid {
+		return nil, nil, fmt.Errorf("invalid Sapient signature for %v", l.Address)
+	}
+
+	signerSignatures.Insert(l.Address, core.SignerSignature{
+		Subdigest: subdigest,
+		Type:      core.SignerSignatureTypeEIP1271,
+		Signature: l.Signature,
+	})
+
+	return &WalletConfigTreeNestedLeaf{
+		Weight:    l.Weight,
+		Threshold: 1,
+		Tree:      &WalletConfigTreeNodeLeaf{Node: core.ImageHash{Hash: result.ImageHash}},
+	}, new(big.Int).SetUint64(uint64(result.EffectiveWeight)), nil
+}
+
+func (l *signatureTreeSapientLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l *signatureTreeSapientLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
+}
+
+func (l *signatureTreeSapientLeaf) reduceImageHash() (core.ImageHash, error) {
+	return core.ImageHash{}, fmt.Errorf("sapient leaf might have signing power")
+}
+
+func (l *signatureTreeSapientLeaf) write(writer io.Writer) error {
+	sigLen := uint64(len(l.Signature))
+	sizeSize := minBytesFor(sigLen)
+	if sizeSize > 3 {
+		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
+	}
+
+	var firstByte byte
+	if l.Weight <= 3 && l.Weight > 0 {
+		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2) | l.Weight
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
+		}
+	} else {
+		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2)
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
+		}
+		_, err = writer.Write([]byte{l.Weight})
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
+	}
+
+	_, err := writer.Write(l.Address.Bytes())
+	if err != nil {
+		return fmt.Errorf("unable to write address: %w", err)
+	}
+
+	err = writeUintX(writer, uint64(len(l.Signature)), sizeSize)
+	if err != nil {
+		return fmt.Errorf("unable to write signature length: %w", err)
+	}
+
+	_, err = writer.Write(l.Signature)
+	if err != nil {
+		return fmt.Errorf("unable to write signature: %w", err)
+	}
+
+	return nil
+}
+
+type signatureTreeSapientCompactLeaf struct {
+	Weight    uint8
+	Address   common.Address
+	Signature []byte
+}
+
+func decodeSignatureSapientCompactLeaf(firstByte byte, data *[]byte) (*signatureTreeSapientCompactLeaf, error) {
+	weight := firstByte & 0x03
+	if weight == 0 {
+		if len(*data) < 1 {
+			return nil, fmt.Errorf("insufficient data for dynamic weight")
+		}
+		weight = (*data)[0]
+		*data = (*data)[1:]
+	}
+
+	if len(*data) < 20 {
+		return nil, fmt.Errorf("insufficient data for address")
+	}
+	addr := common.BytesToAddress((*data)[:20])
+	*data = (*data)[20:]
+
+	sizeSize := (firstByte & 0x0c) >> 2
+	size, err := readUintX(uint8(sizeSize), data)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read signature size: %w", err)
+	}
+
+	if len(*data) < int(size) {
+		return nil, fmt.Errorf("insufficient data for signature")
+	}
+	signature := make([]byte, size)
+	copy(signature, (*data)[:size])
+	*data = (*data)[size:]
+
+	return &signatureTreeSapientCompactLeaf{
+		Weight:    weight,
+		Address:   addr,
+		Signature: signature,
+	}, nil
+}
+
+func (l *signatureTreeSapientCompactLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+	if provider == nil {
+		return &WalletConfigTreeAddressLeaf{
+			Weight:  l.Weight,
+			Address: l.Address,
+		}, new(big.Int), nil
+	}
+
+	result := ValidateSapientCompactSignature(ctx, provider, l.Address, subdigest, l.Signature, l.Weight)
+	if result.Error != nil {
+		return nil, nil, result.Error
+	}
+
+	if !result.IsValid {
+		return &WalletConfigTreeAddressLeaf{
+			Weight:  l.Weight,
+			Address: l.Address,
+		}, new(big.Int), nil
+	}
+
+	signerSignatures.Insert(l.Address, core.SignerSignature{
+		Subdigest: subdigest,
+		Type:      core.SignerSignatureTypeEIP1271,
+		Signature: l.Signature,
+	})
+
+	return &WalletConfigTreeNestedLeaf{
+		Weight:    l.Weight,
+		Threshold: 1,
+		Tree:      &WalletConfigTreeNodeLeaf{Node: core.ImageHash{Hash: result.ImageHash}},
+	}, new(big.Int).SetUint64(uint64(result.EffectiveWeight)), nil
+}
+
+func (l *signatureTreeSapientCompactLeaf) reduce() signatureTree {
+	return l
+}
+
+func (l *signatureTreeSapientCompactLeaf) join(other signatureTree) (signatureTree, error) {
+	return l, nil
+}
+
+func (l *signatureTreeSapientCompactLeaf) reduceImageHash() (core.ImageHash, error) {
+	return core.ImageHash{}, fmt.Errorf("sapient compact leaf might have signing power")
+}
+
+func (l *signatureTreeSapientCompactLeaf) write(writer io.Writer) error {
+	sigLen := uint64(len(l.Signature))
+	sizeSize := minBytesFor(sigLen)
+	if sizeSize > 3 {
+		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
+	}
+
+	var firstByte byte
+	if l.Weight <= 3 && l.Weight > 0 {
+		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2) | l.Weight
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
+		}
+	} else {
+		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2)
+		_, err := writer.Write([]byte{firstByte})
+		if err != nil {
+			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
+		}
+		_, err = writer.Write([]byte{l.Weight})
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
+	}
+
+	_, err := writer.Write(l.Address.Bytes())
+	if err != nil {
+		return fmt.Errorf("unable to write address: %w", err)
+	}
+
+	err = writeUintX(writer, uint64(len(l.Signature)), sizeSize)
+	if err != nil {
+		return fmt.Errorf("unable to write signature length: %w", err)
+	}
+
+	_, err = writer.Write(l.Signature)
+	if err != nil {
+		return fmt.Errorf("unable to write signature: %w", err)
+	}
+
+	return nil
+}
 
 type WalletConfig struct {
 	Threshold_  uint16           `json:"threshold" toml:"threshold"`
@@ -1650,12 +1946,10 @@ func decodeWalletConfigTreeAddressLeaf(object any) (*WalletConfigTreeAddressLeaf
 }
 
 func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
-	// TODO: add address hash
-	weight := common.BigToHash(new(big.Int).SetUint64(uint64(l.Weight)))
-	return core.ImageHash{
-		Hash:     crypto.Keccak256Hash(l.Address.Bytes(), weight.Bytes()),
-		Preimage: l,
-	}
+	var hash common.Hash
+	hash.SetBytes(l.Address.Bytes())
+	hash[common.HashLength-common.AddressLength-1] = l.Weight
+	return core.ImageHash{Hash: hash, Preimage: l}
 }
 
 func (l *WalletConfigTreeAddressLeaf) maxWeight() *big.Int {
@@ -1891,8 +2185,6 @@ func (l WalletConfigTreeSubdigestLeaf) buildSignatureTree(signerSignatures map[c
 	return signatureTreeSubdigestLeaf{l.Subdigest}
 }
 
-// ### Utility Functions
-
 func ecrecover(subdigest core.Subdigest, signature []byte) (common.Address, error) {
 	if len(signature) != crypto.SignatureLength {
 		return common.Address{}, fmt.Errorf("invalid signature length %v, expected %v", len(signature), crypto.SignatureLength)
@@ -1907,6 +2199,27 @@ func ecrecover(subdigest core.Subdigest, signature []byte) (common.Address, erro
 		return common.Address{}, fmt.Errorf("unable to recover signature: %w", err)
 	}
 	return crypto.PubkeyToAddress(*pubkey), nil
+}
+
+func minBytesFor(val uint64) uint8 {
+	if val == 0 {
+		return 0
+	}
+	return uint8(math.Ceil(float64(bitsFor(val)) / 8))
+}
+
+func minWeightBytes(weight uint64) uint8 {
+	if weight <= 3 {
+		return 0
+	}
+	return minBytesFor(weight)
+}
+
+func bitsFor(val uint64) int {
+	if val == 0 {
+		return 0
+	}
+	return 64 - bits.LeadingZeros64(val)
 }
 
 func readUintX(size uint8, data *[]byte) (uint64, error) {
