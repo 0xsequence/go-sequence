@@ -26,6 +26,7 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+	_ = abi.ConvertType
 )
 
 // IERC20WrapperMetaData contains all meta data concerning the IERC20Wrapper contract.
@@ -134,11 +135,11 @@ func NewIERC20WrapperFilterer(address common.Address, filterer bind.ContractFilt
 
 // bindIERC20Wrapper binds a generic wrapper to an already deployed contract.
 func bindIERC20Wrapper(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(IERC20WrapperABI))
+	parsed, err := IERC20WrapperMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and

@@ -6,6 +6,9 @@ all:
 bootstrap:
 	cd ./testutil/chain && yarn install
 
+build:
+	go build ./...
+
 test: wait-on-chain check-testchain-running go-test
 
 go-test:
