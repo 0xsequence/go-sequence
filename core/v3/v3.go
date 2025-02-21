@@ -1743,16 +1743,6 @@ func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
 }
 
 func (c *WalletConfig) IsUsable() error {
-	if c.Threshold_ == 0 {
-		return fmt.Errorf("threshold is 0")
-	}
-
-	threshold := new(big.Int).SetUint64(uint64(c.Threshold_))
-	weight := c.Tree.maxWeight()
-	if threshold.Cmp(weight) > 0 {
-		return fmt.Errorf("threshold %v exceeds maximum weight %v", threshold, weight)
-	}
-
 	return nil
 }
 
@@ -2424,6 +2414,12 @@ func toUint16(number any) (uint16, error) {
 			return 0, fmt.Errorf("%v does not fit in uint16", number)
 		}
 		return uint16(number), nil
+	case string:
+		n, ok := big.NewInt(0).SetString(number, 10)
+		if !ok || n.Sign() == -1 || n.BitLen() > 16 {
+			return 0, fmt.Errorf("%v does not fit in uint16", number)
+		}
+		return uint16(n.Uint64()), nil
 	default:
 		return 0, fmt.Errorf("unable to convert %v to uint16", number)
 	}
@@ -2442,8 +2438,8 @@ func toUint64(number any) (uint64, error) {
 		}
 		return uint64(number), nil
 	case string:
-		n, err := big.NewInt(0).SetString(number, 10)
-		if err || n.Sign() < 0 || n.BitLen() > 64 {
+		n, ok := big.NewInt(0).SetString(number, 10)
+		if !ok || n.Sign() == -1 || n.BitLen() > 64 {
 			return 0, fmt.Errorf("%v does not fit in uint64", number)
 		}
 		return n.Uint64(), nil
