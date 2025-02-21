@@ -13,9 +13,10 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-var zeroAddress = common.Address{}
+// var zeroAddress = common.Address{}
 
 func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if sender.GetProvider() == nil {
@@ -40,6 +41,9 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 		// or fix it with a contract patch
 		GasLimit: 131072,
 	})
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 
 	signedDeployTx, err := sender.SignTx(deployTx, chainID)
 	if err != nil {
@@ -47,6 +51,9 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 	}
 
 	tx, waitReceipt, err := sender.SendTransaction(context.Background(), signedDeployTx)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 
 	return walletAddress, tx, waitReceipt, nil
 }
@@ -71,6 +78,12 @@ func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext Wallet
 			return common.Address{}, common.Address{}, nil, err
 		}
 		return walletAddress, walletContext.FactoryAddress, deployData, nil
+	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+		deployData, err := contracts.V3.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		if err != nil {
+			return common.Address{}, common.Address{}, nil, err
+		}
+		return walletAddress, walletContext.FactoryAddress, deployData, nil
 	}
 	return common.Address{}, common.Address{}, nil, fmt.Errorf("unsupported wallet config version")
 }
@@ -81,6 +94,9 @@ func DecodeRevertReason(logs []*types.Log) []string {
 		_, reason, err := V1DecodeTxFailedEvent(log)
 		if err != nil {
 			_, reason, _, _ = V2DecodeTxFailedEvent(log)
+		}
+		if err != nil {
+			_, reason, _, _ = V3DecodeTxFailedEvent(log)
 		}
 
 		reasons = append(reasons, reason)

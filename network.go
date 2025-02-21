@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 // WalletContext is the module addresses deployed on a network, aka the context / environment
@@ -66,6 +67,13 @@ var sequenceContextV2 = WalletContext{
 	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
 }
 
+var sequenceContextV3 = WalletContext{
+	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
+	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
+	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
+}
+
 // V1SequenceContext returns copy of the package-level internal variable, to prevent change
 // by other packages.
 func V1SequenceContext() WalletContext {
@@ -76,6 +84,10 @@ func V2SequenceContext() WalletContext {
 	return sequenceContextV2
 }
 
+func V3SequenceContext() WalletContext {
+	return sequenceContextV3
+}
+
 func SequenceContext() WalletContext {
 	return V2SequenceContext()
 }
@@ -84,6 +96,7 @@ func SequenceContexts() WalletContexts {
 	return WalletContexts{
 		1: sequenceContextV1,
 		2: sequenceContextV2,
+		3: sequenceContextV3,
 	}
 }
 
@@ -92,6 +105,8 @@ func SequenceContextForWalletConfig(walletConfig core.WalletConfig) WalletContex
 		return sequenceContextV1
 	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
 		return sequenceContextV2
+	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+		return sequenceContextV3
 	}
 	return WalletContext{}
 }

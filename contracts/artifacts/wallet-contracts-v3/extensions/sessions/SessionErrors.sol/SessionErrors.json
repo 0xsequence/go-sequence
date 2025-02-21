@@ -1,0 +1,100 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SessionErrors",
+  "sourceName": "src/extensions/sessions/SessionErrors.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "target",
+          "type": "address"
+        }
+      ],
+      "name": "BlacklistedAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidBlacklist",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidDelegateCall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidGlobalSigner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidImplicitResult",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidLimitUsageIncrement",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "flag",
+          "type": "uint256"
+        }
+      ],
+      "name": "InvalidNodeType",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPermission",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSelfCall",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "invalidSigner",
+          "type": "address"
+        }
+      ],
+      "name": "InvalidSessionSigner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidValue",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MissingPermission",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "deadline",
+          "type": "uint256"
+        }
+      ],
+      "name": "SessionExpired",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122068c386b09cb344dcff17cf47fd10a5e8c1a4f7fa7f0dfd56944a354e803a96fd64736f6c634300081b0033",
+  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122068c386b09cb344dcff17cf47fd10a5e8c1a4f7fa7f0dfd56944a354e803a96fd64736f6c634300081b0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

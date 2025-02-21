@@ -6,6 +6,7 @@ import (
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
@@ -22,6 +23,9 @@ import (
 	walletmain2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletmain"
 	walletupgradable2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletupgradable"
 	walletutils2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletutils"
+	stage1module3 "github.com/0xsequence/go-sequence/contracts/gen/v3/stage1"
+	stage2module3 "github.com/0xsequence/go-sequence/contracts/gen/v3/stage2"
+	walletfactory3 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletfactory"
 )
 
 var (
@@ -60,9 +64,20 @@ var V2 struct {
 	WalletGasEstimator         ethartifact.Artifact
 }
 
+var V3 struct {
+	WalletFactory      ethartifact.Artifact
+	Stage1Module       ethartifact.Artifact
+	Stage2Module       ethartifact.Artifact
+	WalletGasEstimator ethartifact.Artifact
+}
+
 var (
 	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
+)
+
+const (
+	DEFAULT_CREATION_CODE = "0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3"
 )
 
 func init() {
@@ -80,6 +95,13 @@ func init() {
 	V2.WalletGuestModule = artifact("WALLET_GUEST", walletguest2.WalletGuestABI, walletguest2.WalletGuestBin)
 	V2.WalletUtils = artifact("WALLET_UTILS", walletutils2.WalletUtilsABI, walletutils2.WalletUtilsBin)
 	V2.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
+
+	V3.WalletFactory = artifact("WALLET_FACTORY", walletfactory3.WalletFactoryABI, walletfactory3.WalletFactoryBin)
+	V3.Stage1Module = artifact("STAGE_1_MODULE", stage1module3.WalletUpgradableABI, stage1module3.WalletUpgradableBin)
+	V3.Stage2Module = artifact("STAGE_2_MODULE", stage2module3.WalletUpgradableABI, stage2module3.WalletUpgradableBin)
+
+	// TODO: Update w/ v3 gas estimator
+	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
 
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
@@ -111,4 +133,12 @@ func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...
 		Bin:          common.FromHex(bytecodeHex),
 		DeployedBin:  deployedBin,
 	}
+}
+
+func GetCounterfactualAddress(factory, module common.Address, imageHash common.Hash, creationCode string) (common.Address, error) {
+	initCodeHash := crypto.Keccak256(append(common.FromHex(creationCode), common.LeftPadBytes(module.Bytes(), 32)...))
+
+	addressBytes := crypto.Keccak256(append([]byte{0xff}, append(factory.Bytes(), append(imageHash.Bytes(), initCodeHash...)...)...))
+
+	return common.BytesToAddress(addressBytes[12:]), nil
 }

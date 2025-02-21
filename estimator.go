@@ -17,10 +17,11 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
+	walletgasestimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
 )
@@ -75,6 +76,7 @@ var defaultEstimator = &Estimator{
 var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
+var walletGasEstimatorCodeV3 = hexutil.Encode(contracts.V3.WalletGasEstimator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -154,14 +156,12 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 		from: {Code: gasEstimatorCode},
 	}
 
-	if overrides != nil {
-		for key, value := range overrides {
-			if key == from {
-				return nil, fmt.Errorf("can't override address from")
-			}
-
-			finalOverrides[key] = value
+	for key, value := range overrides {
+		if key == from {
+			return nil, fmt.Errorf("can't override address from")
 		}
+
+		finalOverrides[key] = value
 	}
 
 	estimator := ethcontract.NewContractCaller(from, contracts.GasEstimator.ABI, provider)
@@ -288,10 +288,10 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 }
 
 func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletConfig, isEoa map[common.Address]bool) (map[common.Address]bool, error) {
-	type SortedSigner struct {
-		s *v1.WalletConfigSigner
-		i int
-	}
+	// type SortedSigner struct {
+	// 	s *v1.WalletConfigSigner
+	// 	i int
+	// }
 
 	// Create a copy of the signers array
 	// this will be sorted and used to pick the worst case scenario for the signers
@@ -397,6 +397,26 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 					},
 						map[common.Address]bool{address1: false, address2: true, address3: true},
 						map[common.Address]bool{address1: true, address2: true, address3: true})
+				} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+					sig = e.BuildStubSignature(&v3.WalletConfig{
+						Threshold_: 2,
+						Tree: v3.WalletConfigTreeNodes(
+							&v3.WalletConfigTreeAddressLeaf{
+								Address: address1,
+								Weight:  1,
+							},
+							&v3.WalletConfigTreeAddressLeaf{
+								Address: address2,
+								Weight:  1,
+							},
+							&v3.WalletConfigTreeAddressLeaf{
+								Address: address3,
+								Weight:  1,
+							},
+						),
+					},
+						map[common.Address]bool{address1: false, address2: true, address3: true},
+						map[common.Address]bool{address1: true, address2: true, address3: true})
 				}
 
 				return core.SignerSignatureTypeEIP1271, sig, nil
@@ -424,6 +444,17 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 		}
 
 		encoded, err := sigV2.Data()
+		if err != nil {
+			return nil
+		}
+		return encoded
+	} else if confV3, ok := walletConfig.(*v3.WalletConfig); ok {
+		sigV3, err := confV3.BuildRegularSignature(context.Background(), stubSigner, false)
+		if err != nil {
+			return nil
+		}
+
+		encoded, err := sigV3.Data()
 		if err != nil {
 			return nil
 		}
@@ -456,6 +487,11 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		overrides = map[common.Address]*CallOverride{
 			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCodeV2},
 			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCodeV2},
+		}
+	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+		overrides = map[common.Address]*CallOverride{
+			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCodeV3},
+			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCodeV3},
 		}
 	} else {
 		return 0, fmt.Errorf("unknown wallet config type")
@@ -497,6 +533,11 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 			}
 		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
 			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			if err != nil {
+				return 0, err
+			}
+		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+			execData, err = contracts.V3.Stage1Module.Encode("execute", encTxs, nonce, signature)
 			if err != nil {
 				return 0, err
 			}
@@ -635,6 +676,63 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	return results, nil
 }
 
+func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+	if block == "" {
+		block = "latest"
+	}
+
+	encoded, err := transactions.EncodedTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	callData, err := contracts.V3.WalletGasEstimator.Encode("simulateExecute", encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	type ethCallParams struct {
+		To   common.Address `json:"to"`
+		Data string         `json:"data"`
+	}
+
+	params := ethCallParams{
+		To:   wallet,
+		Data: hexutil.Encode(callData),
+	}
+
+	allOverrides := map[common.Address]*CallOverride{
+		wallet: {Code: walletGasEstimatorCodeV3},
+	}
+	for address, override := range overrides {
+		if address == wallet {
+			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
+		}
+
+		allOverrides[address] = override
+	}
+
+	var response string
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
+	if err != nil {
+		return nil, err
+	}
+
+	resultsData, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SimulateResult
+	err = contracts.V3.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
-	return V2Simulate(provider, wallet, transactions, block, overrides)
+	return V3Simulate(provider, wallet, transactions, block, overrides)
 }
