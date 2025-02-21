@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 )
 
@@ -372,6 +373,9 @@ func calculateImageHash(params *ConfigImageHashParams) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to decode wallet config: %w", err)
 	}
+
+	log.Printf("Decoded config: %+v", config)
+	spew.Dump(config)
 
 	imageHash := config.ImageHash()
 	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil

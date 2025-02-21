@@ -1716,8 +1716,9 @@ func (l *signatureTreeSapientCompactLeaf) write(writer io.Writer) error {
 type WalletConfig struct {
 	Threshold_ uint16 `json:"threshold" toml:"threshold"`
 	// WARNING: contract code is uint64
-	Checkpoint_ uint64           `json:"checkpoint" toml:"checkpoint"`
-	Tree        WalletConfigTree `json:"tree" toml:"tree"`
+	Checkpoint_  uint64           `json:"checkpoint" toml:"checkpoint"`
+	Tree         WalletConfigTree `json:"tree" toml:"tree"`
+	Checkpointer common.Address   `json:"checkpointer,omitempty" toml:"checkpointer,omitempty"`
 }
 
 func (c *WalletConfig) Threshold() uint16 {
@@ -1747,18 +1748,22 @@ func (c *WalletConfig) IsUsable() error {
 }
 
 func (c *WalletConfig) ImageHash() core.ImageHash {
-	imageHash := c.Tree.ImageHash()
-	threshold := common.BigToHash(new(big.Int).SetUint64(uint64(c.Threshold_)))
-	checkpoint := common.BigToHash(new(big.Int).SetUint64(uint64(c.Checkpoint_)))
+	treeHash := c.Tree.ImageHash().Bytes()
+
+	thresholdBytes := common.BigToHash(new(big.Int).SetUint64(uint64(c.Threshold_))).Bytes()
+	checkpointBytes := common.BigToHash(new(big.Int).SetUint64(c.Checkpoint_)).Bytes()
+
+	checkpointerBytes := make([]byte, 32)
+	copy(checkpointerBytes[12:], c.Checkpointer.Bytes())
+
+	root := crypto.Keccak256Hash(treeHash, thresholdBytes)
+
+	root = crypto.Keccak256Hash(root.Bytes(), checkpointBytes)
+
+	root = crypto.Keccak256Hash(root.Bytes(), checkpointerBytes)
 
 	return core.ImageHash{
-		Hash: crypto.Keccak256Hash(
-			crypto.Keccak256Hash(
-				imageHash.Bytes(),
-				threshold.Bytes(),
-			).Bytes(),
-			checkpoint.Bytes(),
-		),
+		Hash:     root,
 		Preimage: c,
 	}
 }
@@ -1881,6 +1886,10 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 		return decodeWalletConfigTreeNestedLeaf(object_)
 	} else if hasKeys(object_, []string{"subdigest"}) {
 		return decodeWalletConfigTreeSubdigestLeaf(object_)
+	} else if hasKeys(object_, []string{"weight", "address", "imageHash"}) {
+		return decodeWalletConfigTreeSapientSignerLeaf(object_)
+	} else if hasKeys(object_, []string{"digest"}) {
+		return decodeWalletConfigTreeAnyAddressSubdigestLeaf(object_)
 	}
 	return nil, fmt.Errorf("unknown wallet config tree type")
 }
@@ -2025,9 +2034,15 @@ func decodeWalletConfigTreeAddressLeaf(object any) (*WalletConfigTreeAddressLeaf
 }
 
 func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
-	var hash common.Hash
-	hash.SetBytes(l.Address.Bytes())
-	hash[common.HashLength-common.AddressLength-1] = l.Weight
+	weight := new(big.Int).SetUint64(uint64(l.Weight))
+	weightBytes := make([]byte, 32)
+	weight.FillBytes(weightBytes)
+
+	hash := crypto.Keccak256Hash(
+		[]byte("Sequence signer:\n"),
+		l.Address.Bytes(),
+		weightBytes,
+	)
 	return core.ImageHash{Hash: hash, Preimage: l}
 }
 
@@ -2275,6 +2290,153 @@ func (l WalletConfigTreeSubdigestLeaf) unverifiedWeight(signers map[common.Addre
 
 func (l WalletConfigTreeSubdigestLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
 	return signatureTreeSubdigestLeaf{l.Subdigest}
+}
+
+type WalletConfigTreeSapientSignerLeaf struct {
+	Weight     uint8          `json:"weight" toml:"weight"`
+	Address    common.Address `json:"address" toml:"address"`
+	ImageHash_ core.ImageHash `json:"imageHash" toml:"imageHash"`
+}
+
+func decodeWalletConfigTreeSapientSignerLeaf(object any) (*WalletConfigTreeSapientSignerLeaf, error) {
+	object_, ok := object.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("wallet config tree sapient signer leaf must be an object")
+	}
+
+	weight, ok := object_["weight"]
+	if !ok {
+		return nil, fmt.Errorf(`missing required "weight" property`)
+	}
+	weight_, err := toUint8(weight)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert weight: %w", err)
+	}
+
+	address, ok := object_["address"]
+	if !ok {
+		return nil, fmt.Errorf(`missing required "address" property`)
+	}
+	address_, ok := address.(string)
+	if !ok {
+		return nil, fmt.Errorf("address must be a string")
+	}
+	if !common.IsHexAddress(address_) {
+		return nil, fmt.Errorf(`"%v" is not a valid address`, address_)
+	}
+
+	imageHash, ok := object_["imageHash"]
+	if !ok {
+		return nil, fmt.Errorf(`missing required "imageHash" property`)
+	}
+	imageHash_, ok := imageHash.(string)
+	if !ok {
+		return nil, fmt.Errorf("imageHash must be a string")
+	}
+	imageHashBytes, err := hexutil.Decode(imageHash_)
+	if err != nil || len(imageHashBytes) != 32 {
+		return nil, fmt.Errorf(`"%v" is not a valid 32-byte hash`, imageHash_)
+	}
+
+	return &WalletConfigTreeSapientSignerLeaf{
+		Weight:     weight_,
+		Address:    common.HexToAddress(address_),
+		ImageHash_: core.ImageHash{Hash: common.BytesToHash(imageHashBytes)},
+	}, nil
+}
+
+func (l *WalletConfigTreeSapientSignerLeaf) ImageHash() core.ImageHash {
+	weight := new(big.Int).SetUint64(uint64(l.Weight))
+	weightBytes := make([]byte, 32)
+	weight.FillBytes(weightBytes)
+
+	hash := crypto.Keccak256Hash(
+		[]byte("Sequence sapient config:\n"),
+		l.Address.Bytes(),
+		weightBytes,
+		l.ImageHash_.Bytes(),
+	)
+	return core.ImageHash{Hash: hash, Preimage: l}
+}
+
+func (l *WalletConfigTreeSapientSignerLeaf) maxWeight() *big.Int {
+	return new(big.Int).SetUint64(uint64(l.Weight))
+}
+
+func (l *WalletConfigTreeSapientSignerLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
+	signers[l.Address] = uint16(l.Weight)
+}
+
+func (l *WalletConfigTreeSapientSignerLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
+	if _, ok := signers[l.Address]; ok {
+		return new(big.Int).SetUint64(uint64(l.Weight))
+	}
+	return new(big.Int)
+}
+
+func (l *WalletConfigTreeSapientSignerLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+	if signature, ok := signerSignatures[l.Address]; ok {
+		return &signatureTreeSapientLeaf{
+			Weight:    l.Weight,
+			Address:   l.Address,
+			Signature: signature.signature,
+		}
+	}
+	return &signatureTreeAddressLeaf{Weight: l.Weight, Address: l.Address}
+}
+
+type WalletConfigTreeAnyAddressSubdigestLeaf struct {
+	Digest core.Subdigest `json:"digest" toml:"digest"`
+}
+
+func decodeWalletConfigTreeAnyAddressSubdigestLeaf(object any) (WalletConfigTreeAnyAddressSubdigestLeaf, error) {
+	object_, ok := object.(map[string]any)
+	if !ok {
+		return WalletConfigTreeAnyAddressSubdigestLeaf{}, fmt.Errorf("wallet config tree any address subdigest leaf must be an object")
+	}
+
+	digest, ok := object_["digest"]
+	if !ok {
+		return WalletConfigTreeAnyAddressSubdigestLeaf{}, fmt.Errorf(`missing required "digest" property`)
+	}
+	digest_, ok := digest.(string)
+	if !ok {
+		return WalletConfigTreeAnyAddressSubdigestLeaf{}, fmt.Errorf("digest must be a string")
+	}
+	digestBytes, err := hexutil.Decode(digest_)
+	if err != nil || len(digestBytes) != 32 {
+		return WalletConfigTreeAnyAddressSubdigestLeaf{}, fmt.Errorf(`"%v" is not a valid 32-byte hash`, digest_)
+	}
+
+	return WalletConfigTreeAnyAddressSubdigestLeaf{
+		Digest: core.Subdigest{Hash: common.BytesToHash(digestBytes)},
+	}, nil
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) ImageHash() core.ImageHash {
+	hash := crypto.Keccak256Hash(
+		[]byte("Sequence any address subdigest:\n"),
+		l.Digest.Bytes(),
+	)
+	return core.ImageHash{
+		Hash:     hash,
+		Preimage: &l,
+	}
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) maxWeight() *big.Int {
+	return new(big.Int).Set(maxUint256)
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
+	return new(big.Int).Set(maxUint256)
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+	return &signatureTreeAnyAddressSubdigestLeaf{l.Digest}
 }
 
 func ecrecover(subdigest core.Subdigest, signature []byte) (common.Address, error) {
