@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -241,38 +242,149 @@ func createConfig(threshold uint16, checkpoint uint64, elements []string) (*v3.W
 	return config, nil
 }
 
+// createNewConfig creates a new configuration from the given parameters
+func createNewConfig(params *ConfigNewParams) (string, error) {
+	threshold, ok := new(big.Int).SetString(params.Threshold, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid threshold: %s", params.Threshold)
+	}
+	if !threshold.IsUint64() || threshold.Uint64() > uint64(^uint16(0)) {
+		return "", fmt.Errorf("threshold too large: %s", params.Threshold)
+	}
+
+	checkpoint, ok := new(big.Int).SetString(params.Checkpoint, 10)
+	if !ok {
+		return "", fmt.Errorf("invalid checkpoint: %s", params.Checkpoint)
+	}
+	if !checkpoint.IsUint64() {
+		return "", fmt.Errorf("checkpoint too large: %s", params.Checkpoint)
+	}
+
+	if params.From != "flat" {
+		return "", fmt.Errorf("unsupported 'from' format: %s", params.From)
+	}
+
+	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", params.Threshold, params.Checkpoint, params.Content)
+	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), []string{params.Content})
+	if err != nil {
+		return "", fmt.Errorf("failed to create config: %w", err)
+	}
+
+	jsonConfig, err := json.Marshal(config)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	log.Printf("Created config: %s", string(jsonConfig))
+	return string(jsonConfig), nil
+}
+
+// calculateImageHash calculates the image hash for a given configuration
+func calculateImageHash(params *ConfigImageHashParams) (string, error) {
+	var rawConfig map[string]interface{}
+	if err := json.Unmarshal(params.Input, &rawConfig); err != nil {
+		return "", fmt.Errorf("failed to parse raw config: %w", err)
+	}
+
+	config, err := v3.Core.DecodeWalletConfig(rawConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode wallet config: %w", err)
+	}
+
+	imageHash := config.ImageHash()
+	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
+}
+
+// encodeConfig encodes a configuration into a signature format
+func encodeConfig(params *ConfigEncodeParams) (string, error) {
+	var rawConfig map[string]interface{}
+	if err := json.Unmarshal(params.Input, &rawConfig); err != nil {
+		return "", fmt.Errorf("failed to parse raw config: %w", err)
+	}
+
+	config, err := v3.Core.DecodeWalletConfig(rawConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode wallet config: %w", err)
+	}
+
+	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		return 0, nil, core.ErrSigningNoSigner
+	}, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to build signature: %w", err)
+	}
+
+	data, err := sig.Data()
+	if err != nil {
+		return "", fmt.Errorf("failed to encode signature: %w", err)
+	}
+
+	return "0x" + common.Bytes2Hex(data), nil
+}
+
 func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Configuration utilities",
 	}
 
-	var threshold uint16
-	var checkpoint uint64
-
+	var newParams ConfigNewParams
 	newCmd := &cobra.Command{
 		Use:   "new [elements...]",
 		Short: "Create a new configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config, err := createConfig(threshold, checkpoint, args)
+			newParams.Content = strings.Join(args, " ")
+			result, err := createNewConfig(&newParams)
 			if err != nil {
 				return err
 			}
+			fmt.Println(result)
+			return nil
+		},
+	}
+	newCmd.Flags().StringVar(&newParams.Threshold, "threshold", "1", "Threshold value for the configuration")
+	newCmd.Flags().StringVar(&newParams.Checkpoint, "checkpoint", "0", "Checkpoint value for the configuration")
+	newCmd.Flags().StringVar(&newParams.From, "from", "flat", "The process to use to create the configuration")
 
-			output, err := json.MarshalIndent(config, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to marshal config: %w", err)
+	imageHashCmd := &cobra.Command{
+		Use:   "image-hash [input]",
+		Short: "Calculate image hash from hex input",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("input is required")
 			}
-
-			fmt.Println(string(output))
+			params := &ConfigImageHashParams{
+				Input: json.RawMessage(args[0]),
+			}
+			result, err := calculateImageHash(params)
+			if err != nil {
+				return err
+			}
+			fmt.Println(result)
 			return nil
 		},
 	}
 
-	newCmd.Flags().Uint16VarP(&threshold, "threshold", "t", 1, "Threshold value for the configuration")
-	newCmd.Flags().Uint64VarP(&checkpoint, "checkpoint", "c", 0, "Checkpoint value for the configuration")
+	encodeCmd := &cobra.Command{
+		Use:   "encode [input]",
+		Short: "Encode configuration from hex input",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("input is required")
+			}
+			params := &ConfigEncodeParams{
+				Input: json.RawMessage(args[0]),
+			}
+			result, err := encodeConfig(params)
+			if err != nil {
+				return err
+			}
+			fmt.Println(result)
+			return nil
+		},
+	}
 
-	cmd.AddCommand(newCmd)
+	cmd.AddCommand(newCmd, imageHashCmd, encodeCmd)
 
 	log.SetOutput(os.Stderr)
 

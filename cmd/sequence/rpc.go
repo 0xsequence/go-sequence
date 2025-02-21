@@ -4,12 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence/contracts"
-	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -38,24 +34,6 @@ type JsonRpcError struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-type AddressCalculateParams struct {
-	ImageHash    string `json:"imageHash"`
-	Factory      string `json:"factory"`
-	Module       string `json:"module"`
-	CreationCode string `json:"creationCode,omitempty"`
-}
-
-type ConfigNewParams struct {
-	Threshold  string `json:"threshold"`
-	Checkpoint string `json:"checkpoint"`
-	From       string `json:"from"`
-	Content    string `json:"content"`
-}
-
-type ConfigImageHashParams struct {
-	Input json.RawMessage `json:"input"`
-}
-
 func successResponse(id interface{}, result interface{}) JsonRpcSuccessResponse {
 	return JsonRpcSuccessResponse{
 		JsonRPC: "2.0",
@@ -81,22 +59,7 @@ func handleAddressCalculate(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-
-	imageHash := common.HexToHash(p.ImageHash)
-	factory := common.HexToAddress(p.Factory)
-	module := common.HexToAddress(p.Module)
-
-	creationCode := p.CreationCode
-	if creationCode == "" {
-		creationCode = contracts.DEFAULT_CREATION_CODE
-	}
-
-	address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate address: %w", err)
-	}
-
-	return address.Hex(), nil
+	return calculateAddress(&p)
 }
 
 func handleConfigNew(params json.RawMessage) (interface{}, error) {
@@ -104,41 +67,7 @@ func handleConfigNew(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-
-	threshold, ok := new(big.Int).SetString(p.Threshold, 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid threshold: %s", p.Threshold)
-	}
-	if !threshold.IsUint64() || threshold.Uint64() > uint64(^uint16(0)) {
-		return nil, fmt.Errorf("threshold too large: %s", p.Threshold)
-	}
-
-	checkpoint, ok := new(big.Int).SetString(p.Checkpoint, 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid checkpoint: %s", p.Checkpoint)
-	}
-	if !checkpoint.IsUint64() {
-		return nil, fmt.Errorf("checkpoint too large: %s", p.Checkpoint)
-	}
-
-	if p.From != "flat" {
-		return nil, fmt.Errorf("unsupported 'from' format: %s", p.From)
-	}
-
-	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", p.Threshold, p.Checkpoint, p.Content)
-	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), []string{p.Content})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create config: %w", err)
-	}
-
-	jsonConfig, err := json.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	log.Printf("Created config: %s", string(jsonConfig))
-
-	return string(jsonConfig), nil
+	return createNewConfig(&p)
 }
 
 func handleConfigImageHash(params json.RawMessage) (interface{}, error) {
@@ -146,20 +75,15 @@ func handleConfigImageHash(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+	return calculateImageHash(&p)
+}
 
-	var rawConfig map[string]interface{}
-	if err := json.Unmarshal(p.Input, &rawConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse raw config: %w", err)
+func handleConfigEncode(params json.RawMessage) (interface{}, error) {
+	var p ConfigEncodeParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-
-	config, err := v3.Core.DecodeWalletConfig(rawConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode wallet config: %w", err)
-	}
-
-	imageHash := config.ImageHash()
-
-	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
+	return encodeConfig(&p)
 }
 
 func handleSignatureEncode(params json.RawMessage) (interface{}, error) {
@@ -167,7 +91,6 @@ func handleSignatureEncode(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-
 	return signatureEncode(params)
 }
 
@@ -197,6 +120,10 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		log.Printf("Request details: %+v", req)
 	}
 
+	if !silent {
+		log.Printf("Method requested: %s", req.Method)
+	}
+
 	if req.JsonRPC != "2.0" {
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32600, "Invalid JSON-RPC version", nil))
 		return
@@ -212,14 +139,22 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleConfigNew(req.Params)
 	case "config_imageHash":
 		result, err = handleConfigImageHash(req.Params)
+	case "config_encode":
+		result, err = handleConfigEncode(req.Params)
 	case "signature_encode":
 		result, err = handleSignatureEncode(req.Params)
 	default:
+		if !silent {
+			log.Printf("Method not found: %s", req.Method)
+		}
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32601, fmt.Sprintf("Method not found: %s", req.Method), nil))
 		return
 	}
 
 	if err != nil {
+		if !silent {
+			log.Printf("Error handling method %s: %v", req.Method, err)
+		}
 		json.NewEncoder(w).Encode(errorResponse(req.ID, -32000, err.Error(), nil))
 		return
 	}

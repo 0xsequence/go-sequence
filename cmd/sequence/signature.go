@@ -13,12 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type SignatureEncodeParams struct {
-	Input      json.RawMessage `json:"input"`
-	Signatures string          `json:"signatures"`
-	ChainId    bool            `json:"chainId"`
-}
-
 type SignatureElement struct {
 	Address string   `json:"address"`
 	Type    string   `json:"type"`

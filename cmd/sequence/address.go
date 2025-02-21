@@ -8,44 +8,55 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func calculateAddress(params *AddressCalculateParams) (string, error) {
+	imageHash := common.HexToHash(params.ImageHash)
+	factory := common.HexToAddress(params.Factory)
+	module := common.HexToAddress(params.Module)
+
+	creationCode := params.CreationCode
+	if creationCode == "" {
+		creationCode = contracts.DEFAULT_CREATION_CODE
+	}
+
+	address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate address: %w", err)
+	}
+
+	return address.Hex(), nil
+}
+
 func newAddressCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "address",
-		Short: "Address related commands",
+		Short: "Address utilities",
 	}
 
-	cmd.AddCommand(newAddressCalculateCmd())
+	var params AddressCalculateParams
 
-	return cmd
-}
-
-func newAddressCalculateCmd() *cobra.Command {
-	var creationCode string
-
-	cmd := &cobra.Command{
-		Use:   "calculate <imageHash> <factory> <module>",
-		Short: "Calculate counterfactual wallet address",
-		Args:  cobra.ExactArgs(3),
+	calculateCmd := &cobra.Command{
+		Use:   "calculate",
+		Short: "Calculate counterfactual address",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			imageHash := common.HexToHash(args[0])
-			factory := common.HexToAddress(args[1])
-			module := common.HexToAddress(args[2])
-
-			if creationCode == "" {
-				creationCode = contracts.DEFAULT_CREATION_CODE
-			}
-
-			address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)
+			address, err := calculateAddress(&params)
 			if err != nil {
-				return fmt.Errorf("failed to calculate address: %w", err)
+				return err
 			}
-
-			fmt.Println(address.Hex())
+			fmt.Println(address)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&creationCode, "creationCode", contracts.DEFAULT_CREATION_CODE, "Creation code for the wallet")
+	calculateCmd.Flags().StringVar(&params.ImageHash, "image-hash", "", "Image hash")
+	calculateCmd.Flags().StringVar(&params.Factory, "factory", "", "Factory address")
+	calculateCmd.Flags().StringVar(&params.Module, "module", "", "Module address")
+	calculateCmd.Flags().StringVar(&params.CreationCode, "creation-code", "", "Creation code (optional)")
+
+	calculateCmd.MarkFlagRequired("image-hash")
+	calculateCmd.MarkFlagRequired("factory")
+	calculateCmd.MarkFlagRequired("module")
+
+	cmd.AddCommand(calculateCmd)
 
 	return cmd
 }
