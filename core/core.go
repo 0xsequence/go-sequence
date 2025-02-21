@@ -117,6 +117,8 @@ const (
 	SignerSignatureTypeEIP712 SignerSignatureType = iota + 1
 	SignerSignatureTypeEthSign
 	SignerSignatureTypeEIP1271
+	SignerSignatureTypeSapient
+	SignerSignatureTypeSapientCompact
 )
 
 type SignerSignature struct {
