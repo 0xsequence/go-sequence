@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 )
 
@@ -48,6 +47,8 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+
+	log.Printf("ChainId: %v", p.ChainId)
 
 	log.Printf("Raw input: %s", string(p.Input))
 
@@ -158,7 +159,11 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 
 						log.Printf("Sapient: %+v", sig.Values[0])
 
-						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+						if sig.Type == "sapient" {
+							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
+						} else {
+							return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
+						}
 					default:
 						log.Printf("Unsupported signature type: %s", sig.Type)
 						continue
@@ -212,7 +217,11 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 
 						log.Printf("Sapient: %+v", sig.Values[0])
 
-						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+						if sig.Type == "sapient" {
+							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
+						} else {
+							return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
+						}
 					default:
 						log.Printf("Unsupported signature type: %s", sig.Type)
 						continue
@@ -230,8 +239,6 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 		return nil, fmt.Errorf("failed to build signature: %w", err)
 	}
 
-	spew.Dump(signature)
-
 	data, err := signature.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode signature: %w", err)
@@ -239,6 +246,7 @@ func signatureEncode(params json.RawMessage) (interface{}, error) {
 
 	return "0x" + common.Bytes2Hex(data), nil
 }
+
 func newSignatureCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "signature",

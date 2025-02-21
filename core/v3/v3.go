@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"math/bits"
@@ -207,7 +208,7 @@ func (s *RegularSignature) Join(subdigest core.Subdigest, other core.Signature[*
 	}
 
 	if s.CheckpointV3() != other_.Signature.Checkpoint {
-		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.Checkpoint(), other_.Checkpoint())
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.CheckpointV3(), other_.Checkpoint())
 	}
 
 	tree, err := s.Tree.join(other_.Tree)
@@ -246,14 +247,38 @@ func (s *RegularSignature) Data() ([]byte, error) {
 }
 
 func (s *RegularSignature) Write(writer io.Writer) error {
+	checkpointSize := minBytesForUint64(s.CheckpointV3())
+	thresholdSize := minBytesForUint16(s.Threshold())
+
+	if checkpointSize == 0 {
+		checkpointSize = 1
+	}
+	if checkpointSize > 7 {
+		return fmt.Errorf("checkpoint size %d exceeds maximum of 7 bytes", checkpointSize)
+	}
+
+	if thresholdSize == 0 {
+		thresholdSize = 1
+	}
+	if thresholdSize > 2 {
+		return fmt.Errorf("threshold size %d exceeds maximum of 2 bytes", thresholdSize)
+	}
+
 	flag := byte(0x00)
+	flag |= (checkpointSize << 2)
+	if thresholdSize == 2 {
+		flag |= 0x20
+	}
 	if s.Checkpointer != (common.Address{}) {
 		flag |= 0x40
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
+
+	log.Printf("Flag: 0x%02x, Checkpoint size: %d, Threshold size: %d", flag, checkpointSize, thresholdSize)
 
 	if s.Checkpointer != (common.Address{}) {
 		_, err = writer.Write(s.Checkpointer.Bytes())
@@ -270,12 +295,12 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 		}
 	}
 
-	err = binary.Write(writer, binary.BigEndian, s.Checkpoint())
+	err = writeUintX(writer, s.CheckpointV3(), checkpointSize)
 	if err != nil {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
 	}
 
-	err = binary.Write(writer, binary.BigEndian, s.Threshold())
+	err = writeUintX(writer, uint64(s.Threshold()), thresholdSize)
 	if err != nil {
 		return fmt.Errorf("unable to write threshold: %w", err)
 	}
@@ -380,14 +405,37 @@ func (s *NoChainIDSignature) Data() ([]byte, error) {
 }
 
 func (s *NoChainIDSignature) Write(writer io.Writer) error {
+	checkpointSize := minBytesForUint64(s.CheckpointV3())
+	thresholdSize := minBytesForUint16(s.Threshold())
+
+	if checkpointSize == 0 {
+		checkpointSize = 1
+	}
+	if checkpointSize > 7 {
+		return fmt.Errorf("checkpoint size %d exceeds maximum of 7 bytes", checkpointSize)
+	}
+	if thresholdSize == 0 {
+		thresholdSize = 1
+	}
+	if thresholdSize > 2 {
+		return fmt.Errorf("threshold size %d exceeds maximum of 2 bytes", thresholdSize)
+	}
+
 	flag := byte(0x02)
+	flag |= (checkpointSize << 2)
+	if thresholdSize == 2 {
+		flag |= 0x20
+	}
 	if s.Checkpointer != (common.Address{}) {
 		flag |= 0x40
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
+
+	log.Printf("Flag: 0x%02x, Checkpoint size: %d, Threshold size: %d", flag, checkpointSize, thresholdSize)
 
 	if s.Checkpointer != (common.Address{}) {
 		_, err = writer.Write(s.Checkpointer.Bytes())
@@ -404,12 +452,12 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 		}
 	}
 
-	err = binary.Write(writer, binary.BigEndian, s.Checkpoint())
+	err = writeUintX(writer, s.CheckpointV3(), checkpointSize)
 	if err != nil {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
 	}
 
-	err = binary.Write(writer, binary.BigEndian, s.Threshold())
+	err = writeUintX(writer, uint64(s.Threshold()), thresholdSize)
 	if err != nil {
 		return fmt.Errorf("unable to write threshold: %w", err)
 	}
@@ -744,6 +792,7 @@ type signatureTreeSignatureHashLeaf struct {
 	Weight      uint8
 	R           [32]byte
 	YParityAndS [32]byte
+	V           uint8
 }
 
 func decodeSignatureHashLeaf(firstByte byte, data *[]byte) (*signatureTreeSignatureHashLeaf, error) {
@@ -766,15 +815,21 @@ func decodeSignatureHashLeaf(firstByte byte, data *[]byte) (*signatureTreeSignat
 	copy(yParityAndS[:], (*data)[32:64])
 	*data = (*data)[64:]
 
+	yParity := (yParityAndS[0] & 0x80) >> 7
+	v := uint8(27 + yParity)
+
 	return &signatureTreeSignatureHashLeaf{
 		Weight:      weight,
 		R:           r,
 		YParityAndS: yParityAndS,
+		V:           v,
 	}, nil
 }
 
 func (l *signatureTreeSignatureHashLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
 	signature := append(l.R[:], l.YParityAndS[:]...)
+	signature = append(signature, l.V)
+
 	address, err := ecrecover(subdigest, signature)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover signature: %w", err)
@@ -805,9 +860,27 @@ func (l *signatureTreeSignatureHashLeaf) reduceImageHash() (core.ImageHash, erro
 }
 
 func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
-	_, err := writer.Write([]byte{FLAG_SIGNATURE_HASH<<4 | l.Weight})
+	var flag byte
+	var weightBytes []byte
+
+	flag = FLAG_SIGNATURE_HASH << 4
+
+	if l.Weight > 0 && l.Weight <= 15 {
+		flag |= l.Weight
+	} else {
+		weightBytes = []byte{l.Weight}
+	}
+
+	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write signature hash leaf type: %w", err)
+	}
+
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
+		if err != nil {
+			return fmt.Errorf("unable to write weight byte: %w", err)
+		}
 	}
 
 	_, err = writer.Write(l.R[:])
@@ -815,7 +888,13 @@ func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write R: %w", err)
 	}
 
-	_, err = writer.Write(l.YParityAndS[:])
+	s := l.YParityAndS
+	if l.V%2 == 0 {
+		s[0] |= 0x80
+	} else {
+		s[0] &= 0x7f
+	}
+	_, err = writer.Write(s[:])
 	if err != nil {
 		return fmt.Errorf("unable to write YParityAndS: %w", err)
 	}
@@ -1255,6 +1334,7 @@ type signatureTreeSignatureEthSignLeaf struct {
 	Weight      uint8
 	R           [32]byte
 	YParityAndS [32]byte
+	V           uint8
 }
 
 func decodeSignatureEthSignLeaf(firstByte byte, data *[]byte) (*signatureTreeSignatureEthSignLeaf, error) {
@@ -1977,19 +2057,32 @@ func (l *WalletConfigTreeAddressLeaf) unverifiedWeight(signers map[common.Addres
 }
 
 func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+
 	if signature, ok := signerSignatures[l.Address]; ok {
 		switch signature.type_ {
 		case core.SignerSignatureTypeEIP712:
+			var r [32]byte
+			copy(r[:], signature.signature[:32])
+			var s [32]byte
+			copy(s[:], signature.signature[32:64])
+			v := signature.signature[64]
 			return &signatureTreeSignatureHashLeaf{
 				Weight:      l.Weight,
-				R:           [32]byte(signature.signature[:32]),
-				YParityAndS: [32]byte(signature.signature[32:64]),
+				R:           r,
+				YParityAndS: s,
+				V:           v,
 			}
 		case core.SignerSignatureTypeEthSign:
+			var r [32]byte
+			copy(r[:], signature.signature[:32])
+			var s [32]byte
+			copy(s[:], signature.signature[32:64])
+			v := signature.signature[64]
 			return &signatureTreeSignatureEthSignLeaf{
 				Weight:      l.Weight,
-				R:           [32]byte(signature.signature[:32]),
-				YParityAndS: [32]byte(signature.signature[32:64]),
+				R:           r,
+				YParityAndS: s,
+				V:           v,
 			}
 		case core.SignerSignatureTypeEIP1271:
 			return &signatureTreeSignatureERC1271Leaf{
@@ -2217,6 +2310,27 @@ func minBytesFor(val uint64) uint8 {
 	return uint8(math.Ceil(float64(bitsFor(val)) / 8))
 }
 
+func minBytesForUint64(value uint64) byte {
+	if value == 0 {
+		return 0
+	}
+	size := byte(1)
+	for value > 0xff {
+		size++
+		value >>= 8
+	}
+	return size
+}
+
+func minBytesForUint16(value uint16) byte {
+	if value == 0 {
+		return 0
+	}
+	if value <= 0xff {
+		return 1
+	}
+	return 2
+}
 func minWeightBytes(weight uint64) uint8 {
 	if weight <= 3 {
 		return 0
@@ -2243,13 +2357,13 @@ func readUintX(size uint8, data *[]byte) (uint64, error) {
 	return value, nil
 }
 
-func writeUintX(writer io.Writer, value uint64, size uint8) error {
-	bytes := make([]byte, size)
+func writeUintX(writer io.Writer, value uint64, size byte) error {
+	buf := make([]byte, size)
 	for i := int(size) - 1; i >= 0; i-- {
-		bytes[i] = byte(value & 0xff)
+		buf[i] = byte(value & 0xff)
 		value >>= 8
 	}
-	_, err := writer.Write(bytes)
+	_, err := writer.Write(buf)
 	return err
 }
 
@@ -2272,7 +2386,12 @@ func readUint24(data *[]byte) (uint32, error) {
 }
 
 func writeUint24(writer io.Writer, value uint32) error {
-	_, err := writer.Write([]byte{byte(value >> 16), byte(value >> 8), byte(value)})
+	buf := []byte{
+		byte(value >> 16),
+		byte(value >> 8),
+		byte(value),
+	}
+	_, err := writer.Write(buf)
 	return err
 }
 
@@ -2318,15 +2437,20 @@ func toUint64(number any) (uint64, error) {
 		}
 		return uint64(number), nil
 	case float64:
-		if number < 0 {
+		if number < 0 || number > math.MaxUint64 {
 			return 0, fmt.Errorf("%v does not fit in uint64", number)
 		}
 		return uint64(number), nil
+	case string:
+		n, err := big.NewInt(0).SetString(number, 10)
+		if err || n.Sign() < 0 || n.BitLen() > 64 {
+			return 0, fmt.Errorf("%v does not fit in uint64", number)
+		}
+		return n.Uint64(), nil
 	default:
 		return 0, fmt.Errorf("unable to convert %v to uint64", number)
 	}
 }
-
 func hasKeys(object map[string]any, keys []string) bool {
 	if len(object) != len(keys) {
 		return false
