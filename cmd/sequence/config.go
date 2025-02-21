@@ -82,6 +82,84 @@ type TopologyOutput struct {
 	Weight  string `json:"weight,omitempty"`
 }
 
+func toInt64(value interface{}) (int64, error) {
+	switch v := value.(type) {
+	case string:
+		n := new(big.Int)
+		if _, ok := n.SetString(v, 10); !ok {
+			return 0, fmt.Errorf("invalid number: %s", v)
+		}
+		return n.Int64(), nil
+	case float64:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	default:
+		return 0, fmt.Errorf("cannot convert %v to int64", value)
+	}
+}
+
+func convertTree(item map[string]interface{}) (map[string]interface{}, error) {
+	treeType, ok := item["type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing 'type' in tree item")
+	}
+
+	switch treeType {
+	case "signer":
+		weight, err := toInt64(item["weight"])
+		if err != nil {
+			return nil, fmt.Errorf("invalid weight: %w", err)
+		}
+		return map[string]interface{}{
+			"weight":  weight,
+			"address": item["address"],
+		}, nil
+
+	case "subdigest":
+		return map[string]interface{}{
+			"subdigest": item["digest"],
+		}, nil
+
+	case "sapient-signer":
+		weight, err := toInt64(item["weight"])
+		if err != nil {
+			return nil, fmt.Errorf("invalid weight: %w", err)
+		}
+		return map[string]interface{}{
+			"weight":    weight,
+			"address":   item["address"],
+			"imageHash": item["imageHash"],
+		}, nil
+
+	case "nested":
+		weight, err := toInt64(item["weight"])
+		if err != nil {
+			return nil, fmt.Errorf("invalid weight: %w", err)
+		}
+		threshold, err := toInt64(item["threshold"])
+		if err != nil {
+			return nil, fmt.Errorf("invalid threshold: %w", err)
+		}
+		nestedTree, ok := item["tree"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("missing or invalid 'tree' in nested item")
+		}
+		convertedTree, err := convertTree(nestedTree)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert nested tree: %w", err)
+		}
+		return map[string]interface{}{
+			"weight":    weight,
+			"threshold": threshold,
+			"tree":      convertedTree,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unknown tree type: %s", treeType)
+	}
+}
+
 func treeToMap(tree v3.WalletConfigTree) TopologyOutput {
 	switch t := tree.(type) {
 	case *v3.WalletConfigTreeAddressLeaf:
@@ -342,30 +420,54 @@ func calculateImageHash(params *ConfigImageHashParams) (string, error) {
 		rawConfig = input
 	}
 
-	// Convert topology to tree if present
-	if topology, ok := rawConfig["topology"].(map[string]interface{}); ok {
-		// Convert topology to the expected tree format
-		treeConfig := make(map[string]interface{})
-		if topology["type"] == "signer" {
-			// Convert string weight to int64
-			if weight, ok := topology["weight"].(string); ok {
-				weightInt := new(big.Int)
-				if _, ok := weightInt.SetString(weight, 10); !ok {
-					return "", fmt.Errorf("invalid weight: %s", weight)
-				}
-				if !weightInt.IsInt64() {
-					return "", fmt.Errorf("weight too large: %s", weight)
-				}
-				treeConfig["weight"] = weightInt.Int64()
-			} else {
-				treeConfig["weight"] = topology["weight"]
+	// Convert topology array to tree structure
+	if topology, ok := rawConfig["topology"].([]interface{}); ok {
+		// Create a tree structure from the topology array
+		tree := make(map[string]interface{})
+		for i, row := range topology {
+			rowArray, ok := row.([]interface{})
+			if !ok {
+				continue
 			}
-			treeConfig["address"] = topology["address"]
-		} else {
-			// Handle other types if needed
-			return "", fmt.Errorf("unsupported topology type: %v", topology["type"])
+			for j, item := range rowArray {
+				itemMap, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				// Convert topology item to tree node
+				node := make(map[string]interface{})
+				switch itemMap["type"] {
+				case "signer":
+					node["weight"] = itemMap["weight"]
+					node["address"] = itemMap["address"]
+				case "subdigest":
+					node["subdigest"] = itemMap["digest"]
+				case "sapient-signer":
+					node["weight"] = itemMap["weight"]
+					node["address"] = itemMap["address"]
+					node["imageHash"] = itemMap["imageHash"]
+				case "nested":
+					if nestedTree, ok := itemMap["tree"].(map[string]interface{}); ok {
+						node["weight"] = nestedTree["weight"]
+						node["threshold"] = nestedTree["threshold"]
+						node["tree"] = nestedTree["tree"]
+					}
+				}
+
+				// Add node to the tree
+				if i == 0 && j == 0 {
+					tree = node
+				} else {
+					// Create a new node with left and right branches
+					newNode := make(map[string]interface{})
+					newNode["left"] = tree
+					newNode["right"] = node
+					tree = newNode
+				}
+			}
 		}
-		rawConfig["tree"] = treeConfig
+		rawConfig["tree"] = tree
 		delete(rawConfig, "topology")
 	}
 
@@ -388,10 +490,68 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 		return "", fmt.Errorf("failed to parse raw config: %w", err)
 	}
 
+	// Check if the config is nested under an "input" field
+	if input, ok := rawConfig["input"].(map[string]interface{}); ok {
+		rawConfig = input
+	}
+
+	// Convert topology array to tree structure matching TypeScript
+	if topology, ok := rawConfig["topology"].([]interface{}); ok {
+		if len(topology) != 2 {
+			return "", fmt.Errorf("expected exactly two rows in topology")
+		}
+
+		var subtrees []map[string]interface{}
+		for i, row := range topology {
+			rowArray, ok := row.([]interface{})
+			if !ok || len(rowArray) != 2 {
+				return "", fmt.Errorf("each topology row must have exactly two elements")
+			}
+
+			leftItem, ok := rowArray[0].(map[string]interface{})
+			if !ok {
+				return "", fmt.Errorf("invalid left item in topology row %d", i)
+			}
+			leftNode, err := convertTree(leftItem)
+			if err != nil {
+				return "", fmt.Errorf("failed to convert left tree item in row %d: %w", i, err)
+			}
+
+			rightItem, ok := rowArray[1].(map[string]interface{})
+			if !ok {
+				return "", fmt.Errorf("invalid right item in topology row %d", i)
+			}
+			rightNode, err := convertTree(rightItem)
+			if err != nil {
+				return "", fmt.Errorf("failed to convert right tree item in row %d: %w", i, err)
+			}
+
+			subtree := map[string]interface{}{
+				"left":  leftNode,
+				"right": rightNode,
+			}
+			subtrees = append(subtrees, subtree)
+		}
+
+		if len(subtrees) != 2 {
+			return "", fmt.Errorf("expected exactly two subtrees from topology")
+		}
+
+		tree := map[string]interface{}{
+			"left":  subtrees[0],
+			"right": subtrees[1],
+		}
+
+		rawConfig["tree"] = tree
+		delete(rawConfig, "topology")
+	}
+
 	config, err := v3.Core.DecodeWalletConfig(rawConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode wallet config: %w", err)
 	}
+
+	spew.Dump(config)
 
 	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		return 0, nil, core.ErrSigningNoSigner

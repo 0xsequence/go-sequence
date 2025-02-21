@@ -579,22 +579,73 @@ func (s ChainedSignature) Data() ([]byte, error) {
 }
 
 func (s ChainedSignature) Write(writer io.Writer) error {
-	_, err := writer.Write([]byte{0x01})
+	// Default flag
+	flag := byte(0x01)
+
+	// Check the last signature for Checkpointer, if the slice is not empty
+	if len(s) > 0 {
+		lastSig := s[len(s)-1]
+		// Type assertion to concrete types
+		if regSig, ok := lastSig.(*RegularSignature); ok {
+			// Access Checkpointer through the embedded Signature struct
+			if regSig.Signature.Checkpointer != (common.Address{}) {
+				flag |= 0x40 // Set bit [6] if Checkpointer is present
+			}
+		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok {
+			if noChainSig.Signature.Checkpointer != (common.Address{}) {
+				flag |= 0x40 // Set bit [6] if Checkpointer is present
+			}
+		}
+	}
+
+	// Write the flag
+	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write chained signature type: %w", err)
 	}
 
+	// Write Checkpointer data if present
+	if len(s) > 0 {
+		lastSig := s[len(s)-1]
+		if regSig, ok := lastSig.(*RegularSignature); ok && regSig.Signature.Checkpointer != (common.Address{}) {
+			_, err = writer.Write(regSig.Signature.Checkpointer.Bytes())
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer address: %w", err)
+			}
+			err = writeUint24(writer, uint32(len(regSig.Signature.CheckpointerData)))
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data length: %w", err)
+			}
+			_, err = writer.Write(regSig.Signature.CheckpointerData)
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			}
+		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok && noChainSig.Signature.Checkpointer != (common.Address{}) {
+			_, err = writer.Write(noChainSig.Signature.Checkpointer.Bytes())
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer address: %w", err)
+			}
+			err = writeUint24(writer, uint32(len(noChainSig.Signature.CheckpointerData)))
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data length: %w", err)
+			}
+			_, err = writer.Write(noChainSig.Signature.CheckpointerData)
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			}
+		}
+	}
+
+	// Write all subsignatures
 	for i, subsignature := range s {
 		data, err := subsignature.Data()
 		if err != nil {
 			return fmt.Errorf("unable to encode subsignature %v: %w", i, err)
 		}
-
 		err = writeUint24(writer, uint32(len(data)))
 		if err != nil {
 			return fmt.Errorf("unable to write subsignature %v length: %w", i, err)
 		}
-
 		_, err = writer.Write(data)
 		if err != nil {
 			return fmt.Errorf("unable to write subsignature %v: %w", i, err)
@@ -756,24 +807,27 @@ func (n *signatureTreeNode) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write left subtree: %w", err)
 	}
 
-	_, ok := n.right.(*signatureTreeNode)
-	if ok {
-		_, err = writer.Write([]byte{byte(FLAG_BRANCH) << 4})
-		if err != nil {
-			return fmt.Errorf("unable to write branch leaf type: %w", err)
-		}
-
+	_, isNode := n.right.(*signatureTreeNode)
+	if isNode {
 		var buffer bytes.Buffer
 		err = n.right.write(&buffer)
 		if err != nil {
 			return fmt.Errorf("unable to encode right subtree: %w", err)
 		}
-
-		err = writeUint24(writer, uint32(buffer.Len()))
+		size := uint64(buffer.Len())
+		sizeBytes := minBytesFor(size)
+		if sizeBytes > 15 {
+			return fmt.Errorf("right subtree too large: %d bytes", size)
+		}
+		flag := byte(FLAG_BRANCH<<4) | byte(sizeBytes)
+		_, err = writer.Write([]byte{flag})
+		if err != nil {
+			return fmt.Errorf("unable to write branch flag: %w", err)
+		}
+		err = writeUintX(writer, size, sizeBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write right subtree length: %w", err)
 		}
-
 		_, err = writer.Write(buffer.Bytes())
 		if err != nil {
 			return fmt.Errorf("unable to write right subtree: %w", err)
@@ -784,7 +838,6 @@ func (n *signatureTreeNode) write(writer io.Writer) error {
 			return fmt.Errorf("unable to write right subtree: %w", err)
 		}
 	}
-
 	return nil
 }
 
@@ -950,16 +1003,29 @@ func (l *signatureTreeAddressLeaf) reduceImageHash() (core.ImageHash, error) {
 }
 
 func (l *signatureTreeAddressLeaf) write(writer io.Writer) error {
-	_, err := writer.Write([]byte{FLAG_ADDRESS<<4 | l.Weight})
+	flag := byte(FLAG_ADDRESS << 4)
+	var weightBytes []byte
+	if l.Weight > 0 && l.Weight <= 15 {
+		flag |= l.Weight
+	} else if l.Weight <= 255 {
+		weightBytes = []byte{l.Weight}
+	} else {
+		return fmt.Errorf("weight too large: %d", l.Weight)
+	}
+	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write address leaf type: %w", err)
 	}
-
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
+	}
 	_, err = writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
-
 	return nil
 }
 
@@ -1301,14 +1367,44 @@ func (l *signatureTreeNestedLeaf) reduceImageHash() (core.ImageHash, error) {
 }
 
 func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
-	_, err := writer.Write([]byte{FLAG_NESTED<<4 | l.Weight})
-	if err != nil {
-		return fmt.Errorf("unable to write nested leaf type: %w", err)
+	flag := byte(FLAG_NESTED << 4)
+
+	var weightBytes []byte
+	if l.Weight <= 3 && l.Weight > 0 {
+		flag |= (l.Weight << 2)
+	} else if l.Weight <= 255 {
+		weightBytes = []byte{l.Weight}
+	} else {
+		return fmt.Errorf("weight too large: %d", l.Weight)
 	}
 
-	err = binary.Write(writer, binary.BigEndian, l.Threshold)
+	var thresholdBytes []byte
+	if l.Threshold <= 3 && l.Threshold > 0 {
+		flag |= byte(l.Threshold)
+	} else if l.Threshold <= 65535 {
+		thresholdBytes = make([]byte, 2)
+		binary.BigEndian.PutUint16(thresholdBytes, l.Threshold)
+	} else {
+		return fmt.Errorf("threshold too large: %d", l.Threshold)
+	}
+
+	_, err := writer.Write([]byte{flag})
 	if err != nil {
-		return fmt.Errorf("unable to write threshold: %w", err)
+		return fmt.Errorf("unable to write nested leaf flag: %w", err)
+	}
+
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
+	}
+
+	if len(thresholdBytes) > 0 {
+		_, err = writer.Write(thresholdBytes)
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic threshold: %w", err)
+		}
 	}
 
 	var buffer bytes.Buffer
@@ -1392,15 +1488,36 @@ func (l *signatureTreeSignatureEthSignLeaf) reduceImageHash() (core.ImageHash, e
 }
 
 func (l *signatureTreeSignatureEthSignLeaf) write(writer io.Writer) error {
-	_, err := writer.Write([]byte{FLAG_SIGNATURE_ETH_SIGN<<4 | l.Weight})
+	flag := byte(FLAG_SIGNATURE_ETH_SIGN << 4)
+	var weightBytes []byte
+	if l.Weight > 0 && l.Weight <= 15 {
+		flag |= l.Weight
+	} else if l.Weight <= 255 {
+		weightBytes = []byte{l.Weight}
+	} else {
+		return fmt.Errorf("weight too large: %d", l.Weight)
+	}
+	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write eth sign leaf type: %w", err)
+	}
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
+		if err != nil {
+			return fmt.Errorf("unable to write dynamic weight: %w", err)
+		}
 	}
 	_, err = writer.Write(l.R[:])
 	if err != nil {
 		return fmt.Errorf("unable to write R: %w", err)
 	}
-	_, err = writer.Write(l.YParityAndS[:])
+	s := l.YParityAndS
+	if l.V%2 == 0 {
+		s[0] |= 0x80
+	} else {
+		s[0] &= 0x7f
+	}
+	_, err = writer.Write(s[:])
 	if err != nil {
 		return fmt.Errorf("unable to write YParityAndS: %w", err)
 	}
@@ -1891,7 +2008,7 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 	} else if hasKeys(object_, []string{"digest"}) {
 		return decodeWalletConfigTreeAnyAddressSubdigestLeaf(object_)
 	}
-	return nil, fmt.Errorf("unknown wallet config tree type")
+	return nil, fmt.Errorf("unknown wallet config tree type: %v", object_)
 }
 
 func WalletConfigTreeNodes(nodes ...WalletConfigTree) WalletConfigTree {
@@ -1989,10 +2106,30 @@ func (n *WalletConfigTreeNode) unverifiedWeight(signers map[common.Address]uint1
 }
 
 func (n *WalletConfigTreeNode) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
-	return &signatureTreeNode{
-		left:  n.Left.buildSignatureTree(signerSignatures),
-		right: n.Right.buildSignatureTree(signerSignatures),
+	nodes := []signatureTree{}
+	var collectNodes func(tree WalletConfigTree)
+	collectNodes = func(tree WalletConfigTree) {
+		switch t := tree.(type) {
+		case *WalletConfigTreeNode:
+			collectNodes(t.Left)
+			collectNodes(t.Right)
+		default:
+			nodes = append(nodes, t.buildSignatureTree(signerSignatures))
+		}
 	}
+	collectNodes(n)
+
+	if len(nodes) == 0 {
+		panic("empty tree")
+	}
+	if len(nodes) == 1 {
+		return nodes[0]
+	}
+	tree := nodes[0]
+	for i := 1; i < len(nodes); i++ {
+		tree = &signatureTreeNode{left: tree, right: nodes[i]}
+	}
+	return tree
 }
 
 type WalletConfigTreeAddressLeaf struct {
