@@ -15,9 +15,9 @@ func main() {
 	}
 
 	rootCmd.AddCommand(
-		// newPayloadCmd(),
+		newPayloadCmd(),
 		newConfigCmd(),
-		// newDevToolsCmd(),
+		newDevToolsCmd(),
 		newSignatureCmd(),
 		// newPermissionCmd(),
 		// newSessionCmd(),

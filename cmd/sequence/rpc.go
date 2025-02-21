@@ -91,7 +91,31 @@ func handleSignatureEncode(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-	return signatureEncode(params)
+	return signatureEncode(&p)
+}
+
+func handleSignatureConcat(params json.RawMessage) (interface{}, error) {
+	var p SignatureConcatParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return signatureConcat(&p)
+}
+
+func handleDevToolsRandomConfig(params json.RawMessage) (interface{}, error) {
+	var p RandomConfigParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleRandomConfig(&p)
+}
+
+func handleDevToolsRandomSessionTopology(params json.RawMessage) (interface{}, error) {
+	var p RandomSessionTopologyParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleRandomSessionTopology(&p)
 }
 
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
@@ -143,6 +167,12 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleConfigEncode(req.Params)
 	case "signature_encode":
 		result, err = handleSignatureEncode(req.Params)
+	case "signature_concat":
+		result, err = handleSignatureConcat(req.Params)
+	case "devTools_randomConfig":
+		result, err = handleDevToolsRandomConfig(req.Params)
+	case "devTools_randomSessionTopology":
+		result, err = handleDevToolsRandomSessionTopology(req.Params)
 	default:
 		if !silent {
 			log.Printf("Method not found: %s", req.Method)

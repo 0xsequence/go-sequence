@@ -19,6 +19,10 @@ type SignatureElement struct {
 	Values  []string `json:"values"`
 }
 
+type SignatureConcatParams struct {
+	Signatures []string `json:"signatures"`
+}
+
 type WalletConfigInput struct {
 	Threshold  json.RawMessage `json:"threshold"`
 	Checkpoint json.RawMessage `json:"checkpoint"`
@@ -36,12 +40,21 @@ func convertTopologyToTree(topology map[string]interface{}) (map[string]interfac
 	return nil, fmt.Errorf("unsupported topology type: %v", topology["type"])
 }
 
-func signatureEncode(params json.RawMessage) (interface{}, error) {
-	var p SignatureEncodeParams
-	if err := json.Unmarshal(params, &p); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
+func signatureConcat(params *SignatureConcatParams) (string, error) {
+	log.Printf("Concatenating signatures: %v", params.Signatures)
+
+	var combined []byte
+	for _, sig := range params.Signatures {
+		sig = strings.TrimPrefix(sig, "0x")
+
+		sigBytes := common.FromHex(sig)
+		combined = append(combined, sigBytes...)
 	}
 
+	return "0x" + common.Bytes2Hex(combined), nil
+}
+
+func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 	log.Printf("ChainId: %v", p.ChainId)
 
 	log.Printf("Raw input: %s", string(p.Input))
@@ -262,18 +275,35 @@ func newSignatureCmd() *cobra.Command {
 				return fmt.Errorf("signatures are required")
 			}
 
-			params := SignatureEncodeParams{
+			params := &SignatureEncodeParams{
 				Input:      json.RawMessage(input),
 				Signatures: signatures,
 				ChainId:    chainId,
 			}
 
-			paramsJSON, err := json.Marshal(params)
+			result, err := signatureEncode(params)
 			if err != nil {
-				return fmt.Errorf("failed to marshal params: %w", err)
+				return err
 			}
 
-			result, err := signatureEncode(paramsJSON)
+			fmt.Println(result)
+			return nil
+		},
+	}
+
+	concatCmd := &cobra.Command{
+		Use:   "concat [signatures...]",
+		Short: "Concatenate multiple signatures",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("at least one signature is required")
+			}
+
+			params := &SignatureConcatParams{
+				Signatures: args,
+			}
+
+			result, err := signatureConcat(params)
 			if err != nil {
 				return err
 			}
@@ -287,7 +317,7 @@ func newSignatureCmd() *cobra.Command {
 	encodeCmd.Flags().StringVarP(&signatures, "signatures", "s", "", "Signatures")
 	encodeCmd.Flags().BoolVarP(&chainId, "chainId", "c", true, "Chain ID")
 
-	cmd.AddCommand(encodeCmd)
+	cmd.AddCommand(encodeCmd, concatCmd)
 
 	return cmd
 }

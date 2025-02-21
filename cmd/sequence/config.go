@@ -69,6 +69,46 @@ func (n *NodeElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
+type ConfigOutput struct {
+	Threshold  string         `json:"threshold"`
+	Checkpoint string         `json:"checkpoint"`
+	Topology   TopologyOutput `json:"topology"`
+}
+
+type TopologyOutput struct {
+	Type    string `json:"type"`
+	Address string `json:"address,omitempty"`
+	Weight  string `json:"weight,omitempty"`
+}
+
+func treeToMap(tree v3.WalletConfigTree) TopologyOutput {
+	switch t := tree.(type) {
+	case *v3.WalletConfigTreeAddressLeaf:
+		return TopologyOutput{
+			Type:    "signer",
+			Address: t.Address.Hex(),
+			Weight:  fmt.Sprintf("%d", t.Weight),
+		}
+	case *v3.WalletConfigTreeSubdigestLeaf:
+		return TopologyOutput{
+			Type:    "subdigest",
+			Address: t.Subdigest.Hex(),
+		}
+	case *v3.WalletConfigTreeNestedLeaf:
+		return TopologyOutput{
+			Type: "nested",
+		}
+	case *v3.WalletConfigTreeNodeLeaf:
+		return TopologyOutput{
+			Type:    "node",
+			Address: t.Node.Hex(),
+		}
+	default:
+		log.Printf("Unsupported tree type: %T", tree)
+		return TopologyOutput{}
+	}
+}
+
 func parseNestedElement(element string) (*NestedElement, error) {
 	log.Printf("Parsing nested element: %q", element)
 
@@ -213,7 +253,7 @@ func parseElement(element string) (ConfigElement, error) {
 	}
 }
 
-func createConfig(threshold uint16, checkpoint uint64, elements []string) (*v3.WalletConfig, error) {
+func createConfig(threshold uint16, checkpoint uint64, elements []string) (ConfigOutput, error) {
 	log.Printf("Creating config with threshold: %d, checkpoint: %d, elements: %v", threshold, checkpoint, elements)
 
 	var configElements []ConfigElement
@@ -223,23 +263,33 @@ func createConfig(threshold uint16, checkpoint uint64, elements []string) (*v3.W
 		}
 		configElement, err := parseElement(element)
 		if err != nil {
-			return nil, err
+			return ConfigOutput{}, err
 		}
 		configElements = append(configElements, configElement)
 	}
 
-	var trees []v3.WalletConfigTree
-	for _, element := range configElements {
-		trees = append(trees, element.ToTree())
+	var tree v3.WalletConfigTree
+	if len(configElements) == 0 {
+		return ConfigOutput{}, fmt.Errorf("no valid config elements provided")
+	} else if len(configElements) == 1 {
+		tree = configElements[0].ToTree()
+	} else {
+		var trees []v3.WalletConfigTree
+		for _, element := range configElements {
+			trees = append(trees, element.ToTree())
+		}
+		tree = &v3.WalletConfigTreeNestedLeaf{
+			Threshold: threshold,
+			Weight:    0,
+			Tree:      v3.WalletConfigTreeNodes(trees...),
+		}
 	}
 
-	config := &v3.WalletConfig{
-		Threshold_:  threshold,
-		Checkpoint_: checkpoint,
-		Tree:        v3.WalletConfigTreeNodes(trees...),
-	}
-
-	return config, nil
+	return ConfigOutput{
+		Threshold:  fmt.Sprintf("%d", threshold),
+		Checkpoint: fmt.Sprintf("%d", checkpoint),
+		Topology:   treeToMap(tree),
+	}, nil
 }
 
 // createNewConfig creates a new configuration from the given parameters
@@ -284,6 +334,38 @@ func calculateImageHash(params *ConfigImageHashParams) (string, error) {
 	var rawConfig map[string]interface{}
 	if err := json.Unmarshal(params.Input, &rawConfig); err != nil {
 		return "", fmt.Errorf("failed to parse raw config: %w", err)
+	}
+
+	// Check if the config is nested under an "input" field
+	if input, ok := rawConfig["input"].(map[string]interface{}); ok {
+		rawConfig = input
+	}
+
+	// Convert topology to tree if present
+	if topology, ok := rawConfig["topology"].(map[string]interface{}); ok {
+		// Convert topology to the expected tree format
+		treeConfig := make(map[string]interface{})
+		if topology["type"] == "signer" {
+			// Convert string weight to int64
+			if weight, ok := topology["weight"].(string); ok {
+				weightInt := new(big.Int)
+				if _, ok := weightInt.SetString(weight, 10); !ok {
+					return "", fmt.Errorf("invalid weight: %s", weight)
+				}
+				if !weightInt.IsInt64() {
+					return "", fmt.Errorf("weight too large: %s", weight)
+				}
+				treeConfig["weight"] = weightInt.Int64()
+			} else {
+				treeConfig["weight"] = topology["weight"]
+			}
+			treeConfig["address"] = topology["address"]
+		} else {
+			// Handle other types if needed
+			return "", fmt.Errorf("unsupported topology type: %v", topology["type"])
+		}
+		rawConfig["tree"] = treeConfig
+		delete(rawConfig, "topology")
 	}
 
 	config, err := v3.Core.DecodeWalletConfig(rawConfig)
