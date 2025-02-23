@@ -407,82 +407,6 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 	log.Printf("Created config: %s", string(jsonConfig))
 	return string(jsonConfig), nil
 }
-
-// calculateImageHash calculates the image hash for a given configuration
-func calculateImageHash(params *ConfigImageHashParams) (string, error) {
-	var rawConfig map[string]interface{}
-	if err := json.Unmarshal(params.Input, &rawConfig); err != nil {
-		return "", fmt.Errorf("failed to parse raw config: %w", err)
-	}
-
-	// Check if the config is nested under an "input" field
-	if input, ok := rawConfig["input"].(map[string]interface{}); ok {
-		rawConfig = input
-	}
-
-	// Convert topology array to tree structure
-	if topology, ok := rawConfig["topology"].([]interface{}); ok {
-		// Create a tree structure from the topology array
-		tree := make(map[string]interface{})
-		for i, row := range topology {
-			rowArray, ok := row.([]interface{})
-			if !ok {
-				continue
-			}
-			for j, item := range rowArray {
-				itemMap, ok := item.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				// Convert topology item to tree node
-				node := make(map[string]interface{})
-				switch itemMap["type"] {
-				case "signer":
-					node["weight"] = itemMap["weight"]
-					node["address"] = itemMap["address"]
-				case "subdigest":
-					node["subdigest"] = itemMap["digest"]
-				case "sapient-signer":
-					node["weight"] = itemMap["weight"]
-					node["address"] = itemMap["address"]
-					node["imageHash"] = itemMap["imageHash"]
-				case "nested":
-					if nestedTree, ok := itemMap["tree"].(map[string]interface{}); ok {
-						node["weight"] = nestedTree["weight"]
-						node["threshold"] = nestedTree["threshold"]
-						node["tree"] = nestedTree["tree"]
-					}
-				}
-
-				// Add node to the tree
-				if i == 0 && j == 0 {
-					tree = node
-				} else {
-					// Create a new node with left and right branches
-					newNode := make(map[string]interface{})
-					newNode["left"] = tree
-					newNode["right"] = node
-					tree = newNode
-				}
-			}
-		}
-		rawConfig["tree"] = tree
-		delete(rawConfig, "topology")
-	}
-
-	config, err := v3.Core.DecodeWalletConfig(rawConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode wallet config: %w", err)
-	}
-
-	log.Printf("Decoded config: %+v", config)
-	spew.Dump(config)
-
-	imageHash := config.ImageHash()
-	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
-}
-
 func handleRawConfig(input []byte) (map[string]interface{}, error) {
 	var rawConfig map[string]interface{}
 	if err := json.Unmarshal(input, &rawConfig); err != nil {
@@ -497,55 +421,115 @@ func handleRawConfig(input []byte) (map[string]interface{}, error) {
 	// Convert topology array to tree structure matching TypeScript
 	if topology, ok := rawConfig["topology"].([]interface{}); ok {
 		if len(topology) != 2 {
-			return nil, fmt.Errorf("expected exactly two rows in topology")
+			return nil, fmt.Errorf("topology must have exactly two elements")
 		}
 
-		var subtrees []map[string]interface{}
-		for i, row := range topology {
-			rowArray, ok := row.([]interface{})
-			if !ok || len(rowArray) != 2 {
-				return nil, fmt.Errorf("each topology row must have exactly two elements")
-			}
+		var leftNode, rightNode map[string]interface{}
+		var err error
 
-			leftItem, ok := rowArray[0].(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("invalid left item in topology row %d", i)
+		// Check if the first element is an array
+		if leftArray, isArray := topology[0].([]interface{}); isArray {
+			if len(leftArray) != 2 {
+				return nil, fmt.Errorf("left topology row must have exactly two elements")
 			}
-			leftNode, err := convertTree(leftItem)
+			leftSubtree, err := buildSubtree(leftArray)
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert left tree item in row %d: %w", i, err)
+				return nil, fmt.Errorf("failed to build left subtree: %w", err)
 			}
-
-			rightItem, ok := rowArray[1].(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("invalid right item in topology row %d", i)
-			}
-			rightNode, err := convertTree(rightItem)
+			leftNode = leftSubtree
+		} else {
+			leftNode, err = processLeaf(topology[0])
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert right tree item in row %d: %w", i, err)
+				return nil, fmt.Errorf("failed to process left leaf: %w", err)
 			}
-
-			subtree := map[string]interface{}{
-				"left":  leftNode,
-				"right": rightNode,
-			}
-			subtrees = append(subtrees, subtree)
 		}
 
-		if len(subtrees) != 2 {
-			return nil, fmt.Errorf("expected exactly two subtrees from topology")
+		// Check if the second element is an array
+		if rightArray, isArray := topology[1].([]interface{}); isArray {
+			if len(rightArray) != 2 {
+				return nil, fmt.Errorf("right topology row must have exactly two elements")
+			}
+			rightSubtree, err := buildSubtree(rightArray)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build right subtree: %w", err)
+			}
+			rightNode = rightSubtree
+		} else {
+			rightNode, err = processLeaf(topology[1])
+			if err != nil {
+				return nil, fmt.Errorf("failed to process right leaf: %w", err)
+			}
 		}
 
 		tree := map[string]interface{}{
-			"left":  subtrees[0],
-			"right": subtrees[1],
+			"left":  leftNode,
+			"right": rightNode,
 		}
-
 		rawConfig["tree"] = tree
 		delete(rawConfig, "topology")
 	}
 
 	return rawConfig, nil
+}
+
+// buildSubtree builds a subtree from an array of two elements
+func buildSubtree(row []interface{}) (map[string]interface{}, error) {
+	if len(row) != 2 {
+		return nil, fmt.Errorf("subtree row must have exactly two elements")
+	}
+	leftItem, ok := row[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid left item in subtree")
+	}
+	leftNode, err := convertTree(leftItem)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert left tree item: %w", err)
+	}
+	rightItem, ok := row[1].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid right item in subtree")
+	}
+	rightNode, err := convertTree(rightItem)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert right tree item: %w", err)
+	}
+	return map[string]interface{}{
+		"left":  leftNode,
+		"right": rightNode,
+	}, nil
+}
+
+func processLeaf(item interface{}) (map[string]interface{}, error) {
+	switch v := item.(type) {
+	case map[string]interface{}:
+		return convertTree(v)
+	case string:
+		return map[string]interface{}{
+			"type": "node",
+			"hash": v,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported leaf type: %T", v)
+	}
+}
+
+// calculateImageHash calculates the image hash for a given configuration
+func calculateImageHash(params *ConfigImageHashParams) (string, error) {
+	rawConfig, err := handleRawConfig(params.Input)
+	if err != nil {
+		return "", fmt.Errorf("failed to handle raw config: %w", err)
+	}
+
+	config, err := v3.Core.DecodeWalletConfig(rawConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode wallet config: %w", err)
+	}
+
+	log.Printf("Decoded config: %+v", config)
+	spew.Dump(config)
+
+	imageHash := config.ImageHash()
+	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
 }
 
 // encodeConfig encodes a configuration into a signature format
