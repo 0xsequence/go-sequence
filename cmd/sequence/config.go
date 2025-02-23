@@ -407,110 +407,64 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 	log.Printf("Created config: %s", string(jsonConfig))
 	return string(jsonConfig), nil
 }
-func handleRawConfig(input []byte) (map[string]interface{}, error) {
-	var rawConfig map[string]interface{}
-	if err := json.Unmarshal(input, &rawConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse raw config: %w", err)
-	}
 
-	// Check if the config is nested under an "input" field
-	if input, ok := rawConfig["input"].(map[string]interface{}); ok {
-		rawConfig = input
-	}
-
-	// Convert topology array to tree structure matching TypeScript
-	if topology, ok := rawConfig["topology"].([]interface{}); ok {
-		if len(topology) != 2 {
-			return nil, fmt.Errorf("topology must have exactly two elements")
+func buildTree(element interface{}) (interface{}, error) {
+	switch v := element.(type) {
+	case []interface{}:
+		if len(v) != 2 {
+			return nil, fmt.Errorf("array must have exactly two elements")
 		}
-
-		var leftNode, rightNode map[string]interface{}
-		var err error
-
-		// Check if the first element is an array
-		if leftArray, isArray := topology[0].([]interface{}); isArray {
-			if len(leftArray) != 2 {
-				return nil, fmt.Errorf("left topology row must have exactly two elements")
-			}
-			leftSubtree, err := buildSubtree(leftArray)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build left subtree: %w", err)
-			}
-			leftNode = leftSubtree
-		} else {
-			leftNode, err = processLeaf(topology[0])
-			if err != nil {
-				return nil, fmt.Errorf("failed to process left leaf: %w", err)
-			}
+		left, err := buildTree(v[0])
+		if err != nil {
+			return nil, err
 		}
-
-		// Check if the second element is an array
-		if rightArray, isArray := topology[1].([]interface{}); isArray {
-			if len(rightArray) != 2 {
-				return nil, fmt.Errorf("right topology row must have exactly two elements")
-			}
-			rightSubtree, err := buildSubtree(rightArray)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build right subtree: %w", err)
-			}
-			rightNode = rightSubtree
-		} else {
-			rightNode, err = processLeaf(topology[1])
-			if err != nil {
-				return nil, fmt.Errorf("failed to process right leaf: %w", err)
-			}
+		right, err := buildTree(v[1])
+		if err != nil {
+			return nil, err
 		}
-
-		tree := map[string]interface{}{
-			"left":  leftNode,
-			"right": rightNode,
-		}
-		rawConfig["tree"] = tree
-		delete(rawConfig, "topology")
-	}
-
-	return rawConfig, nil
-}
-
-// buildSubtree builds a subtree from an array of two elements
-func buildSubtree(row []interface{}) (map[string]interface{}, error) {
-	if len(row) != 2 {
-		return nil, fmt.Errorf("subtree row must have exactly two elements")
-	}
-	leftItem, ok := row[0].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("invalid left item in subtree")
-	}
-	leftNode, err := convertTree(leftItem)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert left tree item: %w", err)
-	}
-	rightItem, ok := row[1].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("invalid right item in subtree")
-	}
-	rightNode, err := convertTree(rightItem)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert right tree item: %w", err)
-	}
-	return map[string]interface{}{
-		"left":  leftNode,
-		"right": rightNode,
-	}, nil
-}
-
-func processLeaf(item interface{}) (map[string]interface{}, error) {
-	switch v := item.(type) {
+		return map[string]interface{}{
+			"left":  left,
+			"right": right,
+		}, nil
 	case map[string]interface{}:
-		return convertTree(v)
+		if tree, ok := v["tree"]; ok && v["type"] == "nested" {
+			processedTree, err := buildTree(tree)
+			if err != nil {
+				return nil, fmt.Errorf("failed to process nested tree: %w", err)
+			}
+			v["tree"] = processedTree
+		}
+		return v, nil
 	case string:
 		return map[string]interface{}{
 			"type": "node",
 			"hash": v,
 		}, nil
 	default:
-		return nil, fmt.Errorf("unsupported leaf type: %T", v)
+		return nil, fmt.Errorf("unsupported element type: %T", v)
 	}
+}
+
+func handleRawConfig(input []byte) (map[string]interface{}, error) {
+	var rawConfig map[string]interface{}
+	if err := json.Unmarshal(input, &rawConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse raw config: %w", err)
+	}
+
+	if input, ok := rawConfig["input"].(map[string]interface{}); ok {
+		rawConfig = input
+	}
+
+	if topology := rawConfig["topology"]; topology != nil {
+		tree, err := buildTree(topology)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build tree from topology: %w", err)
+		}
+		rawConfig["tree"] = tree
+		delete(rawConfig, "topology")
+	}
+
+	return rawConfig, nil
 }
 
 // calculateImageHash calculates the image hash for a given configuration

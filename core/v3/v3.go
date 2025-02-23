@@ -2394,23 +2394,26 @@ func decodeWalletConfigTreeSubdigestLeaf(object any) (WalletConfigTreeSubdigestL
 		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf("wallet config tree subdigest leaf must be an object")
 	}
 
-	subdigest, ok := object_["subdigest"]
+	digest, ok := object_["digest"]
 	if !ok {
-		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf(`missing required "subdigest" property`)
-	}
-	subdigest_, ok := subdigest.(string)
-	if !ok {
-		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf("subdigest must be a string")
-	}
-	subdigest__, err := hexutil.Decode(subdigest_)
-	if err != nil {
-		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf(`"%v" is not valid hex`, subdigest_)
-	}
-	if len(subdigest__) != common.HashLength {
-		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf("expected hash of length %v, got %v", common.HashLength, len(subdigest__))
+		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf(`missing required "digest" property`)
 	}
 
-	return WalletConfigTreeSubdigestLeaf{core.Subdigest{Hash: common.BytesToHash(subdigest__)}}, nil
+	digest_, ok := digest.(string)
+	if !ok {
+		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf("digest must be a string")
+	}
+
+	digestBytes, err := hexutil.Decode(digest_)
+	if err != nil {
+		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf(`"%v" is not valid hex`, digest_)
+	}
+
+	if len(digestBytes) != common.HashLength {
+		return WalletConfigTreeSubdigestLeaf{}, fmt.Errorf("expected hash of length %v, got %v", common.HashLength, len(digestBytes))
+	}
+
+	return WalletConfigTreeSubdigestLeaf{core.Subdigest{Hash: common.BytesToHash(digestBytes)}}, nil
 }
 
 func (l WalletConfigTreeSubdigestLeaf) ImageHash() core.ImageHash {
