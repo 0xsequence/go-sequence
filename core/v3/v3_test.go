@@ -3,6 +3,7 @@ package v3
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -103,15 +104,16 @@ func TestEncodeSubdigestLeaf(t *testing.T) {
 		Threshold_:  1,
 		Checkpoint_: 0,
 		Tree: &WalletConfigTreeSubdigestLeaf{
-			Subdigest: core.Subdigest{Hash: common.HexToHash("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef")},
+			Subdigest: core.Subdigest{Hash: common.HexToHash("0x" + strings.Repeat("abcdef", 10) + "abcd")},
 		},
 	}
+
 	sig, err := config.BuildNoChainIDSignature(context.Background(), noSigner, false)
 	assert.NoError(t, err)
 	var buf bytes.Buffer
 	err = sig.Write(&buf)
 	assert.NoError(t, err)
-	expected := "0x06000150" + "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef"
+	expected := "0x06000150" + "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
 	actual := "0x" + common.Bytes2Hex(buf.Bytes())
 	assert.Equal(t, expected, actual)
 }
@@ -158,7 +160,7 @@ func TestEncodeAnyAddressSubdigestLeaf(t *testing.T) {
 		Threshold_:  1,
 		Checkpoint_: 0,
 		Tree: &WalletConfigTreeAnyAddressSubdigestLeaf{
-			Digest: core.Subdigest{Hash: common.HexToHash("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef")},
+			Digest: core.Subdigest{Hash: common.HexToHash("0x" + strings.Repeat("abcdef", 10) + "abcd")},
 		},
 	}
 	sig, err := config.BuildNoChainIDSignature(context.Background(), noSigner, false)
@@ -166,7 +168,7 @@ func TestEncodeAnyAddressSubdigestLeaf(t *testing.T) {
 	var buf bytes.Buffer
 	err = sig.Write(&buf)
 	assert.NoError(t, err)
-	expected := "0x06000180" + "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef"
+	expected := "0x06000180" + "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
 	actual := "0x" + common.Bytes2Hex(buf.Bytes())
 	t.Logf("Actual encoding: %s", actual)
 	assert.Equal(t, expected, actual)

@@ -1992,7 +1992,6 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 	if !ok {
 		return nil, fmt.Errorf("wallet config tree must be an object")
 	}
-
 	if hasKeys(object_, []string{"left", "right"}) {
 		return decodeWalletConfigTreeNode(object_)
 	} else if hasKeys(object_, []string{"weight", "address"}) {
@@ -2106,30 +2105,9 @@ func (n *WalletConfigTreeNode) unverifiedWeight(signers map[common.Address]uint1
 }
 
 func (n *WalletConfigTreeNode) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
-	nodes := []signatureTree{}
-	var collectNodes func(tree WalletConfigTree)
-	collectNodes = func(tree WalletConfigTree) {
-		switch t := tree.(type) {
-		case *WalletConfigTreeNode:
-			collectNodes(t.Left)
-			collectNodes(t.Right)
-		default:
-			nodes = append(nodes, t.buildSignatureTree(signerSignatures))
-		}
-	}
-	collectNodes(n)
-
-	if len(nodes) == 0 {
-		panic("empty tree")
-	}
-	if len(nodes) == 1 {
-		return nodes[0]
-	}
-	tree := nodes[0]
-	for i := 1; i < len(nodes); i++ {
-		tree = &signatureTreeNode{left: tree, right: nodes[i]}
-	}
-	return tree
+	leftTree := n.Left.buildSignatureTree(signerSignatures)
+	rightTree := n.Right.buildSignatureTree(signerSignatures)
+	return &signatureTreeNode{left: leftTree, right: rightTree}
 }
 
 type WalletConfigTreeAddressLeaf struct {
@@ -2519,7 +2497,10 @@ func (l *WalletConfigTreeSapientSignerLeaf) buildSignatureTree(signerSignatures 
 			Signature: signature.signature,
 		}
 	}
-	return &signatureTreeAddressLeaf{Weight: l.Weight, Address: l.Address}
+	hashedImage := l.ImageHash()
+	return &signatureTreeNodeLeaf{
+		ImageHash: hashedImage,
+	}
 }
 
 type WalletConfigTreeAnyAddressSubdigestLeaf struct {
