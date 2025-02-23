@@ -483,11 +483,10 @@ func calculateImageHash(params *ConfigImageHashParams) (string, error) {
 	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
 }
 
-// encodeConfig encodes a configuration into a signature format
-func encodeConfig(params *ConfigEncodeParams) (string, error) {
+func handleRawConfig(input []byte) (map[string]interface{}, error) {
 	var rawConfig map[string]interface{}
-	if err := json.Unmarshal(params.Input, &rawConfig); err != nil {
-		return "", fmt.Errorf("failed to parse raw config: %w", err)
+	if err := json.Unmarshal(input, &rawConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse raw config: %w", err)
 	}
 
 	// Check if the config is nested under an "input" field
@@ -498,32 +497,32 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 	// Convert topology array to tree structure matching TypeScript
 	if topology, ok := rawConfig["topology"].([]interface{}); ok {
 		if len(topology) != 2 {
-			return "", fmt.Errorf("expected exactly two rows in topology")
+			return nil, fmt.Errorf("expected exactly two rows in topology")
 		}
 
 		var subtrees []map[string]interface{}
 		for i, row := range topology {
 			rowArray, ok := row.([]interface{})
 			if !ok || len(rowArray) != 2 {
-				return "", fmt.Errorf("each topology row must have exactly two elements")
+				return nil, fmt.Errorf("each topology row must have exactly two elements")
 			}
 
 			leftItem, ok := rowArray[0].(map[string]interface{})
 			if !ok {
-				return "", fmt.Errorf("invalid left item in topology row %d", i)
+				return nil, fmt.Errorf("invalid left item in topology row %d", i)
 			}
 			leftNode, err := convertTree(leftItem)
 			if err != nil {
-				return "", fmt.Errorf("failed to convert left tree item in row %d: %w", i, err)
+				return nil, fmt.Errorf("failed to convert left tree item in row %d: %w", i, err)
 			}
 
 			rightItem, ok := rowArray[1].(map[string]interface{})
 			if !ok {
-				return "", fmt.Errorf("invalid right item in topology row %d", i)
+				return nil, fmt.Errorf("invalid right item in topology row %d", i)
 			}
 			rightNode, err := convertTree(rightItem)
 			if err != nil {
-				return "", fmt.Errorf("failed to convert right tree item in row %d: %w", i, err)
+				return nil, fmt.Errorf("failed to convert right tree item in row %d: %w", i, err)
 			}
 
 			subtree := map[string]interface{}{
@@ -534,7 +533,7 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 		}
 
 		if len(subtrees) != 2 {
-			return "", fmt.Errorf("expected exactly two subtrees from topology")
+			return nil, fmt.Errorf("expected exactly two subtrees from topology")
 		}
 
 		tree := map[string]interface{}{
@@ -544,6 +543,16 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 
 		rawConfig["tree"] = tree
 		delete(rawConfig, "topology")
+	}
+
+	return rawConfig, nil
+}
+
+// encodeConfig encodes a configuration into a signature format
+func encodeConfig(params *ConfigEncodeParams) (string, error) {
+	rawConfig, err := handleRawConfig(params.Input)
+	if err != nil {
+		return "", fmt.Errorf("failed to handle raw config: %w", err)
 	}
 
 	config, err := v3.Core.DecodeWalletConfig(rawConfig)
