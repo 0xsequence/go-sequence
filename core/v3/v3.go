@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/big"
 	"math/bits"
+	"strconv"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -2673,10 +2674,16 @@ func toUint8(number any) (uint8, error) {
 		}
 		return uint8(number), nil
 	case float64:
-		if number < 0 || number > 0xff {
+		if number < 0 || number > 0xff || math.Floor(number) != number {
 			return 0, fmt.Errorf("%v does not fit in uint8", number)
 		}
 		return uint8(number), nil
+	case string:
+		n, err := strconv.ParseUint(number, 10, 8)
+		if err != nil {
+			return 0, fmt.Errorf("unable to parse string %s as uint8: %w", number, err)
+		}
+		return uint8(n), nil
 	default:
 		return 0, fmt.Errorf("unable to convert %v to uint8", number)
 	}
@@ -2690,16 +2697,16 @@ func toUint16(number any) (uint16, error) {
 		}
 		return uint16(number), nil
 	case float64:
-		if number < 0 || number > 0xffff {
+		if number < 0 || number > 0xffff || math.Floor(number) != number {
 			return 0, fmt.Errorf("%v does not fit in uint16", number)
 		}
 		return uint16(number), nil
 	case string:
-		n, ok := big.NewInt(0).SetString(number, 10)
-		if !ok || n.Sign() == -1 || n.BitLen() > 16 {
-			return 0, fmt.Errorf("%v does not fit in uint16", number)
+		n, err := strconv.ParseUint(number, 10, 16)
+		if err != nil {
+			return 0, fmt.Errorf("unable to parse string %s as uint16: %w", number, err)
 		}
-		return uint16(n.Uint64()), nil
+		return uint16(n), nil
 	default:
 		return 0, fmt.Errorf("unable to convert %v to uint16", number)
 	}
@@ -2713,20 +2720,21 @@ func toUint64(number any) (uint64, error) {
 		}
 		return uint64(number), nil
 	case float64:
-		if number < 0 || number > math.MaxUint64 {
+		if number < 0 || number > math.MaxUint64 || math.Floor(number) != number {
 			return 0, fmt.Errorf("%v does not fit in uint64", number)
 		}
 		return uint64(number), nil
 	case string:
-		n, ok := big.NewInt(0).SetString(number, 10)
-		if !ok || n.Sign() == -1 || n.BitLen() > 64 {
-			return 0, fmt.Errorf("%v does not fit in uint64", number)
+		n, err := strconv.ParseUint(number, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("unable to parse string %s as uint64: %w", number, err)
 		}
-		return n.Uint64(), nil
+		return n, nil
 	default:
 		return 0, fmt.Errorf("unable to convert %v to uint64", number)
 	}
 }
+
 func hasKeys(object map[string]any, keys []string) bool {
 	if len(object) != len(keys) {
 		return false
