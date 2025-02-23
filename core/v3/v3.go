@@ -1993,6 +1993,34 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 	if !ok {
 		return nil, fmt.Errorf("wallet config tree must be an object")
 	}
+
+	if typ, ok := object_["type"].(string); ok {
+		switch typ {
+		case "signer":
+			return decodeWalletConfigTreeAddressLeaf(object_)
+		case "sapient-signer":
+			return decodeWalletConfigTreeSapientSignerLeaf(object_)
+		case "subdigest":
+			return decodeWalletConfigTreeSubdigestLeaf(object_)
+		case "any-address-subdigest":
+			return decodeWalletConfigTreeAnyAddressSubdigestLeaf(object_)
+		case "nested":
+			return decodeWalletConfigTreeNestedLeaf(object_)
+		case "node":
+			hash, ok := object_["hash"].(string)
+			if !ok {
+				return nil, fmt.Errorf("missing or invalid 'hash' for node type")
+			}
+			hashBytes, err := hexutil.Decode(hash)
+			if err != nil || len(hashBytes) != 32 {
+				return nil, fmt.Errorf("invalid hash for node type: %v", hash)
+			}
+			return &WalletConfigTreeNodeLeaf{Node: core.ImageHash{Hash: common.BytesToHash(hashBytes)}}, nil
+		default:
+			return nil, fmt.Errorf("unknown wallet config tree type: %s", typ)
+		}
+	}
+
 	if hasKeys(object_, []string{"left", "right"}) {
 		return decodeWalletConfigTreeNode(object_)
 	} else if hasKeys(object_, []string{"weight", "address"}) {
@@ -2008,6 +2036,7 @@ func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
 	} else if hasKeys(object_, []string{"digest"}) {
 		return decodeWalletConfigTreeAnyAddressSubdigestLeaf(object_)
 	}
+
 	return nil, fmt.Errorf("unknown wallet config tree type: %v", object_)
 }
 
