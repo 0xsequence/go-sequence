@@ -12,20 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type RandomConfigParams struct {
-	MaxDepth             uint64 `json:"maxDepth"`
-	Seed                 string `json:"seed"`
-	MinThresholdOnNested uint64 `json:"minThresholdOnNested"`
-	Checkpointer         string `json:"checkpointer"`
-}
-
-type RandomSessionTopologyParams struct {
-	MaxDepth       uint64 `json:"maxDepth"`
-	MaxPermissions uint64 `json:"maxPermissions"`
-	MaxRules       uint64 `json:"maxRules"`
-	Seed           string `json:"seed"`
-}
-
 type SeededRandom struct {
 	currentSeed string
 	hash        []byte

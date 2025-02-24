@@ -25,10 +25,6 @@ func (s *SignatureElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
-type SignatureConcatParams struct {
-	Signatures []string `json:"signatures"`
-}
-
 type WalletConfigInput struct {
 	Threshold  json.RawMessage `json:"threshold"`
 	Checkpoint json.RawMessage `json:"checkpoint"`

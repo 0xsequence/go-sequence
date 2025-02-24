@@ -7,21 +7,21 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
 
-// `SessionsTopology` represents the topology of sessions
+// SessionsTopology represents the topology of sessions
 type SessionsTopology struct {
 	GlobalSigner common.Address   `json:"globalSigner"`
 	Sessions     []SessionNode    `json:"sessions"`
 	Blacklist    []common.Address `json:"blacklist"`
 }
 
-// `SessionNode` represents a node in the session topology
+// SessionNode represents a node in the session topology
 type SessionNode struct {
 	Signer      common.Address      `json:"signer"`
 	Permissions *SessionPermissions `json:"permissions"`
 	Children    []SessionNode       `json:"children"`
 }
 
-// `SessionCallSignature` represents a call signature for a session
+// SessionCallSignature represents a call signature for a session
 type SessionCallSignature struct {
 	Signer    common.Address `json:"signer"`
 	Signature []byte         `json:"signature"`
@@ -33,7 +33,7 @@ type ConfigurationTree struct {
 	Nodes     []SessionNode `json:"nodes"`
 }
 
-// `EmptySessionsTopology` creates an empty session topology with the given global signer
+// EmptySessionsTopology creates an empty session topology with the given global signer
 func EmptySessionsTopology(signer common.Address) *SessionsTopology {
 	return &SessionsTopology{
 		GlobalSigner: signer,
@@ -42,7 +42,7 @@ func EmptySessionsTopology(signer common.Address) *SessionsTopology {
 	}
 }
 
-// `SessionsTopologyToJSON` converts a session topology to JSON
+// SessionsTopologyToJSON converts a session topology to JSON
 func SessionsTopologyToJSON(topology *SessionsTopology) (string, error) {
 	bytes, err := json.Marshal(topology)
 	if err != nil {
@@ -51,7 +51,7 @@ func SessionsTopologyToJSON(topology *SessionsTopology) (string, error) {
 	return string(bytes), nil
 }
 
-// `SessionsTopologyFromJSON` converts JSON to a session topology
+// SessionsTopologyFromJSON converts JSON to a session topology
 func SessionsTopologyFromJSON(data string) (*SessionsTopology, error) {
 	var topology SessionsTopology
 	if err := json.Unmarshal([]byte(data), &topology); err != nil {
@@ -60,7 +60,7 @@ func SessionsTopologyFromJSON(data string) (*SessionsTopology, error) {
 	return &topology, nil
 }
 
-// `SessionCallSignatureFromJSON` converts JSON to a session call signature
+// SessionCallSignatureFromJSON converts JSON to a session call signature
 func SessionCallSignatureFromJSON(data string) (*SessionCallSignature, error) {
 	var sig SessionCallSignature
 	if err := json.Unmarshal([]byte(data), &sig); err != nil {
@@ -69,13 +69,13 @@ func SessionCallSignatureFromJSON(data string) (*SessionCallSignature, error) {
 	return &sig, nil
 }
 
-// `IsSessionsTopology` checks if the given interface is a valid session topology
+// IsSessionsTopology checks if the given interface is a valid session topology
 func IsSessionsTopology(v interface{}) bool {
 	_, ok := v.(*SessionsTopology)
 	return ok
 }
 
-// `GetSessionPermissions` gets the permissions for a given signer in the topology
+// GetSessionPermissions gets the permissions for a given signer in the topology
 func GetSessionPermissions(topology *SessionsTopology, signer common.Address) *SessionPermissions {
 	for _, session := range topology.Sessions {
 		if session.Signer == signer {
@@ -85,7 +85,7 @@ func GetSessionPermissions(topology *SessionsTopology, signer common.Address) *S
 	return nil
 }
 
-// `MergeSessionsTopologies` merges two session topologies
+// MergeSessionsTopologies merges two session topologies
 func MergeSessionsTopologies(a, b *SessionsTopology) *SessionsTopology {
 	result := &SessionsTopology{
 		GlobalSigner: a.GlobalSigner,
@@ -97,35 +97,35 @@ func MergeSessionsTopologies(a, b *SessionsTopology) *SessionsTopology {
 	return result
 }
 
-// `BalanceSessionsTopology` balances a session topology
+// BalanceSessionsTopology balances a session topology
 func BalanceSessionsTopology(topology *SessionsTopology) *SessionsTopology {
 	// For now, just return the topology as is
 	// In a real implementation, this would rebalance the tree structure
 	return topology
 }
 
-// `SessionsTopologyToConfigurationTree` converts a session topology to a configuration tree
+// SessionsTopologyToConfigurationTree converts a session topology to a configuration tree
 func SessionsTopologyToConfigurationTree(topology *SessionsTopology) *ConfigurationTree {
 	return &ConfigurationTree{
 		Nodes: topology.Sessions,
 	}
 }
 
-// `HashConfigurationTree` computes the hash of a configuration tree
+// HashConfigurationTree computes the hash of a configuration tree
 func HashConfigurationTree(tree *ConfigurationTree) [32]byte {
 	// For now, return empty hash
 	// In a real implementation, this would compute a proper hash
 	return [32]byte{}
 }
 
-// `EncodeSessionCallSignatures` encodes session call signatures
+// EncodeSessionCallSignatures encodes session call signatures
 func EncodeSessionCallSignatures(sigs []SessionCallSignature, topology *SessionsTopology, explicitSigners, implicitSigners []common.Address) ([]byte, error) {
 	// For now, return empty bytes
 	// In a real implementation, this would encode the signatures properly
 	return []byte{}, nil
 }
 
-// `AddToImplicitBlacklist` adds an address to the implicit blacklist
+// AddToImplicitBlacklist adds an address to the implicit blacklist
 func AddToImplicitBlacklist(topology *SessionsTopology, addr common.Address) *SessionsTopology {
 	result := &SessionsTopology{
 		GlobalSigner: topology.GlobalSigner,
@@ -136,7 +136,7 @@ func AddToImplicitBlacklist(topology *SessionsTopology, addr common.Address) *Se
 	return result
 }
 
-// `RemoveFromImplicitBlacklist` removes an address from the implicit blacklist
+// RemoveFromImplicitBlacklist removes an address from the implicit blacklist
 func RemoveFromImplicitBlacklist(topology *SessionsTopology, addr common.Address) *SessionsTopology {
 	result := &SessionsTopology{
 		GlobalSigner: topology.GlobalSigner,
@@ -151,7 +151,7 @@ func RemoveFromImplicitBlacklist(topology *SessionsTopology, addr common.Address
 	return result
 }
 
-// `RemoveExplicitSession` removes an explicit session from the topology
+// RemoveExplicitSession removes an explicit session from the topology
 func RemoveExplicitSession(topology *SessionsTopology, addr string) *SessionsTopology {
 	addrBytes := common.HexToAddress(addr)
 	result := &SessionsTopology{

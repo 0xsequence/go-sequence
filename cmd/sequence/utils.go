@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
+	"io"
 	"math"
+	"os"
 	"strings"
 )
 
@@ -65,4 +69,41 @@ func convertNumbers(input interface{}) interface{} {
 	default:
 		return v
 	}
+}
+
+// readStdin reads all input from stdin until EOF
+func readStdin() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	var input []byte
+
+	for {
+		chunk, err := reader.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read from stdin: %w", err)
+		}
+		input = append(input, chunk)
+	}
+
+	return string(input), nil
+}
+
+// fromPosOrStdin gets the value from either the positional argument or stdin
+func fromPosOrStdin(args []string, pos int) (string, error) {
+	if len(args) > pos {
+		return args[pos], nil
+	}
+
+	input, err := readStdin()
+	if err != nil {
+		return "", err
+	}
+
+	if input == "" {
+		return "", fmt.Errorf("no input provided")
+	}
+
+	return input, nil
 }

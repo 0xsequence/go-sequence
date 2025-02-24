@@ -22,7 +22,6 @@ func TestMarshalJSON(t *testing.T) {
 		t.Errorf("Unexpected JSON output: %s", json)
 	}
 }
-
 func TestSessionExplicitAdd(t *testing.T) {
 	signer := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	target := common.HexToAddress("0x2222222222222222222222222222222222222222")

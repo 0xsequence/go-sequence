@@ -79,7 +79,7 @@ func encodeBehaviorOnError(behavior BehaviorOnError) byte {
 	}
 }
 
-// `Encode` encodes a transaction (call) payload into a compact byte array.
+// Encode encodes a transaction (call) payload into a compact byte array.
 func Encode(payload DecodedPayload, self *common.Address) ([]byte, error) {
 	if payload.Kind != KindTransactions {
 		return nil, fmt.Errorf("encode only supports transaction payloads")
@@ -236,7 +236,7 @@ type TypedDataField struct {
 	Type string `json:"type"`
 }
 
-// `HashPayload` computes the EIP-712 hash of a payload.
+// hashPayload computes the EIP-712 hash of a payload.
 func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
 	domain := ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
