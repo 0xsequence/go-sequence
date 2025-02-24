@@ -30,14 +30,73 @@ type WalletConfigInput struct {
 	Topology   json.RawMessage `json:"topology,omitempty"`
 }
 
-func convertTopologyToTree(topology map[string]interface{}) (map[string]interface{}, error) {
-	if topology["type"] == "signer" {
+func convertTopologyToTree(topology interface{}) (interface{}, error) {
+	switch v := topology.(type) {
+	case []interface{}:
+		if len(v) != 2 {
+			return nil, fmt.Errorf("array must have exactly two elements")
+		}
+		left, err := convertTopologyToTree(v[0])
+		if err != nil {
+			return nil, err
+		}
+		right, err := convertTopologyToTree(v[1])
+		if err != nil {
+			return nil, err
+		}
 		return map[string]interface{}{
-			"weight":  topology["weight"],
-			"address": topology["address"],
+			"left":  left,
+			"right": right,
 		}, nil
+	case map[string]interface{}:
+		if nodeType, ok := v["type"].(string); ok {
+			switch nodeType {
+			case "signer":
+				return map[string]interface{}{
+					"weight":  v["weight"],
+					"address": v["address"],
+				}, nil
+			case "nested":
+				if tree, ok := v["tree"]; ok {
+					processedTree, err := convertTopologyToTree(tree)
+					if err != nil {
+						return nil, err
+					}
+					return map[string]interface{}{
+						"threshold": v["threshold"],
+						"weight":    v["weight"],
+						"tree":      processedTree,
+					}, nil
+				}
+			case "node":
+				if hash, ok := v["hash"].(string); ok {
+					return map[string]interface{}{
+						"hash": hash,
+					}, nil
+				}
+			}
+		}
+
+		if left, hasLeft := v["left"]; hasLeft {
+			if right, hasRight := v["right"]; hasRight {
+				leftProcessed, err := convertTopologyToTree(left)
+				if err != nil {
+					return nil, err
+				}
+				rightProcessed, err := convertTopologyToTree(right)
+				if err != nil {
+					return nil, err
+				}
+				return map[string]interface{}{
+					"left":  leftProcessed,
+					"right": rightProcessed,
+				}, nil
+			}
+		}
+		return v, nil
+	default:
+		return nil, fmt.Errorf("unsupported topology type: %T", v)
 	}
-	return nil, fmt.Errorf("unsupported topology type: %v", topology["type"])
 }
 
 func signatureConcat(params *SignatureConcatParams) (string, error) {
@@ -91,14 +150,10 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 		return nil, fmt.Errorf("failed to parse tree/topology: %w", err)
 	}
 
-	if topology, ok := tree.(map[string]interface{}); ok {
-		if _, hasType := topology["type"]; hasType {
-			var err error
-			tree, err = convertTopologyToTree(topology)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert topology to tree: %w", err)
-			}
-		}
+	var err error
+	tree, err = convertTopologyToTree(tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert topology to tree: %w", err)
 	}
 
 	rawConfig["tree"] = convertNumbers(tree)
