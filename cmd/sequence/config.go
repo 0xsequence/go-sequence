@@ -32,6 +32,20 @@ func (s *SignerElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
+type SapientSignerElement struct {
+	Address   common.Address
+	Weight    uint8
+	ImageHash core.ImageHash
+}
+
+func (s *SapientSignerElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     s.Weight,
+		Address:    s.Address,
+		ImageHash_: s.ImageHash,
+	}
+}
+
 type SubdigestElement struct {
 	Digest core.Subdigest
 }
@@ -77,11 +91,12 @@ type JSONOutput struct {
 }
 
 type JSONLeaf struct {
-	Type    string `json:"type"`
-	Address string `json:"address,omitempty"`
-	Weight  string `json:"weight,omitempty"`
-	Hash    string `json:"hash,omitempty"`
-	Digest  string `json:"digest,omitempty"`
+	Type      string `json:"type"`
+	Address   string `json:"address,omitempty"`
+	Weight    string `json:"weight,omitempty"`
+	Hash      string `json:"hash,omitempty"`
+	Digest    string `json:"digest,omitempty"`
+	ImageHash string `json:"imageHash,omitempty"`
 }
 
 type JSONNode struct {
@@ -136,6 +151,13 @@ func treeToMap(tree v3.WalletConfigTree) interface{} {
 			Type:    "signer",
 			Address: t.Address.Hex(),
 			Weight:  fmt.Sprintf("%d", t.Weight),
+		}
+	case *v3.WalletConfigTreeSapientSignerLeaf:
+		return JSONLeaf{
+			Type:      "sapient-signer",
+			Address:   t.Address.Hex(),
+			Weight:    fmt.Sprintf("%d", t.Weight),
+			ImageHash: t.ImageHash_.Hex(),
 		}
 	case *v3.WalletConfigTreeSubdigestLeaf:
 		return JSONLeaf{
@@ -279,6 +301,20 @@ func parseElement(element string) (ConfigElement, error) {
 		return &SignerElement{
 			Address: common.HexToAddress(parts[1]),
 			Weight:  uint8(weight.Uint64()),
+		}, nil
+
+	case "sapient":
+		if len(parts) != 4 {
+			return nil, fmt.Errorf("invalid sapient-signer format: %s", element)
+		}
+		weight := new(big.Int)
+		if _, ok := weight.SetString(parts[3], 10); !ok {
+			return nil, fmt.Errorf("invalid weight: %s", parts[3])
+		}
+		return &SapientSignerElement{
+			Address:   common.HexToAddress(parts[2]),
+			ImageHash: core.ImageHash{Hash: common.HexToHash(parts[1])},
+			Weight:    uint8(weight.Uint64()),
 		}, nil
 
 	case "subdigest":

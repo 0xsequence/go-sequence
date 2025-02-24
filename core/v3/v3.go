@@ -1663,35 +1663,41 @@ func (l *signatureTreeSapientLeaf) reduceImageHash() (core.ImageHash, error) {
 func (l *signatureTreeSapientLeaf) write(writer io.Writer) error {
 	sigLen := uint64(len(l.Signature))
 	sizeSize := minBytesFor(sigLen)
+	if sizeSize == 0 {
+		// Ensure at least 1 byte for the length, even if 0
+		sizeSize = 1
+	}
 	if sizeSize > 3 {
 		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
 	}
 
-	var firstByte byte
-	if l.Weight <= 3 && l.Weight > 0 {
-		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2) | l.Weight
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
-		}
+	var firstByte byte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2)
+	var weightBytes []byte
+
+	if l.Weight >= 1 && l.Weight <= 3 {
+		firstByte |= l.Weight
 	} else {
-		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2)
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
-		}
-		_, err = writer.Write([]byte{l.Weight})
+		weightBytes = []byte{l.Weight}
+	}
+
+	_, err := writer.Write([]byte{firstByte})
+	if err != nil {
+		return fmt.Errorf("unable to write Sapient leaf type: %w", err)
+	}
+
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write dynamic weight: %w", err)
 		}
 	}
 
-	_, err := writer.Write(l.Address.Bytes())
+	_, err = writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
 
-	err = writeUintX(writer, uint64(len(l.Signature)), sizeSize)
+	err = writeUintX(writer, sigLen, sizeSize)
 	if err != nil {
 		return fmt.Errorf("unable to write signature length: %w", err)
 	}
@@ -1794,35 +1800,41 @@ func (l *signatureTreeSapientCompactLeaf) reduceImageHash() (core.ImageHash, err
 func (l *signatureTreeSapientCompactLeaf) write(writer io.Writer) error {
 	sigLen := uint64(len(l.Signature))
 	sizeSize := minBytesFor(sigLen)
+	if sizeSize == 0 {
+		// Ensure at least 1 byte for the length, even if 0
+		sizeSize = 1
+	}
 	if sizeSize > 3 {
 		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
 	}
 
-	var firstByte byte
-	if l.Weight <= 3 && l.Weight > 0 {
-		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2) | l.Weight
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
-		}
+	var firstByte byte = FLAG_SIGNATURE_SAPIENT_COMPACT<<4 | (byte(sizeSize) << 2)
+	var weightBytes []byte
+
+	if l.Weight >= 1 && l.Weight <= 3 {
+		firstByte |= l.Weight
 	} else {
-		firstByte = FLAG_SIGNATURE_SAPIENT<<4 | (byte(sizeSize) << 2)
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write Sapient leaf type: %w", err)
-		}
-		_, err = writer.Write([]byte{l.Weight})
+		weightBytes = []byte{l.Weight}
+	}
+
+	_, err := writer.Write([]byte{firstByte})
+	if err != nil {
+		return fmt.Errorf("unable to write SapientCompact leaf type: %w", err)
+	}
+
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write dynamic weight: %w", err)
 		}
 	}
 
-	_, err := writer.Write(l.Address.Bytes())
+	_, err = writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
 
-	err = writeUintX(writer, uint64(len(l.Signature)), sizeSize)
+	err = writeUintX(writer, sigLen, sizeSize)
 	if err != nil {
 		return fmt.Errorf("unable to write signature length: %w", err)
 	}
@@ -2528,10 +2540,21 @@ func (l *WalletConfigTreeSapientSignerLeaf) unverifiedWeight(signers map[common.
 
 func (l *WalletConfigTreeSapientSignerLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
 	if signature, ok := signerSignatures[l.Address]; ok {
-		return &signatureTreeSapientLeaf{
-			Weight:    l.Weight,
-			Address:   l.Address,
-			Signature: signature.signature,
+		switch signature.type_ {
+		case core.SignerSignatureTypeSapient:
+			return &signatureTreeSapientLeaf{
+				Weight:    l.Weight,
+				Address:   l.Address,
+				Signature: signature.signature,
+			}
+		case core.SignerSignatureTypeSapientCompact:
+			return &signatureTreeSapientCompactLeaf{
+				Weight:    l.Weight,
+				Address:   l.Address,
+				Signature: signature.signature,
+			}
+		default:
+			panic(fmt.Sprintf("unexpected signature type for sapient signer: %v", signature.type_))
 		}
 	}
 	hashedImage := l.ImageHash()
