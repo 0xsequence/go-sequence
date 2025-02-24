@@ -19,7 +19,6 @@ type ValidationResult struct {
 	Error           error
 }
 
-// `ValidateSapientSignature` validates a Sapient signature
 func ValidateSapientSignature(
 	ctx context.Context,
 	provider *ethrpc.Provider,
@@ -84,7 +83,6 @@ func ValidateSapientSignature(
 	}
 }
 
-// `ValidateSapientCompactSignature` validates a Sapient Compact signature
 func ValidateSapientCompactSignature(
 	ctx context.Context,
 	provider *ethrpc.Provider,

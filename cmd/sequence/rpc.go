@@ -102,6 +102,14 @@ func handleSignatureConcat(params json.RawMessage) (interface{}, error) {
 	return signatureConcat(&p)
 }
 
+func handleSignatureDecode(params json.RawMessage) (interface{}, error) {
+	var p SignatureDecodeParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return "", fmt.Errorf("not implemented")
+}
+
 func handleDevToolsRandomConfig(params json.RawMessage) (interface{}, error) {
 	var p RandomConfigParams
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -116,6 +124,127 @@ func handleDevToolsRandomSessionTopology(params json.RawMessage) (interface{}, e
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 	return handleRandomSessionTopology(&p)
+}
+
+func handlePayloadToAbi(params json.RawMessage) (interface{}, error) {
+	var p PayloadToAbiParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleToAbi(&p)
+}
+
+func handlePayloadToPacked(params json.RawMessage) (interface{}, error) {
+	var p PayloadToPackedParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleToPacked(&p)
+}
+
+func handlePayloadToJson(params json.RawMessage) (interface{}, error) {
+	var p PayloadToJsonParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleToJson(&p)
+}
+
+func handlePayloadHash(params json.RawMessage) (interface{}, error) {
+	var p PayloadHashParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleHash(&p)
+}
+
+func handlePermissionToPackedSession(params json.RawMessage) (interface{}, error) {
+	var p PermissionToPackedSessionParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return "", fmt.Errorf("not implemented")
+}
+
+func handlePermissionToPacked(params json.RawMessage) (interface{}, error) {
+	var p PermissionToPackedParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return "", fmt.Errorf("not implemented")
+}
+
+func handleSessionEmptyTopology(params json.RawMessage) (interface{}, error) {
+	var p EmptyTopologyParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleEmptyTopology(&p)
+}
+
+func handleSessionEncodeConfiguration(params json.RawMessage) (interface{}, error) {
+	var p EncodeConfigurationParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleEncodeConfiguration(&p)
+}
+
+func handleSessionEncodeCallSignatures(params json.RawMessage) (interface{}, error) {
+	var p EncodeSessionCallSignaturesParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleEncodeSessionCallSignatures(&p)
+}
+
+func handleSessionImageHash(params json.RawMessage) (interface{}, error) {
+	var p ImageHashParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleImageHash(&p)
+}
+
+func handleExplicitSessionAdd(params json.RawMessage) (interface{}, error) {
+	var p AddSessionParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleAddExplicitSession(&p)
+}
+
+func handleExplicitSessionRemove(params json.RawMessage) (interface{}, error) {
+	var p RemoveSessionParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleRemoveExplicitSession(&p)
+}
+
+func handleExplicitSessionEncodeCallSignature(params json.RawMessage) (interface{}, error) {
+	var p EncodeCallSignatureParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	log.Printf("Calling handleEncodeCallSignature with params: %+v", p)
+	return handleEncodeCallSignature(&p)
+}
+
+func handleImplicitSessionAddBlacklist(params json.RawMessage) (interface{}, error) {
+	var p AddBlacklistParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleAddBlacklist(&p)
+}
+
+func handleImplicitSessionRemoveBlacklist(params json.RawMessage) (interface{}, error) {
+	var p RemoveBlacklistParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleRemoveBlacklist(&p)
 }
 
 func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent bool) {
@@ -142,6 +271,10 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 
 	if debug && !silent {
 		log.Printf("Request details: %+v", req)
+		log.Printf("Method requested (exact): '%s'", req.Method)
+		log.Printf("Params: %s", string(req.Params))
+		log.Printf("Method comparison: requested='%s' vs defined='session_explicit_encodeCallSignature'", req.Method)
+		log.Printf("Method bytes: requested=%v", []byte(req.Method))
 	}
 
 	if !silent {
@@ -156,6 +289,11 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 	var result interface{}
 	var err error
 
+	// Log before method switch
+	if debug && !silent {
+		log.Printf("Attempting to match method: '%s'", req.Method)
+	}
+
 	switch req.Method {
 	case "address_calculate":
 		result, err = handleAddressCalculate(req.Params)
@@ -169,10 +307,42 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleSignatureEncode(req.Params)
 	case "signature_concat":
 		result, err = handleSignatureConcat(req.Params)
+	case "signature_decode":
+		result, err = handleSignatureDecode(req.Params)
 	case "devTools_randomConfig":
 		result, err = handleDevToolsRandomConfig(req.Params)
 	case "devTools_randomSessionTopology":
 		result, err = handleDevToolsRandomSessionTopology(req.Params)
+	case "payload_toAbi":
+		result, err = handlePayloadToAbi(req.Params)
+	case "payload_toPacked":
+		result, err = handlePayloadToPacked(req.Params)
+	case "payload_toJson":
+		result, err = handlePayloadToJson(req.Params)
+	case "payload_hashFor":
+		result, err = handlePayloadHash(req.Params)
+	case "permission_toPackedSession":
+		result, err = handlePermissionToPackedSession(req.Params)
+	case "permission_toPacked":
+		result, err = handlePermissionToPacked(req.Params)
+	case "session_empty":
+		result, err = handleSessionEmptyTopology(req.Params)
+	case "session_encodeConfiguration":
+		result, err = handleSessionEncodeConfiguration(req.Params)
+	case "session_encodeCallSignatures":
+		result, err = handleSessionEncodeCallSignatures(req.Params)
+	case "session_imageHash":
+		result, err = handleSessionImageHash(req.Params)
+	case "session_explicit_add":
+		result, err = handleExplicitSessionAdd(req.Params)
+	case "session_explicit_remove":
+		result, err = handleExplicitSessionRemove(req.Params)
+	case "session_explicit_encodeCallSignature":
+		result, err = handleExplicitSessionEncodeCallSignature(req.Params)
+	case "session_implicit_addBlacklistAddress":
+		result, err = handleImplicitSessionAddBlacklist(req.Params)
+	case "session_implicit_removeBlacklistAddress":
+		result, err = handleImplicitSessionRemoveBlacklist(req.Params)
 	default:
 		if !silent {
 			log.Printf("Method not found: %s", req.Method)

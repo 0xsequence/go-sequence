@@ -43,7 +43,7 @@ const (
 	MAX_RULES_COUNT       = (1 << 8) - 1
 )
 
-// `EncodeSessionPermissions` encodes session permissions into bytes
+// EncodeSessionPermissions encodes session permissions into bytes
 func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	if len(sp.Permissions) > MAX_PERMISSIONS_COUNT {
 		return nil, fmt.Errorf("too many permissions")
@@ -66,7 +66,7 @@ func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	return result, nil
 }
 
-// `EncodePermission` encodes a permission into bytes
+// EncodePermission encodes a permission into bytes
 func EncodePermission(p *Permission) ([]byte, error) {
 	if len(p.Rules) > MAX_RULES_COUNT {
 		return nil, fmt.Errorf("too many rules")
@@ -84,7 +84,7 @@ func EncodePermission(p *Permission) ([]byte, error) {
 	return result, nil
 }
 
-// `encodeParameterRule` encodes a parameter rule into bytes
+// encodeParameterRule encodes a parameter rule into bytes
 func encodeParameterRule(r *ParameterRule) []byte {
 	// Combine operation and cumulative flag into a single byte
 	// 0x[operationx3][cumulative]
@@ -124,7 +124,7 @@ func PermissionFromJSON(data string) (*Permission, error) {
 	return &p, nil
 }
 
-// `UnmarshalJSON` implements json.Unmarshaler for SessionPermissions
+// UnmarshalJSON implements json.Unmarshaler for SessionPermissions
 func (sp *SessionPermissions) UnmarshalJSON(data []byte) error {
 	type Alias SessionPermissions
 	aux := struct {
@@ -178,7 +178,7 @@ func (sp *SessionPermissions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// `UnmarshalJSON` implements json.Unmarshaler for ParameterRule
+// UnmarshalJSON implements json.Unmarshaler for ParameterRule
 func (pr *ParameterRule) UnmarshalJSON(data []byte) error {
 	type Alias ParameterRule
 	aux := struct {
@@ -227,7 +227,7 @@ func (pr *ParameterRule) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// `UnmarshalJSON` implements json.Unmarshaler for SessionsTopology
+// UnmarshalJSON implements json.Unmarshaler for SessionsTopology
 func (s *SessionsTopology) UnmarshalJSON(data []byte) error {
 	// Try to unmarshal as an array format
 	var arr []json.RawMessage
@@ -289,7 +289,7 @@ func (s *SessionsTopology) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// `MarshalJSON` implements json.Marshaler for SessionsTopology
+// MarshalJSON implements json.Marshaler for SessionsTopology
 func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
 	blacklistObj := map[string][]common.Address{
 		"blacklist": s.Blacklist,
@@ -317,7 +317,7 @@ func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
-// `MarshalJSON` implements json.Marshaler for ParameterRule
+// MarshalJSON implements json.Marshaler for ParameterRule
 func (pr *ParameterRule) MarshalJSON() ([]byte, error) {
 	type parameterRuleType struct {
 		Cumulative bool               `json:"cumulative"`
@@ -336,7 +336,7 @@ func (pr *ParameterRule) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// `MarshalJSON` implements json.Marshaler for Permission
+// MarshalJSON implements json.Marshaler for Permission
 func (p *Permission) MarshalJSON() ([]byte, error) {
 	type permissionType struct {
 		Target string          `json:"target"`
@@ -349,7 +349,7 @@ func (p *Permission) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// `EncodeSessionCallSignature` encodes a session call signature with a permission index
+// EncodeSessionCallSignature encodes a session call signature with a permission index
 func EncodeSessionCallSignature(sig *SessionCallSignature, permissionIndex int) ([]byte, error) {
 	if permissionIndex < 0 {
 		return nil, fmt.Errorf("permission index must be non-negative")

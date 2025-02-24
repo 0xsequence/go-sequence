@@ -8,91 +8,62 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
+
 	"github.com/spf13/cobra"
 )
 
-const (
-	KindTransactions uint8 = 0x00
-	KindMessage      uint8 = 0x01
-	KindConfigUpdate uint8 = 0x02
-	KindDigest       uint8 = 0x03
-
-	BehaviorIgnoreError   uint8 = 0x00
-	BehaviorRevertOnError uint8 = 0x01
-	BehaviorAbortOnError  uint8 = 0x02
-)
-
-type Call struct {
-	To              common.Address `json:"to"`
-	Value           *big.Int       `json:"value"`
-	Data            hexutil.Bytes  `json:"data"`
-	GasLimit        *big.Int       `json:"gasLimit"`
-	DelegateCall    bool           `json:"delegateCall"`
-	OnlyFallback    bool           `json:"onlyFallback"`
-	BehaviorOnError uint8          `json:"behaviorOnError"`
-}
-
-type DecodedPayload struct {
-	Kind          uint8            `json:"kind"`
-	NoChainId     bool             `json:"noChainId"`
-	Calls         []Call           `json:"calls"`
-	Space         *big.Int         `json:"space"`
-	Nonce         *big.Int         `json:"nonce"`
-	Message       hexutil.Bytes    `json:"message"`
-	ImageHash     common.Hash      `json:"imageHash"`
-	Digest        common.Hash      `json:"digest"`
-	ParentWallets []common.Address `json:"parentWallets"`
-}
-
-// func behaviorToString(behavior uint8) string {
-// 	switch behavior {
-// 	case BehaviorIgnoreError:
-// 		return "ignore"
-// 	case BehaviorRevertOnError:
-// 		return "revert"
-// 	case BehaviorAbortOnError:
-// 		return "abort"
-// 	default:
-// 		return fmt.Sprintf("unknown(%d)", behavior)
-// 	}
-// }
-
-func convertToAbi(payload string) (string, error) {
-	log.Printf("convertToAbi: %s", payload)
-	// Not implemented yet, following the pattern
+func handleToAbi(p *PayloadToAbiParams) (string, error) {
+	log.Printf("payload: %s", p.Payload)
 	return "", fmt.Errorf("not implemented")
 }
 
-func convertToPacked(payload string) (string, error) {
-	var decoded DecodedPayload
-	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
-		return "", fmt.Errorf("failed to decode payload: %w", err)
+func handleToPacked(p *PayloadToPackedParams) (string, error) {
+	log.Printf("payload: %s", p.Payload)
+	decoded, err := v3.DecodeABIPayload(p.Payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode ABI payload: %w", err)
 	}
-
-	if decoded.Kind == KindTransactions {
-		// TODO: Implement the packing logic using sequence-primitives
-		// This will require implementing the encoding logic in Go
-		return "", fmt.Errorf("not implemented")
+	if decoded.Kind != v3.KindTransactions {
+		return "", fmt.Errorf("conversion to packed only implemented for call payloads")
 	}
-
-	return "", fmt.Errorf("not implemented")
+	packed, err := v3.Encode(decoded, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode to packed: %w", err)
+	}
+	return hexutil.Encode(packed), nil
 }
 
-func convertToJson(payload string) (string, error) {
-	// TODO: Implement ABI decoding using ethkit
-	var decoded DecodedPayload
-	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
-		return "", fmt.Errorf("failed to decode payload: %w", err)
+func handleToJson(p *PayloadToJsonParams) (string, error) {
+	decoded, err := v3.DecodeABIPayload(p.Payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode ABI payload: %w", err)
 	}
-
-	result, err := json.MarshalIndent(decoded, "", "  ")
+	jsonBytes, err := json.MarshalIndent(decoded, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
-
-	return string(result), nil
+	return string(jsonBytes), nil
 }
 
+func handleHash(p *PayloadHashParams) (string, error) {
+	decoded, err := v3.DecodeABIPayload(p.Payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode ABI payload: %w", err)
+	}
+	chainIDInt := new(big.Int)
+	if _, ok := chainIDInt.SetString(p.ChainId, 10); !ok {
+		return "", fmt.Errorf("invalid chain ID: %s", p.ChainId)
+	}
+	walletAddr := common.HexToAddress(p.Wallet)
+	digest, err := v3.HashPayload(walletAddr, chainIDInt, decoded)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash payload: %w", err)
+	}
+	return hexutil.Encode(digest[:]), nil
+}
+
+// newPayloadCmd defines the command-line interface.
 func newPayloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "payload",
@@ -103,15 +74,14 @@ func newPayloadCmd() *cobra.Command {
 		Use:   "to-abi [payload]",
 		Short: "Convert payload to ABI format",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("payload argument is required")
-			}
-
-			result, err := convertToAbi(args[0])
+			payload, err := fromPosOrStdin(args, 0)
 			if err != nil {
 				return err
 			}
-
+			result, err := handleToAbi(&PayloadToAbiParams{Payload: payload})
+			if err != nil {
+				return err
+			}
 			fmt.Println(result)
 			return nil
 		},
@@ -121,15 +91,14 @@ func newPayloadCmd() *cobra.Command {
 		Use:   "to-packed [payload]",
 		Short: "Convert payload to packed format",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("payload argument is required")
-			}
-
-			result, err := convertToPacked(args[0])
+			payload, err := fromPosOrStdin(args, 0)
 			if err != nil {
 				return err
 			}
-
+			result, err := handleToPacked(&PayloadToPackedParams{Payload: payload})
+			if err != nil {
+				return err
+			}
 			fmt.Println(result)
 			return nil
 		},
@@ -139,21 +108,42 @@ func newPayloadCmd() *cobra.Command {
 		Use:   "to-json [payload]",
 		Short: "Convert payload to JSON format",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 1 {
-				return fmt.Errorf("payload argument is required")
-			}
-
-			result, err := convertToJson(args[0])
+			payload, err := fromPosOrStdin(args, 0)
 			if err != nil {
 				return err
 			}
-
+			result, err := handleToJson(&PayloadToJsonParams{Payload: payload})
+			if err != nil {
+				return err
+			}
 			fmt.Println(result)
 			return nil
 		},
 	}
 
-	cmd.AddCommand(toAbiCmd, toPackedCmd, toJsonCmd)
+	hashCmd := &cobra.Command{
+		Use:   "hash [payload]",
+		Short: "Hash the payload",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			payload, err := fromPosOrStdin(args, 0)
+			if err != nil {
+				return err
+			}
+			wallet, _ := cmd.Flags().GetString("wallet")
+			chainId, _ := cmd.Flags().GetString("chain-id")
+			result, err := handleHash(&PayloadHashParams{Payload: payload, Wallet: wallet, ChainId: chainId})
+			if err != nil {
+				return err
+			}
+			fmt.Println(result)
+			return nil
+		},
+	}
+	hashCmd.Flags().String("wallet", "", "Wallet address")
+	hashCmd.Flags().String("chain-id", "", "Chain ID")
+	hashCmd.MarkFlagRequired("wallet")
+	hashCmd.MarkFlagRequired("chain-id")
 
+	cmd.AddCommand(toAbiCmd, toPackedCmd, toJsonCmd, hashCmd)
 	return cmd
 }
