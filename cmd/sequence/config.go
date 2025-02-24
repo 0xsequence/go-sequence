@@ -70,121 +70,93 @@ func (n *NodeElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
-type ConfigOutput struct {
-	Threshold  string         `json:"threshold"`
-	Checkpoint string         `json:"checkpoint"`
-	Topology   TopologyOutput `json:"topology"`
+type JSONOutput struct {
+	Threshold  string      `json:"threshold"`
+	Checkpoint string      `json:"checkpoint"`
+	Topology   interface{} `json:"topology"`
 }
 
-type TopologyOutput struct {
+type JSONLeaf struct {
 	Type    string `json:"type"`
 	Address string `json:"address,omitempty"`
 	Weight  string `json:"weight,omitempty"`
+	Hash    string `json:"hash,omitempty"`
+	Digest  string `json:"digest,omitempty"`
 }
 
-func toInt64(value interface{}) (int64, error) {
-	switch v := value.(type) {
-	case string:
-		n := new(big.Int)
-		if _, ok := n.SetString(v, 10); !ok {
-			return 0, fmt.Errorf("invalid number: %s", v)
-		}
-		return n.Int64(), nil
-	case float64:
-		return int64(v), nil
-	case int64:
-		return v, nil
-	default:
-		return 0, fmt.Errorf("cannot convert %v to int64", value)
-	}
+type JSONNode struct {
+	Left  interface{} `json:"left"`
+	Right interface{} `json:"right"`
 }
 
-func convertTree(item map[string]interface{}) (map[string]interface{}, error) {
-	treeType, ok := item["type"].(string)
-	if !ok {
-		return nil, fmt.Errorf("missing 'type' in tree item")
-	}
-
-	switch treeType {
-	case "signer":
-		weight, err := toInt64(item["weight"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid weight: %w", err)
-		}
-		return map[string]interface{}{
-			"weight":  weight,
-			"address": item["address"],
-		}, nil
-
-	case "subdigest":
-		return map[string]interface{}{
-			"subdigest": item["digest"],
-		}, nil
-
-	case "sapient-signer":
-		weight, err := toInt64(item["weight"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid weight: %w", err)
-		}
-		return map[string]interface{}{
-			"weight":    weight,
-			"address":   item["address"],
-			"imageHash": item["imageHash"],
-		}, nil
-
-	case "nested":
-		weight, err := toInt64(item["weight"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid weight: %w", err)
-		}
-		threshold, err := toInt64(item["threshold"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid threshold: %w", err)
-		}
-		nestedTree, ok := item["tree"].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("missing or invalid 'tree' in nested item")
-		}
-		convertedTree, err := convertTree(nestedTree)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert nested tree: %w", err)
-		}
-		return map[string]interface{}{
-			"weight":    weight,
-			"threshold": threshold,
-			"tree":      convertedTree,
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown tree type: %s", treeType)
-	}
+type ConfigOutput struct {
+	Threshold  string      `json:"threshold"`
+	Checkpoint string      `json:"checkpoint"`
+	Topology   interface{} `json:"topology"`
 }
 
-func treeToMap(tree v3.WalletConfigTree) TopologyOutput {
+func (c ConfigOutput) MarshalJSON() ([]byte, error) {
+	return json.Marshal(JSONOutput(c))
+}
+
+type TopologyOutput struct {
+	Type    string          `json:"type,omitempty"`
+	Address string          `json:"address,omitempty"`
+	Weight  string          `json:"weight,omitempty"`
+	Left    *TopologyOutput `json:"left,omitempty"`
+	Right   *TopologyOutput `json:"right,omitempty"`
+}
+
+func (t TopologyOutput) MarshalJSON() ([]byte, error) {
+	m := make(map[string]interface{})
+
+	if t.Type != "" {
+		m["type"] = t.Type
+	}
+	if t.Address != "" {
+		m["address"] = t.Address
+	}
+	if t.Weight != "" {
+		m["weight"] = t.Weight
+	}
+	if t.Left != nil {
+		m["left"] = t.Left
+	}
+	if t.Right != nil {
+		m["right"] = t.Right
+	}
+
+	return json.Marshal(m)
+}
+
+func treeToMap(tree v3.WalletConfigTree) interface{} {
 	switch t := tree.(type) {
 	case *v3.WalletConfigTreeAddressLeaf:
-		return TopologyOutput{
+		return JSONLeaf{
 			Type:    "signer",
 			Address: t.Address.Hex(),
 			Weight:  fmt.Sprintf("%d", t.Weight),
 		}
 	case *v3.WalletConfigTreeSubdigestLeaf:
-		return TopologyOutput{
-			Type:    "subdigest",
-			Address: t.Subdigest.Hex(),
+		return JSONLeaf{
+			Type:   "subdigest",
+			Digest: t.Subdigest.Hex(),
 		}
 	case *v3.WalletConfigTreeNestedLeaf:
-		return TopologyOutput{
-			Type: "nested",
-		}
+		return treeToMap(t.Tree)
 	case *v3.WalletConfigTreeNodeLeaf:
-		return TopologyOutput{
-			Type:    "node",
-			Address: t.Node.Hex(),
+		return JSONLeaf{
+			Type: "node",
+			Hash: t.Node.Hex(),
+		}
+	case *v3.WalletConfigTreeNode:
+		return []interface{}{
+			treeToMap(t.Left),
+			treeToMap(t.Right),
 		}
 	default:
 		log.Printf("Unsupported tree type: %T", tree)
-		return TopologyOutput{}
+		return nil
 	}
 }
 
@@ -341,37 +313,42 @@ func createConfig(threshold uint16, checkpoint uint64, elements []string) (Confi
 			continue
 		}
 		configElement, err := parseElement(element)
+		log.Printf("Parsed element: %v", configElement)
 		if err != nil {
 			return ConfigOutput{}, err
 		}
 		configElements = append(configElements, configElement)
 	}
 
-	var tree v3.WalletConfigTree
 	if len(configElements) == 0 {
 		return ConfigOutput{}, fmt.Errorf("no valid config elements provided")
-	} else if len(configElements) == 1 {
+	}
+
+	var tree v3.WalletConfigTree
+	if len(configElements) == 1 {
 		tree = configElements[0].ToTree()
 	} else {
 		var trees []v3.WalletConfigTree
 		for _, element := range configElements {
 			trees = append(trees, element.ToTree())
 		}
+		// Wrap the balanced tree in a nested leaf with the threshold
 		tree = &v3.WalletConfigTreeNestedLeaf{
 			Threshold: threshold,
-			Weight:    0,
-			Tree:      v3.WalletConfigTreeNodes(trees...),
+			Weight:    0, // Weight is typically 0 for the root
+			Tree:      buildBalancedTree(trees),
 		}
 	}
+
+	topology := treeToMap(tree)
 
 	return ConfigOutput{
 		Threshold:  fmt.Sprintf("%d", threshold),
 		Checkpoint: fmt.Sprintf("%d", checkpoint),
-		Topology:   treeToMap(tree),
+		Topology:   topology,
 	}, nil
 }
 
-// createNewConfig creates a new configuration from the given parameters
 func createNewConfig(params *ConfigNewParams) (string, error) {
 	threshold, ok := new(big.Int).SetString(params.Threshold, 10)
 	if !ok {
@@ -393,8 +370,10 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 		return "", fmt.Errorf("unsupported 'from' format: %s", params.From)
 	}
 
+	elements := strings.Fields(params.Content)
+
 	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", params.Threshold, params.Checkpoint, params.Content)
-	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), []string{params.Content})
+	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), elements)
 	if err != nil {
 		return "", fmt.Errorf("failed to create config: %w", err)
 	}
@@ -405,7 +384,24 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 	}
 
 	log.Printf("Created config: %s", string(jsonConfig))
+
 	return string(jsonConfig), nil
+}
+
+func buildBalancedTree(elements []v3.WalletConfigTree) v3.WalletConfigTree {
+	if len(elements) == 0 {
+		return nil
+	}
+	if len(elements) == 1 {
+		return elements[0]
+	}
+	mid := len(elements) / 2
+	left := buildBalancedTree(elements[:mid])
+	right := buildBalancedTree(elements[mid:])
+	return &v3.WalletConfigTreeNode{
+		Left:  left,
+		Right: right,
+	}
 }
 
 func buildTree(element interface{}) (interface{}, error) {
