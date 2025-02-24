@@ -233,8 +233,6 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 				}
 			}
 
-			log.Printf("No signer found")
-
 			return 0, nil, core.ErrSigningNoSigner
 		})
 	} else {
@@ -290,8 +288,6 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 					}
 				}
 			}
-
-			log.Printf("No signer found")
 
 			return 0, nil, core.ErrSigningNoSigner
 		})

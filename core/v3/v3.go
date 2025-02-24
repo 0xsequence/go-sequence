@@ -1126,39 +1126,43 @@ func (l *signatureTreeSignatureERC1271Leaf) reduceImageHash() (core.ImageHash, e
 
 func (l *signatureTreeSignatureERC1271Leaf) write(writer io.Writer) error {
 	sigLen := uint64(len(l.Signature))
+
 	sizeSize := minBytesFor(sigLen)
+	if sizeSize == 0 {
+		// Ensure at least 1 byte for the length, even if 0
+		sizeSize = 1
+	}
 	if sizeSize > 3 {
 		return fmt.Errorf("signature length %d requires %d bytes, exceeds maximum of 3", sigLen, sizeSize)
 	}
 
-	weightSize := minWeightBytes(uint64(l.Weight))
-	var firstByte byte
-	if weightSize == 0 && l.Weight <= 3 {
-		firstByte = FLAG_SIGNATURE_ERC1271<<4 | (byte(sizeSize) << 2) | l.Weight
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
-		}
-	} else if weightSize <= 1 {
-		firstByte = FLAG_SIGNATURE_ERC1271<<4 | (byte(sizeSize) << 2)
-		_, err := writer.Write([]byte{firstByte})
-		if err != nil {
-			return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
-		}
-		_, err = writer.Write([]byte{l.Weight})
+	var firstByte byte = FLAG_SIGNATURE_ERC1271<<4 | (byte(sizeSize) << 2)
+	var weightBytes []byte
+
+	if l.Weight >= 1 && l.Weight <= 3 {
+		firstByte |= l.Weight
+	} else {
+		weightBytes = []byte{l.Weight}
+	}
+
+	_, err := writer.Write([]byte{firstByte})
+	if err != nil {
+		return fmt.Errorf("unable to write ERC-1271 leaf type: %w", err)
+	}
+
+	if len(weightBytes) > 0 {
+		_, err = writer.Write(weightBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write dynamic weight: %w", err)
 		}
-	} else {
-		return fmt.Errorf("weight %d requires %d bytes, exceeds maximum of 1", l.Weight, weightSize)
 	}
 
-	_, err := writer.Write(l.Address.Bytes())
+	_, err = writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
 
-	err = writeUintX(writer, uint64(len(l.Signature)), sizeSize)
+	err = writeUintX(writer, sigLen, sizeSize)
 	if err != nil {
 		return fmt.Errorf("unable to write signature length: %w", err)
 	}
@@ -2661,6 +2665,13 @@ func readUintX(size uint8, data *[]byte) (uint64, error) {
 }
 
 func writeUintX(writer io.Writer, value uint64, size byte) error {
+	if size == 0 {
+		_, err := writer.Write([]byte{0})
+		if err != nil {
+			return fmt.Errorf("unable to write uint0: %w", err)
+		}
+		return nil
+	}
 	buf := make([]byte, size)
 	for i := int(size) - 1; i >= 0; i-- {
 		buf[i] = byte(value & 0xff)
