@@ -67,10 +67,11 @@ func (n *NestedElement) ToTree() v3.WalletConfigTree {
 	for _, element := range n.Elements {
 		trees = append(trees, element.ToTree())
 	}
+	balancedInnerTree := buildBalancedTree(trees)
 	return &v3.WalletConfigTreeNestedLeaf{
 		Weight:    n.Weight,
 		Threshold: n.Threshold,
-		Tree:      v3.WalletConfigTreeNodes(trees...),
+		Tree:      balancedInnerTree,
 	}
 }
 
@@ -105,8 +106,10 @@ type JSONNode struct {
 }
 
 type JSONNested struct {
-	Type string      `json:"type"`
-	Tree interface{} `json:"tree"`
+	Type      string      `json:"type"`
+	Tree      interface{} `json:"tree"`
+	Weight    string      `json:"weight"`
+	Threshold string      `json:"threshold"`
 }
 
 type ConfigOutput struct {
@@ -178,8 +181,10 @@ func treeToMapInternal(tree v3.WalletConfigTree, isRoot bool) interface{} {
 			return treeToMapInternal(t.Tree, false)
 		}
 		return JSONNested{
-			Type: "nested",
-			Tree: treeToMapInternal(t.Tree, false),
+			Type:      "nested",
+			Threshold: fmt.Sprintf("%d", t.Threshold),
+			Weight:    fmt.Sprintf("%d", t.Weight),
+			Tree:      treeToMapInternal(t.Tree, false),
 		}
 	case *v3.WalletConfigTreeNodeLeaf:
 		return JSONLeaf{
