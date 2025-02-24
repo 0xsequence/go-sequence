@@ -104,6 +104,11 @@ type JSONNode struct {
 	Right interface{} `json:"right"`
 }
 
+type JSONNested struct {
+	Type string      `json:"type"`
+	Tree interface{} `json:"tree"`
+}
+
 type ConfigOutput struct {
 	Threshold  string      `json:"threshold"`
 	Checkpoint string      `json:"checkpoint"`
@@ -145,6 +150,10 @@ func (t TopologyOutput) MarshalJSON() ([]byte, error) {
 }
 
 func treeToMap(tree v3.WalletConfigTree) interface{} {
+	return treeToMapInternal(tree, true)
+}
+
+func treeToMapInternal(tree v3.WalletConfigTree, isRoot bool) interface{} {
 	switch t := tree.(type) {
 	case *v3.WalletConfigTreeAddressLeaf:
 		return JSONLeaf{
@@ -165,7 +174,13 @@ func treeToMap(tree v3.WalletConfigTree) interface{} {
 			Digest: t.Subdigest.Hex(),
 		}
 	case *v3.WalletConfigTreeNestedLeaf:
-		return treeToMap(t.Tree)
+		if isRoot {
+			return treeToMapInternal(t.Tree, false)
+		}
+		return JSONNested{
+			Type: "nested",
+			Tree: treeToMapInternal(t.Tree, false),
+		}
 	case *v3.WalletConfigTreeNodeLeaf:
 		return JSONLeaf{
 			Type: "node",
@@ -173,8 +188,8 @@ func treeToMap(tree v3.WalletConfigTree) interface{} {
 		}
 	case *v3.WalletConfigTreeNode:
 		return []interface{}{
-			treeToMap(t.Left),
-			treeToMap(t.Right),
+			treeToMapInternal(t.Left, false),
+			treeToMapInternal(t.Right, false),
 		}
 	default:
 		log.Printf("Unsupported tree type: %T", tree)
@@ -182,101 +197,74 @@ func treeToMap(tree v3.WalletConfigTree) interface{} {
 	}
 }
 
-func parseNestedElement(element string) (*NestedElement, error) {
-	log.Printf("Parsing nested element: %q", element)
-
-	// Extract the header part (before the opening parenthesis)
-	headerEnd := strings.Index(element, "(")
-	if headerEnd == -1 {
-		return nil, fmt.Errorf("invalid nested format: missing opening parenthesis")
-	}
-
-	header := strings.TrimSpace(element[:headerEnd])
-	header = strings.TrimSuffix(header, ":")
-	log.Printf("Header: %q", header)
-
-	parts := strings.Split(header, ":")
-	log.Printf("Header parts: %v", parts)
-
-	if len(parts) != 3 || parts[0] != "nested" {
-		return nil, fmt.Errorf("invalid nested format: header should be 'nested:threshold:weight'")
-	}
-
-	// Parse threshold and weight
-	threshold := new(big.Int)
-	if _, ok := threshold.SetString(parts[1], 10); !ok {
-		return nil, fmt.Errorf("invalid threshold: %s", parts[1])
-	}
-
-	weight := new(big.Int)
-	if _, ok := weight.SetString(parts[2], 10); !ok {
-		return nil, fmt.Errorf("invalid weight: %s", parts[2])
-	}
-
-	// Extract and parse the nested elements
-	contentStart := headerEnd + 1
-	contentEnd := strings.LastIndex(element, ")")
-	if contentEnd == -1 || contentEnd <= contentStart {
-		return nil, fmt.Errorf("invalid nested format: missing or mismatched closing parenthesis")
-	}
-
-	content := element[contentStart:contentEnd]
-	log.Printf("Content: %q", content)
-
+// Parse the entire input content into a list of ConfigElements
+func parseElements(input string) ([]ConfigElement, error) {
 	var elements []ConfigElement
-
-	// Split the content by spaces, respecting nested parentheses
-	var currentElement strings.Builder
+	var current strings.Builder
 	parenthesesCount := 0
 
-	for i := 0; i < len(content); i++ {
-		char := content[i]
+	input = strings.TrimSpace(input)
+	for i := 0; i < len(input); i++ {
+		char := rune(input[i])
+
 		switch char {
 		case '(':
 			parenthesesCount++
-			currentElement.WriteByte(char)
+			current.WriteRune(char)
 		case ')':
+			if parenthesesCount == 0 {
+				return nil, fmt.Errorf("mismatched closing parenthesis at position %d", i)
+			}
 			parenthesesCount--
-			currentElement.WriteByte(char)
-		case ' ':
-			if parenthesesCount == 0 && currentElement.Len() > 0 {
-				elementStr := currentElement.String()
-				log.Printf("Parsing sub-element: %q", elementStr)
+			current.WriteRune(char)
+			if parenthesesCount == 0 && current.Len() > 0 {
+				// Complete nested element
+				elementStr := current.String()
 				element, err := parseElement(elementStr)
 				if err != nil {
-					return nil, fmt.Errorf("in nested element: %w", err)
+					return nil, err
 				}
 				elements = append(elements, element)
-				currentElement.Reset()
+				current.Reset()
+			}
+		case ' ':
+			if parenthesesCount == 0 && current.Len() > 0 {
+				elementStr := current.String()
+				element, err := parseElement(elementStr)
+				if err != nil {
+					return nil, err
+				}
+				elements = append(elements, element)
+				current.Reset()
 			} else if parenthesesCount > 0 {
-				currentElement.WriteByte(char)
+				current.WriteRune(char)
 			}
 		default:
-			currentElement.WriteByte(char)
+			current.WriteRune(char)
 		}
 	}
 
-	if currentElement.Len() > 0 {
-		elementStr := currentElement.String()
-		log.Printf("Parsing final sub-element: %q", elementStr)
+	// Handle the last element
+	if current.Len() > 0 {
+		if parenthesesCount > 0 {
+			return nil, fmt.Errorf("unclosed parenthesis in input")
+		}
+		elementStr := current.String()
 		element, err := parseElement(elementStr)
 		if err != nil {
-			return nil, fmt.Errorf("in nested element: %w", err)
+			return nil, err
 		}
 		elements = append(elements, element)
 	}
 
 	if len(elements) == 0 {
-		return nil, fmt.Errorf("invalid nested format: no elements found")
+		return nil, fmt.Errorf("no valid elements found in input")
 	}
 
-	return &NestedElement{
-		Threshold: uint16(threshold.Uint64()),
-		Weight:    uint8(weight.Uint64()),
-		Elements:  elements,
-	}, nil
+	return elements, nil
 }
 
+// Parse a single element (nested or non-nested)
 func parseElement(element string) (ConfigElement, error) {
 	log.Printf("Parsing element: %q", element)
 
@@ -294,8 +282,8 @@ func parseElement(element string) (ConfigElement, error) {
 		if len(parts) != 3 {
 			return nil, fmt.Errorf("invalid signer format: %s", element)
 		}
-		weight := new(big.Int)
-		if _, ok := weight.SetString(parts[2], 10); !ok {
+		weight, ok := new(big.Int).SetString(parts[2], 10)
+		if !ok {
 			return nil, fmt.Errorf("invalid weight: %s", parts[2])
 		}
 		return &SignerElement{
@@ -305,10 +293,10 @@ func parseElement(element string) (ConfigElement, error) {
 
 	case "sapient":
 		if len(parts) != 4 {
-			return nil, fmt.Errorf("invalid sapient-signer format: %s", element)
+			return nil, fmt.Errorf("invalid sapient format: %s", element)
 		}
-		weight := new(big.Int)
-		if _, ok := weight.SetString(parts[3], 10); !ok {
+		weight, ok := new(big.Int).SetString(parts[3], 10)
+		if !ok {
 			return nil, fmt.Errorf("invalid weight: %s", parts[3])
 		}
 		return &SapientSignerElement{
@@ -340,38 +328,73 @@ func parseElement(element string) (ConfigElement, error) {
 	}
 }
 
-func createConfig(threshold uint16, checkpoint uint64, elements []string) (ConfigOutput, error) {
-	log.Printf("Creating config with threshold: %d, checkpoint: %d, elements: %v", threshold, checkpoint, elements)
+// Parse a nested element
+func parseNestedElement(element string) (*NestedElement, error) {
+	log.Printf("Parsing nested element: %q", element)
 
-	var configElements []ConfigElement
-	for _, element := range elements {
-		if element == "" {
-			continue
-		}
-		configElement, err := parseElement(element)
-		log.Printf("Parsed element: %v", configElement)
-		if err != nil {
-			return ConfigOutput{}, err
-		}
-		configElements = append(configElements, configElement)
+	headerEnd := strings.Index(element, "(")
+	if headerEnd == -1 {
+		return nil, fmt.Errorf("invalid nested format: missing opening parenthesis")
 	}
 
-	if len(configElements) == 0 {
-		return ConfigOutput{}, fmt.Errorf("no valid config elements provided")
+	header := strings.TrimSpace(element[:headerEnd])
+	parts := strings.Split(header, ":")
+
+	if len(parts) < 3 || parts[0] != "nested" {
+		return nil, fmt.Errorf("invalid nested format: header should be 'nested:threshold:weight'")
+	}
+
+	threshold, ok := new(big.Int).SetString(parts[1], 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid threshold: %s", parts[1])
+	}
+
+	weight, ok := new(big.Int).SetString(parts[2], 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid weight: %s", parts[2])
+	}
+
+	contentStart := headerEnd + 1
+	contentEnd := strings.LastIndex(element, ")")
+	if contentEnd == -1 || contentEnd <= contentStart {
+		return nil, fmt.Errorf("invalid nested format: missing or mismatched closing parenthesis")
+	}
+
+	content := element[contentStart:contentEnd]
+	log.Printf("Nested content: %q", content)
+
+	elements, err := parseElements(content)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse nested elements: %w", err)
+	}
+
+	return &NestedElement{
+		Threshold: uint16(threshold.Uint64()),
+		Weight:    uint8(weight.Uint64()),
+		Elements:  elements,
+	}, nil
+}
+
+// Updated createConfig function
+func createConfig(threshold uint16, checkpoint uint64, content string) (ConfigOutput, error) {
+	log.Printf("Creating config with threshold: %d, checkpoint: %d, content: %q", threshold, checkpoint, content)
+
+	elements, err := parseElements(content)
+	if err != nil {
+		return ConfigOutput{}, fmt.Errorf("failed to parse elements: %w", err)
 	}
 
 	var tree v3.WalletConfigTree
-	if len(configElements) == 1 {
-		tree = configElements[0].ToTree()
+	if len(elements) == 1 {
+		tree = elements[0].ToTree()
 	} else {
 		var trees []v3.WalletConfigTree
-		for _, element := range configElements {
+		for _, element := range elements {
 			trees = append(trees, element.ToTree())
 		}
-		// Wrap the balanced tree in a nested leaf with the threshold
 		tree = &v3.WalletConfigTreeNestedLeaf{
 			Threshold: threshold,
-			Weight:    0, // Weight is typically 0 for the root
+			Weight:    0,
 			Tree:      buildBalancedTree(trees),
 		}
 	}
@@ -385,6 +408,7 @@ func createConfig(threshold uint16, checkpoint uint64, elements []string) (Confi
 	}, nil
 }
 
+// Updated createNewConfig function
 func createNewConfig(params *ConfigNewParams) (string, error) {
 	threshold, ok := new(big.Int).SetString(params.Threshold, 10)
 	if !ok {
@@ -406,10 +430,8 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 		return "", fmt.Errorf("unsupported 'from' format: %s", params.From)
 	}
 
-	elements := strings.Fields(params.Content)
-
 	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", params.Threshold, params.Checkpoint, params.Content)
-	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), elements)
+	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), params.Content)
 	if err != nil {
 		return "", fmt.Errorf("failed to create config: %w", err)
 	}
@@ -420,7 +442,6 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 	}
 
 	log.Printf("Created config: %s", string(jsonConfig))
-
 	return string(jsonConfig), nil
 }
 
