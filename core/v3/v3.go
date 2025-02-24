@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/big"
 	"math/bits"
@@ -279,8 +278,6 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
 
-	log.Printf("Flag: 0x%02x, Checkpoint size: %d, Threshold size: %d", flag, checkpointSize, thresholdSize)
-
 	if s.Checkpointer != (common.Address{}) {
 		_, err = writer.Write(s.Checkpointer.Bytes())
 		if err != nil {
@@ -435,8 +432,6 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
-
-	log.Printf("Flag: 0x%02x, Checkpoint size: %d, Threshold size: %d", flag, checkpointSize, thresholdSize)
 
 	if s.Checkpointer != (common.Address{}) {
 		_, err = writer.Write(s.Checkpointer.Bytes())
@@ -943,11 +938,11 @@ func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
 	}
 
 	s := l.YParityAndS
+
 	if l.V%2 == 0 {
 		s[0] |= 0x80
-	} else {
-		s[0] &= 0x7f
 	}
+
 	_, err = writer.Write(s[:])
 	if err != nil {
 		return fmt.Errorf("unable to write YParityAndS: %w", err)

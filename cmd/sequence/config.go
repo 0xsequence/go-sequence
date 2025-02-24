@@ -32,6 +32,41 @@ func (s *SignerElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
+type SignatureConfigElement struct {
+	Address common.Address
+	Type    string
+	Values  []string
+	Weight  uint8
+}
+
+func (s *SignatureConfigElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeAddressLeaf{
+		Weight:  s.Weight,
+		Address: s.Address,
+	}
+}
+
+func parseSignature(signature string) (*SignatureConfigElement, error) {
+	parts := strings.Split(signature, ":")
+	if len(parts) < 5 {
+		return nil, fmt.Errorf("invalid signature format: %s", signature)
+	}
+
+	address := strings.TrimPrefix(parts[0], "--signature ")
+
+	weight, ok := new(big.Int).SetString(parts[len(parts)-1], 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid weight: %s", parts[len(parts)-1])
+	}
+
+	return &SignatureConfigElement{
+		Address: common.HexToAddress(address),
+		Type:    parts[1],
+		Values:  parts[2 : len(parts)-1],
+		Weight:  uint8(weight.Uint64()),
+	}, nil
+}
+
 type SapientSignerElement struct {
 	Address   common.Address
 	Weight    uint8
@@ -275,6 +310,10 @@ func parseElement(element string) (ConfigElement, error) {
 
 	if strings.HasPrefix(element, "nested:") {
 		return parseNestedElement(element)
+	}
+
+	if strings.HasPrefix(element, "--signature ") || strings.Contains(element, ":hash:") {
+		return parseSignature(element)
 	}
 
 	parts := strings.Split(element, ":")

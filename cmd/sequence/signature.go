@@ -19,6 +19,12 @@ type SignatureElement struct {
 	Values  []string `json:"values"`
 }
 
+func (s *SignatureElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeAddressLeaf{
+		Address: common.HexToAddress(s.Address),
+	}
+}
+
 type SignatureConcatParams struct {
 	Signatures []string `json:"signatures"`
 }
@@ -100,8 +106,6 @@ func convertTopologyToTree(topology interface{}) (interface{}, error) {
 }
 
 func signatureConcat(params *SignatureConcatParams) (string, error) {
-	log.Printf("Concatenating signatures: %v", params.Signatures)
-
 	var combined []byte
 	for _, sig := range params.Signatures {
 		sig = strings.TrimPrefix(sig, "0x")
@@ -114,10 +118,6 @@ func signatureConcat(params *SignatureConcatParams) (string, error) {
 }
 
 func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
-	log.Printf("ChainId: %v", p.ChainId)
-
-	log.Printf("Raw input: %s", string(p.Input))
-
 	var input WalletConfigInput
 	if err := json.Unmarshal(p.Input, &input); err != nil {
 		return nil, fmt.Errorf("failed to parse input config: %w", err)
@@ -158,8 +158,6 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 
 	rawConfig["tree"] = convertNumbers(tree)
 
-	log.Printf("Converted input: %+v", rawConfig)
-
 	config, err := v3.Core.DecodeWalletConfig(rawConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode wallet config: %w", err)
@@ -167,17 +165,67 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 
 	var signatures []SignatureElement
 	if p.Signatures != "" {
-		sigParts := strings.Split(p.Signatures, ":")
-		if len(sigParts) >= 2 {
-			sig := SignatureElement{
-				Address: sigParts[0],
-				Type:    sigParts[1],
-				Values:  sigParts[2:],
+		for _, sig := range strings.Fields(p.Signatures) {
+			parts := strings.Split(sig, ":")
+			if len(parts) < 2 {
+				continue
 			}
-			signatures = append(signatures, sig)
+
+			if len(parts) == 5 && parts[1] == "hash" {
+				signatures = append(signatures, SignatureElement{
+					Address: parts[0],
+					Type:    "hash",
+					Values:  []string{parts[2], parts[3], parts[4]},
+				})
+				continue
+			}
+
+			switch parts[0] {
+			case "signer":
+				if len(parts) != 3 {
+					continue
+				}
+				signatures = append(signatures, SignatureElement{
+					Address: parts[1],
+					Type:    "hash",
+					Values:  []string{},
+				})
+			case "sapient":
+				if len(parts) != 4 {
+					continue
+				}
+				signatures = append(signatures, SignatureElement{
+					Address: parts[2],
+					Type:    "sapient",
+					Values:  []string{parts[1], parts[2], parts[3]},
+				})
+			case "subdigest":
+				if len(parts) != 2 {
+					continue
+				}
+				signatures = append(signatures, SignatureElement{
+					Type:   "subdigest",
+					Values: []string{parts[1]},
+				})
+			case "node":
+				if len(parts) != 2 {
+					continue
+				}
+				signatures = append(signatures, SignatureElement{
+					Type:   "node",
+					Values: []string{parts[1]},
+				})
+			case "any-address-subdigest":
+				if len(parts) != 2 {
+					continue
+				}
+				signatures = append(signatures, SignatureElement{
+					Type:   "any-address-subdigest",
+					Values: []string{parts[1]},
+				})
+			}
 		}
 	}
-	log.Printf("Signatures: %+v", signatures)
 
 	var signature core.Signature[*v3.WalletConfig]
 	if p.ChainId {
@@ -193,8 +241,6 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
 
-						log.Printf("Eth sign: %+v", append(append(r, s...), v))
-
 						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
 					case "hash":
 						if len(sig.Values) != 3 {
@@ -204,22 +250,17 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
 
-						log.Printf("Hash: %+v", append(append(r, s...), v))
-
 						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
 					case "erc1271":
 						if len(sig.Values) != 1 {
 							continue
 						}
 
-						log.Printf("Erc1271: %+v", sig.Values[0])
 						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
 					case "sapient", "sapient_compact":
 						if len(sig.Values) != 1 {
 							continue
 						}
-
-						log.Printf("Sapient: %+v", sig.Values[0])
 
 						if sig.Type == "sapient" {
 							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
@@ -248,8 +289,6 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
 
-						log.Printf("Eth sign: %+v", append(append(r, s...), v))
-
 						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
 					case "hash":
 						if len(sig.Values) != 3 {
@@ -259,23 +298,17 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 						s := common.HexToHash(sig.Values[1]).Bytes()
 						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
 
-						log.Printf("Hash: %+v", append(append(r, s...), v))
-
 						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
 					case "erc1271":
 						if len(sig.Values) != 1 {
 							continue
 						}
 
-						log.Printf("Erc1271: %+v", sig.Values[0])
-
 						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
 					case "sapient", "sapient_compact":
 						if len(sig.Values) != 1 {
 							continue
 						}
-
-						log.Printf("Sapient: %+v", sig.Values[0])
 
 						if sig.Type == "sapient" {
 							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
@@ -312,23 +345,28 @@ func newSignatureCmd() *cobra.Command {
 	}
 
 	var input string
-	var signatures string
+	var signatures []string
 	var chainId bool
 
 	encodeCmd := &cobra.Command{
-		Use:   "encode",
-		Short: "Encode a signature",
+		Use:   "encode [input]",
+		Short: "Encode signature from hex input",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				input = args[0]
+			}
 			if input == "" {
 				return fmt.Errorf("input is required")
 			}
-			if signatures == "" {
-				return fmt.Errorf("signatures are required")
+			if len(signatures) == 0 {
+				return fmt.Errorf("at least one signature is required")
 			}
+
+			allSignatures := strings.Join(signatures, " ")
 
 			params := &SignatureEncodeParams{
 				Input:      json.RawMessage(input),
-				Signatures: signatures,
+				Signatures: allSignatures,
 				ChainId:    chainId,
 			}
 
@@ -364,9 +402,8 @@ func newSignatureCmd() *cobra.Command {
 		},
 	}
 
-	encodeCmd.Flags().StringVarP(&input, "input", "i", "", "Input config")
-	encodeCmd.Flags().StringVarP(&signatures, "signatures", "s", "", "Signatures")
-	encodeCmd.Flags().BoolVarP(&chainId, "chainId", "c", true, "Chain ID")
+	encodeCmd.Flags().StringArrayVarP(&signatures, "signature", "s", []string{}, "Signatures")
+	encodeCmd.Flags().BoolVar(&chainId, "chain-id", true, "Use chainId of recovered chain on signature")
 
 	cmd.AddCommand(encodeCmd, concatCmd)
 
