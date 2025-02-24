@@ -1,0 +1,40 @@
+agents:
+  queue: normal
+steps:
+  - label: ":foundry: Test Sequence V3 Contracts"
+    key: "test-foundry"
+    commands:
+      - |
+        # Check if GITHUB_SSH_KEY is set
+        if [ -z "$GITHUB_SSH_KEY" ]; then
+          echo "Error: GITHUB_SSH_KEY is not set"
+          exit 1
+        fi
+
+        # Setup SSH key
+        mkdir -p ~/.ssh
+        echo "$GITHUB_SSH_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+        # Install Foundry
+        curl -L https://foundry.paradigm.xyz | bash
+        source ~/.bashrc
+        foundryup
+        
+        # Clone private repo using SSH
+        git clone git@github.com:0xsequence/sequence-v3.git
+        cd sequence-v3
+        
+        # Install dependencies and run tests
+        forge install
+        forge test -vvv
+
+        # Cleanup SSH key
+        rm -f ~/.ssh/id_rsa
+    plugins:
+      - docker#v5.3.0:
+          image: "ubuntu:22.04"
+          environment:
+            - "GITHUB_SSH_KEY"
+            - "FOUNDRY_PROFILE=default"
