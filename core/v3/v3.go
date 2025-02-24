@@ -1000,14 +1000,14 @@ func (l *signatureTreeAddressLeaf) reduceImageHash() (core.ImageHash, error) {
 
 func (l *signatureTreeAddressLeaf) write(writer io.Writer) error {
 	flag := byte(FLAG_ADDRESS << 4)
+
 	var weightBytes []byte
 	if l.Weight > 0 && l.Weight <= 15 {
 		flag |= l.Weight
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write address leaf type: %w", err)
@@ -1372,20 +1372,16 @@ func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
 	var weightBytes []byte
 	if l.Weight <= 3 && l.Weight > 0 {
 		flag |= (l.Weight << 2)
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
 
 	var thresholdBytes []byte
 	if l.Threshold <= 3 && l.Threshold > 0 {
 		flag |= byte(l.Threshold)
-	} else if l.Threshold <= 65535 {
+	} else {
 		thresholdBytes = make([]byte, 2)
 		binary.BigEndian.PutUint16(thresholdBytes, l.Threshold)
-	} else {
-		return fmt.Errorf("threshold too large: %d", l.Threshold)
 	}
 
 	_, err := writer.Write([]byte{flag})
@@ -1489,14 +1485,14 @@ func (l *signatureTreeSignatureEthSignLeaf) reduceImageHash() (core.ImageHash, e
 
 func (l *signatureTreeSignatureEthSignLeaf) write(writer io.Writer) error {
 	flag := byte(FLAG_SIGNATURE_ETH_SIGN << 4)
+
 	var weightBytes []byte
 	if l.Weight > 0 && l.Weight <= 15 {
 		flag |= l.Weight
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write eth sign leaf type: %w", err)
@@ -2655,12 +2651,6 @@ func minBytesForUint16(value uint16) byte {
 		return 1
 	}
 	return 2
-}
-func minWeightBytes(weight uint64) uint8 {
-	if weight <= 3 {
-		return 0
-	}
-	return minBytesFor(weight)
 }
 
 func bitsFor(val uint64) int {
