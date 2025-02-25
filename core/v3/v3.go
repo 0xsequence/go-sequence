@@ -20,8 +20,11 @@ import (
 )
 
 const (
-	nestedLeafImageHashPrefix    = "Sequence nested config:\n"
-	subdigestLeafImageHashPrefix = "Sequence static digest:\n"
+	addressLeafImageHashPrefix             = "Sequence signer:\n"
+	nestedLeafImageHashPrefix              = "Sequence nested config:\n"
+	sapientLeafImageHashPrefix             = "Sequence sapient config:\n"
+	subdigestLeafImageHashPrefix           = "Sequence static digest:\n"
+	anyAddressSubdigestLeafImageHashPrefix = "Sequence any address subdigest:\n"
 )
 
 var Core core.Core[*WalletConfig, core.Signature[*WalletConfig]] = v3Core{}
@@ -1553,7 +1556,7 @@ func (l *signatureTreeAnyAddressSubdigestLeaf) join(other signatureTree) (signat
 
 func (l *signatureTreeAnyAddressSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
 	return core.ImageHash{Hash: crypto.Keccak256Hash(
-		[]byte("Sequence any address subdigest:\n"),
+		[]byte(anyAddressSubdigestLeafImageHashPrefix),
 		l.Subdigest.Bytes(),
 	)}, nil
 }
@@ -2195,7 +2198,7 @@ func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
 	weight.FillBytes(weightBytes)
 
 	hash := crypto.Keccak256Hash(
-		[]byte("Sequence signer:\n"),
+		[]byte(addressLeafImageHashPrefix),
 		l.Address.Bytes(),
 		weightBytes,
 	)
@@ -2510,7 +2513,7 @@ func (l *WalletConfigTreeSapientSignerLeaf) ImageHash() core.ImageHash {
 	weight.FillBytes(weightBytes)
 
 	hash := crypto.Keccak256Hash(
-		[]byte("Sequence sapient config:\n"),
+		[]byte(sapientLeafImageHashPrefix),
 		l.Address.Bytes(),
 		weightBytes,
 		l.ImageHash_.Bytes(),
@@ -2588,7 +2591,7 @@ func decodeWalletConfigTreeAnyAddressSubdigestLeaf(object any) (WalletConfigTree
 
 func (l WalletConfigTreeAnyAddressSubdigestLeaf) ImageHash() core.ImageHash {
 	hash := crypto.Keccak256Hash(
-		[]byte("Sequence any address subdigest:\n"),
+		[]byte(anyAddressSubdigestLeafImageHashPrefix),
 		l.Digest.Bytes(),
 	)
 	return core.ImageHash{
@@ -2655,12 +2658,6 @@ func minBytesForUint16(value uint16) byte {
 		return 1
 	}
 	return 2
-}
-func minWeightBytes(weight uint64) uint8 {
-	if weight <= 3 {
-		return 0
-	}
-	return minBytesFor(weight)
 }
 
 func bitsFor(val uint64) int {
