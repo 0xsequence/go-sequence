@@ -19,7 +19,6 @@ func handleToAbi(p *PayloadToAbiParams) (string, error) {
 }
 
 func handleToPacked(p *PayloadToPackedParams) (string, error) {
-	log.Printf("payload: %s", p.Payload)
 	decoded, err := v3.DecodeABIPayload(p.Payload)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode ABI payload: %w", err)

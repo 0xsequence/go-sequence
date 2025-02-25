@@ -471,8 +471,6 @@ func DecodeABIPayload(input string) (DecodedPayload, error) {
 		return DecodedPayload{}, fmt.Errorf("failed to unmarshal decoded data: %w", err)
 	}
 
-	log.Printf("Decoded: Space=%s, Nonce=%s, Calls=%d", payload.Space.String(), payload.Nonce.String(), len(payload.Calls))
-
 	return payload, nil
 }
 
@@ -482,7 +480,6 @@ func ConvertToAbi(payload string) (string, error) {
 }
 
 func ConvertToPacked(payload string) (string, error) {
-	log.Printf("payload: %s", payload)
 	decoded, err := DecodeABIPayload(payload)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode ABI payload: %w", err)
