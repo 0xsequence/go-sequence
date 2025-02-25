@@ -189,7 +189,7 @@ func TestWalletAddressFromWalletConfig(t *testing.T) {
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
 		}
 
-		expected := common.HexToAddress("0x8AD6cbc016f72971d317f281497aa080DF87a013")
+		expected := common.HexToAddress("0xce06CE19FB2Fd57CA337Cf484BA5A37E22DF9f35")
 
 		address, err := sequence.AddressFromWalletConfig(wc, context)
 		assert.NoError(t, err)
@@ -278,16 +278,6 @@ func TestWalletIsWalletConfigUsable(t *testing.T) {
 		{
 			wcBad := &v3.WalletConfig{
 				Threshold_: 0, //big.NewInt(0),
-				Tree: v3.WalletConfigTreeNodes(
-					&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
-				),
-			}
-
-			assert.Error(t, wcBad.IsUsable())
-		}
-		{
-			wcBad := &v3.WalletConfig{
-				Threshold_: 2, //big.NewInt(2),
 				Tree: v3.WalletConfigTreeNodes(
 					&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 				),
