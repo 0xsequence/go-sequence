@@ -396,7 +396,7 @@ func newServerCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "Hostname to listen on")
-	cmd.Flags().IntVar(&port, "port", 9998, "Port to listen on")
+	cmd.Flags().IntVar(&port, "port", 9999, "Port to listen on")
 	cmd.Flags().BoolVar(&debug, "debug", false, "Enable debug logging")
 	cmd.Flags().BoolVar(&silent, "silent", false, "Disable all logging output")
 
