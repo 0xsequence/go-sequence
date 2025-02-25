@@ -378,38 +378,34 @@ func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
 }
 
 func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewEIP2740Deployer(c.GetDeployWallet())
+	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, 0, nil, 7000000)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, 0, nil, 10000000)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (factory deploy): %w", err)
 	}
 
-	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage1Module.ABI, contracts.V3.Stage1Module.Bin, 0, nil, 7000000, walletFactoryAddress)
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage1Module.ABI, contracts.V3.Stage1Module.Bin, 0, nil, 15000000, walletFactoryAddress)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
 
-	stage2ModuleAddress, err := ud.Deploy(ctx, contracts.V3.Stage2Module.ABI, contracts.V3.Stage2Module.Bin, 0, nil, 7000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.GuestModule.ABI, contracts.V3.GuestModule.Bin, 0, nil, 10000000)
 	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
-	}
-
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.GuestModule.ABI, contracts.V3.GuestModule.Bin, 0, nil, 7000000)
-	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
 	}
 
 	return sequence.WalletContext{
 		FactoryAddress:              walletFactoryAddress,
 		MainModuleAddress:           stage1ModuleAddress,
-		MainModuleUpgradableAddress: stage2ModuleAddress,
+		MainModuleUpgradableAddress: stage1ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
+		UtilsAddress:                stage1ModuleAddress,
 	}, nil
 }
 
