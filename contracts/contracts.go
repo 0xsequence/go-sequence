@@ -23,6 +23,7 @@ import (
 	walletmain2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletmain"
 	walletupgradable2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletupgradable"
 	walletutils2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletutils"
+	guestmodule3 "github.com/0xsequence/go-sequence/contracts/gen/v3/guest"
 	stage1module3 "github.com/0xsequence/go-sequence/contracts/gen/v3/stage1"
 	stage2module3 "github.com/0xsequence/go-sequence/contracts/gen/v3/stage2"
 	walletfactory3 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletfactory"
@@ -68,6 +69,7 @@ var V3 struct {
 	WalletFactory      ethartifact.Artifact
 	Stage1Module       ethartifact.Artifact
 	Stage2Module       ethartifact.Artifact
+	GuestModule        ethartifact.Artifact
 	WalletGasEstimator ethartifact.Artifact
 }
 
@@ -97,8 +99,9 @@ func init() {
 	V2.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
 
 	V3.WalletFactory = artifact("WALLET_FACTORY", walletfactory3.WalletFactoryABI, walletfactory3.WalletFactoryBin)
-	V3.Stage1Module = artifact("STAGE_1_MODULE", stage1module3.WalletUpgradableABI, stage1module3.WalletUpgradableBin)
-	V3.Stage2Module = artifact("STAGE_2_MODULE", stage2module3.WalletUpgradableABI, stage2module3.WalletUpgradableBin)
+	V3.Stage1Module = artifact("STAGE_1_MODULE", stage1module3.Stage1ModuleABI, stage1module3.Stage1ModuleBin)
+	V3.Stage2Module = artifact("STAGE_2_MODULE", stage2module3.Stage2ModuleABI, stage2module3.Stage2ModuleBin)
+	V3.GuestModule = artifact("GUEST_MODULE", guestmodule3.GuestModuleABI, guestmodule3.GuestModuleBin)
 
 	// TODO: Update w/ v3 gas estimator
 	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
