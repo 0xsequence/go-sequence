@@ -1,10 +1,12 @@
 package testutil_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +36,15 @@ func TestTestutil(t *testing.T) {
 	sequenceContext, err := testChain.V1DeploySequenceContext()
 	assert.NoError(t, err)
 
+	// Mine a new block before deploying V2
+	_, err = testChain.Provider.Do(context.Background(), ethrpc.NewCall("evm_mine", nil))
+	assert.NoError(t, err)
+
 	sequenceContextV2, err := testChain.V2DeploySequenceContext()
+	assert.NoError(t, err)
+
+	// Mine a new block before deploying V3
+	_, err = testChain.Provider.Do(context.Background(), ethrpc.NewCall("evm_mine", nil))
 	assert.NoError(t, err)
 
 	sequenceContextV3, err := testChain.V3DeploySequenceContext()
