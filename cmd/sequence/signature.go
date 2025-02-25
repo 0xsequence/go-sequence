@@ -19,12 +19,6 @@ type SignatureElement struct {
 	Values  []string `json:"values"`
 }
 
-func (s *SignatureElement) ToTree() v3.WalletConfigTree {
-	return &v3.WalletConfigTreeAddressLeaf{
-		Address: common.HexToAddress(s.Address),
-	}
-}
-
 type WalletConfigInput struct {
 	Threshold  json.RawMessage `json:"threshold"`
 	Checkpoint json.RawMessage `json:"checkpoint"`
@@ -161,65 +155,16 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 
 	var signatures []SignatureElement
 	if p.Signatures != "" {
-		for _, sig := range strings.Fields(p.Signatures) {
-			parts := strings.Split(sig, ":")
-			if len(parts) < 2 {
-				continue
-			}
+		sigData := strings.TrimPrefix(p.Signatures, "--signature ")
+		sigParts := strings.Split(sigData, ":")
 
-			if len(parts) == 5 && parts[1] == "hash" {
-				signatures = append(signatures, SignatureElement{
-					Address: parts[0],
-					Type:    "hash",
-					Values:  []string{parts[2], parts[3], parts[4]},
-				})
-				continue
+		if len(sigParts) >= 2 {
+			sig := SignatureElement{
+				Address: sigParts[0],
+				Type:    sigParts[1],
+				Values:  sigParts[2:],
 			}
-
-			switch parts[0] {
-			case "signer":
-				if len(parts) != 3 {
-					continue
-				}
-				signatures = append(signatures, SignatureElement{
-					Address: parts[1],
-					Type:    "hash",
-					Values:  []string{},
-				})
-			case "sapient":
-				if len(parts) != 4 {
-					continue
-				}
-				signatures = append(signatures, SignatureElement{
-					Address: parts[2],
-					Type:    "sapient",
-					Values:  []string{parts[1], parts[2], parts[3]},
-				})
-			case "subdigest":
-				if len(parts) != 2 {
-					continue
-				}
-				signatures = append(signatures, SignatureElement{
-					Type:   "subdigest",
-					Values: []string{parts[1]},
-				})
-			case "node":
-				if len(parts) != 2 {
-					continue
-				}
-				signatures = append(signatures, SignatureElement{
-					Type:   "node",
-					Values: []string{parts[1]},
-				})
-			case "any-address-subdigest":
-				if len(parts) != 2 {
-					continue
-				}
-				signatures = append(signatures, SignatureElement{
-					Type:   "any-address-subdigest",
-					Values: []string{parts[1]},
-				})
-			}
+			signatures = append(signatures, sig)
 		}
 	}
 

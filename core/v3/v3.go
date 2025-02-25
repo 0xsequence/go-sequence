@@ -412,6 +412,7 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 	if checkpointSize > 7 {
 		return fmt.Errorf("checkpoint size %d exceeds maximum of 7 bytes", checkpointSize)
 	}
+
 	if thresholdSize == 0 {
 		thresholdSize = 1
 	}
@@ -575,32 +576,26 @@ func (s ChainedSignature) Data() ([]byte, error) {
 }
 
 func (s ChainedSignature) Write(writer io.Writer) error {
-	// Default flag
 	flag := byte(0x01)
 
-	// Check the last signature for Checkpointer, if the slice is not empty
 	if len(s) > 0 {
 		lastSig := s[len(s)-1]
-		// Type assertion to concrete types
 		if regSig, ok := lastSig.(*RegularSignature); ok {
-			// Access Checkpointer through the embedded Signature struct
 			if regSig.Signature.Checkpointer != (common.Address{}) {
-				flag |= 0x40 // Set bit [6] if Checkpointer is present
+				flag |= 0x40
 			}
 		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok {
 			if noChainSig.Signature.Checkpointer != (common.Address{}) {
-				flag |= 0x40 // Set bit [6] if Checkpointer is present
+				flag |= 0x40
 			}
 		}
 	}
 
-	// Write the flag
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write chained signature type: %w", err)
 	}
 
-	// Write Checkpointer data if present
 	if len(s) > 0 {
 		lastSig := s[len(s)-1]
 		if regSig, ok := lastSig.(*RegularSignature); ok && regSig.Signature.Checkpointer != (common.Address{}) {
@@ -632,7 +627,6 @@ func (s ChainedSignature) Write(writer io.Writer) error {
 		}
 	}
 
-	// Write all subsignatures
 	for i, subsignature := range s {
 		data, err := subsignature.Data()
 		if err != nil {
@@ -911,7 +905,6 @@ func (l *signatureTreeSignatureHashLeaf) reduceImageHash() (core.ImageHash, erro
 func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
 	var flag byte
 	var weightBytes []byte
-
 	flag = FLAG_SIGNATURE_HASH << 4
 
 	if l.Weight > 0 && l.Weight <= 15 {
@@ -938,7 +931,6 @@ func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
 	}
 
 	s := l.YParityAndS
-
 	if l.V%2 == 0 {
 		s[0] |= 0x80
 	}
@@ -1001,27 +993,30 @@ func (l *signatureTreeAddressLeaf) reduceImageHash() (core.ImageHash, error) {
 func (l *signatureTreeAddressLeaf) write(writer io.Writer) error {
 	flag := byte(FLAG_ADDRESS << 4)
 	var weightBytes []byte
+
 	if l.Weight > 0 && l.Weight <= 15 {
 		flag |= l.Weight
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write address leaf type: %w", err)
 	}
+
 	if len(weightBytes) > 0 {
 		_, err = writer.Write(weightBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write dynamic weight: %w", err)
 		}
 	}
+
 	_, err = writer.Write(l.Address.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write address: %w", err)
 	}
+
 	return nil
 }
 
@@ -1204,10 +1199,12 @@ func (l signatureTreeNodeLeaf) write(writer io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("unable to write node leaf type: %w", err)
 	}
+
 	_, err = writer.Write(l.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write node hash: %w", err)
 	}
+
 	return nil
 }
 
@@ -1258,13 +1255,16 @@ func (l signatureTreeSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
 
 func (l signatureTreeSubdigestLeaf) write(writer io.Writer) error {
 	_, err := writer.Write([]byte{FLAG_SUBDIGEST << 4})
+
 	if err != nil {
 		return fmt.Errorf("unable to write subdigest leaf type: %w", err)
 	}
+
 	_, err = writer.Write(l.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write subdigest: %w", err)
 	}
+
 	return nil
 }
 
@@ -1372,20 +1372,16 @@ func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
 	var weightBytes []byte
 	if l.Weight <= 3 && l.Weight > 0 {
 		flag |= (l.Weight << 2)
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
 
 	var thresholdBytes []byte
 	if l.Threshold <= 3 && l.Threshold > 0 {
 		flag |= byte(l.Threshold)
-	} else if l.Threshold <= 65535 {
+	} else {
 		thresholdBytes = make([]byte, 2)
 		binary.BigEndian.PutUint16(thresholdBytes, l.Threshold)
-	} else {
-		return fmt.Errorf("threshold too large: %d", l.Threshold)
 	}
 
 	_, err := writer.Write([]byte{flag})
@@ -1490,33 +1486,35 @@ func (l *signatureTreeSignatureEthSignLeaf) reduceImageHash() (core.ImageHash, e
 func (l *signatureTreeSignatureEthSignLeaf) write(writer io.Writer) error {
 	flag := byte(FLAG_SIGNATURE_ETH_SIGN << 4)
 	var weightBytes []byte
+
 	if l.Weight > 0 && l.Weight <= 15 {
 		flag |= l.Weight
-	} else if l.Weight <= 255 {
-		weightBytes = []byte{l.Weight}
 	} else {
-		return fmt.Errorf("weight too large: %d", l.Weight)
+		weightBytes = []byte{l.Weight}
 	}
+
 	_, err := writer.Write([]byte{flag})
 	if err != nil {
 		return fmt.Errorf("unable to write eth sign leaf type: %w", err)
 	}
+
 	if len(weightBytes) > 0 {
 		_, err = writer.Write(weightBytes)
 		if err != nil {
 			return fmt.Errorf("unable to write dynamic weight: %w", err)
 		}
 	}
+
 	_, err = writer.Write(l.R[:])
 	if err != nil {
 		return fmt.Errorf("unable to write R: %w", err)
 	}
+
 	s := l.YParityAndS
 	if l.V%2 == 0 {
 		s[0] |= 0x80
-	} else {
-		s[0] &= 0x7f
 	}
+
 	_, err = writer.Write(s[:])
 	if err != nil {
 		return fmt.Errorf("unable to write YParityAndS: %w", err)
@@ -1565,10 +1563,12 @@ func (l *signatureTreeAnyAddressSubdigestLeaf) write(writer io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("unable to write any address subdigest leaf type: %w", err)
 	}
+
 	_, err = writer.Write(l.Subdigest.Bytes())
 	if err != nil {
 		return fmt.Errorf("unable to write subdigest: %w", err)
 	}
+
 	return nil
 }
 
