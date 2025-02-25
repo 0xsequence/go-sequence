@@ -1876,6 +1876,16 @@ func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
 }
 
 func (c *WalletConfig) IsUsable() error {
+	if c.Threshold_ == 0 {
+		return fmt.Errorf("threshold is 0")
+	}
+
+	threshold := new(big.Int).SetUint64(uint64(c.Threshold_))
+	weight := c.Tree.maxWeight()
+	if threshold.Cmp(weight) > 0 {
+		return fmt.Errorf("threshold %v exceeds maximum weight %v", threshold, weight)
+	}
+
 	return nil
 }
 

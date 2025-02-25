@@ -1,11 +1,8 @@
 package v3
 
 import (
-	"context"
 	"testing"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence/core"
 	"github.com/BurntSushi/toml"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -49,8 +46,4 @@ func TestWalletConfigTOML(t *testing.T) {
 	assert.NoError(t, err)
 
 	spew.Dump(config_)
-}
-
-var noSigner = func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-	return 0, nil, core.ErrSigningNoSigner
 }
