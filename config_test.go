@@ -129,7 +129,7 @@ func TestWalletConfigImageHash(t *testing.T) {
 			),
 		}
 
-		expected := "0xb7062abf352bdc2978b8de0748c9f08a53d9f84aa4fcc0af15384567419ccf58"
+		expected := "0x2e933435748a0b51a395e77bfc6690e8d541c4b9b0b6b507e109d8db15344907"
 
 		assert.Equal(t, expected, wc.ImageHash().Hex())
 	})

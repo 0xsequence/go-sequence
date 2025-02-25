@@ -537,7 +537,13 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			execData, err = contracts.V3.Stage1Module.Encode("execute", encTxs, nonce, signature)
+			rawTxs := Transactions(subTxs)
+			encodedPayload, err := rawTxs.EncodeRaw()
+			if err != nil {
+				return 0, fmt.Errorf("error encoding transactions for V3 wallet: %w", err)
+			}
+
+			execData, err = contracts.V3.Stage1Module.Encode("execute", encodedPayload, signature)
 			if err != nil {
 				return 0, err
 			}
