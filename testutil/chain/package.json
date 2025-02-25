@@ -19,7 +19,7 @@
     "mnemonic": "major danger this key only test please avoid main net use okay",
     "testchainChainID": 1337,
     "testchainPort": 8545,
-    "testchainGasLimit": "32000000",
+    "testchainGasLimit": "30000000",
     "testchainGasPrice": "20000000000",
     "etherBalance": "100000"
   }
