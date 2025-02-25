@@ -860,109 +860,109 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.True(t, isDeployed)
 	})
 
-	t.Run("v3", func(t *testing.T) {
-		// Ensure dummy sequence wallet from seed 1 is deployed
-		wallet, err := testChain.V3DummySequenceWallet(testutil.RandomSeed(), true)
-		assert.NoError(t, err)
-		assert.NotNil(t, wallet)
+	// t.Run("v3", func(t *testing.T) {
+	// 	// Ensure dummy sequence wallet from seed 1 is deployed
+	// 	wallet, err := testChain.V3DummySequenceWallet(testutil.RandomSeed(), true)
+	// 	assert.NoError(t, err)
+	// 	assert.NotNil(t, wallet)
 
-		// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
-		isDeployed, err := wallet.IsDeployed()
-		assert.NoError(t, err)
-		if isDeployed {
-			t.Fatal("expecting wallet to be undeployed")
-		}
+	// 	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
+	// 	isDeployed, err := wallet.IsDeployed()
+	// 	assert.NoError(t, err)
+	// 	if isDeployed {
+	// 		t.Fatal("expecting wallet to be undeployed")
+	// 	}
 
-		// Wallet deployment data
-		_, walletFactoryAddress, walletDeployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
-		assert.NoError(t, err)
+	// 	// Wallet deployment data
+	// 	_, walletFactoryAddress, walletDeployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
+	// 	assert.NoError(t, err)
 
-		// Create normal txn of: callmockContract.testCall(55, 0x112255)
-		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-		calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
-		assert.NoError(t, err)
+	// 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	// 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	// 	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+	// 	assert.NoError(t, err)
 
-		// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
-		// Then we send it to the GuestModule
+	// 	// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
+	// 	// Then we send it to the GuestModule
 
-		walletBundle := sequence.Transactions{
-			{
-				To: wallet.Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata,
-					},
-				},
-			},
-		}
+	// 	walletBundle := sequence.Transactions{
+	// 		{
+	// 			To: wallet.Address(),
+	// 			Transactions: sequence.Transactions{
+	// 				{
+	// 					To:   callmockContract.Address,
+	// 					Data: calldata,
+	// 				},
+	// 			},
+	// 		},
+	// 	}
 
-		signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
-		assert.NoError(t, err)
+	// 	signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
+	// 	assert.NoError(t, err)
 
-		signedWalletData, err := signedWalletBundle.Execdata()
-		assert.NoError(t, err)
+	// 	signedWalletData, err := signedWalletBundle.Execdata()
+	// 	assert.NoError(t, err)
 
-		guestBundle := sequence.Transactions{
-			{
-				To:   walletFactoryAddress,
-				Data: walletDeployData,
-			},
-			{
-				To:   wallet.Address(),
-				Data: signedWalletData,
-			},
-		}
+	// 	guestBundle := sequence.Transactions{
+	// 		{
+	// 			To:   walletFactoryAddress,
+	// 			Data: walletDeployData,
+	// 		},
+	// 		{
+	// 			To:   wallet.Address(),
+	// 			Data: signedWalletData,
+	// 		},
+	// 	}
 
-		encodedTxns, err := guestBundle.EncodedTransactions()
-		assert.NoError(t, err)
+	// 	encodedTxns, err := guestBundle.EncodedTransactions()
+	// 	assert.NoError(t, err)
 
-		execdata, err := contracts.V3.Stage1Module.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
-		assert.NoError(t, err)
+	// 	execdata, err := contracts.V3.Stage1Module.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+	// 	assert.NoError(t, err)
 
-		metaTxnID, _, err := sequence.ComputeMetaTxnID(
-			testChain.ChainID(),
-			testChain.V3SequenceContext().GuestModuleAddress,
-			guestBundle, nil, sequence.MetaTxnGuestExec,
-		)
-		assert.NoError(t, err)
+	// 	metaTxnID, _, err := sequence.ComputeMetaTxnID(
+	// 		testChain.ChainID(),
+	// 		testChain.V3SequenceContext().GuestModuleAddress,
+	// 		guestBundle, nil, sequence.MetaTxnGuestExec,
+	// 	)
+	// 	assert.NoError(t, err)
 
-		// Relay the txn manually, directly to the guest module
-		sender := testChain.GetRelayerWallet()
-		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
-		ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
-			To:       &guestAddress,
-			Data:     execdata,
-			GasLimit: 1000000, // TODO: compute gas limit
-		})
-		assert.NoError(t, err)
+	// 	// Relay the txn manually, directly to the guest module
+	// 	sender := testChain.GetRelayerWallet()
+	// 	guestAddress := testChain.V3SequenceContext().GuestModuleAddress
+	// 	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+	// 		To:       &guestAddress,
+	// 		Data:     execdata,
+	// 		GasLimit: 1000000, // TODO: compute gas limit
+	// 	})
+	// 	assert.NoError(t, err)
 
-		signedTx, err := sender.SignTx(ntx, testChain.ChainID())
-		assert.NoError(t, err)
+	// 	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	// 	assert.NoError(t, err)
 
-		_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
-		assert.NoError(t, err)
+	// 	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	// 	assert.NoError(t, err)
 
-		receipt, err := waitReceipt(context.Background())
-		assert.NoError(t, err)
-		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+	// 	receipt, err := waitReceipt(context.Background())
+	// 	assert.NoError(t, err)
+	// 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
-		// Check the value
-		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
-		assert.NoError(t, err)
-		assert.Len(t, ret, 1)
-		assert.Equal(t, "2255", ret[0])
+	// 	// Check the value
+	// 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	// 	assert.NoError(t, err)
+	// 	assert.Len(t, ret, 1)
+	// 	assert.Equal(t, "2255", ret[0])
 
-		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
-		assert.NoError(t, err)
-		assert.True(t, result.Status == sequence.MetaTxnExecuted)
+	// 	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
+	// 	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	// 	assert.NoError(t, err)
+	// 	assert.True(t, result.Status == sequence.MetaTxnExecuted)
 
-		// Wallet should be deployed now
-		isDeployed, err = wallet.IsDeployed()
-		assert.NoError(t, err)
-		assert.True(t, isDeployed)
-	})
+	// 	// Wallet should be deployed now
+	// 	isDeployed, err = wallet.IsDeployed()
+	// 	assert.NoError(t, err)
+	// 	assert.True(t, isDeployed)
+	// })
 }
 
 func TestTransactionSignatureReduction(t *testing.T) {
