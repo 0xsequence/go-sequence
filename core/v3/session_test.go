@@ -17,11 +17,12 @@ func TestMarshalJSON(t *testing.T) {
 		return
 	}
 
-	expected := `[{"blacklist":[]},{"globalSigner":"0x74214e263d5669885065f215Fa21BC940588f7C1"}]`
+	expected := `[{"blacklist":[]},[{"globalSigner":"0x74214e263d5669885065f215Fa21BC940588f7C1"}]]`
 	if json != expected {
 		t.Errorf("Unexpected JSON output: %s", json)
 	}
 }
+
 func TestSessionExplicitAdd(t *testing.T) {
 	signer := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	target := common.HexToAddress("0x2222222222222222222222222222222222222222")
