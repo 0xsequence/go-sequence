@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -332,6 +333,7 @@ func (c *TestChain) V1DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
+		CreationCode:                hexutil.Encode(contracts.V1.CreationCode),
 	}, nil
 }
 
@@ -374,6 +376,7 @@ func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
+		CreationCode:                hexutil.Encode(contracts.V2.CreationCode),
 	}, nil
 }
 
@@ -406,6 +409,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleUpgradableAddress: stage1ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                stage1ModuleAddress,
+		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 	}, nil
 }
 

@@ -9,7 +9,9 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -29,6 +31,7 @@ func TestWalletAddress(t *testing.T) {
 		w, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
+			CreationCode:      hexutil.Encode(contracts.V1.CreationCode),
 		})
 
 		assert.NoError(t, err)
@@ -43,6 +46,7 @@ func TestWalletAddress(t *testing.T) {
 		w, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
+			CreationCode:      hexutil.Encode(contracts.V2.CreationCode),
 		})
 
 		assert.NoError(t, err)
@@ -60,6 +64,7 @@ func TestWalletSignMessage(t *testing.T) {
 		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
+			CreationCode:      hexutil.Encode(contracts.V1.CreationCode),
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, "0xF0BA65550F2d1DCCf4B131B774844DC3d801D886", wallet.Address().Hex())
@@ -85,6 +90,7 @@ func TestWalletSignMessage(t *testing.T) {
 		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
+			CreationCode:      hexutil.Encode(contracts.V2.CreationCode),
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, "0x8AD6cbc016f72971d317f281497aa080DF87a013", wallet.Address().Hex())
@@ -597,6 +603,7 @@ func TestWalletAddressV3(t *testing.T) {
 		w, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
+			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
 		})
 
 		assert.NoError(t, err)

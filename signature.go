@@ -249,8 +249,7 @@ func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common
 		return false, err
 	}
 
-	imageHash := recovered.ImageHash()
-	address, err := AddressFromImageHash(imageHash.Hex(), walletContext)
+	address, err := AddressFromWalletConfig(recovered, walletContext)
 	if err != nil {
 		return false, err
 	}

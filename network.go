@@ -5,6 +5,8 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -19,6 +21,7 @@ type WalletContext struct {
 	MainModuleUpgradableAddress common.Address `json:"mainModuleUpgradable" toml:"main_module_upgradable_address"`
 	GuestModuleAddress          common.Address `json:"guestModule" toml:"guest_module_address"`
 	UtilsAddress                common.Address `json:"utils" toml:"utils_address"`
+	CreationCode                string         `json:"creationCode" toml:"creation_code"`
 }
 
 // A map of a wallet context for each version
@@ -58,6 +61,7 @@ var sequenceContextV1 = WalletContext{
 	MainModuleUpgradableAddress: common.HexToAddress("0x7EFE6cE415956c5f80C6530cC6cc81b4808F6118"),
 	GuestModuleAddress:          common.HexToAddress("0x02390F3E6E5FD1C6786CB78FD3027C117a9955A7"),
 	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
+	CreationCode:                hexutil.Encode(contracts.V1.CreationCode),
 }
 
 var sequenceContextV2 = WalletContext{
@@ -65,6 +69,7 @@ var sequenceContextV2 = WalletContext{
 	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
 	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
 	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
+	CreationCode:                hexutil.Encode(contracts.V2.CreationCode),
 }
 
 var sequenceContextV3 = WalletContext{
@@ -72,6 +77,7 @@ var sequenceContextV3 = WalletContext{
 	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
 	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
 	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
+	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
 
 // V1SequenceContext returns copy of the package-level internal variable, to prevent change
