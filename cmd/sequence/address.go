@@ -15,7 +15,7 @@ func calculateAddress(params *AddressCalculateParams) (string, error) {
 
 	creationCode := params.CreationCode
 	if creationCode == "" {
-		creationCode = contracts.DEFAULT_CREATION_CODE
+		creationCode = contracts.V3_CREATION_CODE
 	}
 
 	address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)
