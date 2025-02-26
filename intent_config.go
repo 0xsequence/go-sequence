@@ -7,7 +7,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
-	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 // `CreateIntentBundle` creates a bundle of transactions with the initial nonce 0
@@ -29,8 +29,8 @@ func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
 //
 // For each valid batch, it creates a bundle of transactions, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v2.WalletConfigTreeSubdigestLeaf, error) {
-	var leaves []*v2.WalletConfigTreeSubdigestLeaf
+func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v3.WalletConfigTreeSubdigestLeaf, error) {
+	var leaves []*v3.WalletConfigTreeSubdigestLeaf
 
 	for batchIndex, batch := range batchTxns {
 		// Optional: Ensure the batch is not empty.
@@ -61,7 +61,7 @@ func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v2.WalletConfig
 		}
 
 		// Create a subdigest leaf with the computed digest.
-		leaf := &v2.WalletConfigTreeSubdigestLeaf{
+		leaf := &v3.WalletConfigTreeSubdigestLeaf{
 			Subdigest: core.Subdigest{Hash: digest},
 		}
 		leaves = append(leaves, leaf)
@@ -71,32 +71,32 @@ func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v2.WalletConfig
 }
 
 // CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v2.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	leaves, err := CreateIntentSubdigestLeaves(batches)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert the slice of subdigest leaves into a slice of v2.WalletConfigTree.
-	var treeNodes []v2.WalletConfigTree
+	// Convert the slice of subdigest leaves into a slice of v3.WalletConfigTree.
+	var treeNodes []v3.WalletConfigTree
 	for _, leaf := range leaves {
 		treeNodes = append(treeNodes, leaf)
 	}
 
 	// Create the main signer leaf (with weight 1).
-	mainSignerLeaf := &v2.WalletConfigTreeAddressLeaf{
+	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
 	}
 
 	// Construct the new wallet config using:
-	config := &v2.WalletConfig{
+	config := &v3.WalletConfig{
 		Threshold_:  1,
 		Checkpoint_: 0,
-		Tree: v2.WalletConfigTreeNodes(
+		Tree: v3.WalletConfigTreeNodes(
 			mainSignerLeaf,
-			v2.WalletConfigTreeNodes(treeNodes...),
+			v3.WalletConfigTreeNodes(treeNodes...),
 		),
 	}
 

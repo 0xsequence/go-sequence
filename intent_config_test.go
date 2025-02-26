@@ -10,8 +10,8 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
-	v2 "github.com/0xsequence/go-sequence/core/v2"
 
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -101,9 +101,9 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		require.Equal(t, byte(0x02), signature[0], "signature should start with version byte 0x02 (NoChainID)")
 
 		// Get the subdigest from the config's tree
-		var subdigestLeaf *v2.WalletConfigTreeSubdigestLeaf
-		if node, ok := config.Tree.(*v2.WalletConfigTreeNode); ok {
-			if rightNode, ok := node.Right.(*v2.WalletConfigTreeSubdigestLeaf); ok {
+		var subdigestLeaf *v3.WalletConfigTreeSubdigestLeaf
+		if node, ok := config.Tree.(*v3.WalletConfigTreeNode); ok {
+			if rightNode, ok := node.Right.(*v3.WalletConfigTreeSubdigestLeaf); ok {
 				subdigestLeaf = rightNode
 				fmt.Println("decoded subdigest leaf:", subdigestLeaf)
 			}
@@ -111,7 +111,7 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		require.NotNil(t, subdigestLeaf, "config should contain a subdigest leaf")
 
 		// Verify the signature can be decoded
-		sig, err := v2.Core.DecodeSignature(signature)
+		sig, err := v3.Core.DecodeSignature(signature)
 		require.NoError(t, err, "signature should be decodable")
 
 		// Dump the sig
@@ -263,7 +263,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	assert.Equal(t, byte(0x02), configSig[0], "configuration signature should start with 0x02")
 
 	// Use a v2 dummy Sequence wallet
-	wallet, err := testChain.V2DummySequenceWalletWithIntentConfig(1, batches)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
 
