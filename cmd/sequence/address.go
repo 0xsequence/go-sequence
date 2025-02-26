@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ func calculateAddress(params *AddressCalculateParams) (string, error) {
 
 	creationCode := params.CreationCode
 	if creationCode == "" {
-		creationCode = contracts.V3_CREATION_CODE
+		creationCode = hexutil.Encode(contracts.V3.CreationCode)
 	}
 
 	address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)

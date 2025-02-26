@@ -6,6 +6,7 @@ import (
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
@@ -54,6 +55,7 @@ var V1 struct {
 	WalletUtils                ethartifact.Artifact
 	WalletRequireFreshSigner   ethartifact.Artifact
 	WalletGasEstimator         ethartifact.Artifact
+	CreationCode               []byte
 }
 
 var V2 struct {
@@ -63,6 +65,7 @@ var V2 struct {
 	WalletGuestModule          ethartifact.Artifact
 	WalletUtils                ethartifact.Artifact
 	WalletGasEstimator         ethartifact.Artifact
+	CreationCode               []byte
 }
 
 var V3 struct {
@@ -71,17 +74,12 @@ var V3 struct {
 	WalletStage2Module ethartifact.Artifact
 	WalletGuestModule  ethartifact.Artifact
 	WalletGasEstimator ethartifact.Artifact
+	CreationCode       []byte
 }
 
 var (
 	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
-)
-
-const (
-	V1_CREATION_CODE = "0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3"
-	V2_CREATION_CODE = "0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3"
-	V3_CREATION_CODE = "0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3"
 )
 
 func init() {
@@ -92,6 +90,7 @@ func init() {
 	V1.WalletUtils = artifact("WALLET_UTILS", walletutils1.WalletUtilsABI, walletutils1.WalletUtilsBin)
 	V1.WalletRequireFreshSigner = artifact("WALLET_REQUIRE_FRESH_SIGNER", walletutils1.WalletRequireFreshSignerABI, walletutils1.WalletRequireFreshSignerBin)
 	V1.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator1.WalletGasEstimatorABI, walletgasestimator1.WalletGasEstimatorBin, walletgasestimator1.WalletGasEstimatorDeployedBin)
+	V1.CreationCode = hexutil.MustDecode("0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3")
 
 	V2.WalletFactory = artifact("WALLET_FACTORY", walletfactory2.WalletFactoryABI, walletfactory2.WalletFactoryBin)
 	V2.WalletMainModule = artifact("WALLET_MAIN", walletmain2.WalletMainABI, walletmain2.WalletMainBin)
@@ -99,11 +98,13 @@ func init() {
 	V2.WalletGuestModule = artifact("WALLET_GUEST", walletguest2.WalletGuestABI, walletguest2.WalletGuestBin)
 	V2.WalletUtils = artifact("WALLET_UTILS", walletutils2.WalletUtilsABI, walletutils2.WalletUtilsBin)
 	V2.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
+	V2.CreationCode = hexutil.MustDecode("0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3")
 
 	V3.WalletFactory = artifact("WALLET_FACTORY", walletfactory3.WalletFactoryABI, walletfactory3.WalletFactoryBin)
 	V3.WalletStage1Module = artifact("WALLET_STAGE_1", walletstage13.WalletStage1ABI, walletstage13.WalletStage1Bin)
 	V3.WalletStage2Module = artifact("WALLET_STAGE_2", walletstage23.WalletStage2ABI, walletstage23.WalletStage2Bin)
 	V3.WalletGuestModule = artifact("WALLET_GUEST", walletguest3.WalletGuestABI, walletguest3.WalletGuestBin)
+	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
 
 	// TODO: Update w/ v3 gas estimator
 	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
