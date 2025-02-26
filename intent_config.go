@@ -22,15 +22,15 @@ func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
 	return bundle, nil
 }
 
-// `CreateIntentSubdigestLeaves` iterates over each batch of transactions,
+// `CreateIntentDigestLeaves` iterates over each batch of transactions,
 // validates that each transaction in the batch meets the following criteria:
 //   - DelegateCall must be false,
 //   - RevertOnError must be true,
 //
 // For each valid batch, it creates a bundle of transactions, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v3.WalletConfigTreeSubdigestLeaf, error) {
-	var leaves []*v3.WalletConfigTreeSubdigestLeaf
+func CreateIntentDigestTree(batchTxns [][]*Transaction) (*v3.WalletConfigTree, error) {
+	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
 
 	for batchIndex, batch := range batchTxns {
 		// Optional: Ensure the batch is not empty.
@@ -61,27 +61,36 @@ func CreateIntentSubdigestLeaves(batchTxns [][]*Transaction) ([]*v3.WalletConfig
 		}
 
 		// Create a subdigest leaf with the computed digest.
-		leaf := &v3.WalletConfigTreeSubdigestLeaf{
-			Subdigest: core.Subdigest{Hash: digest},
+		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
+			Digest: core.Subdigest{Hash: digest},
 		}
 		leaves = append(leaves, leaf)
 	}
 
-	return leaves, nil
-}
-
-// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v3.WalletConfig, error) {
-	// Create the subdigest leaves from the batched transactions.
-	leaves, err := CreateIntentSubdigestLeaves(batches)
-	if err != nil {
-		return nil, err
+	// If the length of the leaves is 1, return the leaf as the tree.
+	if len(leaves) == 1 {
+		tree := v3.WalletConfigTree(leaves[0])
+		return &tree, nil
 	}
 
 	// Convert the slice of subdigest leaves into a slice of v3.WalletConfigTree.
 	var treeNodes []v3.WalletConfigTree
 	for _, leaf := range leaves {
 		treeNodes = append(treeNodes, leaf)
+	}
+
+	// Create a tree from the subdigest leaves.
+	tree := v3.WalletConfigTreeNodes(treeNodes...)
+
+	return &tree, nil
+}
+
+// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v3.WalletConfig, error) {
+	// Create the subdigest leaves from the batched transactions.
+	tree, err := CreateIntentDigestTree(batches)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the main signer leaf (with weight 1).
@@ -96,7 +105,7 @@ func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transacti
 		Checkpoint_: 0,
 		Tree: v3.WalletConfigTreeNodes(
 			mainSignerLeaf,
-			v3.WalletConfigTreeNodes(treeNodes...),
+			*tree,
 		),
 	}
 

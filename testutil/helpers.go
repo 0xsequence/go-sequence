@@ -17,6 +17,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,6 +130,9 @@ func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequen
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// Log the receipt
+	spew.Dump(receipt)
 
 	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
 	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above

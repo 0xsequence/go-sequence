@@ -18,30 +18,139 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateIntentSubdigestLeaves_Valid(t *testing.T) {
+func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 	// Create a valid transaction (stx) with required fields.
-	stx := &sequence.Transaction{
+	stx1 := &sequence.Transaction{
 		DelegateCall:  false,
 		RevertOnError: true,
 		Nonce:         big.NewInt(0),
-		// other required fields for stx (if any) are assumed to be set.
+		Data:          []byte("transaction1"),
+	}
+	stx2 := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(1),
+		Data:          []byte("transaction2"),
+	}
+	stx3 := &sequence.Transaction{
+		DelegateCall:  false,
+		RevertOnError: true,
+		Nonce:         big.NewInt(2),
+		Data:          []byte("transaction3"),
 	}
 
-	// Use the valid transaction in a slice (representing one batch).
-	txns := []*sequence.Transaction{stx}
-	batches := [][]*sequence.Transaction{txns}
+	t.Run("One batch", func(t *testing.T) {
+		// Use the valid transaction in a slice (representing one batch).
+		txns := []*sequence.Transaction{stx1}
+		batches := [][]*sequence.Transaction{txns}
 
-	bundle, err := sequence.CreateIntentBundle(txns)
-	require.NoError(t, err)
+		bundle, err := sequence.CreateIntentBundle(txns)
+		require.NoError(t, err)
 
-	leaves, err := sequence.CreateIntentSubdigestLeaves(batches)
-	require.NoError(t, err)
-	require.Len(t, leaves, 1, "expected one subdigest leaf")
+		tree, err := sequence.CreateIntentDigestTree(batches)
+		require.NoError(t, err)
+		require.NotNil(t, tree, "expected a tree")
 
-	// Verify that the leaf's digest matches the transaction's digest.
-	digest, err := bundle.Digest()
-	require.NoError(t, err)
-	require.Equal(t, digest, leaves[0].Subdigest.Hash, "digests do not match")
+		// Dump the tree
+		spew.Dump((*tree))
+
+		// Type assert to the concrete type
+		anyAddressLeaf, ok := (*tree).(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		// Verify that the leaf's digest matches the transaction's digest.
+		digest, err := bundle.Digest()
+		require.NoError(t, err)
+		require.Equal(t, digest, anyAddressLeaf.Digest.Hash, "digests do not match")
+	})
+
+	t.Run("Two batches", func(t *testing.T) {
+		// Use the valid transaction in a slice (representing one batch).
+		txns1 := []*sequence.Transaction{stx1}
+		txns2 := []*sequence.Transaction{stx2}
+		batches := [][]*sequence.Transaction{txns1, txns2}
+
+		bundle1, err := sequence.CreateIntentBundle(txns1)
+		require.NoError(t, err)
+		bundle2, err := sequence.CreateIntentBundle(txns2)
+		require.NoError(t, err)
+
+		tree, err := sequence.CreateIntentDigestTree(batches)
+		require.NoError(t, err)
+		require.NotNil(t, tree, "expected a tree")
+
+		// Dump the tree
+		spew.Dump((*tree))
+
+		// Type assert to the concrete type
+		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "tree should be a WalletConfigTreeNode")
+
+		// For a node with two leaves, we should check both digests
+		leftLeaf, ok := nodeTree.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		rightLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		// Verify that both leaves' digests match the transaction's digest.
+		digest1, err := bundle1.Digest()
+		require.NoError(t, err)
+		digest2, err := bundle2.Digest()
+		require.NoError(t, err)
+		require.Equal(t, digest1, leftLeaf.Digest.Hash, "left leaf digest does not match")
+		require.Equal(t, digest2, rightLeaf.Digest.Hash, "right leaf digest does not match")
+	})
+
+	t.Run("Three batches", func(t *testing.T) {
+		// Use the valid transaction in a slice (representing one batch).
+		txns1 := []*sequence.Transaction{stx1}
+		txns2 := []*sequence.Transaction{stx2}
+		txns3 := []*sequence.Transaction{stx3}
+		batches := [][]*sequence.Transaction{txns1, txns2, txns3}
+
+		bundle1, err := sequence.CreateIntentBundle(txns1)
+		require.NoError(t, err)
+		bundle2, err := sequence.CreateIntentBundle(txns2)
+		require.NoError(t, err)
+		bundle3, err := sequence.CreateIntentBundle(txns3)
+		require.NoError(t, err)
+
+		tree, err := sequence.CreateIntentDigestTree(batches)
+		require.NoError(t, err)
+		require.NotNil(t, tree, "expected a tree")
+
+		// Dump the tree
+		spew.Dump((*tree))
+
+		// Type assert to the concrete type
+		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "tree should be a WalletConfigTreeNode")
+
+		// For a node with three leaves, we should check all three digests
+		leftLeaf, ok := nodeTree.Left.(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "left leaf should be WalletConfigTreeNode")
+
+		rightLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		leftLeftLeaf, ok := leftLeaf.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		leftRightLeaf, ok := leftLeaf.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		// Verify that all leaves' digests match the transaction's digest.
+		digest1, err := bundle1.Digest()
+		require.NoError(t, err)
+		digest2, err := bundle2.Digest()
+		require.NoError(t, err)
+		digest3, err := bundle3.Digest()
+		require.NoError(t, err)
+		require.Equal(t, digest1, leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
+		require.Equal(t, digest2, leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
+		require.Equal(t, digest3, rightLeaf.Digest.Hash, "right leaf digest does not match")
+	})
 }
 
 func TestCreateIntentConfiguration_Valid(t *testing.T) {
@@ -98,17 +207,17 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		spew.Dump(signature)
 
 		// Verify signature format
-		require.Equal(t, byte(0x02), signature[0], "signature should start with version byte 0x02 (NoChainID)")
+		require.Equal(t, byte(0x08), signature[0], "signature should start with version byte 0x08 (Nested)")
 
 		// Get the subdigest from the config's tree
-		var subdigestLeaf *v3.WalletConfigTreeSubdigestLeaf
+		var anyAddressSubdigestLeaf *v3.WalletConfigTreeAnyAddressSubdigestLeaf
 		if node, ok := config.Tree.(*v3.WalletConfigTreeNode); ok {
-			if rightNode, ok := node.Right.(*v3.WalletConfigTreeSubdigestLeaf); ok {
-				subdigestLeaf = rightNode
-				fmt.Println("decoded subdigest leaf:", subdigestLeaf)
+			if rightNode, ok := node.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf); ok {
+				anyAddressSubdigestLeaf = rightNode
+				fmt.Println("decoded any address subdigest leaf:", anyAddressSubdigestLeaf)
 			}
 		}
-		require.NotNil(t, subdigestLeaf, "config should contain a subdigest leaf")
+		require.NotNil(t, anyAddressSubdigestLeaf, "config should contain a any address subdigest leaf")
 
 		// Verify the signature can be decoded
 		sig, err := v3.Core.DecodeSignature(signature)
@@ -119,10 +228,10 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		spew.Dump(sig)
 
 		// Verify signature type by checking the first byte
-		require.Equal(t, byte(0x02), signature[0], "signature should be a NoChainID signature type")
+		require.Equal(t, byte(0x08), signature[0], "signature should be a AnyAddressSubdigest signature type")
 
 		// Print the image hash of the subdigest
-		fmt.Println(subdigestLeaf.ImageHash())
+		fmt.Println(anyAddressSubdigestLeaf.ImageHash())
 
 		// Print the full signature in hex
 		fmt.Println("full signature:", sig)
@@ -132,11 +241,11 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 		fmt.Println("full signature hex:", common.Bytes2Hex(sigDataStr))
 
-		subdigestStr := subdigestLeaf.Subdigest.Hash.Hex()
-		fmt.Println("subdigest hex:", subdigestStr)
+		anyAddressSubdigestStr := anyAddressSubdigestLeaf.Digest.Hash.Hex()
+		fmt.Println("any address digest hex:", anyAddressSubdigestStr)
 
-		// Verify the signature contains the subdigest
-		require.Contains(t, common.Bytes2Hex(sigDataStr), subdigestStr[2:], "signature should contain the subdigest")
+		// Verify the signature contains the any address digest
+		require.Contains(t, common.Bytes2Hex(sigDataStr), anyAddressSubdigestStr[2:], "signature should contain the any address digest")
 	})
 
 	t.Run("different transactions produce different signatures", func(t *testing.T) {
@@ -254,13 +363,21 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	txns := []*sequence.Transaction{tx}
 	batches := [][]*sequence.Transaction{txns}
 
+	// Get the config tree
+	configTree, err := sequence.CreateIntentConfiguration(mainSigner.Address(), batches)
+	require.NoError(t, err)
+
+	// Dump the config tree
+	spew.Dump(configTree)
+
 	// Generate a configuration signature for the batch.
 	// (The configuration signature "attests" that the wallet owner authorizes
 	// this bundle of transactions.)
 	configSig, err := sequence.CreateIntentConfigurationSignature(mainSigner.Address(), batches)
 	require.NoError(t, err)
-	// For a NoChainID signature the version byte is expected to be 0x02.
-	assert.Equal(t, byte(0x02), configSig[0], "configuration signature should start with 0x02")
+
+	// For a Nested signature the version byte is expected to be 0x06.
+	assert.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
 
 	// Use a v2 dummy Sequence wallet
 	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
