@@ -16,6 +16,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/0xsequence/go-sequence/lib/prototyp"
 )
 
 const WebrpcHeader = "Webrpc"
@@ -1966,8 +1968,10 @@ type MarketplaceClient interface {
 // Client
 //
 
-const AdminPathPrefix = "/rpc/Admin/"
-const MarketplacePathPrefix = "/rpc/Marketplace/"
+const (
+	AdminPathPrefix       = "/rpc/Admin/"
+	MarketplacePathPrefix = "/rpc/Marketplace/"
+)
 
 type adminClient struct {
 	client HTTPClient
