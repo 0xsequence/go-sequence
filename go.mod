@@ -15,6 +15,7 @@ require (
 	github.com/goware/cachestore v0.9.0
 	github.com/goware/logger v0.3.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.9.0
 )
 
@@ -46,7 +47,6 @@ require (
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
-	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
