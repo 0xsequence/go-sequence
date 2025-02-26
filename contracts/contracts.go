@@ -7,7 +7,6 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
-	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
@@ -139,12 +138,4 @@ func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...
 		Bin:          common.FromHex(bytecodeHex),
 		DeployedBin:  deployedBin,
 	}
-}
-
-func GetCounterfactualAddress(factory, module common.Address, imageHash common.Hash, creationCode string) (common.Address, error) {
-	initCodeHash := crypto.Keccak256(append(common.FromHex(creationCode), common.LeftPadBytes(module.Bytes(), 32)...))
-
-	addressBytes := crypto.Keccak256(append([]byte{0xff}, append(factory.Bytes(), append(imageHash.Bytes(), initCodeHash...)...)...))
-
-	return common.BytesToAddress(addressBytes[12:]), nil
 }
