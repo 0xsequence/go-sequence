@@ -26,7 +26,9 @@ import (
 	v3Factory "github.com/0xsequence/go-sequence/contracts/gen/v3/walletfactory"
 	v3Guest "github.com/0xsequence/go-sequence/contracts/gen/v3/walletguest"
 	v3Stage1 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage1"
+	v3Stage1Simulator "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage1simulator"
 	v3Stage2 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage2"
+	v3Stage2Simulator "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage2simulator"
 )
 
 var (
@@ -68,12 +70,13 @@ var V2 struct {
 }
 
 var V3 struct {
-	WalletFactory      ethartifact.Artifact
-	WalletStage1Module ethartifact.Artifact
-	WalletStage2Module ethartifact.Artifact
-	WalletGuestModule  ethartifact.Artifact
-	WalletGasEstimator ethartifact.Artifact
-	CreationCode       []byte
+	WalletFactory         ethartifact.Artifact
+	WalletStage1Module    ethartifact.Artifact
+	WalletStage2Module    ethartifact.Artifact
+	WalletGuestModule     ethartifact.Artifact
+	WalletStage1Simulator ethartifact.Artifact
+	WalletStage2Simulator ethartifact.Artifact
+	CreationCode          []byte
 }
 
 var (
@@ -104,9 +107,8 @@ func init() {
 	V3.WalletStage2Module = artifact("WALLET_STAGE_2", v3Stage2.WalletStage2ABI, v3Stage2.WalletStage2Bin)
 	V3.WalletGuestModule = artifact("WALLET_GUEST", v3Guest.WalletGuestABI, v3Guest.WalletGuestBin)
 	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
-
-	// TODO: Update w/ v3 gas estimator
-	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", v2Estimator.WalletGasEstimatorABI, v2Estimator.WalletGasEstimatorBin, v2Estimator.WalletGasEstimatorDeployedBin)
+	V3.WalletStage1Simulator = artifact("WALLET_STAGE_1_SIMULATOR", v3Stage1Simulator.WalletStage1SimulatorABI, v3Stage1Simulator.WalletStage1SimulatorBin, v3Stage1Simulator.WalletStage1SimulatorDeployedBin)
+	V3.WalletStage2Simulator = artifact("WALLET_STAGE_2_SIMULATOR", v3Stage2Simulator.WalletStage2SimulatorABI, v3Stage2Simulator.WalletStage2SimulatorBin, v3Stage2Simulator.WalletStage2SimulatorDeployedBin)
 
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
