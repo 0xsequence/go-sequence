@@ -26,7 +26,6 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/goware/logger"
 )
 
@@ -711,24 +710,16 @@ func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet[core.WalletConf
 		return nil
 	}
 
-	// Print the wallet config and context
-	spew.Dump(wallet.GetWalletConfig())
-	spew.Dump(wallet.GetWalletContext())
-
 	// Deploy the wallet, via our account designated for relaying txs, but it could be any with some ETH
 	sender := c.GetRelayerWallet()
-	address, tx, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
+	_, _, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
 	if err != nil {
 		return err
 	}
-	receipt, err := waitReceipt(context.Background())
+	_, err = waitReceipt(context.Background())
 	if err != nil {
 		return err
 	}
-
-	log.Printf("deployed wallet: %s", wallet.Address())
-	log.Printf("tx: %s", tx.Hash())
-	spew.Dump(address, tx, receipt)
 
 	// Ensure deployment worked
 	ok, err = wallet.IsDeployed()
