@@ -6,7 +6,7 @@
   "scripts": {
     "test": "concurrently -k --success first 'pnpm start:geth' 'cd ../../ && make go-test'",
     "start:geth": "docker run -p 8545:8545 --log-driver none --rm ethereum/client-go:v1.15.2 --dev --dev.period 2 --networkid ${npm_package_config_testchainChainID} --miner.gaslimit ${npm_package_config_testchainGasLimit} --miner.gasprice 1 --http --http.addr 0.0.0.0 --rpc.allow-unprotected-txs --verbosity 1",
-    "start:geth:verbose": "docker run -p 8545:8545 --rm ethereum/client-go:v1.15.2 --dev --dev.period 2 --networkid ${npm_package_config_testchainChainID} --miner.gaslimit ${npm_package_config_testchainGasLimit} --miner.gasprice 1 --http --http.addr 0.0.0.0 --rpc.allow-unprotected-txs",
+    "start:geth:verbose": "docker run -p 8545:8545 --rm ethereum/client-go:v1.15.2 --dev --dev.period 2 --networkid ${npm_package_config_testchainChainID} --miner.gaslimit ${npm_package_config_testchainGasLimit} --miner.gasprice 1 --http --http.addr 0.0.0.0 --rpc.allow-unprotected-txs --verbosity 5",
     "start:anvil": "anvil --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --balance ${npm_package_config_etherBalance} --host 0.0.0.0 --chain-id ${npm_package_config_testchainChainID} --gas-limit ${npm_package_config_testchainGasLimit} --gas-price ${npm_package_config_testchainGasPrice}",
     "start:anvil:verbose": "anvil --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --balance ${npm_package_config_etherBalance} --host 0.0.0.0 --chain-id ${npm_package_config_testchainChainID} --gas-limit ${npm_package_config_testchainGasLimit} --gas-price ${npm_package_config_testchainGasPrice} -v --steps-tracing",
     "wait:server": "wait-on -t 120000 tcp:127.0.0.1:8545"
