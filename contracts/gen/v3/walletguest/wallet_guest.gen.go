@@ -31,8 +31,8 @@ var (
 
 // WalletGuestMetaData contains all meta data concerning the WalletGuest contract.
 var WalletGuestMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"DelegateCallNotAllowed\",\"type\":\"error\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"kind\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"noChainId\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"delegateCall\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"onlyFallback\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"behaviorOnError\",\"type\":\"uint256\"}],\"internalType\":\"structPayload.Call[]\",\"name\":\"calls\",\"type\":\"tuple[]\"},{\"internalType\":\"uint256\",\"name\":\"space\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"imageHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"digest\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parentWallets\",\"type\":\"address[]\"}],\"internalType\":\"structPayload.Decoded\",\"name\":\"_payload\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_gasLeft\",\"type\":\"uint256\"}],\"name\":\"NotEnoughGas\",\"type\":\"error\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"kind\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"noChainId\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"delegateCall\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"onlyFallback\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"behaviorOnError\",\"type\":\"uint256\"}],\"internalType\":\"structPayload.Call[]\",\"name\":\"calls\",\"type\":\"tuple[]\"},{\"internalType\":\"uint256\",\"name\":\"space\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"imageHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"digest\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parentWallets\",\"type\":\"address[]\"}],\"internalType\":\"structPayload.Decoded\",\"name\":\"_payload\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_returnData\",\"type\":\"bytes\"}],\"name\":\"Reverted\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"Aborted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"Failed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"Skipped\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"Success\",\"type\":\"event\"},{\"stateMutability\":\"nonpayable\",\"type\":\"fallback\"}]",
-	Bin: "0x6080604052348015600f57600080fd5b506110fc8061001f6000396000f3fe608060405234801561001057600080fd5b503660008036600081811061002757610027610d16565b909101357fff0000000000000000000000000000000000000000000000000000000000000016600003905061006d57610064366001816000610d45565b91509150610076565b50606490506024355b6000610082838361009d565b9050600061008f826104bb565b905061009b8282610536565b005b604080516101208101825260008082526020820181905260609282018390528282018190526080820181905260a0820183905260c0820181905260e0820152610100810191909152823560f81c600180821681036101015760006060840152610112565b84810135606090811c908401526014015b6007600183901c1680156101655760016008820290811b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0187840135610100929092039190911c166080850152908101905b60008360101660100361017a575060016101a3565b836020166020036101965750600282019186013560f01c6101a3565b50600182019186013560f81c5b8067ffffffffffffffff8111156101bc576101bc610d6f565b60405190808252806020026020018201604052801561024757816020015b6102346040518060e00160405280600073ffffffffffffffffffffffffffffffffffffffff168152602001600081526020016060815260200160008152602001600015158152602001600015158152602001600081525090565b8152602001906001900390816101da5790505b50604086015260005b818110156104b05760018085019489013560f81c9080821690036102af57308760400151838151811061028557610285610d16565b602090810291909101015173ffffffffffffffffffffffffffffffffffffffff90911690526102f9565b8489013560601c60148601886040015184815181106102d0576102d0610d16565b602090810291909101015173ffffffffffffffffffffffffffffffffffffffff90921690915294505b600280821690036103375784890135602086018860400151848151811061032257610322610d16565b60200260200101516020018197508281525050505b600480821690036103cf57600385019489013560e81c89868a61035a8483610d9e565b9261036793929190610d45565b8080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525050505060408901518051859081106103b2576103b2610d16565b6020908102919091010151604001526103cb8187610d9e565b9550505b6008808216900361040d578489013560208601886040015184815181106103f8576103f8610d16565b60200260200101516060018197508281525050505b8060101660ff166010148760400151838151811061042d5761042d610d16565b602002602001015160800190151590811515815250508060201660ff166020148760400151838151811061046357610463610d16565b602090810291909101015190151560a090910152604087015180516003600684901c1691908490811061049857610498610d16565b602090810291909101015160c0015250600101610250565b505050505092915050565b6000806104cc8360200151306107eb565b905060006104d9846108b8565b6040517f1901000000000000000000000000000000000000000000000000000000000000602082015260228101849052604281018290529091506062015b6040516020818303038152906040528051906020012092505050919050565b604082015151600090815b818110156107e45760008560400151828151811061056157610561610d16565b602002602001015190508060a00151801561057a575083155b156105c2576040805186815260208101849052600095507fa7df37e35254f22900087bd61c5b68001c8f034f7e924ec565af11317d7ee0f7910160405180910390a1506107dc565b606081015180158015906105d55750805a105b1561061b5786835a6040517f2139527400000000000000000000000000000000000000000000000000000000815260040161061293929190611012565b60405180910390fd5b81608001511561065a576040517f230d1ccc00000000000000000000000000000000000000000000000000000000815260048101849052602401610612565b600061067483600001518460200151848660400151610b0e565b90508061079f5760c08301516106c9576040805188815260208101869052600197507fe64040c2a394fc50904b208b60495abbcf56a8eff89806cada4162c27dd5f643910160405180910390a15050506107dc565b60c08301517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff016107335787846106fe610b26565b6040517f7f6b0bb100000000000000000000000000000000000000000000000000000000815260040161061293929190611037565b60c08301517ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0161079f5760408051888152602081018690527f6cd433d189cb0ff58b321e23f3e510c9d0f019f2230a2066e50962d4f867c0a8910160405180910390a15050506107e4565b60408051888152602081018690527f2fd98f16e3e0ef7b9373ea49ea6b76b871c7f2aa1e2c222747ef5bfb26de18b3910160405180910390a15050505b600101610541565b5050505050565b60007f8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f7f4aa45ca7ad825ceb1bf35643f0a58c295239df563b1b565c2485f96477c563187f2a80e1ef1d7842f27f2e6be0972bb708b9a135c38860dbe73c27c3486c34f4de8561085b574661085e565b60005b6040805160208101959095528401929092526060830152608082015273ffffffffffffffffffffffffffffffffffffffff831660a082015260c0016040516020818303038152906040528051906020012090505b92915050565b6000806108c9836101000151610b45565b835190915060ff1661093c5760006108e48460400151610bc8565b606080860151608080880151604080517f11e1e4079a79a66e4ade50033cfe2678cdd5341d2dfe5ef9513edb1a0be147a260208201529081018690529384019290925282015260a0810184905290915060c001610517565b825160ff167fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff016109cc5760a08301518051602091820120604080517fe19a3b94fc3c7ece3f890d98a99bc422615537a08dea0603fa8425867d87d46693810193909352820152606081018290526080015b60405160208183030381529060405280519060200120915050919050565b825160ff167ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe01610a3c5760c0830151604080517f11fdeb7e8373a1aa96bfac8d0ea91526b2c5d15e5cee20e0543e780258f3e8e4602082015290810191909152606081018290526080016109ae565b825160ff167ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd01610aac5760e0830151604080517f402e923b91e918306019e73f589362164a6a059499a504699c66feabbb3e2624602082015290810191909152606081018290526080016109ae565b6040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601060248201527f556e737570706f72746564206b696e64000000000000000000000000000000006044820152606401610612565b6000806000835160208501878988f195945050505050565b60603d604051915060208201818101604052818352816000823e505090565b6000606060005b8351811015610bb95781848281518110610b6857610b68610d16565b6020026020010151604051602001610b8192919061106c565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe08184030181529190529150600101610b4c565b50805160209091012092915050565b6000606060005b8351811015610bb9576000610bfc858381518110610bef57610bef610d16565b6020026020010151610c4a565b90508281604051602001610c119291906110a4565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0818403018152919052925050600101610bcf565b60007f0603985259a953da1f65a522f589c17bd1d0117ec1d3abb7c0788aef251ef43782600001518360200151846040015180519060200120856060015186608001518760a001518860c00151604051602001610cf998979695949392919097885273ffffffffffffffffffffffffffffffffffffffff969096166020880152604087019490945260608601929092526080850152151560a0840152151560c083015260e08201526101000190565b604051602081830303815290604052805190602001209050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b60008085851115610d5557600080fd5b83861115610d6257600080fd5b5050820193919092039150565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b808201808211156108b2577f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60005b83811015610df3578181015183820152602001610ddb565b50506000910152565b60008151808452610e14816020860160208601610dd8565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b600082825180855260208501945060208160051b8301016020850160005b83811015610f16577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0858403018852815173ffffffffffffffffffffffffffffffffffffffff815116845260208101516020850152604081015160e06040860152610ed260e0860182610dfc565b6060838101519087015260808084015115159087015260a08084015115159087015260c0928301519290950191909152506020978801979190910190600101610e64565b50909695505050505050565b600081518084526020840193506020830160005b82811015610f6a57815173ffffffffffffffffffffffffffffffffffffffff16865260209586019590910190600101610f36565b5093949350505050565b805160ff16825260006020820151610f90602085018215159052565b5060408201516101206040850152610fac610120850182610e46565b9050606083015160608501526080830151608085015260a083015184820360a0860152610fd98282610dfc565b91505060c083015160c085015260e083015160e08501526101008301518482036101008601526110098282610f22565b95945050505050565b6060815260006110256060830186610f74565b60208301949094525060400152919050565b60608152600061104a6060830186610f74565b84602084015282810360408401526110628185610dfc565b9695505050505050565b60408152600061107f6040830185610dfc565b905073ffffffffffffffffffffffffffffffffffffffff831660208301529392505050565b600083516110b6818460208801610dd8565b919091019182525060200191905056fea2646970667358221220216f5accfdf8d241c3de7b985c06aadc7bc5391e677e3e9e36b40467fd06da7764736f6c634300081b0033",
+	ABI: "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"DelegateCallNotAllowed\",\"type\":\"error\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"kind\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"noChainId\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"delegateCall\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"onlyFallback\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"behaviorOnError\",\"type\":\"uint256\"}],\"internalType\":\"structPayload.Call[]\",\"name\":\"calls\",\"type\":\"tuple[]\"},{\"internalType\":\"uint256\",\"name\":\"space\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"imageHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"digest\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parentWallets\",\"type\":\"address[]\"}],\"internalType\":\"structPayload.Decoded\",\"name\":\"_payload\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_gasLeft\",\"type\":\"uint256\"}],\"name\":\"NotEnoughGas\",\"type\":\"error\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint8\",\"name\":\"kind\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"noChainId\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"uint256\",\"name\":\"gasLimit\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"delegateCall\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"onlyFallback\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"behaviorOnError\",\"type\":\"uint256\"}],\"internalType\":\"structPayload.Call[]\",\"name\":\"calls\",\"type\":\"tuple[]\"},{\"internalType\":\"uint256\",\"name\":\"space\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"imageHash\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"digest\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parentWallets\",\"type\":\"address[]\"}],\"internalType\":\"structPayload.Decoded\",\"name\":\"_payload\",\"type\":\"tuple\"},{\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_returnData\",\"type\":\"bytes\"}],\"name\":\"Reverted\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"CallAborted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"CallFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"CallSkipped\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"_opHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_index\",\"type\":\"uint256\"}],\"name\":\"CallSuccess\",\"type\":\"event\"},{\"stateMutability\":\"nonpayable\",\"type\":\"fallback\"}]",
+	Bin: "0x6080604052348015600f57600080fd5b5061111b8061001f6000396000f3fe608060405234801561001057600080fd5b503660008036600081811061002757610027610d35565b909101357fff00000000000000000000000000000000000000000000000000000000000000167f1f00000000000000000000000000000000000000000000000000000000000000039050610082575060649050602435610089565b5060009050365b600061009583836100b0565b905060006100a2826104ce565b90506100ae8282610549565b005b604080516101208101825260008082526020820181905260609282018390528282018190526080820181905260a0820183905260c0820181905260e0820152610100810191909152823560f81c600180821681036101145760006060840152610125565b84810135606090811c908401526014015b6007600183901c1680156101785760016008820290811b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0187840135610100929092039190911c166080850152908101905b60008360101660100361018d575060016101b6565b836020166020036101a95750600282019186013560f01c6101b6565b50600182019186013560f81c5b8067ffffffffffffffff8111156101cf576101cf610d64565b60405190808252806020026020018201604052801561025a57816020015b6102476040518060e00160405280600073ffffffffffffffffffffffffffffffffffffffff168152602001600081526020016060815260200160008152602001600015158152602001600015158152602001600081525090565b8152602001906001900390816101ed5790505b50604086015260005b818110156104c35760018085019489013560f81c9080821690036102c257308760400151838151811061029857610298610d35565b602090810291909101015173ffffffffffffffffffffffffffffffffffffffff909116905261030c565b8489013560601c60148601886040015184815181106102e3576102e3610d35565b602090810291909101015173ffffffffffffffffffffffffffffffffffffffff90921690915294505b6002808216900361034a5784890135602086018860400151848151811061033557610335610d35565b60200260200101516020018197508281525050505b600480821690036103e257600385019489013560e81c89868a61036d8483610d93565b9261037a93929190610dcd565b8080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525050505060408901518051859081106103c5576103c5610d35565b6020908102919091010151604001526103de8187610d93565b9550505b600880821690036104205784890135602086018860400151848151811061040b5761040b610d35565b60200260200101516060018197508281525050505b8060101660ff166010148760400151838151811061044057610440610d35565b602002602001015160800190151590811515815250508060201660ff166020148760400151838151811061047657610476610d35565b602090810291909101015190151560a090910152604087015180516003600684901c169190849081106104ab576104ab610d35565b602090810291909101015160c0015250600101610263565b505050505092915050565b6000806104df83602001513061080a565b905060006104ec846108d7565b6040517f1901000000000000000000000000000000000000000000000000000000000000602082015260228101849052604281018290529091506062015b6040516020818303038152906040528051906020012092505050919050565b604082015151600090815b818110156108035760008560400151828151811061057457610574610d35565b602002602001015190508060a00151801561058d575083155b156105d5576040805186815260208101849052600095507f9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b910160405180910390a1506107fb565b606081015180158015906105e85750805a105b1561062e5786835a6040517f2139527400000000000000000000000000000000000000000000000000000000815260040161062593929190611031565b60405180910390fd5b81608001511561066d576040517f230d1ccc00000000000000000000000000000000000000000000000000000000815260048101849052602401610625565b815160208301516000916106939184156106875784610689565b5a5b8660400151610b2d565b9050806107be5760c08301516106e8576040805188815260208101869052600197507f20832642214d5218c6428e71d8d2ddd9ad15a81ad2be8154d8c2e3ab08293fcb910160405180910390a15050506107fb565b60c08301517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0161075257878461071d610b45565b6040517f7f6b0bb100000000000000000000000000000000000000000000000000000000815260040161062593929190611056565b60c08301517ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016107be5760408051888152602081018690527f5b5cb72c79981de49f1f950d4d8d62397e2fc2b772e1b788a640025075ab47c3910160405180910390a1505050610803565b60408051888152602081018690527fec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd910160405180910390a15050505b600101610554565b5050505050565b60007f8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f7f4aa45ca7ad825ceb1bf35643f0a58c295239df563b1b565c2485f96477c563187f2a80e1ef1d7842f27f2e6be0972bb708b9a135c38860dbe73c27c3486c34f4de8561087a574661087d565b60005b6040805160208101959095528401929092526060830152608082015273ffffffffffffffffffffffffffffffffffffffff831660a082015260c0016040516020818303038152906040528051906020012090505b92915050565b6000806108e8836101000151610b64565b835190915060ff1661095b5760006109038460400151610be7565b606080860151608080880151604080517f11e1e4079a79a66e4ade50033cfe2678cdd5341d2dfe5ef9513edb1a0be147a260208201529081018690529384019290925282015260a0810184905290915060c00161052a565b825160ff167fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff016109eb5760a08301518051602091820120604080517fe19a3b94fc3c7ece3f890d98a99bc422615537a08dea0603fa8425867d87d46693810193909352820152606081018290526080015b60405160208183030381529060405280519060200120915050919050565b825160ff167ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe01610a5b5760c0830151604080517f11fdeb7e8373a1aa96bfac8d0ea91526b2c5d15e5cee20e0543e780258f3e8e4602082015290810191909152606081018290526080016109cd565b825160ff167ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd01610acb5760e0830151604080517f402e923b91e918306019e73f589362164a6a059499a504699c66feabbb3e2624602082015290810191909152606081018290526080016109cd565b6040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601060248201527f556e737570706f72746564206b696e64000000000000000000000000000000006044820152606401610625565b6000806000835160208501878988f195945050505050565b60603d604051915060208201818101604052818352816000823e505090565b6000606060005b8351811015610bd85781848281518110610b8757610b87610d35565b6020026020010151604051602001610ba092919061108b565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe08184030181529190529150600101610b6b565b50805160209091012092915050565b6000606060005b8351811015610bd8576000610c1b858381518110610c0e57610c0e610d35565b6020026020010151610c69565b90508281604051602001610c309291906110c3565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0818403018152919052925050600101610bee565b60007f0603985259a953da1f65a522f589c17bd1d0117ec1d3abb7c0788aef251ef43782600001518360200151846040015180519060200120856060015186608001518760a001518860c00151604051602001610d1898979695949392919097885273ffffffffffffffffffffffffffffffffffffffff969096166020880152604087019490945260608601929092526080850152151560a0840152151560c083015260e08201526101000190565b604051602081830303815290604052805190602001209050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b808201808211156108d1577f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60008085851115610ddd57600080fd5b83861115610dea57600080fd5b5050820193919092039150565b60005b83811015610e12578181015183820152602001610dfa565b50506000910152565b60008151808452610e33816020860160208601610df7565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b600082825180855260208501945060208160051b8301016020850160005b83811015610f35577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0858403018852815173ffffffffffffffffffffffffffffffffffffffff815116845260208101516020850152604081015160e06040860152610ef160e0860182610e1b565b6060838101519087015260808084015115159087015260a08084015115159087015260c0928301519290950191909152506020978801979190910190600101610e83565b50909695505050505050565b600081518084526020840193506020830160005b82811015610f8957815173ffffffffffffffffffffffffffffffffffffffff16865260209586019590910190600101610f55565b5093949350505050565b805160ff16825260006020820151610faf602085018215159052565b5060408201516101206040850152610fcb610120850182610e65565b9050606083015160608501526080830151608085015260a083015184820360a0860152610ff88282610e1b565b91505060c083015160c085015260e083015160e08501526101008301518482036101008601526110288282610f41565b95945050505050565b6060815260006110446060830186610f93565b60208301949094525060400152919050565b6060815260006110696060830186610f93565b84602084015282810360408401526110818185610e1b565b9695505050505050565b60408152600061109e6040830185610e1b565b905073ffffffffffffffffffffffffffffffffffffffff831660208301529392505050565b600083516110d5818460208801610df7565b919091019182525060200191905056fea2646970667358221220b3ec6bd1eb613408c2f34b3fa302905c159ca9fe27b4a6eb199992f2b49b743a64736f6c634300081b0033",
 }
 
 // WalletGuestABI is the input ABI used to generate the binding from.
@@ -223,9 +223,9 @@ func (_WalletGuest *WalletGuestTransactorSession) Fallback(calldata []byte) (*ty
 	return _WalletGuest.Contract.Fallback(&_WalletGuest.TransactOpts, calldata)
 }
 
-// WalletGuestAbortedIterator is returned from FilterAborted and is used to iterate over the raw logs and unpacked data for Aborted events raised by the WalletGuest contract.
-type WalletGuestAbortedIterator struct {
-	Event *WalletGuestAborted // Event containing the contract specifics and raw log
+// WalletGuestCallAbortedIterator is returned from FilterCallAborted and is used to iterate over the raw logs and unpacked data for CallAborted events raised by the WalletGuest contract.
+type WalletGuestCallAbortedIterator struct {
+	Event *WalletGuestCallAborted // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -239,7 +239,7 @@ type WalletGuestAbortedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *WalletGuestAbortedIterator) Next() bool {
+func (it *WalletGuestCallAbortedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -248,7 +248,7 @@ func (it *WalletGuestAbortedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(WalletGuestAborted)
+			it.Event = new(WalletGuestCallAborted)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -263,7 +263,7 @@ func (it *WalletGuestAbortedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(WalletGuestAborted)
+		it.Event = new(WalletGuestCallAborted)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -279,42 +279,42 @@ func (it *WalletGuestAbortedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *WalletGuestAbortedIterator) Error() error {
+func (it *WalletGuestCallAbortedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *WalletGuestAbortedIterator) Close() error {
+func (it *WalletGuestCallAbortedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// WalletGuestAborted represents a Aborted event raised by the WalletGuest contract.
-type WalletGuestAborted struct {
+// WalletGuestCallAborted represents a CallAborted event raised by the WalletGuest contract.
+type WalletGuestCallAborted struct {
 	OpHash [32]byte
 	Index  *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterAborted is a free log retrieval operation binding the contract event 0x6cd433d189cb0ff58b321e23f3e510c9d0f019f2230a2066e50962d4f867c0a8.
+// FilterCallAborted is a free log retrieval operation binding the contract event 0x5b5cb72c79981de49f1f950d4d8d62397e2fc2b772e1b788a640025075ab47c3.
 //
-// Solidity: event Aborted(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) FilterAborted(opts *bind.FilterOpts) (*WalletGuestAbortedIterator, error) {
+// Solidity: event CallAborted(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) FilterCallAborted(opts *bind.FilterOpts) (*WalletGuestCallAbortedIterator, error) {
 
-	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "Aborted")
+	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "CallAborted")
 	if err != nil {
 		return nil, err
 	}
-	return &WalletGuestAbortedIterator{contract: _WalletGuest.contract, event: "Aborted", logs: logs, sub: sub}, nil
+	return &WalletGuestCallAbortedIterator{contract: _WalletGuest.contract, event: "CallAborted", logs: logs, sub: sub}, nil
 }
 
-// WatchAborted is a free log subscription operation binding the contract event 0x6cd433d189cb0ff58b321e23f3e510c9d0f019f2230a2066e50962d4f867c0a8.
+// WatchCallAborted is a free log subscription operation binding the contract event 0x5b5cb72c79981de49f1f950d4d8d62397e2fc2b772e1b788a640025075ab47c3.
 //
-// Solidity: event Aborted(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) WatchAborted(opts *bind.WatchOpts, sink chan<- *WalletGuestAborted) (event.Subscription, error) {
+// Solidity: event CallAborted(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) WatchCallAborted(opts *bind.WatchOpts, sink chan<- *WalletGuestCallAborted) (event.Subscription, error) {
 
-	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "Aborted")
+	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "CallAborted")
 	if err != nil {
 		return nil, err
 	}
@@ -324,8 +324,8 @@ func (_WalletGuest *WalletGuestFilterer) WatchAborted(opts *bind.WatchOpts, sink
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(WalletGuestAborted)
-				if err := _WalletGuest.contract.UnpackLog(event, "Aborted", log); err != nil {
+				event := new(WalletGuestCallAborted)
+				if err := _WalletGuest.contract.UnpackLog(event, "CallAborted", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -346,21 +346,21 @@ func (_WalletGuest *WalletGuestFilterer) WatchAborted(opts *bind.WatchOpts, sink
 	}), nil
 }
 
-// ParseAborted is a log parse operation binding the contract event 0x6cd433d189cb0ff58b321e23f3e510c9d0f019f2230a2066e50962d4f867c0a8.
+// ParseCallAborted is a log parse operation binding the contract event 0x5b5cb72c79981de49f1f950d4d8d62397e2fc2b772e1b788a640025075ab47c3.
 //
-// Solidity: event Aborted(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) ParseAborted(log types.Log) (*WalletGuestAborted, error) {
-	event := new(WalletGuestAborted)
-	if err := _WalletGuest.contract.UnpackLog(event, "Aborted", log); err != nil {
+// Solidity: event CallAborted(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) ParseCallAborted(log types.Log) (*WalletGuestCallAborted, error) {
+	event := new(WalletGuestCallAborted)
+	if err := _WalletGuest.contract.UnpackLog(event, "CallAborted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// WalletGuestFailedIterator is returned from FilterFailed and is used to iterate over the raw logs and unpacked data for Failed events raised by the WalletGuest contract.
-type WalletGuestFailedIterator struct {
-	Event *WalletGuestFailed // Event containing the contract specifics and raw log
+// WalletGuestCallFailedIterator is returned from FilterCallFailed and is used to iterate over the raw logs and unpacked data for CallFailed events raised by the WalletGuest contract.
+type WalletGuestCallFailedIterator struct {
+	Event *WalletGuestCallFailed // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -374,7 +374,7 @@ type WalletGuestFailedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *WalletGuestFailedIterator) Next() bool {
+func (it *WalletGuestCallFailedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -383,7 +383,7 @@ func (it *WalletGuestFailedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(WalletGuestFailed)
+			it.Event = new(WalletGuestCallFailed)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -398,7 +398,7 @@ func (it *WalletGuestFailedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(WalletGuestFailed)
+		it.Event = new(WalletGuestCallFailed)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -414,42 +414,42 @@ func (it *WalletGuestFailedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *WalletGuestFailedIterator) Error() error {
+func (it *WalletGuestCallFailedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *WalletGuestFailedIterator) Close() error {
+func (it *WalletGuestCallFailedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// WalletGuestFailed represents a Failed event raised by the WalletGuest contract.
-type WalletGuestFailed struct {
+// WalletGuestCallFailed represents a CallFailed event raised by the WalletGuest contract.
+type WalletGuestCallFailed struct {
 	OpHash [32]byte
 	Index  *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterFailed is a free log retrieval operation binding the contract event 0xe64040c2a394fc50904b208b60495abbcf56a8eff89806cada4162c27dd5f643.
+// FilterCallFailed is a free log retrieval operation binding the contract event 0x20832642214d5218c6428e71d8d2ddd9ad15a81ad2be8154d8c2e3ab08293fcb.
 //
-// Solidity: event Failed(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) FilterFailed(opts *bind.FilterOpts) (*WalletGuestFailedIterator, error) {
+// Solidity: event CallFailed(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) FilterCallFailed(opts *bind.FilterOpts) (*WalletGuestCallFailedIterator, error) {
 
-	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "Failed")
+	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "CallFailed")
 	if err != nil {
 		return nil, err
 	}
-	return &WalletGuestFailedIterator{contract: _WalletGuest.contract, event: "Failed", logs: logs, sub: sub}, nil
+	return &WalletGuestCallFailedIterator{contract: _WalletGuest.contract, event: "CallFailed", logs: logs, sub: sub}, nil
 }
 
-// WatchFailed is a free log subscription operation binding the contract event 0xe64040c2a394fc50904b208b60495abbcf56a8eff89806cada4162c27dd5f643.
+// WatchCallFailed is a free log subscription operation binding the contract event 0x20832642214d5218c6428e71d8d2ddd9ad15a81ad2be8154d8c2e3ab08293fcb.
 //
-// Solidity: event Failed(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) WatchFailed(opts *bind.WatchOpts, sink chan<- *WalletGuestFailed) (event.Subscription, error) {
+// Solidity: event CallFailed(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) WatchCallFailed(opts *bind.WatchOpts, sink chan<- *WalletGuestCallFailed) (event.Subscription, error) {
 
-	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "Failed")
+	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "CallFailed")
 	if err != nil {
 		return nil, err
 	}
@@ -459,8 +459,8 @@ func (_WalletGuest *WalletGuestFilterer) WatchFailed(opts *bind.WatchOpts, sink 
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(WalletGuestFailed)
-				if err := _WalletGuest.contract.UnpackLog(event, "Failed", log); err != nil {
+				event := new(WalletGuestCallFailed)
+				if err := _WalletGuest.contract.UnpackLog(event, "CallFailed", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -481,21 +481,21 @@ func (_WalletGuest *WalletGuestFilterer) WatchFailed(opts *bind.WatchOpts, sink 
 	}), nil
 }
 
-// ParseFailed is a log parse operation binding the contract event 0xe64040c2a394fc50904b208b60495abbcf56a8eff89806cada4162c27dd5f643.
+// ParseCallFailed is a log parse operation binding the contract event 0x20832642214d5218c6428e71d8d2ddd9ad15a81ad2be8154d8c2e3ab08293fcb.
 //
-// Solidity: event Failed(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) ParseFailed(log types.Log) (*WalletGuestFailed, error) {
-	event := new(WalletGuestFailed)
-	if err := _WalletGuest.contract.UnpackLog(event, "Failed", log); err != nil {
+// Solidity: event CallFailed(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) ParseCallFailed(log types.Log) (*WalletGuestCallFailed, error) {
+	event := new(WalletGuestCallFailed)
+	if err := _WalletGuest.contract.UnpackLog(event, "CallFailed", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// WalletGuestSkippedIterator is returned from FilterSkipped and is used to iterate over the raw logs and unpacked data for Skipped events raised by the WalletGuest contract.
-type WalletGuestSkippedIterator struct {
-	Event *WalletGuestSkipped // Event containing the contract specifics and raw log
+// WalletGuestCallSkippedIterator is returned from FilterCallSkipped and is used to iterate over the raw logs and unpacked data for CallSkipped events raised by the WalletGuest contract.
+type WalletGuestCallSkippedIterator struct {
+	Event *WalletGuestCallSkipped // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -509,7 +509,7 @@ type WalletGuestSkippedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *WalletGuestSkippedIterator) Next() bool {
+func (it *WalletGuestCallSkippedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -518,7 +518,7 @@ func (it *WalletGuestSkippedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(WalletGuestSkipped)
+			it.Event = new(WalletGuestCallSkipped)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -533,7 +533,7 @@ func (it *WalletGuestSkippedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(WalletGuestSkipped)
+		it.Event = new(WalletGuestCallSkipped)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -549,42 +549,42 @@ func (it *WalletGuestSkippedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *WalletGuestSkippedIterator) Error() error {
+func (it *WalletGuestCallSkippedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *WalletGuestSkippedIterator) Close() error {
+func (it *WalletGuestCallSkippedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// WalletGuestSkipped represents a Skipped event raised by the WalletGuest contract.
-type WalletGuestSkipped struct {
+// WalletGuestCallSkipped represents a CallSkipped event raised by the WalletGuest contract.
+type WalletGuestCallSkipped struct {
 	OpHash [32]byte
 	Index  *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterSkipped is a free log retrieval operation binding the contract event 0xa7df37e35254f22900087bd61c5b68001c8f034f7e924ec565af11317d7ee0f7.
+// FilterCallSkipped is a free log retrieval operation binding the contract event 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b.
 //
-// Solidity: event Skipped(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) FilterSkipped(opts *bind.FilterOpts) (*WalletGuestSkippedIterator, error) {
+// Solidity: event CallSkipped(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) FilterCallSkipped(opts *bind.FilterOpts) (*WalletGuestCallSkippedIterator, error) {
 
-	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "Skipped")
+	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "CallSkipped")
 	if err != nil {
 		return nil, err
 	}
-	return &WalletGuestSkippedIterator{contract: _WalletGuest.contract, event: "Skipped", logs: logs, sub: sub}, nil
+	return &WalletGuestCallSkippedIterator{contract: _WalletGuest.contract, event: "CallSkipped", logs: logs, sub: sub}, nil
 }
 
-// WatchSkipped is a free log subscription operation binding the contract event 0xa7df37e35254f22900087bd61c5b68001c8f034f7e924ec565af11317d7ee0f7.
+// WatchCallSkipped is a free log subscription operation binding the contract event 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b.
 //
-// Solidity: event Skipped(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) WatchSkipped(opts *bind.WatchOpts, sink chan<- *WalletGuestSkipped) (event.Subscription, error) {
+// Solidity: event CallSkipped(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) WatchCallSkipped(opts *bind.WatchOpts, sink chan<- *WalletGuestCallSkipped) (event.Subscription, error) {
 
-	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "Skipped")
+	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "CallSkipped")
 	if err != nil {
 		return nil, err
 	}
@@ -594,8 +594,8 @@ func (_WalletGuest *WalletGuestFilterer) WatchSkipped(opts *bind.WatchOpts, sink
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(WalletGuestSkipped)
-				if err := _WalletGuest.contract.UnpackLog(event, "Skipped", log); err != nil {
+				event := new(WalletGuestCallSkipped)
+				if err := _WalletGuest.contract.UnpackLog(event, "CallSkipped", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -616,21 +616,21 @@ func (_WalletGuest *WalletGuestFilterer) WatchSkipped(opts *bind.WatchOpts, sink
 	}), nil
 }
 
-// ParseSkipped is a log parse operation binding the contract event 0xa7df37e35254f22900087bd61c5b68001c8f034f7e924ec565af11317d7ee0f7.
+// ParseCallSkipped is a log parse operation binding the contract event 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b.
 //
-// Solidity: event Skipped(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) ParseSkipped(log types.Log) (*WalletGuestSkipped, error) {
-	event := new(WalletGuestSkipped)
-	if err := _WalletGuest.contract.UnpackLog(event, "Skipped", log); err != nil {
+// Solidity: event CallSkipped(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) ParseCallSkipped(log types.Log) (*WalletGuestCallSkipped, error) {
+	event := new(WalletGuestCallSkipped)
+	if err := _WalletGuest.contract.UnpackLog(event, "CallSkipped", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// WalletGuestSuccessIterator is returned from FilterSuccess and is used to iterate over the raw logs and unpacked data for Success events raised by the WalletGuest contract.
-type WalletGuestSuccessIterator struct {
-	Event *WalletGuestSuccess // Event containing the contract specifics and raw log
+// WalletGuestCallSuccessIterator is returned from FilterCallSuccess and is used to iterate over the raw logs and unpacked data for CallSuccess events raised by the WalletGuest contract.
+type WalletGuestCallSuccessIterator struct {
+	Event *WalletGuestCallSuccess // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -644,7 +644,7 @@ type WalletGuestSuccessIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *WalletGuestSuccessIterator) Next() bool {
+func (it *WalletGuestCallSuccessIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -653,7 +653,7 @@ func (it *WalletGuestSuccessIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(WalletGuestSuccess)
+			it.Event = new(WalletGuestCallSuccess)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -668,7 +668,7 @@ func (it *WalletGuestSuccessIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(WalletGuestSuccess)
+		it.Event = new(WalletGuestCallSuccess)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -684,42 +684,42 @@ func (it *WalletGuestSuccessIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *WalletGuestSuccessIterator) Error() error {
+func (it *WalletGuestCallSuccessIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *WalletGuestSuccessIterator) Close() error {
+func (it *WalletGuestCallSuccessIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// WalletGuestSuccess represents a Success event raised by the WalletGuest contract.
-type WalletGuestSuccess struct {
+// WalletGuestCallSuccess represents a CallSuccess event raised by the WalletGuest contract.
+type WalletGuestCallSuccess struct {
 	OpHash [32]byte
 	Index  *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterSuccess is a free log retrieval operation binding the contract event 0x2fd98f16e3e0ef7b9373ea49ea6b76b871c7f2aa1e2c222747ef5bfb26de18b3.
+// FilterCallSuccess is a free log retrieval operation binding the contract event 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd.
 //
-// Solidity: event Success(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) FilterSuccess(opts *bind.FilterOpts) (*WalletGuestSuccessIterator, error) {
+// Solidity: event CallSuccess(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) FilterCallSuccess(opts *bind.FilterOpts) (*WalletGuestCallSuccessIterator, error) {
 
-	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "Success")
+	logs, sub, err := _WalletGuest.contract.FilterLogs(opts, "CallSuccess")
 	if err != nil {
 		return nil, err
 	}
-	return &WalletGuestSuccessIterator{contract: _WalletGuest.contract, event: "Success", logs: logs, sub: sub}, nil
+	return &WalletGuestCallSuccessIterator{contract: _WalletGuest.contract, event: "CallSuccess", logs: logs, sub: sub}, nil
 }
 
-// WatchSuccess is a free log subscription operation binding the contract event 0x2fd98f16e3e0ef7b9373ea49ea6b76b871c7f2aa1e2c222747ef5bfb26de18b3.
+// WatchCallSuccess is a free log subscription operation binding the contract event 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd.
 //
-// Solidity: event Success(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) WatchSuccess(opts *bind.WatchOpts, sink chan<- *WalletGuestSuccess) (event.Subscription, error) {
+// Solidity: event CallSuccess(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) WatchCallSuccess(opts *bind.WatchOpts, sink chan<- *WalletGuestCallSuccess) (event.Subscription, error) {
 
-	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "Success")
+	logs, sub, err := _WalletGuest.contract.WatchLogs(opts, "CallSuccess")
 	if err != nil {
 		return nil, err
 	}
@@ -729,8 +729,8 @@ func (_WalletGuest *WalletGuestFilterer) WatchSuccess(opts *bind.WatchOpts, sink
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(WalletGuestSuccess)
-				if err := _WalletGuest.contract.UnpackLog(event, "Success", log); err != nil {
+				event := new(WalletGuestCallSuccess)
+				if err := _WalletGuest.contract.UnpackLog(event, "CallSuccess", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -751,12 +751,12 @@ func (_WalletGuest *WalletGuestFilterer) WatchSuccess(opts *bind.WatchOpts, sink
 	}), nil
 }
 
-// ParseSuccess is a log parse operation binding the contract event 0x2fd98f16e3e0ef7b9373ea49ea6b76b871c7f2aa1e2c222747ef5bfb26de18b3.
+// ParseCallSuccess is a log parse operation binding the contract event 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd.
 //
-// Solidity: event Success(bytes32 _opHash, uint256 _index)
-func (_WalletGuest *WalletGuestFilterer) ParseSuccess(log types.Log) (*WalletGuestSuccess, error) {
-	event := new(WalletGuestSuccess)
-	if err := _WalletGuest.contract.UnpackLog(event, "Success", log); err != nil {
+// Solidity: event CallSuccess(bytes32 _opHash, uint256 _index)
+func (_WalletGuest *WalletGuestFilterer) ParseCallSuccess(log types.Log) (*WalletGuestCallSuccess, error) {
+	event := new(WalletGuestCallSuccess)
+	if err := _WalletGuest.contract.UnpackLog(event, "CallSuccess", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
