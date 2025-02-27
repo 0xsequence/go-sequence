@@ -398,6 +398,12 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
 
+	stage2Module := ethcontract.NewContractCaller(stage1ModuleAddress, contracts.V3.WalletStage1Module.ABI, c.Provider)
+	var stage2ModuleAddress common.Address
+	if err := stage2Module.Call(&bind.CallOpts{Context: ctx}, &[]any{&stage2ModuleAddress}, "STAGE_2_IMPLEMENTATION"); err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
+	}
+
 	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
@@ -406,7 +412,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 	return sequence.WalletContext{
 		FactoryAddress:              walletFactoryAddress,
 		MainModuleAddress:           stage1ModuleAddress,
-		MainModuleUpgradableAddress: stage1ModuleAddress,
+		MainModuleUpgradableAddress: stage2ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                stage1ModuleAddress,
 		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
