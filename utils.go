@@ -60,7 +60,7 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 
 func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
 	imageHash := walletConfig.ImageHash()
-	address, err := AddressFromImageHash(imageHash.Hex(), walletContext)
+	address, err := AddressFromImageHash(imageHash, walletContext)
 	if err != nil {
 		return common.Address{}, common.Address{}, nil, err
 	}

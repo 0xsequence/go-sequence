@@ -11,10 +11,6 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 )
 
-// func AddressFromWalletConfig(deployConfig core.ImageHashable, context WalletContext) (common.Address, error) {
-// 	return AddressFromImageHash(deployConfig.ImageHash(), context)
-// }
-
 // func AddressFromImageHash(deployHash core.ImageHash, context WalletContext) (common.Address, error) {
 // 	creationCode, err := hexutil.Decode(context.CreationCode)
 // 	if err != nil {
@@ -26,11 +22,11 @@ import (
 // 	return crypto.CreateAddress2(context.FactoryAddress, deployHash.Hash, crypto.Keccak256(creationCode, mainModule.Bytes())), nil
 // }
 
-func AddressFromWalletConfig(walletConfig core.WalletConfig, context WalletContext) (common.Address, error) {
-	return AddressFromImageHash(walletConfig.ImageHash().Hex(), context)
+func AddressFromWalletConfig(deployConfig core.ImageHashable, context WalletContext) (common.Address, error) {
+	return AddressFromImageHash(deployConfig.ImageHash(), context)
 }
 
-func AddressFromImageHash(imageHash string, context WalletContext) (common.Address, error) {
+func AddressFromImageHash(deployHash core.ImageHash, context WalletContext) (common.Address, error) {
 	mainModule32 := [32]byte{}
 	copy(mainModule32[12:], context.MainModuleAddress.Bytes())
 
@@ -42,7 +38,7 @@ func AddressFromImageHash(imageHash string, context WalletContext) (common.Addre
 
 	hashPack, err := ethcoder.SolidityPack(
 		[]string{"bytes1", "address", "bytes32", "bytes32"},
-		[]interface{}{[]byte{0xff}, context.FactoryAddress, common.FromHex(imageHash), codeHash},
+		[]interface{}{[]byte{0xff}, context.FactoryAddress, deployHash.Hash, codeHash},
 	)
 	if err != nil {
 		return common.Address{}, fmt.Errorf("sequence, AddressFromImageHash: %w", err)
