@@ -105,6 +105,9 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 		if len(code) == 0 {
 			return common.Address{}, fmt.Errorf("can't deploy universal deployer")
 		}
+		if err != nil {
+			return common.Address{}, fmt.Errorf("deployer: %w", err)
+		}
 	}
 
 	// Deploying contract

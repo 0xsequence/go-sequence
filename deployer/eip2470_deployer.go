@@ -149,7 +149,7 @@ func (e *EIP2470Deployer) Deploy(ctx context.Context, contractABI abi.ABI, contr
 	return contractAddress, nil
 }
 
-func (e *EIP2470Deployer) deployEIP2470Deployer(ctx context.Context, _txParams interface{}) error {
+func (e *EIP2470Deployer) deployEIP2470Deployer(ctx context.Context, txParams interface{}) error {
 	deployerBalance, err := e.provider.BalanceAt(ctx, EIP2470_EOA_DEPLOYER_ADDRESS, nil)
 	if err != nil {
 		return fmt.Errorf("deployer (deployUniversalDeployer1): %w", err)
