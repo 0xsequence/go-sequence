@@ -57,5 +57,5 @@ func TestDeployer(t *testing.T) {
 	assert.NoError(t, err)
 	// v3 is deployed through the eip2470 factory address
 	assert.NotEqual(t, testV3SequenceContext.FactoryAddress, V3WalletFactoryAddress)
-	assert.Equal(t, common.HexToAddress("0x6843d600C5fF98E75DF4e7b236D9513eD54A5344"), V3WalletFactoryAddress)
+	assert.Equal(t, common.HexToAddress("0x8a394520f8d2a78e2ccc5EC53b8A24B67a5F4Bac"), V3WalletFactoryAddress)
 }

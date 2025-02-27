@@ -607,6 +607,6 @@ func TestWalletAddressV3(t *testing.T) {
 		})
 
 		assert.NoError(t, err)
-		assert.Equal(t, "0xb50321825838168445953143B7A3ADb8dC806df4", w.Address().Hex())
+		assert.Equal(t, "0xEE9BD133D9EEc8EAf91F37121fcB4DefE15aD449", w.Address().Hex())
 	})
 }
