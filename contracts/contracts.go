@@ -103,7 +103,7 @@ func init() {
 	V3.WalletStage1Module = artifact("WALLET_STAGE_1", walletstage13.WalletStage1ABI, walletstage13.WalletStage1Bin)
 	V3.WalletStage2Module = artifact("WALLET_STAGE_2", walletstage23.WalletStage2ABI, walletstage23.WalletStage2Bin)
 	V3.WalletGuestModule = artifact("WALLET_GUEST", walletguest3.WalletGuestABI, walletguest3.WalletGuestBin)
-	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
+	V3.CreationCode = hexutil.MustDecode("0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3")
 
 	// TODO: Update w/ v3 gas estimator
 	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)

@@ -4,48 +4,26 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 )
-
-// func AddressFromImageHash(deployHash core.ImageHash, context WalletContext) (common.Address, error) {
-// 	creationCode, err := hexutil.Decode(context.CreationCode)
-// 	if err != nil {
-// 		return common.Address{}, fmt.Errorf(`invalid creation code "%v": %w`, context.CreationCode, err)
-// 	}
-
-// 	var mainModule common.Hash
-// 	mainModule.SetBytes(context.MainModuleAddress.Bytes())
-// 	return crypto.CreateAddress2(context.FactoryAddress, deployHash.Hash, crypto.Keccak256(creationCode, mainModule.Bytes())), nil
-// }
 
 func AddressFromWalletConfig(deployConfig core.ImageHashable, context WalletContext) (common.Address, error) {
 	return AddressFromImageHash(deployConfig.ImageHash(), context)
 }
 
 func AddressFromImageHash(deployHash core.ImageHash, context WalletContext) (common.Address, error) {
-	mainModule32 := [32]byte{}
-	copy(mainModule32[12:], context.MainModuleAddress.Bytes())
-
-	codePack, err := ethcoder.SolidityPack([]string{"bytes", "bytes32"}, []interface{}{walletContractBytecode, mainModule32})
+	creationCode, err := hexutil.Decode(context.CreationCode)
 	if err != nil {
-		return common.Address{}, fmt.Errorf("sequence, AddressFromImageHash: %w", err)
+		return common.Address{}, fmt.Errorf(`invalid creation code "%v": %w`, context.CreationCode, err)
 	}
-	codeHash := crypto.Keccak256(codePack)
 
-	hashPack, err := ethcoder.SolidityPack(
-		[]string{"bytes1", "address", "bytes32", "bytes32"},
-		[]interface{}{[]byte{0xff}, context.FactoryAddress, deployHash.Hash, codeHash},
-	)
-	if err != nil {
-		return common.Address{}, fmt.Errorf("sequence, AddressFromImageHash: %w", err)
-	}
-	hash := crypto.Keccak256(hashPack)[12:]
-
-	return common.BytesToAddress(hash), nil
+	var mainModule common.Hash
+	mainModule.SetBytes(context.MainModuleAddress.Bytes())
+	return crypto.CreateAddress2(context.FactoryAddress, deployHash.Hash, crypto.Keccak256(creationCode, mainModule.Bytes())), nil
 }
 
 func IsWalletConfigEqual(walletConfigA, walletConfigB core.WalletConfig) bool {
