@@ -26,6 +26,7 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/goware/logger"
 )
 
@@ -338,7 +339,7 @@ func (c *TestChain) V1DeploySequenceContext() (sequence.WalletContext, error) {
 }
 
 func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewEIP2740Deployer(c.GetDeployWallet())
+	ud, err := deployer.NewEIP2470Deployer(c.GetDeployWallet())
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
@@ -381,7 +382,7 @@ func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
 }
 
 func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewUniversalDeployer(c.GetDeployWallet())
+	ud, err := deployer.NewEIP2470Deployer(c.GetDeployWallet())
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
 	}
@@ -398,6 +399,11 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
 
+	stage2ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage2Module.ABI, contracts.V3.WalletStage2Module.Bin, 0, nil, 10000000, walletFactoryAddress, stage1ModuleAddress)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
+	}
+
 	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
@@ -406,7 +412,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 	return sequence.WalletContext{
 		FactoryAddress:              walletFactoryAddress,
 		MainModuleAddress:           stage1ModuleAddress,
-		MainModuleUpgradableAddress: stage1ModuleAddress,
+		MainModuleUpgradableAddress: stage2ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                stage1ModuleAddress,
 		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
@@ -710,16 +716,24 @@ func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet[core.WalletConf
 		return nil
 	}
 
+	// Print the wallet config and context
+	spew.Dump(wallet.GetWalletConfig())
+	spew.Dump(wallet.GetWalletContext())
+
 	// Deploy the wallet, via our account designated for relaying txs, but it could be any with some ETH
 	sender := c.GetRelayerWallet()
-	_, _, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
+	address, tx, waitReceipt, err := sequence.DeploySequenceWallet(sender, wallet.GetWalletConfig(), wallet.GetWalletContext())
 	if err != nil {
 		return err
 	}
-	_, err = waitReceipt(context.Background())
+	receipt, err := waitReceipt(context.Background())
 	if err != nil {
 		return err
 	}
+
+	log.Printf("deployed wallet: %s", wallet.Address())
+	log.Printf("tx: %s", tx.Hash())
+	spew.Dump(address, tx, receipt)
 
 	// Ensure deployment worked
 	ok, err = wallet.IsDeployed()

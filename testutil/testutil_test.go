@@ -47,7 +47,7 @@ func TestTestutil(t *testing.T) {
 	sequenceContextV3, err := testChain.V3DeploySequenceContext()
 	assert.NoError(t, err)
 
-	// Compare against "expexcted" testutil.V1SequenceContext
+	// Compare against "expected" testutil.V1SequenceContext
 	expectedContext := testutil.V1SequenceContext()
 
 	expectedContextV2 := testutil.V2SequenceContext()
