@@ -76,7 +76,8 @@ var defaultEstimator = &Estimator{
 var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
-var walletGasEstimatorCodeV3 = hexutil.Encode(contracts.V3.WalletGasEstimator.DeployedBin)
+var v3WalletStage1Simulator = hexutil.Encode(contracts.V3.WalletStage1Simulator.DeployedBin)
+var v3WalletStage2Simulator = hexutil.Encode(contracts.V3.WalletStage2Simulator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -490,8 +491,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
 		overrides = map[common.Address]*CallOverride{
-			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCodeV3},
-			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCodeV3},
+			walletContext.MainModuleAddress:           {Code: v3WalletStage1Simulator},
+			walletContext.MainModuleUpgradableAddress: {Code: v3WalletStage2Simulator},
 		}
 	} else {
 		return 0, fmt.Errorf("unknown wallet config type")
@@ -692,7 +693,7 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		return nil, err
 	}
 
-	callData, err := contracts.V3.WalletGasEstimator.Encode("simulateExecute", encoded)
+	callData, err := contracts.V3.WalletStage2Simulator.Encode("simulateExecute", encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -708,7 +709,7 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	}
 
 	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasEstimatorCodeV3},
+		wallet: {Code: v3WalletStage2Simulator},
 	}
 	for address, override := range overrides {
 		if address == wallet {
@@ -731,7 +732,7 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	}
 
 	var results []SimulateResult
-	err = contracts.V3.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
+	err = contracts.V3.WalletStage2Simulator.Decode(&results, "simulateExecute", resultsData)
 	if err != nil {
 		return nil, err
 	}
