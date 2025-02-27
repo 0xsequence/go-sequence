@@ -399,11 +399,6 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
 
-	stage2ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage2Module.ABI, contracts.V3.WalletStage2Module.Bin, 0, nil, 10000000, walletFactoryAddress, stage1ModuleAddress)
-	if err != nil {
-		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
-	}
-
 	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
@@ -412,7 +407,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 	return sequence.WalletContext{
 		FactoryAddress:              walletFactoryAddress,
 		MainModuleAddress:           stage1ModuleAddress,
-		MainModuleUpgradableAddress: stage2ModuleAddress,
+		MainModuleUpgradableAddress: stage1ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                stage1ModuleAddress,
 		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),

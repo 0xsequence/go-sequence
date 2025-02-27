@@ -100,3 +100,14 @@ func TestContractHelpers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(143), result.Uint64())
 }
+
+func TestDeploySequenceWallet(t *testing.T) {
+	_, err := testChain.V1DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	_, err = testChain.V2DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	_, err = testChain.V3DummySequenceWallet(1)
+	assert.NoError(t, err)
+}

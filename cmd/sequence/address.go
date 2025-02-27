@@ -21,7 +21,7 @@ func calculateAddress(params *AddressCalculateParams) (string, error) {
 		creationCode = hexutil.Encode(contracts.V3.CreationCode)
 	}
 
-	address, err := sequence.AddressFromImageHash(imageHash, sequence.WalletContext{
+	address, err := sequence.AddressFromImageHash(imageHash.Hex(), sequence.WalletContext{
 		FactoryAddress:    factory,
 		MainModuleAddress: module,
 		CreationCode:      creationCode,
