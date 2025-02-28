@@ -22,11 +22,6 @@ const (
 	Abort  BehaviorOnError = 2
 )
 
-// In Solidity these are defined as
-// uint8 public constant BEHAVIOR_IGNORE_ERROR = 0;
-// uint8 public constant BEHAVIOR_REVERT_ON_ERROR = 1;
-// uint8 public constant BEHAVIOR_ABORT_ON_ERROR = 2;
-
 type Call struct {
 	To              common.Address
 	Value           *big.Int
