@@ -55,6 +55,8 @@ func handleHash(p *PayloadHashParams) (string, error) {
 		return "", fmt.Errorf("invalid chain ID: %s", p.ChainId)
 	}
 	walletAddr := common.HexToAddress(p.Wallet)
+
+	// Hash the payload using the core library function
 	digest, err := v3.HashPayload(walletAddr, chainIDInt, decoded)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash payload: %w", err)
