@@ -91,6 +91,16 @@ func (s *SubdigestElement) ToTree() v3.WalletConfigTree {
 	}
 }
 
+type AnyAddressSubdigestElement struct {
+	Digest core.Subdigest
+}
+
+func (s *AnyAddressSubdigestElement) ToTree() v3.WalletConfigTree {
+	return &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
+		Digest: s.Digest,
+	}
+}
+
 type NestedElement struct {
 	Threshold uint16
 	Weight    uint8
@@ -210,6 +220,11 @@ func treeToMapInternal(tree v3.WalletConfigTree, isRoot bool) interface{} {
 		return JSONLeaf{
 			Type:   "subdigest",
 			Digest: t.Subdigest.Hex(),
+		}
+	case *v3.WalletConfigTreeAnyAddressSubdigestLeaf:
+		return JSONLeaf{
+			Type:   "any-address-subdigest",
+			Digest: t.Digest.Hex(),
 		}
 	case *v3.WalletConfigTreeNestedLeaf:
 		if isRoot {
@@ -355,6 +370,15 @@ func parseElement(element string) (ConfigElement, error) {
 		}
 		hash := common.HexToHash(parts[1])
 		return &SubdigestElement{
+			Digest: core.Subdigest{Hash: hash},
+		}, nil
+
+	case "any-address-subdigest":
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid any-address-subdigest format: %s", element)
+		}
+		hash := common.HexToHash(parts[1])
+		return &AnyAddressSubdigestElement{
 			Digest: core.Subdigest{Hash: hash},
 		}, nil
 
