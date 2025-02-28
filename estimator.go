@@ -78,6 +78,7 @@ var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.Depl
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
 var v3WalletStage1Simulator = hexutil.Encode(contracts.V3.WalletStage1Simulator.DeployedBin)
 var v3WalletStage2Simulator = hexutil.Encode(contracts.V3.WalletStage2Simulator.DeployedBin)
+var v3GasEstimator = hexutil.Encode(contracts.V3.WalletGuestModule.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -194,6 +195,9 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	var result []byte
 	var gas *big.Int
 
+	// Uses `GasEstimator.sol` contract to estimate the gas usage
+	// Params `estimate(address _to, bytes calldata _data)`
+	// Returns `(bool success, bytes memory result, uint256 gas)`
 	if err := ethcoder.AbiDecoder([]string{"bool", "bytes", "uint256"}, resBytes, []interface{}{&success, &result, &gas}); err != nil {
 		return nil, err
 	}
@@ -465,6 +469,48 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 	}
 }
 
+// ConvertTransactionsToV3Payload converts sequence.Transactions to v3.DecodedPayload
+func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.DecodedPayload {
+	calls := make([]v3.Call, len(txs))
+	for i, tx := range txs {
+		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
+		var behaviorOnError v3.BehaviorOnError
+		if tx.RevertOnError {
+			behaviorOnError = v3.Revert
+		} else {
+			behaviorOnError = v3.Ignore
+		}
+
+		// Handle nested transactions by recursively encoding them
+		data := tx.Data
+		if tx.IsBundle() {
+			subPayload := ConvertTransactionsToV3Payload(tx.Transactions, big.NewInt(0), tx.Nonce)
+			encodedSubPayload, err := v3.Encode(subPayload, nil)
+			if err == nil {
+				data = encodedSubPayload
+			}
+		}
+
+		calls[i] = v3.Call{
+			To:              tx.To,
+			Value:           tx.Value,
+			Data:            data,
+			GasLimit:        tx.GasLimit,
+			DelegateCall:    tx.DelegateCall,
+			OnlyFallback:    false,
+			BehaviorOnError: behaviorOnError,
+		}
+	}
+
+	return v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: false,
+		Calls:     calls,
+		Space:     space,
+		Nonce:     nonce,
+	}
+}
+
 func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
 	isEOA, err := e.AreEOAs(ctx, provider, walletConfig)
 	if err != nil {
@@ -491,8 +537,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
 		overrides = map[common.Address]*CallOverride{
-			walletContext.MainModuleAddress:           {Code: v3WalletStage1Simulator},
-			walletContext.MainModuleUpgradableAddress: {Code: v3WalletStage2Simulator},
+			walletContext.MainModuleAddress:           {Code: v3GasEstimator},
+			walletContext.MainModuleUpgradableAddress: {Code: v3GasEstimator},
 		}
 	} else {
 		return 0, fmt.Errorf("unknown wallet config type")
@@ -538,10 +584,13 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			rawTxs := Transactions(subTxs)
-			encodedPayload, err := rawTxs.EncodeRaw()
+			// Convert the transactions to v3 payload format
+			v3Payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
+
+			// Encode the payload for v3 wallet
+			encodedPayload, err := v3.Encode(v3Payload, nil)
 			if err != nil {
-				return 0, fmt.Errorf("error encoding transactions for V3 wallet: %w", err)
+				return 0, fmt.Errorf("error encoding payload for V3 wallet: %w", err)
 			}
 
 			execData, err = contracts.V3.WalletStage1Module.Encode("execute", encodedPayload, signature)
@@ -688,12 +737,14 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		block = "latest"
 	}
 
-	encoded, err := transactions.EncodedTransactions()
+	v3Payload := ConvertTransactionsToV3Payload(transactions, big.NewInt(0), big.NewInt(0))
+
+	encodedPayload, err := v3.Encode(v3Payload, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error encoding payload for V3 wallet simulation: %w", err)
 	}
 
-	callData, err := contracts.V3.WalletStage2Simulator.Encode("simulateExecute", encoded)
+	callData, err := contracts.V3.WalletStage1Simulator.Encode("simulate", encodedPayload, []byte{})
 	if err != nil {
 		return nil, err
 	}
