@@ -18,6 +18,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	walletgasestimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
+	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletestimator"
+	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletsimulator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -66,6 +68,7 @@ type Estimator struct {
 }
 
 type SimulateResult walletgasestimator.MainModuleGasEstimationSimulateResult
+type SimulatorResult walletsimulator.SimulatorResult
 
 var defaultEstimator = &Estimator{
 	BaseCost:     21000,
@@ -76,8 +79,8 @@ var defaultEstimator = &Estimator{
 var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
-var v3WalletStage1Simulator = hexutil.Encode(contracts.V3.WalletStage1Simulator.DeployedBin)
-var v3WalletStage2Simulator = hexutil.Encode(contracts.V3.WalletStage2Simulator.DeployedBin)
+var walletGasEstimatorCodeV3 = hexutil.Encode(contracts.V3.WalletEstimator.DeployedBin)
+var walletGasSimulatorCodeV3 = hexutil.Encode(contracts.V3.WalletSimulator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -536,8 +539,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
 		overrides = map[common.Address]*CallOverride{
-			walletContext.MainModuleAddress:           {Code: v3WalletStage1Simulator},
-			walletContext.MainModuleUpgradableAddress: {Code: v3WalletStage2Simulator},
+			walletContext.MainModuleAddress:           {Code: walletGasEstimatorCodeV3},
+			walletContext.MainModuleUpgradableAddress: {Code: walletGasEstimatorCodeV3},
 		}
 	} else {
 		return 0, fmt.Errorf("unknown wallet config type")
@@ -577,36 +580,80 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 			if err != nil {
 				return 0, err
 			}
+
+			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
+				To:   address,
+				Data: execData,
+			}, overrides, "")
+			if err != nil {
+				return 0, err
+			}
+
+			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
 			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
 			if err != nil {
 				return 0, err
 			}
-		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			// Convert the transactions to v3 payload format
-			v3Payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
 
-			// Encode the payload for v3 wallet
-			encodedPayload, err := v3.Encode(v3Payload, nil)
-			if err != nil {
-				return 0, fmt.Errorf("error encoding payload for V3 wallet: %w", err)
-			}
-
-			execData, err = contracts.V3.WalletStage1Module.Encode("execute", encodedPayload, signature)
+			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
+				To:   address,
+				Data: execData,
+			}, overrides, "")
 			if err != nil {
 				return 0, err
 			}
-		}
 
-		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
-			To:   address,
-			Data: execData,
-		}, overrides, "")
-		if err != nil {
-			return 0, err
-		}
+			estimates[i] = estimated
+		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
+			calls := make([]walletestimator.PayloadCall, 0, len(encTxs))
+			for _, transaction := range encTxs {
+				behaviorOnError := big.NewInt(0)
+				if transaction.RevertOnError {
+					behaviorOnError.SetInt64(1)
+				}
+				calls = append(calls, walletestimator.PayloadCall{
+					To:              transaction.To,
+					Value:           transaction.Value,
+					Data:            transaction.Data,
+					GasLimit:        transaction.GasLimit,
+					DelegateCall:    transaction.DelegateCall,
+					OnlyFallback:    false,
+					BehaviorOnError: behaviorOnError,
+				})
+			}
 
-		estimates[i] = estimated
+			data, err := contracts.V3.WalletEstimator.Encode("estimate", calls, signature)
+			if err != nil {
+				return 0, err
+			}
+
+			type ethCallParams struct {
+				To   common.Address `json:"to"`
+				Data string         `json:"data"`
+			}
+
+			params := ethCallParams{
+				To:   address,
+				Data: hexutil.Encode(data),
+			}
+
+			var response string
+			call := ethrpc.NewCallBuilder[string]("eth_call", nil, params, "latest", overrides)
+			_, err = provider.Do(context.Background(), call.Into(&response))
+			if err != nil {
+				return 0, err
+			}
+
+			result, err := hexutil.Decode(response)
+			if err != nil {
+				return 0, err
+			}
+
+			if err := contracts.V3.WalletEstimator.Decode(&estimates[i], "estimate", result); err != nil {
+				return 0, err
+			}
+		}
 	}
 
 	// Apply gas limits to all transactions
@@ -731,19 +778,34 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	return results, nil
 }
 
-func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulatorResult, error) {
 	if block == "" {
 		block = "latest"
 	}
 
-	v3Payload := ConvertTransactionsToV3Payload(transactions, big.NewInt(0), big.NewInt(0))
-
-	encodedPayload, err := v3.Encode(v3Payload, nil)
+	encoded, err := transactions.EncodedTransactions()
 	if err != nil {
-		return nil, fmt.Errorf("error encoding payload for V3 wallet simulation: %w", err)
+		return nil, err
 	}
 
-	callData, err := contracts.V3.WalletStage1Simulator.Encode("simulate", encodedPayload, []byte{})
+	calls := make([]walletestimator.PayloadCall, 0, len(encoded))
+	for _, transaction := range encoded {
+		behaviorOnError := big.NewInt(0)
+		if transaction.RevertOnError {
+			behaviorOnError.SetInt64(1)
+		}
+		calls = append(calls, walletestimator.PayloadCall{
+			To:              transaction.To,
+			Value:           transaction.Value,
+			Data:            transaction.Data,
+			GasLimit:        transaction.GasLimit,
+			DelegateCall:    transaction.DelegateCall,
+			OnlyFallback:    false,
+			BehaviorOnError: behaviorOnError,
+		})
+	}
+
+	data, err := contracts.V3.WalletSimulator.Encode("simulate", calls)
 	if err != nil {
 		return nil, err
 	}
@@ -755,11 +817,11 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 
 	params := ethCallParams{
 		To:   wallet,
-		Data: hexutil.Encode(callData),
+		Data: hexutil.Encode(data),
 	}
 
 	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: v3WalletStage2Simulator},
+		wallet: {Code: walletGasSimulatorCodeV3},
 	}
 	for address, override := range overrides {
 		if address == wallet {
@@ -769,20 +831,20 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		allOverrides[address] = override
 	}
 
-	var response string
-	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
+	var responseHex string
+	call := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	_, err = provider.Do(context.Background(), call.Into(&responseHex))
 	if err != nil {
 		return nil, err
 	}
 
-	resultsData, err := hexutil.Decode(response)
+	response, err := hexutil.Decode(responseHex)
 	if err != nil {
 		return nil, err
 	}
 
-	var results []SimulateResult
-	err = contracts.V3.WalletStage2Simulator.Decode(&results, "simulateExecute", resultsData)
+	var results []SimulatorResult
+	err = contracts.V3.WalletSimulator.Decode(&results, "simulate", response)
 	if err != nil {
 		return nil, err
 	}
@@ -790,6 +852,6 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 	return results, nil
 }
 
-func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
+func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulatorResult, error) {
 	return V3Simulate(provider, wallet, transactions, block, overrides)
 }
