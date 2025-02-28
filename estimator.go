@@ -78,7 +78,6 @@ var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.Depl
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
 var v3WalletStage1Simulator = hexutil.Encode(contracts.V3.WalletStage1Simulator.DeployedBin)
 var v3WalletStage2Simulator = hexutil.Encode(contracts.V3.WalletStage2Simulator.DeployedBin)
-var v3GasEstimator = hexutil.Encode(contracts.V3.WalletGuestModule.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -537,8 +536,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
 		overrides = map[common.Address]*CallOverride{
-			walletContext.MainModuleAddress:           {Code: v3GasEstimator},
-			walletContext.MainModuleUpgradableAddress: {Code: v3GasEstimator},
+			walletContext.MainModuleAddress:           {Code: v3WalletStage1Simulator},
+			walletContext.MainModuleUpgradableAddress: {Code: v3WalletStage2Simulator},
 		}
 	} else {
 		return 0, fmt.Errorf("unknown wallet config type")
