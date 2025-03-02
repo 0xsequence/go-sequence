@@ -606,24 +606,14 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			calls := make([]walletestimator.PayloadCall, 0, len(encTxs))
-			for _, transaction := range encTxs {
-				behaviorOnError := big.NewInt(0)
-				if transaction.RevertOnError {
-					behaviorOnError.SetInt64(1)
-				}
-				calls = append(calls, walletestimator.PayloadCall{
-					To:              transaction.To,
-					Value:           transaction.Value,
-					Data:            transaction.Data,
-					GasLimit:        transaction.GasLimit,
-					DelegateCall:    transaction.DelegateCall,
-					OnlyFallback:    false,
-					BehaviorOnError: behaviorOnError,
-				})
+			payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), big.NewInt(0))
+
+			encoded, err := v3.Encode(payload, nil)
+			if err != nil {
+				return 0, err
 			}
 
-			data, err := contracts.V3.WalletEstimator.Encode("estimate", calls, signature)
+			data, err := contracts.V3.WalletEstimator.Encode("estimate", encoded, signature)
 			if err != nil {
 				return 0, err
 			}
