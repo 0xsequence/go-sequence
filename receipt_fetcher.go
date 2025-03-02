@@ -42,19 +42,27 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 		MetaTxnID: metaTxnID,
 	}
 
-	var isV2 bool
+	var isV2, isV3 bool
 
 	for _, log := range receipt.Logs() {
 		isTxExecutedV1 := V1IsTxExecutedEvent(log, metaTxnHash)
 		isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnHash)
 		isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnHash)
 		isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnHash)
+		isTxExecutedV3 := V3IsTxExecutedEvent(log, metaTxnHash)
+		isTxFailedV3 := V3IsTxFailedEvent(log, metaTxnHash)
 
 		if isTxExecutedV1 || isTxFailedV1 {
 			isV2 = false
+			isV3 = false
 			break
 		} else if isTxExecutedV2 || isTxFailedV2 {
 			isV2 = true
+			isV3 = false
+			break
+		} else if isTxExecutedV3 || isTxFailedV3 {
+			isV2 = false
+			isV3 = true
 			break
 		}
 	}
@@ -69,6 +77,13 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 
 			if isTxFailed {
 				_, reason, _, _ = V2DecodeTxFailedEvent(log)
+			}
+		} else if isV3 {
+			isTxExecuted = V3IsTxExecutedEvent(log, metaTxnHash)
+			isTxFailed = V3IsTxFailedEvent(log, metaTxnHash)
+
+			if isTxFailed {
+				_, reason, _, _ = V3DecodeTxFailedEvent(log)
 			}
 		} else {
 			isTxExecuted = V1IsTxExecutedEvent(log, metaTxnHash)
@@ -98,8 +113,10 @@ func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 			isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnID)
 			isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnID)
 			isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnID)
+			isTxExecutedV3 := V3IsTxExecutedEvent(log, metaTxnID)
+			isTxFailedV3 := V3IsTxFailedEvent(log, metaTxnID)
 
-			if isTxExecutedV1 || isTxFailedV1 || isTxExecutedV2 || isTxFailedV2 {
+			if isTxExecutedV1 || isTxFailedV1 || isTxExecutedV2 || isTxFailedV2 || isTxExecutedV3 || isTxFailedV3 {
 				// found the sequence meta txn
 				return true
 			}
@@ -123,7 +140,7 @@ func FilterMetaTransactionAny() ethreceipts.FilterQuery {
 		}
 
 		for _, log := range logs {
-			if len(log.Topics) == 1 && log.Topics[0] == V1TxFailedEventSig {
+			if len(log.Topics) == 1 && (log.Topics[0] == V1TxFailedEventSig || log.Topics[0] == V2TxFailedEventSig || log.Topics[0] == V3TxFailedEventSig) {
 				// failed sequence txn
 				return true
 			} else if len(log.Topics) == 0 && len(log.Data) == 32 {
