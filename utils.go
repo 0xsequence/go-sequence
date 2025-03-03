@@ -16,8 +16,6 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-// var zeroAddress = common.Address{}
-
 func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if sender.GetProvider() == nil {
 		return common.Address{}, nil, nil, ErrProviderNotSet
@@ -93,12 +91,11 @@ func DecodeRevertReason(logs []*types.Log) []string {
 	for _, log := range logs {
 		_, reason, err := V1DecodeTxFailedEvent(log)
 		if err != nil {
-			_, reason, _, _ = V2DecodeTxFailedEvent(log)
+			_, reason, _, err = V2DecodeTxFailedEvent(log)
 		}
 		if err != nil {
-			_, reason, _, _ = V3DecodeTxFailedEvent(log)
+			_, reason, _, err = V3DecodeTxFailedEvent(log)
 		}
-
 		reasons = append(reasons, reason)
 	}
 	return reasons
