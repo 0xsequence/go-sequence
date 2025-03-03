@@ -28,9 +28,12 @@
 // sequence wallet-contracts v3
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletfactory --type=WalletFactory --outFile=./v3/walletfactory/wallet_factory.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Factory.sol/Factory.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=stage1module --type=Stage1Module --outFile=./v3/stage1/stage1_module.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage1Module.sol/Stage1Module.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=stage2module --type=Stage2Module --outFile=./v3/stage2/stage2_module.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=guestmodule --type=GuestModule --outFile=./v3/guest/guest_module.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Guest.sol/Guest.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage1 --type=WalletStage1 --outFile=./v3/walletstage1/wallet_stage1.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage1Module.sol/Stage1Module.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage2 --type=WalletStage2 --outFile=./v3/walletstage2/wallet_stage2.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./v3/walletguest/wallet_guest.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Guest.sol/Guest.json
+
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployed=true
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployed=true
 
 //
 // tokens

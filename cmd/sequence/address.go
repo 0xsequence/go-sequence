@@ -4,21 +4,28 @@ import (
 	"fmt"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/spf13/cobra"
 )
 
 func calculateAddress(params *AddressCalculateParams) (string, error) {
-	imageHash := common.HexToHash(params.ImageHash)
+	imageHash := core.ImageHash{Hash: common.HexToHash(params.ImageHash)}
 	factory := common.HexToAddress(params.Factory)
 	module := common.HexToAddress(params.Module)
 
 	creationCode := params.CreationCode
 	if creationCode == "" {
-		creationCode = contracts.DEFAULT_CREATION_CODE
+		creationCode = hexutil.Encode(contracts.V3.CreationCode)
 	}
 
-	address, err := contracts.GetCounterfactualAddress(factory, module, imageHash, creationCode)
+	address, err := sequence.AddressFromImageHash(imageHash, sequence.WalletContext{
+		FactoryAddress:    factory,
+		MainModuleAddress: module,
+		CreationCode:      creationCode,
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to calculate address: %w", err)
 	}

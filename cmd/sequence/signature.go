@@ -96,15 +96,31 @@ func convertTopologyToTree(topology interface{}) (interface{}, error) {
 }
 
 func signatureConcat(params *SignatureConcatParams) (string, error) {
-	var combined []byte
-	for _, sig := range params.Signatures {
-		sig = strings.TrimPrefix(sig, "0x")
-
-		sigBytes := common.FromHex(sig)
-		combined = append(combined, sigBytes...)
+	if len(params.Signatures) == 0 {
+		return "", fmt.Errorf("no signatures provided")
 	}
 
-	return "0x" + common.Bytes2Hex(combined), nil
+	// Decode each signature
+	decodedSignatures := make([]core.Signature[*v3.WalletConfig], len(params.Signatures))
+	for i, sig := range params.Signatures {
+		sig = strings.TrimPrefix(sig, "0x")
+		sigBytes := common.FromHex(sig)
+
+		decoded, err := v3.Core.DecodeSignature(sigBytes)
+		if err != nil {
+			return "", fmt.Errorf("failed to decode signature %d: %w", i, err)
+		}
+		decodedSignatures[i] = decoded
+	}
+
+	chainedSig := v3.ChainedSignature(decodedSignatures)
+
+	encodedSig, err := chainedSig.Data()
+	if err != nil {
+		return "", fmt.Errorf("failed to encode chained signature: %w", err)
+	}
+
+	return "0x" + common.Bytes2Hex(encodedSig), nil
 }
 
 func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {

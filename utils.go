@@ -16,8 +16,6 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-// var zeroAddress = common.Address{}
-
 func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if sender.GetProvider() == nil {
 		return common.Address{}, nil, nil, ErrProviderNotSet
@@ -59,32 +57,32 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 }
 
 func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
-	walletImageHash := walletConfig.ImageHash().Hex()
-	walletAddress, err := AddressFromImageHash(walletImageHash, walletContext)
+	imageHash := walletConfig.ImageHash()
+	address, err := AddressFromImageHash(imageHash, walletContext)
 	if err != nil {
 		return common.Address{}, common.Address{}, nil, err
 	}
 
 	if _, ok := walletConfig.(*v1.WalletConfig); ok {
-		deployData, err := contracts.V1.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		deployData, err := contracts.V1.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
 		if err != nil {
 			return common.Address{}, common.Address{}, nil, err
 		}
-
-		return walletAddress, walletContext.FactoryAddress, deployData, nil
+		return address, walletContext.FactoryAddress, deployData, nil
 	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-		deployData, err := contracts.V2.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		deployData, err := contracts.V2.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
 		if err != nil {
 			return common.Address{}, common.Address{}, nil, err
 		}
-		return walletAddress, walletContext.FactoryAddress, deployData, nil
+		return address, walletContext.FactoryAddress, deployData, nil
 	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-		deployData, err := contracts.V3.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, common.HexToHash(walletImageHash))
+		deployData, err := contracts.V3.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
 		if err != nil {
 			return common.Address{}, common.Address{}, nil, err
 		}
-		return walletAddress, walletContext.FactoryAddress, deployData, nil
+		return address, walletContext.FactoryAddress, deployData, nil
 	}
+
 	return common.Address{}, common.Address{}, nil, fmt.Errorf("unsupported wallet config version")
 }
 
@@ -93,12 +91,11 @@ func DecodeRevertReason(logs []*types.Log) []string {
 	for _, log := range logs {
 		_, reason, err := V1DecodeTxFailedEvent(log)
 		if err != nil {
-			_, reason, _, _ = V2DecodeTxFailedEvent(log)
+			_, reason, _, err = V2DecodeTxFailedEvent(log)
 		}
 		if err != nil {
-			_, reason, _, _ = V3DecodeTxFailedEvent(log)
+			_, reason, _, err = V3DecodeTxFailedEvent(log)
 		}
-
 		reasons = append(reasons, reason)
 	}
 	return reasons

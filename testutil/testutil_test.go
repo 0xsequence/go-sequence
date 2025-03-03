@@ -47,7 +47,7 @@ func TestTestutil(t *testing.T) {
 	sequenceContextV3, err := testChain.V3DeploySequenceContext()
 	assert.NoError(t, err)
 
-	// Compare against "expexcted" testutil.V1SequenceContext
+	// Compare against "expected" testutil.V1SequenceContext
 	expectedContext := testutil.V1SequenceContext()
 
 	expectedContextV2 := testutil.V2SequenceContext()
@@ -59,18 +59,21 @@ func TestTestutil(t *testing.T) {
 	assert.Equal(t, expectedContext.MainModuleUpgradableAddress, sequenceContext.MainModuleUpgradableAddress)
 	assert.Equal(t, expectedContext.GuestModuleAddress, sequenceContext.GuestModuleAddress)
 	assert.Equal(t, expectedContext.UtilsAddress, sequenceContext.UtilsAddress)
+	assert.Equal(t, expectedContext.CreationCode, sequenceContext.CreationCode)
 
 	assert.Equal(t, expectedContextV2.FactoryAddress, sequenceContextV2.FactoryAddress)
 	assert.Equal(t, expectedContextV2.MainModuleAddress, sequenceContextV2.MainModuleAddress)
 	assert.Equal(t, expectedContextV2.MainModuleUpgradableAddress, sequenceContextV2.MainModuleUpgradableAddress)
 	assert.Equal(t, expectedContextV2.GuestModuleAddress, sequenceContextV2.GuestModuleAddress)
 	assert.Equal(t, expectedContextV2.UtilsAddress, sequenceContextV2.UtilsAddress)
+	assert.Equal(t, expectedContextV2.CreationCode, sequenceContextV2.CreationCode)
 
 	assert.Equal(t, expectedContextV3.FactoryAddress, sequenceContextV3.FactoryAddress)
 	assert.Equal(t, expectedContextV3.MainModuleAddress, sequenceContextV3.MainModuleAddress)
 	assert.Equal(t, expectedContextV3.MainModuleUpgradableAddress, sequenceContextV3.MainModuleUpgradableAddress)
 	assert.Equal(t, expectedContextV3.GuestModuleAddress, sequenceContextV3.GuestModuleAddress)
 	assert.Equal(t, expectedContextV3.UtilsAddress, sequenceContextV3.UtilsAddress)
+	assert.Equal(t, expectedContextV3.CreationCode, sequenceContextV3.CreationCode)
 }
 
 func TestContractHelpers(t *testing.T) {
@@ -96,4 +99,15 @@ func TestContractHelpers(t *testing.T) {
 	_, err = testutil.ContractCall(testChain.Provider, callmockContract.Address, callmockContract.ABI, &result, "lastValA")
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(143), result.Uint64())
+}
+
+func TestDeploySequenceWallet(t *testing.T) {
+	_, err := testChain.V1DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	_, err = testChain.V2DummySequenceWallet(1)
+	assert.NoError(t, err)
+
+	_, err = testChain.V3DummySequenceWallet(1)
+	assert.NoError(t, err)
 }

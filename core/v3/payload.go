@@ -271,10 +271,12 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		primaryType = "Calls"
 		calls := make([]map[string]interface{}, len(payload.Calls))
 		for i, call := range payload.Calls {
+			// Hex-encode the data bytes to ensure proper format for the typed data parser
+			dataHex := hexutil.Encode(call.Data)
 			calls[i] = map[string]interface{}{
 				"to":              call.To,
 				"value":           call.Value,
-				"data":            call.Data,
+				"data":            dataHex,
 				"gasLimit":        call.GasLimit,
 				"delegateCall":    call.DelegateCall,
 				"onlyFallback":    call.OnlyFallback,
@@ -296,8 +298,9 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 			},
 		}
 		primaryType = "Message"
+		messageHex := hexutil.Encode(payload.Message)
 		message = map[string]interface{}{
-			"message": payload.Message,
+			"message": messageHex,
 			"wallets": payload.ParentWallets,
 		}
 
