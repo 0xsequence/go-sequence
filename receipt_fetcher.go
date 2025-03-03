@@ -42,64 +42,36 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 		MetaTxnID: metaTxnID,
 	}
 
-	var isV2, isV3 bool
-
-	for _, log := range receipt.Logs() {
-		isTxExecutedV1 := V1IsTxExecutedEvent(log, metaTxnHash)
-		isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnHash)
-		isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnHash)
-		isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnHash)
-		isTxExecutedV3 := V3IsTxExecutedEvent(log, metaTxnHash)
-		isTxFailedV3 := V3IsTxFailedEvent(log, metaTxnHash)
-
-		if isTxExecutedV1 || isTxFailedV1 {
-			isV2 = false
-			isV3 = false
-			break
-		} else if isTxExecutedV2 || isTxFailedV2 {
-			isV2 = true
-			isV3 = false
-			break
-		} else if isTxExecutedV3 || isTxFailedV3 {
-			isV2 = false
-			isV3 = true
-			break
-		}
-	}
-
-	for _, log := range receipt.Logs() {
-		var isTxExecuted, isTxFailed bool
-		var reason string
-
-		if isV2 {
-			isTxExecuted = IsTxExecutedEvent(log, metaTxnHash)
-			isTxFailed = V2IsTxFailedEvent(log, metaTxnHash)
-
-			if isTxFailed {
-				_, reason, _, _ = V2DecodeTxFailedEvent(log)
-			}
-		} else if isV3 {
-			isTxExecuted = V3IsTxExecutedEvent(log, metaTxnHash)
-			isTxFailed = V3IsTxFailedEvent(log, metaTxnHash)
-
-			if isTxFailed {
-				_, reason, _, _ = V3DecodeTxFailedEvent(log)
-			}
-		} else {
-			isTxExecuted = V1IsTxExecutedEvent(log, metaTxnHash)
-			isTxFailed = V1IsTxFailedEvent(log, metaTxnHash)
-
-			if isTxFailed {
-				_, reason, _ = V1DecodeTxFailedEvent(log)
-			}
-		}
-
-		if isTxExecuted {
+	logs := receipt.Logs()
+done:
+	for i := len(logs) - 1; i >= 0; i-- {
+		log := logs[i]
+		switch {
+		case V1IsTxExecutedEvent(log, metaTxnHash):
 			result.Status = MetaTxnExecuted
-			break
-		} else if isTxFailed {
+			break done
+		case V2IsTxExecutedEvent(log, metaTxnHash):
+			result.Status = MetaTxnExecuted
+			break done
+		case V3IsCallSuccessEvent(log, metaTxnHash):
+			result.Status = MetaTxnExecuted
+			break done
+		case V1IsTxFailedEvent(log, metaTxnHash):
 			result.Status = MetaTxnFailed
-			result.Reason = reason
+			_, result.Reason, _ = V1DecodeTxFailedEvent(log)
+			break done
+		case V2IsTxFailedEvent(log, metaTxnHash):
+			result.Status = MetaTxnFailed
+			_, result.Reason, _, _ = V2DecodeTxFailedEvent(log)
+			break done
+		case V3IsCallFailedEvent(log, metaTxnHash):
+			result.Status = MetaTxnFailed
+			_, _, result.Reason, _ = V3DecodeCallFailedEvent(log)
+			break done
+		case V3IsCallAbortedEvent(log, metaTxnHash):
+			result.Status = MetaTxnFailed
+			_, _, result.Reason, _ = V3DecodeCallAbortedEvent(log)
+			break done
 		}
 	}
 
@@ -109,15 +81,22 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 	return ethreceipts.FilterLogs(func(logs []*types.Log) bool {
 		for _, log := range logs {
-			isTxExecutedV1 := V1IsTxExecutedEvent(log, metaTxnID)
-			isTxFailedV1 := V1IsTxFailedEvent(log, metaTxnID)
-			isTxExecutedV2 := IsTxExecutedEvent(log, metaTxnID)
-			isTxFailedV2 := V2IsTxFailedEvent(log, metaTxnID)
-			isTxExecutedV3 := V3IsTxExecutedEvent(log, metaTxnID)
-			isTxFailedV3 := V3IsTxFailedEvent(log, metaTxnID)
-
-			if isTxExecutedV1 || isTxFailedV1 || isTxExecutedV2 || isTxFailedV2 || isTxExecutedV3 || isTxFailedV3 {
-				// found the sequence meta txn
+			switch {
+			case V1IsTxExecutedEvent(log, metaTxnID):
+				fallthrough
+			case V1IsTxFailedEvent(log, metaTxnID):
+				fallthrough
+			case V2IsTxExecutedEvent(log, metaTxnID):
+				fallthrough
+			case V2IsTxFailedEvent(log, metaTxnID):
+				fallthrough
+			case V3IsCallSuccessEvent(log, metaTxnID):
+				fallthrough
+			case V3IsCallFailedEvent(log, metaTxnID):
+				fallthrough
+			case V3IsCallAbortedEvent(log, metaTxnID):
+				fallthrough
+			case V3IsCallSkippedEvent(log, metaTxnID):
 				return true
 			}
 		}
@@ -128,27 +107,11 @@ func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 // Find any Sequence meta txns
 func FilterMetaTransactionAny() ethreceipts.FilterQuery {
 	return ethreceipts.FilterLogs(func(logs []*types.Log) bool {
-		foundNonceEvent := false
 		for _, log := range logs {
-			if len(log.Topics) > 0 && log.Topics[0] == NonceChangeEventSig {
-				foundNonceEvent = true
-				break
-			}
-		}
-		if !foundNonceEvent {
-			return false
-		}
-
-		for _, log := range logs {
-			if len(log.Topics) == 1 && (log.Topics[0] == V1TxFailedEventSig || log.Topics[0] == V2TxFailedEventSig || log.Topics[0] == V3CallFailed) {
-				// failed sequence txn
-				return true
-			} else if len(log.Topics) == 0 && len(log.Data) == 32 {
-				// possibly a successful sequence txn -- but not for certain
+			if len(log.Topics) == 1 && log.Topics[0] == NonceChangeEventSig {
 				return true
 			}
 		}
-
 		return false
 	})
 }
