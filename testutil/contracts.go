@@ -12,7 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
-	walletcallmock "github.com/0xsequence/go-sequence/contracts/gen/v1/walletcallmock"
+	"github.com/0xsequence/go-sequence/contracts/gen/walletcallmock"
 )
 
 var (

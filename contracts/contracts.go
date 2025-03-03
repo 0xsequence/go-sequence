@@ -79,21 +79,9 @@ var V3 struct {
 	CreationCode       []byte
 }
 
-var V3 struct {
-	WalletFactory      ethartifact.Artifact
-	Stage1Module       ethartifact.Artifact
-	Stage2Module       ethartifact.Artifact
-	GuestModule        ethartifact.Artifact
-	WalletGasEstimator ethartifact.Artifact
-}
-
 var (
 	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
 	artifact_erc20mock string
-)
-
-const (
-	DEFAULT_CREATION_CODE = "0x603a600e3d39601a805130553df3363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3"
 )
 
 func init() {
@@ -121,14 +109,6 @@ func init() {
 	V3.WalletEstimator = artifact("WALLET_ESTIMATOR", v3Estimator.WalletEstimatorABI, v3Estimator.WalletEstimatorBin, v3Estimator.WalletEstimatorDeployedBin)
 	V3.WalletSimulator = artifact("WALLET_SIMULATOR", v3Simulator.WalletSimulatorABI, v3Simulator.WalletSimulatorBin, v3Simulator.WalletSimulatorDeployedBin)
 	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
-
-	V3.WalletFactory = artifact("WALLET_FACTORY", walletfactory3.WalletFactoryABI, walletfactory3.WalletFactoryBin)
-	V3.Stage1Module = artifact("STAGE_1_MODULE", stage1module3.Stage1ModuleABI, stage1module3.Stage1ModuleBin)
-	V3.Stage2Module = artifact("STAGE_2_MODULE", stage2module3.Stage2ModuleABI, stage2module3.Stage2ModuleBin)
-	V3.GuestModule = artifact("GUEST_MODULE", guestmodule3.GuestModuleABI, guestmodule3.GuestModuleBin)
-
-	// TODO: Update w/ v3 gas estimator
-	V3.WalletGasEstimator = artifact("WALLET_GAS_ESTIMATOR", walletgasestimator2.WalletGasEstimatorABI, walletgasestimator2.WalletGasEstimatorBin, walletgasestimator2.WalletGasEstimatorDeployedBin)
 
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 
@@ -160,12 +140,4 @@ func artifact(contractName, abiJSON, bytecodeHex string, deployedBytecodeHex ...
 		Bin:          common.FromHex(bytecodeHex),
 		DeployedBin:  deployedBin,
 	}
-}
-
-func GetCounterfactualAddress(factory, module common.Address, imageHash common.Hash, creationCode string) (common.Address, error) {
-	initCodeHash := crypto.Keccak256(append(common.FromHex(creationCode), common.LeftPadBytes(module.Bytes(), 32)...))
-
-	addressBytes := crypto.Keccak256(append([]byte{0xff}, append(factory.Bytes(), append(imageHash.Bytes(), initCodeHash...)...)...))
-
-	return common.BytesToAddress(addressBytes[12:]), nil
 }

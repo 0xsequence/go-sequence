@@ -57,12 +57,5 @@ jobs:
       - name: Boot testchain
         run: make start-testchain-verbose &
 
-      - name: Wait for testchain to initialize
-        run: |
-          echo "Waiting for testchain to initialize..."
-          sleep 15
-          curl -s http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' || (echo "Testchain not ready"; exit 1)
-          echo "Testchain is ready"
-
       - name: Test
         run: make test

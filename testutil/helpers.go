@@ -19,7 +19,6 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,14 +47,6 @@ var sequenceContextV3 = sequence.WalletContext{
 	GuestModuleAddress:          common.HexToAddress("0x795D33818a6F6a719C34b6f9591EC74d3Ee26b47"),
 	UtilsAddress:                common.HexToAddress("0x60f9f4D6dE7652cDA9032015Ad7768ceA345AA03"),
 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
-}
-
-var sequenceContextV3 = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0x6843d600C5fF98E75DF4e7b236D9513eD54A5344"),
-	MainModuleAddress:           common.HexToAddress("0x429937a2aCB7789c5D29Cd3325cC77f02E21539d"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x429937a2aCB7789c5D29Cd3325cC77f02E21539d"),
-	GuestModuleAddress:          common.HexToAddress("0xC79f7f217D753222EFb5c6CA698A1823c3F15EA5"),
-	UtilsAddress:                common.HexToAddress("0x429937a2aCB7789c5D29Cd3325cC77f02E21539d"),
 }
 
 func SequenceContext() sequence.WalletContext {
@@ -143,9 +134,6 @@ func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequen
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
-
-	// Log the receipt
-	spew.Dump(receipt)
 
 	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
 	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above

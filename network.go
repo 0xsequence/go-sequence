@@ -81,13 +81,6 @@ var sequenceContextV3 = WalletContext{
 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
 
-var sequenceContextV3 = WalletContext{
-	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
-	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
-	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
-}
-
 // V1SequenceContext returns copy of the package-level internal variable, to prevent change
 // by other packages.
 func V1SequenceContext() WalletContext {
