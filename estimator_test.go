@@ -180,8 +180,7 @@ func TestEstimateSimpleSequenceTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(50000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
@@ -380,8 +379,7 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		assert.Equal(t, "771", ret[0])
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(60000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 	})
 }
 
@@ -555,8 +553,7 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(60000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
@@ -723,8 +720,7 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(50000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
@@ -897,8 +893,7 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(60000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(30000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
@@ -1176,8 +1171,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		// TODO: Gas Used to fit to v3?
-		assert.Less(t, estimated-receipt.GasUsed, uint64(90000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
