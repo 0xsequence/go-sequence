@@ -201,14 +201,11 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		signature, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
-		// Print the eoa1's address
-		fmt.Println("eoa1 address:", eoa1.Address())
-
-		// Dump the signature
-		spew.Dump(signature)
-
 		// Verify signature format
-		require.Equal(t, byte(0x08), signature[0], "signature should start with version byte 0x08 (Nested)")
+		// Root: TreeNode
+		// Left: AddressLeaf
+		// Right: AnyAddressSubdigestLeaf
+		require.Equal(t, byte(0x06), signature[0], "signature should start with version byte 0x06 (Node)")
 
 		// Get the subdigest from the config's tree
 		var anyAddressSubdigestLeaf *v3.WalletConfigTreeAnyAddressSubdigestLeaf
@@ -224,26 +221,11 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		sig, err := v3.Core.DecodeSignature(signature)
 		require.NoError(t, err, "signature should be decodable")
 
-		// Dump the sig
-		fmt.Println("DUMPING SIG")
-		spew.Dump(sig)
-
-		// Verify signature type by checking the first byte
-		require.Equal(t, byte(0x08), signature[0], "signature should be a AnyAddressSubdigest signature type")
-
-		// Print the image hash of the subdigest
-		fmt.Println(anyAddressSubdigestLeaf.ImageHash())
-
-		// Print the full signature in hex
-		fmt.Println("full signature:", sig)
-
 		// Get the full signature in string
 		sigDataStr, err := sig.Data()
 		require.NoError(t, err)
-		fmt.Println("full signature hex:", common.Bytes2Hex(sigDataStr))
 
 		anyAddressSubdigestStr := anyAddressSubdigestLeaf.Digest.Hash.Hex()
-		fmt.Println("any address digest hex:", anyAddressSubdigestStr)
 
 		// Verify the signature contains the any address digest
 		require.Contains(t, common.Bytes2Hex(sigDataStr), anyAddressSubdigestStr[2:], "signature should contain the any address digest")
