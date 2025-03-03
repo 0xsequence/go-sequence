@@ -362,7 +362,7 @@ var (
 	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
 
 	V3CallSuccess = MustEncodeSig("CallSuccess(bytes32,uint256)")
-	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
+	V3CallFailed  = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
 	V3CallAborted = MustEncodeSig("CallAborted(bytes32,uint256,bytes)")
 	V3CallSkipped = MustEncodeSig("CallSkipped(bytes32,uint256)")
 )
