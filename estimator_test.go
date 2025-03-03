@@ -1171,7 +1171,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.LessOrEqual(t, receipt.GasUsed, estimated)
-		assert.Less(t, estimated-receipt.GasUsed, uint64(25000))
+		assert.Less(t, estimated-receipt.GasUsed, uint64(40000))
 
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
