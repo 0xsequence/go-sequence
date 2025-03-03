@@ -765,11 +765,11 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
-			return true, nil
+			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
 		}
 	} else if _, ok := generalWalletConfig.(*v2.WalletConfig); ok {
 		sig, err := v2.Core.DecodeSignature(signature)
@@ -777,11 +777,11 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
-			return true, nil
+			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
 		}
 	} else if _, ok := generalWalletConfig.(*v1.WalletConfig); ok {
 		sig, err := v1.Core.DecodeSignature(signature)
@@ -789,11 +789,11 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		_, _, err = sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
-			return true, nil
+			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
 		}
 	} else {
 		return false, fmt.Errorf("unknown wallet config type")
