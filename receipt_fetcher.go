@@ -140,7 +140,7 @@ func FilterMetaTransactionAny() ethreceipts.FilterQuery {
 		}
 
 		for _, log := range logs {
-			if len(log.Topics) == 1 && (log.Topics[0] == V1TxFailedEventSig || log.Topics[0] == V2TxFailedEventSig || log.Topics[0] == V3TxFailedEventSig) {
+			if len(log.Topics) == 1 && (log.Topics[0] == V1TxFailedEventSig || log.Topics[0] == V2TxFailedEventSig || log.Topics[0] == V3CallFailed) {
 				// failed sequence txn
 				return true
 			} else if len(log.Topics) == 0 && len(log.Data) == 32 {

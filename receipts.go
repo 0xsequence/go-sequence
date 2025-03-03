@@ -159,13 +159,13 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 
 func V3IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
-		log.Topics[0] == V3TxExecutedEventSig &&
+		log.Topics[0] == V3CallSuccess &&
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
 func V3IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
-		log.Topics[0] == V3TxFailedEventSig &&
+		log.Topics[0] == V3CallFailed &&
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
@@ -224,7 +224,7 @@ func V2DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
 }
 
 func V3DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
-	if len(log.Topics) != 2 || log.Topics[0] != V3TxFailedEventSig {
+	if len(log.Topics) != 2 || log.Topics[0] != V3CallFailed {
 		return common.Hash{}, "", 0, fmt.Errorf("not a TxFailed event")
 	}
 
