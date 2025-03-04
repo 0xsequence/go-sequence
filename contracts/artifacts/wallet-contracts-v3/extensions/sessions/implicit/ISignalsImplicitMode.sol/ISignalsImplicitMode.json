@@ -34,13 +34,20 @@
             },
             {
               "internalType": "bytes",
-              "name": "authData",
+              "name": "applicationData",
               "type": "bytes"
             },
             {
-              "internalType": "bytes",
-              "name": "applicationData",
-              "type": "bytes"
+              "components": [
+                {
+                  "internalType": "string",
+                  "name": "redirectUrl",
+                  "type": "string"
+                }
+              ],
+              "internalType": "struct AuthData",
+              "name": "authData",
+              "type": "tuple"
             }
           ],
           "internalType": "struct Attestation",
