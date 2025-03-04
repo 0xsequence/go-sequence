@@ -247,6 +247,7 @@ func (b *BigInt) UnmarshalBinary(buff []byte) error {
 }
 
 func ParseBigIntString(s string, base int) (BigInt, bool) {
+	neg := strings.HasPrefix(s, "-")
 	var ns strings.Builder
 	switch base {
 	case 2:
@@ -293,6 +294,10 @@ func ParseBigIntString(s string, base int) (BigInt, bool) {
 		s = strings.TrimPrefix(s, "0x")
 	default:
 		return BigInt{}, false
+	}
+
+	if neg {
+		s = "-" + s
 	}
 
 	b := big.NewInt(0)
