@@ -359,6 +359,48 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
+
+	t.Run("v3", func(t *testing.T) {
+		eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+		assert.NoError(t, err)
+
+		eoa2, err := ethwallet.NewWalletFromRandomEntropy()
+		assert.NoError(t, err)
+
+		walletConfig := &v3.WalletConfig{
+			Threshold_: 3,
+			Tree: &v3.WalletConfigTreeNode{
+				Left: &v3.WalletConfigTreeAddressLeaf{
+					Weight: 2, Address: eoa1.Address(),
+				},
+				Right: &v3.WalletConfigTreeAddressLeaf{
+					Weight: 5, Address: eoa2.Address(),
+				},
+			},
+		}
+
+		wallet, err := sequence.GenericNewWallet[*v3.WalletConfig](sequence.WalletOptions[*v3.WalletConfig]{
+			Config: walletConfig,
+		}, eoa1)
+		assert.NoError(t, err)
+
+		wallet.SetChainID(big.NewInt(3))
+
+		message := "Hi! this is a test message"
+		sig, err := wallet.SignMessage([]byte(message))
+		assert.NoError(t, err)
+
+		recoveredWalletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v3.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+		assert.NoError(t, err)
+
+		assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold())
+		assert.Equal(t, weight.Cmp(big.NewInt(int64(2))), 0)
+		assert.Len(t, recoveredWalletConfig.Signers(), 2)
+
+		address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
+		assert.NoError(t, err)
+		assert.Equal(t, wallet.Address(), address)
+	})
 }
 
 func TestShouldIgnoreConfigSortV1(t *testing.T) {
