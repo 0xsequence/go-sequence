@@ -659,13 +659,8 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		}
 	}
 
-	// Check if the config is v1, v2, or v3
-	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
-	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
-	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
-
-	// If the config is v1 or v2, encode the transactions in a legacy behavior
-	if isV1 || isV2 {
+	switch core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
 		bundle := Transaction{
 			Transactions: txns,
 			Nonce:        nonce,
@@ -693,10 +688,8 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 			Digest:        digest,
 			Signature:     sig,
 		}, nil
-	}
 
-	// If the config is v3, encode the transactions as a v3 transaction
-	if isV3 {
+	case *v3.WalletConfig:
 		// TODO: Hardcode nonce space to 0 for now
 		space := big.NewInt(0)
 
@@ -738,19 +731,7 @@ func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTran
 		return "", nil, nil, ErrRelayerNotSet
 	}
 
-	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
-	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
-	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
-
-	if isV1 || isV2 {
-		return w.relayer.Relay(ctx, signedTxns, feeQuote...)
-	}
-
-	if isV3 {
-		return w.relayer.RelayV3(ctx, signedTxns, feeQuote...)
-	}
-
-	return "", nil, nil, fmt.Errorf("unknown wallet config type")
+	return w.relayer.Relay(ctx, signedTxns, feeQuote...)
 }
 
 func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
@@ -854,19 +835,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, err
 	}
 
-	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
-	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
-	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
-
-	if isV1 || isV2 {
-		return w.relayer.Relay(ctx, signerTxn)
-	}
-
-	if isV3 {
-		return w.relayer.RelayV3(ctx, signerTxn)
-	}
-
-	return "", nil, nil, fmt.Errorf("unknown wallet config type")
+	return w.relayer.Relay(ctx, signerTxn)
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future

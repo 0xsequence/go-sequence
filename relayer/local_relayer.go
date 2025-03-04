@@ -16,6 +16,9 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -132,15 +135,33 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 
 	sender := r.Sender
 
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		signedTxs.WalletAddress,
-		signedTxs.WalletConfig,
-		signedTxs.WalletContext,
-		signedTxs.Transactions,
-		signedTxs.Nonce,
-		signedTxs.Signature,
-	)
+	var to common.Address
+	var execdata []byte
+	var err error
+	switch signedTxs.WalletConfig.(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelaying(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	case *v3.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.ChainID,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Space,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	}
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -172,115 +193,38 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				},
 			}
 
-			encodedTxns, err := txns.EncodedTransactions()
-			if err != nil {
-				return "", nil, nil, err
-			}
+			switch signedTxs.WalletConfig.(type) {
+			case *v1.WalletConfig, *v2.WalletConfig:
+				encodedTxns, err := txns.EncodedTransactions()
+				if err != nil {
+					return "", nil, nil, err
+				}
 
-			// TODO: v1 ...? what about others..? I guess since its just for testing locally,
-			// we can just use v1. But I'd suggest we use v3 format once its ready.
-			execdata, err = contracts.V1.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
-			if err != nil {
-				return "", nil, nil, err
-			}
+				execdata, err = contracts.V1.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+				if err != nil {
+					return "", nil, nil, err
+				}
 
-			to = signedTxs.WalletContext.GuestModuleAddress
-		}
-	}
+			case *v3.WalletConfig:
+				_, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+					r,
+					signedTxs.WalletAddress,
+					signedTxs.ChainID,
+					signedTxs.WalletConfig,
+					signedTxs.WalletContext,
+					txns,
+					signedTxs.Space,
+					signedTxs.Nonce,
+					signedTxs.Signature,
+				)
+				if err != nil {
+					return "", nil, nil, err
+				}
 
-	walletAddress, err := sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	ntx, err := sender.NewTransaction(ctx, &ethtxn.TransactionRequest{
-		To: &to, Data: execdata,
-	})
-	if err != nil {
-		return metaTxnID, nil, nil, err
-	}
-
-	signedTx, err := sender.SignTx(ntx, signedTxs.ChainID)
-	if err != nil {
-		return metaTxnID, nil, nil, err
-	}
-
-	ntx, waitReceipt, err := sender.SendTransaction(ctx, signedTx)
-	if err != nil {
-		return metaTxnID, nil, nil, err
-	}
-
-	return metaTxnID, ntx, waitReceipt, nil
-}
-
-func (r *LocalRelayer) RelayV3(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
-	sender := r.Sender
-
-	to, execdata, err := sequence.EncodeTransactionsForRelayingV3(
-		r,
-		signedTxs.WalletAddress,
-		signedTxs.ChainID,
-		signedTxs.WalletConfig,
-		signedTxs.WalletContext,
-		signedTxs.Transactions,
-		signedTxs.Space,
-		signedTxs.Nonce,
-		signedTxs.Signature,
-	)
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	if r.IsDeployTransaction(signedTxs) {
-		to = signedTxs.WalletContext.GuestModuleAddress
-	} else {
-		isDeployed, err := sequence.IsWalletDeployed(r.GetProvider(), to)
-		if err != nil {
-			return "", nil, nil, err
-		}
-
-		if !isDeployed {
-			_, factoryAddress, deployData, err := sequence.EncodeWalletDeployment(signedTxs.WalletConfig, signedTxs.WalletContext)
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			txns := sequence.Transactions{
-				{
-					RevertOnError: true,
-					To:            factoryAddress,
-					Data:          deployData,
-				},
-				{
-					RevertOnError: true,
-					To:            to,
-					Data:          execdata,
-				},
-			}
-
-			_, execdata, err = sequence.EncodeTransactionsForRelayingV3(
-				r,
-				signedTxs.WalletAddress,
-				signedTxs.ChainID,
-				signedTxs.WalletConfig,
-				signedTxs.WalletContext,
-				txns,
-				signedTxs.Space,
-				signedTxs.Nonce,
-				signedTxs.Signature,
-			)
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			execdata, err = contracts.V3.WalletStage1Module.Encode("execute", execdata, []byte{})
-			if err != nil {
-				return "", nil, nil, err
+				execdata, err = contracts.V3.WalletStage1Module.Encode("execute", execdata, []byte{})
+				if err != nil {
+					return "", nil, nil, err
+				}
 			}
 
 			to = signedTxs.WalletContext.GuestModuleAddress

@@ -70,7 +70,6 @@ type Relayer interface {
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 	// request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 	Relay(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
-	RelayV3(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	//
 	FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error)
