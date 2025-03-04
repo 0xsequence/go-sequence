@@ -854,7 +854,19 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, err
 	}
 
-	return w.relayer.Relay(ctx, signerTxn)
+	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
+	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
+	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
+
+	if isV1 || isV2 {
+		return w.relayer.Relay(ctx, signerTxn)
+	}
+
+	if isV3 {
+		return w.relayer.RelayV3(ctx, signerTxn)
+	}
+
+	return "", nil, nil, fmt.Errorf("unknown wallet config type")
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future
