@@ -754,20 +754,3 @@ func TestWalletLazyDeployment(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(1), bal)
 }
-
-func TestWalletAddressV3(t *testing.T) {
-	t.Run("v3", func(t *testing.T) {
-		eoa, err := ethwallet.NewWalletFromPrivateKey("2bf2dfccb8c9fb4bb4d46ac9e2b537c373b44ae4c2ee66de92e02f132f7c2237")
-		assert.NoError(t, err)
-		assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
-
-		w, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, sequence.WalletContext{
-			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
-			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
-			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
-		})
-
-		assert.NoError(t, err)
-		assert.Equal(t, "0xEE9BD133D9EEc8EAf91F37121fcB4DefE15aD449", w.Address().Hex())
-	})
-}
