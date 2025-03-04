@@ -2,7 +2,10 @@ package prototyp
 
 import (
 	"encoding/json"
+	"fmt"
+	"math"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,6 +99,82 @@ func TestBigIntFromBaseString(t *testing.T) {
 			b := tc.fn(tc.input)
 			assert.Equal(t, tc.expected, b.String())
 		})
+	}
+}
+
+func TestNumberFromBaseString(t *testing.T) {
+	type testCase struct {
+		input       string
+		expectedInt int64
+		expectedOk  bool
+	}
+
+	tests := []struct {
+		base  int
+		cases []testCase
+	}{
+		{
+			base: 2,
+			cases: []testCase{
+				{"00101010", 42, true},
+				{"-00101010", -42, true},
+				{"0B00101010", 42, true},
+				{"0b00101010", 42, true},
+				{strconv.FormatInt(math.MaxInt64, 2), math.MaxInt64, true},
+				{strconv.FormatInt(math.MaxInt64, 2) + "0", 0, false},
+				{strconv.FormatInt(math.MinInt64, 2), math.MinInt64, true},
+				{strconv.FormatInt(math.MinInt64, 2) + "0", 0, false},
+			},
+		},
+		{
+			base: 8,
+			cases: []testCase{
+				{"52", 42, true},
+				{"-52", -42, true},
+				{"0O52", 42, true},
+				{"0o52", 42, true},
+				{strconv.FormatInt(math.MaxInt64, 8), math.MaxInt64, true},
+				{strconv.FormatInt(math.MaxInt64, 8) + "0", 0, false},
+				{strconv.FormatInt(math.MinInt64, 8), math.MinInt64, true},
+				{strconv.FormatInt(math.MinInt64, 8) + "0", 0, false},
+			},
+		},
+		{
+			base: 10,
+			cases: []testCase{
+				{"42", 42, true},
+				{"-42", -42, true},
+				{strconv.FormatInt(math.MaxInt64, 10), math.MaxInt64, true},
+				{strconv.FormatInt(math.MaxInt64, 10) + "0", 0, false},
+				{strconv.FormatInt(math.MinInt64, 10), math.MinInt64, true},
+				{strconv.FormatInt(math.MinInt64, 10) + "0", 0, false},
+			},
+		},
+		{
+			base: 16,
+			cases: []testCase{
+				{"2A", 42, true},
+				{"2a", 42, true},
+				{"-2A", -42, true},
+				{"-2a", -42, true},
+				{"0x2a", 42, true},
+				{"0X2a", 42, true},
+				{strconv.FormatInt(math.MaxInt64, 16), math.MaxInt64, true},
+				{strconv.FormatInt(math.MaxInt64, 16) + "0", 0, false},
+				{strconv.FormatInt(math.MinInt64, 16), math.MinInt64, true},
+				{strconv.FormatInt(math.MinInt64, 16) + "0", 0, false},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		for _, tc := range tt.cases {
+			t.Run(fmt.Sprintf("%d_%s", tt.base, tc.input), func(t *testing.T) {
+				i, ok := ParseNumberString(tc.input, tt.base)
+				assert.Equal(t, tc.expectedInt, i)
+				assert.Equal(t, tc.expectedOk, ok)
+			})
+		}
 	}
 }
 
