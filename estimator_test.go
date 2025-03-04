@@ -1868,3 +1868,9 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		}
 	})
 }
+
+func TestRandomNonceV3(t *testing.T) {
+	nonce := sequence.RandomNonceV3()
+
+	assert.True(t, nonce.Cmp(big.NewInt(0)) >= 0)
+}

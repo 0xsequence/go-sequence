@@ -504,13 +504,6 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.
 		}
 	}
 
-	// If the nonce is larger than 15 bytes (max allowed in v3), we need to cap it
-	maxNonce := new(big.Int)
-	maxNonce.SetString("ffffffffffffffffffffffffffffff", 16)
-	if nonce.Cmp(maxNonce) > 0 {
-		nonce = maxNonce
-	}
-
 	return v3.DecodedPayload{
 		Kind:      v3.KindTransactions,
 		NoChainId: false,
