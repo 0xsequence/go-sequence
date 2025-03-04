@@ -236,13 +236,28 @@ type TypedDataField struct {
 	Type string `json:"type"`
 }
 
-// hashPayload computes the EIP-712 hash of a payload.
+// HashPayload computes the EIP-712 hash of a payload.
 func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
 	domain := ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
 		ChainID:           chainId,
 		VerifyingContract: &wallet,
+	}
+
+	parentWallets := payload.ParentWallets
+	if parentWallets == nil {
+		parentWallets = []common.Address{}
+	}
+
+	space := payload.Space
+	if space == nil {
+		space = big.NewInt(0)
+	}
+
+	nonce := payload.Nonce
+	if nonce == nil {
+		nonce = big.NewInt(0)
 	}
 
 	var types map[string][]TypedDataField
@@ -271,13 +286,24 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		primaryType = "Calls"
 		calls := make([]map[string]interface{}, len(payload.Calls))
 		for i, call := range payload.Calls {
+			// Ensure value and gasLimit have valid values
+			value := call.Value
+			if value == nil {
+				value = big.NewInt(0)
+			}
+
+			gasLimit := call.GasLimit
+			if gasLimit == nil {
+				gasLimit = big.NewInt(0)
+			}
+
 			// Hex-encode the data bytes to ensure proper format for the typed data parser
 			dataHex := hexutil.Encode(call.Data)
 			calls[i] = map[string]interface{}{
 				"to":              call.To,
-				"value":           call.Value,
+				"value":           value,
 				"data":            dataHex,
-				"gasLimit":        call.GasLimit,
+				"gasLimit":        gasLimit,
 				"delegateCall":    call.DelegateCall,
 				"onlyFallback":    call.OnlyFallback,
 				"behaviorOnError": big.NewInt(int64(call.BehaviorOnError)),
@@ -285,9 +311,9 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		}
 		message = map[string]interface{}{
 			"calls":   calls,
-			"space":   payload.Space,
-			"nonce":   payload.Nonce,
-			"wallets": payload.ParentWallets,
+			"space":   space,
+			"nonce":   nonce,
+			"wallets": parentWallets,
 		}
 
 	case KindMessage:
@@ -301,7 +327,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		messageHex := hexutil.Encode(payload.Message)
 		message = map[string]interface{}{
 			"message": messageHex,
-			"wallets": payload.ParentWallets,
+			"wallets": parentWallets,
 		}
 
 	case KindConfigUpdate:
@@ -314,7 +340,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		primaryType = "ConfigUpdate"
 		message = map[string]interface{}{
 			"imageHash": payload.ImageHash,
-			"wallets":   payload.ParentWallets,
+			"wallets":   parentWallets,
 		}
 
 	case KindDigest:
@@ -327,7 +353,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		primaryType = "Digest"
 		message = map[string]interface{}{
 			"digest":  payload.Digest,
-			"wallets": payload.ParentWallets,
+			"wallets": parentWallets,
 		}
 
 	default:

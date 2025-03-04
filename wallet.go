@@ -603,33 +603,70 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		}
 	}
 
-	bundle := Transaction{
-		Transactions: txns,
-		Nonce:        nonce,
+	// Check if the config is v1, v2, or v3
+	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
+	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
+	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
+
+	// If the config is v1 or v2, encode the transactions in a legacy behavior
+	if isV1 || isV2 {
+		bundle := Transaction{
+			Transactions: txns,
+			Nonce:        nonce,
+		}
+
+		// Get transactions digest
+		digest, err := bundle.Digest()
+		if err != nil {
+			return nil, err
+		}
+
+		// Sign the transactions
+		sig, err := w.SignDigest(ctx, digest)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SignedTransactions{
+			ChainID:       w.chainID,
+			WalletAddress: w.address,
+			WalletConfig:  w.config,
+			WalletContext: w.context,
+			Transactions:  txns,
+			Nonce:         nonce,
+			Digest:        digest,
+			Signature:     sig,
+		}, nil
 	}
 
-	// Get transactions digest
-	digest, err := bundle.Digest()
-	if err != nil {
-		return nil, err
+	// If the config is v3, encode the transactions as a v3 transaction
+	if isV3 {
+		payload := ConvertTransactionsToV3Payload(txns, big.NewInt(0), big.NewInt(0))
+
+		digest, err := v3.HashPayload(w.address, w.chainID, payload)
+		if err != nil {
+			return nil, err
+		}
+
+		// Sign the transactions
+		sig, err := w.SignDigest(ctx, digest)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SignedTransactions{
+			ChainID:       w.chainID,
+			WalletAddress: w.address,
+			WalletConfig:  w.config,
+			WalletContext: w.context,
+			Transactions:  txns,
+			Nonce:         nonce,
+			Digest:        digest,
+			Signature:     sig,
+		}, nil
 	}
 
-	// Sign the transactions
-	sig, err := w.SignDigest(ctx, digest)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SignedTransactions{
-		ChainID:       w.chainID,
-		WalletAddress: w.address,
-		WalletConfig:  w.config,
-		WalletContext: w.context,
-		Transactions:  txns,
-		Nonce:         nonce,
-		Digest:        digest,
-		Signature:     sig,
-	}, nil
+	return nil, fmt.Errorf("unknown wallet config type")
 }
 
 func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
