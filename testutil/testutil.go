@@ -583,6 +583,18 @@ func (c *TestChain) RandomNonce() *big.Int {
 	return encoded
 }
 
+func (c *TestChain) RandomNonceV3() *big.Int {
+	// Generate a random space using current time nanoseconds
+	space := big.NewInt(int64(time.Now().Nanosecond()))
+
+	// Ensure space is within 15 bytes (120 bits) as per v3 requirements
+	maxSpace := new(big.Int).Lsh(big.NewInt(1), 120) // 15 bytes = 120 bits
+	space.Mod(space, maxSpace)
+
+	return space
+}
+
+// ... existing code ...
 func (c *TestChain) V1DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))

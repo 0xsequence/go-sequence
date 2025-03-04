@@ -1150,7 +1150,7 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 			&sequence.Transaction{
 				To:    callmockContract.Address,
 				Data:  calldata,
-				Nonce: testChain.RandomNonce(),
+				Nonce: testChain.RandomNonceV3(),
 			},
 		}
 
@@ -1853,7 +1853,7 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 			&sequence.Transaction{
 				To:    callmockContract.Address,
 				Data:  calldata,
-				Nonce: testChain.RandomNonce(),
+				Nonce: testChain.RandomNonceV3(),
 			},
 		}
 
