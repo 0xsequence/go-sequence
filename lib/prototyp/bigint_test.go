@@ -52,12 +52,21 @@ func TestBigIntAdd(t *testing.T) {
 func TestBigIntScan(t *testing.T) {
 	b := BigInt{}
 
-	assert.NoError(t, b.Scan("1"))
-	assert.NoError(t, b.Scan([]byte("1")))
-	assert.Error(t, b.Scan(1))
-	assert.Error(t, b.Scan(1.0))
-	assert.Error(t, b.Scan("1x"))
-	assert.Error(t, b.Scan("1."))
+	for _, i := range []int64{0, 1, 42, 84, 1234567890, math.MaxInt64, math.MinInt64} {
+		str := strconv.FormatInt(i, 10)
+
+		values := []any{
+			int(i), int8(i), int16(i), int32(i), int64(i), // integers
+			uint(i), uint8(i), uint16(i), uint32(i), uint64(i), // unsigned integers
+			float32(i), float64(i), // floats
+			str, str + ".", str + "x", []byte(str), // strings
+		}
+
+		for _, v := range values {
+			assert.NoError(t, b.Scan(v))
+			assert.Equal(t, i, b.Int64())
+		}
+	}
 }
 
 func TestBigIntFromBaseString(t *testing.T) {
