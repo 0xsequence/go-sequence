@@ -3,8 +3,8 @@ package prototyp
 import (
 	"database/sql/driver"
 	"fmt"
+	"math"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -47,13 +47,15 @@ func NewBigIntFromString(s string, base int) BigInt {
 		return BigInt{}
 	}
 
+	var bi BigInt
 	b, ok := b.SetString(s, base)
-	if !ok {
-		n, _ := ParseNumberString(s, base)
-		b = big.NewInt(n)
+	if ok {
+		bi = BigInt(*b)
+	} else {
+		bi, _ = ParseBigIntString(s, base)
 	}
 
-	return BigInt(*b)
+	return bi
 }
 
 func ToBigInt(b *big.Int) BigInt {
@@ -244,7 +246,8 @@ func (b *BigInt) UnmarshalBinary(buff []byte) error {
 	return b.UnmarshalText(buff)
 }
 
-func ParseNumberString(s string, base int) (int64, bool) {
+func ParseBigIntString(s string, base int) (BigInt, bool) {
+	neg := strings.HasPrefix(s, "-")
 	var ns strings.Builder
 	switch base {
 	case 2:
@@ -290,15 +293,34 @@ func ParseNumberString(s string, base int) (int64, bool) {
 		s = strings.TrimPrefix(s, "0X")
 		s = strings.TrimPrefix(s, "0x")
 	default:
+		return BigInt{}, false
+	}
+
+	if neg {
+		s = "-" + s
+	}
+
+	b := big.NewInt(0)
+	b, ok := b.SetString(s, base)
+	if !ok {
+		return BigInt{}, false
+	}
+
+	return BigInt(*b), true
+}
+
+func ParseNumberString(s string, base int) (int64, bool) {
+	bi, ok := ParseBigIntString(s, base)
+	if !ok {
 		return 0, false
 	}
 
-	n, err := strconv.ParseInt(s, base, 64)
-	if err != nil {
+	// Check if it fits within int64 range, if it doesn't fit in int64, return false
+	if bi.Lt(big.NewInt(math.MinInt64)) || bi.Gt(big.NewInt(math.MaxInt64)) {
 		return 0, false
 	}
 
-	return n, true
+	return bi.Int64(), true
 }
 
 func IsValidNumberString(s string) bool {
