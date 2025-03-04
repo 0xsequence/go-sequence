@@ -202,6 +202,69 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		return receipt, err
 	}
 
+	return sequence.MetaTxnID(metaTxnID), nil, waitReceipt, nil
+}
+
+func (r *RpcRelayer) RelayV3(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	walletAddress := signedTxs.WalletAddress
+	var err error
+
+	if walletAddress == (common.Address{}) {
+		walletAddress, err = sequence.AddressFromWalletConfig(signedTxs.WalletConfig, signedTxs.WalletContext)
+		if err != nil {
+			return "", nil, nil, err
+		}
+	}
+
+	to, execdata, err := sequence.EncodeTransactionsForRelayingV3(
+		r,
+		signedTxs.WalletAddress,
+		signedTxs.ChainID,
+		signedTxs.WalletConfig,
+		signedTxs.WalletContext,
+		signedTxs.Transactions,
+		signedTxs.Space,
+		signedTxs.Nonce,
+		signedTxs.Signature,
+	)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	if r.IsDeployTransaction(signedTxs) {
+		to = signedTxs.WalletContext.GuestModuleAddress
+	}
+
+	call := &proto.MetaTxn{
+		Contract:      to.Hex(),
+		Input:         hexutil.Encode(execdata),
+		WalletAddress: walletAddress.Hex(),
+	}
+
+	var txQuote *string
+	if len(quote) > 0 {
+		txQuote = (*string)(quote[0])
+	}
+
+	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
+
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote, nil)
+	if err != nil {
+		return sequence.MetaTxnID(metaTxnID), nil, nil, err
+	}
+	if !ok {
+		return sequence.MetaTxnID(metaTxnID), nil, nil, fmt.Errorf("failed to relay meta transaction: unknown reason")
+	}
+	if metaTxnID == "" {
+		return "", nil, nil, fmt.Errorf("failed to relay meta transaction: server returned empty metaTxnID")
+	}
+
+	waitReceipt := func(ctx context.Context) (*types.Receipt, error) {
+		// NOTE: to timeout the request, pass a ctx from context.WithTimeout
+		_, receipt, err := r.Wait(ctx, sequence.MetaTxnID(metaTxnID))
+		return receipt, err
+	}
+
 	// TODO: 2nd argument will be nil, we may even want to remove it from here...
 	return sequence.MetaTxnID(metaTxnID), nil, waitReceipt, nil
 }

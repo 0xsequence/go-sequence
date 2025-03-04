@@ -328,6 +328,7 @@ type SignedTransactions struct {
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
+	Space        *big.Int     // Nonce space of the transactions
 	Nonce        *big.Int     // Nonce of the transactions
 	Digest       common.Hash  // Digest of the transactions
 	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest

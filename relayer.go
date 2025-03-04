@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -69,6 +70,7 @@ type Relayer interface {
 	// responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 	// request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
 	Relay(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
+	RelayV3(ctx context.Context, signedTxs *SignedTransactions, quote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error)
 
 	//
 	FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error)
@@ -122,6 +124,25 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address
 	}
 
 	execdata, err := contracts.V1.WalletMainModule.Encode("execute", encodedTxns, nonce, seqSig)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	return walletAddress, execdata, nil
+}
+
+func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Address, chainID *big.Int, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, space *big.Int, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+	if len(txns) == 0 {
+		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
+	}
+
+	payload := ConvertTransactionsToV3Payload(txns, space, nonce)
+	encoded, err := v3.Encode(payload, nil)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", encoded, seqSig)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

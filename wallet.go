@@ -641,7 +641,10 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 
 	// If the config is v3, encode the transactions as a v3 transaction
 	if isV3 {
-		payload := ConvertTransactionsToV3Payload(txns, big.NewInt(0), big.NewInt(0))
+		// TODO: Hardcode nonce space to 0 for now
+		space := big.NewInt(0)
+
+		payload := ConvertTransactionsToV3Payload(txns, space, nonce)
 
 		digest, err := v3.HashPayload(w.address, w.chainID, payload)
 		if err != nil {
@@ -660,6 +663,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 			WalletConfig:  w.config,
 			WalletContext: w.context,
 			Transactions:  txns,
+			Space:         space,
 			Nonce:         nonce,
 			Digest:        digest,
 			Signature:     sig,
@@ -678,7 +682,19 @@ func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTran
 		return "", nil, nil, ErrRelayerNotSet
 	}
 
-	return w.relayer.Relay(ctx, signedTxns, feeQuote...)
+	_, isV1 := core.WalletConfig(w.config).(*v1.WalletConfig)
+	_, isV2 := core.WalletConfig(w.config).(*v2.WalletConfig)
+	_, isV3 := core.WalletConfig(w.config).(*v3.WalletConfig)
+
+	if isV1 || isV2 {
+		return w.relayer.Relay(ctx, signedTxns, feeQuote...)
+	}
+
+	if isV3 {
+		return w.relayer.RelayV3(ctx, signedTxns, feeQuote...)
+	}
+
+	return "", nil, nil, fmt.Errorf("unknown wallet config type")
 }
 
 func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
