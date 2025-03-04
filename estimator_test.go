@@ -52,7 +52,7 @@ func TestEstimateSimpleTransaction(t *testing.T) {
 	assert.Less(t, gas.Uint64()-receipt.GasUsed, uint64(5000))
 }
 
-func TestEstimateSimpleSequenceTransaction(t *testing.T) {
+func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
 		wallet, err := testChain.V1DummySequenceWallet(1)
 		assert.NoError(t, err)

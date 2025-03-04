@@ -200,7 +200,7 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	// Uses `GasEstimator.sol` contract to estimate the gas usage
 	// Params `estimate(address _to, bytes calldata _data)`
 	// Returns `(bool success, bytes memory result, uint256 gas)`
-	if err := ethcoder.AbiDecoder([]string{"bool", "bytes", "uint256"}, resBytes, []interface{}{&success, &result, &gas}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"bool", "bytes", "uint256"}, resBytes, []interface{}{&success, &result, &gas}); err != nil {
 		return nil, err
 	}
 
@@ -606,43 +606,27 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), big.NewInt(0))
+			payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
 
 			encoded, err := v3.Encode(payload, nil)
 			if err != nil {
 				return 0, err
 			}
 
-			data, err := contracts.V3.WalletEstimator.Encode("estimate", encoded, signature)
+			execData, err := contracts.V3.WalletEstimator.Encode("estimate", encoded, signature)
 			if err != nil {
 				return 0, err
 			}
 
-			type ethCallParams struct {
-				To   common.Address `json:"to"`
-				Data string         `json:"data"`
-			}
-
-			params := ethCallParams{
+			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
-				Data: hexutil.Encode(data),
-			}
-
-			var response string
-			call := ethrpc.NewCallBuilder[string]("eth_call", nil, params, "latest", overrides)
-			_, err = provider.Do(context.Background(), call.Into(&response))
+				Data: execData,
+			}, overrides, "")
 			if err != nil {
 				return 0, err
 			}
 
-			result, err := hexutil.Decode(response)
-			if err != nil {
-				return 0, err
-			}
-
-			if err := contracts.V3.WalletEstimator.Decode(&estimates[i], "estimate", result); err != nil {
-				return 0, err
-			}
+			estimates[i] = estimated
 		}
 	}
 
