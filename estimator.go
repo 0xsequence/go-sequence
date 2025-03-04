@@ -505,7 +505,8 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.
 	}
 
 	// If the nonce is larger than 15 bytes (max allowed in v3), we need to cap it
-	maxNonce := new(big.Int).Lsh(big.NewInt(1), 120) // 15 bytes = 120 bits
+	maxNonce := new(big.Int)
+	maxNonce.SetString("ffffffffffffffffffffffffffffff", 16)
 	if nonce.Cmp(maxNonce) > 0 {
 		nonce = maxNonce
 	}
@@ -841,7 +842,8 @@ func RandomNonceV3() *big.Int {
 	space := big.NewInt(int64(time.Now().Nanosecond()))
 
 	// Ensure space is within 15 bytes (120 bits) as per v3 requirements
-	maxSpace := new(big.Int).Lsh(big.NewInt(1), 120) // 15 bytes = 120 bits
+	maxSpace := new(big.Int)
+	maxSpace.SetString("ffffffffffffffffffffffffffffff", 16)
 	space.Mod(space, maxSpace)
 
 	// For v3, we directly use the space as the nonce since v3 has different nonce handling

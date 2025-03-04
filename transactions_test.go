@@ -1055,3 +1055,9 @@ func TestRawTransactionsEncoding(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, bytes.Equal(data, data2))
 }
+
+func TestMaxNonce(t *testing.T) {
+	maxNonce := new(big.Int)
+	maxNonce.SetString("ffffffffffffffffffffffffffffff", 16)
+	assert.Equal(t, maxNonce.String(), "1329227995784915872903807060280344575")
+}
