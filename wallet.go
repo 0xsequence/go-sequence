@@ -690,8 +690,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		}, nil
 
 	case *v3.WalletConfig:
-		// TODO: Hardcode nonce space to 0 for now
-		space := big.NewInt(0)
+		space, nonce := DecodeNonce(nonce)
 
 		payload := ConvertTransactionsToV3Payload(txns, space, nonce)
 
