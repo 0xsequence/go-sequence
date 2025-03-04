@@ -219,6 +219,8 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 }
 
 func (r *LocalRelayer) RelayV3(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	fmt.Println("Relaying V3 Local Relayer")
+
 	sender := r.Sender
 
 	to, execdata, err := sequence.EncodeTransactionsForRelayingV3(
