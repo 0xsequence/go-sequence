@@ -915,10 +915,11 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 			},
 		}
 
-		encodedTxns, err := guestBundle.EncodedTransactions()
+		payload := sequence.ConvertTransactionsToV3Payload(guestBundle, signedWalletBundle.Space, signedWalletBundle.Nonce)
+		encoded, err := v3.Encode(payload, nil)
 		assert.NoError(t, err)
 
-		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", encoded, []byte{})
 		assert.NoError(t, err)
 
 		metaTxnID, _, err := sequence.ComputeMetaTxnID(
