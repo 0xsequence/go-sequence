@@ -829,16 +829,3 @@ func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulatorResult, error) {
 	return V3Simulate(provider, wallet, transactions, block, overrides)
 }
-
-func RandomNonceV3() *big.Int {
-	// Generate a random space using current time nanoseconds
-	space := big.NewInt(int64(time.Now().Nanosecond()))
-
-	// Ensure space is within 15 bytes (120 bits) as per v3 requirements
-	maxSpace := new(big.Int)
-	maxSpace.SetString("ffffffffffffffffffffffffffffff", 16)
-	space.Mod(space, maxSpace)
-
-	// For v3, we directly use the space as the nonce since v3 has different nonce handling
-	return space
-}

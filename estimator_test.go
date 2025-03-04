@@ -1150,7 +1150,6 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 			&sequence.Transaction{
 				To:    callmockContract.Address,
 				Data:  calldata,
-				Nonce: testChain.RandomNonceV3(),
 			},
 		}
 
@@ -1853,7 +1852,6 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 			&sequence.Transaction{
 				To:    callmockContract.Address,
 				Data:  calldata,
-				Nonce: testChain.RandomNonceV3(),
 			},
 		}
 
@@ -1867,10 +1865,4 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 			assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
 		}
 	})
-}
-
-func TestRandomNonceV3(t *testing.T) {
-	nonce := sequence.RandomNonceV3()
-
-	assert.True(t, nonce.Cmp(big.NewInt(0)) >= 0)
 }
