@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/eip6492"
 	"github.com/goware/logger"
 )
@@ -164,6 +165,10 @@ func V2ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.Val
 	return GenericValidateSequenceAccountProofWith[*v2.WalletConfig](walletContext)
 }
 
+func V3ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.ValidatorFunc {
+	return GenericValidateSequenceAccountProofWith[*v3.WalletConfig](walletContext)
+}
+
 func ValidateSequenceAccountProofWith(walletContext WalletContext) ethauth.ValidatorFunc {
 	return V2ValidateSequenceAccountProofWith(walletContext)
 }
@@ -172,6 +177,7 @@ func GeneralValidateSequenceAccountProofWith(walletContexts WalletContexts) etha
 	return func(ctx context.Context, provider *ethrpc.Provider, chainID *big.Int, proof *ethauth.Proof) (bool, string, error) {
 		validatorFuncV1 := GenericValidateSequenceAccountProofWith[*v1.WalletConfig](walletContexts[1])
 		validatorFuncV2 := GenericValidateSequenceAccountProofWith[*v2.WalletConfig](walletContexts[2])
+		validatorFuncV3 := GenericValidateSequenceAccountProofWith[*v3.WalletConfig](walletContexts[3])
 
 		valid1, address1, err1 := validatorFuncV2(ctx, provider, chainID, proof)
 		if valid1 && err1 == nil {
@@ -183,6 +189,11 @@ func GeneralValidateSequenceAccountProofWith(walletContexts WalletContexts) etha
 			return valid2, address2, nil
 		}
 
-		return false, "", fmt.Errorf("ValidateSequenceAccountProof failed. %v, %v", err1, err2)
+		valid3, address3, err3 := validatorFuncV3(ctx, provider, chainID, proof)
+		if valid3 && err3 == nil {
+			return valid3, address3, nil
+		}
+
+		return false, "", fmt.Errorf("ValidateSequenceAccountProof failed. %v, %v, %v", err1, err2, err3)
 	}
 }

@@ -1,0 +1,231 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ExplicitSessionManager",
+  "sourceName": "src/extensions/sessions/explicit/ExplicitSessionManager.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "InvalidLimitUsageIncrement",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "VALUE_TRACKING_ADDRESS",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "usageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "usageAmount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct UsageLimit[]",
+          "name": "limits",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "incrementUsageLimit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "limitUsage",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "bool",
+                  "name": "cumulative",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "enum ParameterOperation",
+                  "name": "operation",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "value",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "offset",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "mask",
+                  "type": "bytes32"
+                }
+              ],
+              "internalType": "struct ParameterRule[]",
+              "name": "rules",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct Permission",
+          "name": "permission",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasLimit",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "delegateCall",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "onlyFallback",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "behaviorOnError",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct Payload.Call",
+          "name": "call",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "limitHashPrefix",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "usageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "usageAmount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct UsageLimit[]",
+          "name": "usageLimits",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "validatePermission",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "usageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "usageAmount",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct UsageLimit[]",
+          "name": "newUsageLimits",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
