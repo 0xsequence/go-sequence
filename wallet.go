@@ -855,7 +855,22 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 
 func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction, chainID *big.Int) ([]byte, core.Signature[C], error) {
 	var coreWalletConfig core.WalletConfig = w.config
-	if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
+
+	if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
+		sig, err := config.BuildSignature(ctx, sign, false)
+		if err != nil {
+			return nil, nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
+		}
+
+		sigEnc, err := sig.Data()
+		if err != nil {
+			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
+		}
+
+		sigTyped, _ := sig.(core.Signature[C])
+		// todo: implement core.Signature[core.WalletConfig] wrapper
+		return sigEnc, sigTyped, nil
+	} else if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
 		var (
 			sig core.Signature[*v2.WalletConfig]
 			err error
@@ -895,20 +910,6 @@ func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunctio
 			if err != nil {
 				return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
 			}
-		}
-
-		sigEnc, err := sig.Data()
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
-		}
-
-		sigTyped, _ := sig.(core.Signature[C])
-		// todo: implement core.Signature[core.WalletConfig] wrapper
-		return sigEnc, sigTyped, nil
-	} else if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
-		sig, err := config.BuildSignature(ctx, sign, false)
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
 		}
 
 		sigEnc, err := sig.Data()
