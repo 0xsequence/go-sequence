@@ -1460,7 +1460,7 @@ func decodeSignatureEthSignLeaf(firstByte byte, data *[]byte) (*signatureTreeSig
 }
 
 func (l *signatureTreeSignatureEthSignLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
-	signature := append(l.R[:], l.YParityAndS[:]...)
+	signature := bytes.Join([][]byte{l.R[:], l.YParityAndS[:], {l.V + 27}}, nil)
 	address, err := ecrecover(subdigest.EthSignSubdigest(), signature)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover eth sign signature: %w", err)
