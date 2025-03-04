@@ -12,7 +12,7 @@ build:
 test: wait-on-chain check-testchain-running go-test
 
 go-test:
-	go clean -testcache && go test $(TEST_FLAGS) -run=$(TEST) ./...
+	go clean -testcache && go test $(TEST_FLAGS) -failfast=false -run=$(TEST) ./...
 
 test-concurrently:
 	cd ./testutil/chain && pnpm test
