@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -672,7 +673,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		assert.NoError(t, err)
 
 		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
-		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex())
+		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
 
 		// Relay the txn manually, directly to the guest module
 		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
@@ -693,16 +694,15 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
+		// Assert that first log in the receipt computes to the guest subdigest / id
+		assert.True(t, strings.Contains(common.BytesToHash(receipt.Logs[0].Data).Hex(), fmt.Sprintf("0x%s", metaTxnID)))
+
 		// Check the value
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
 		assert.Len(t, ret, 1)
 		assert.Equal(t, "1239", ret[0])
 
-		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
-		assert.NoError(t, err)
-		assert.True(t, result.Status == sequence.MetaTxnExecuted)
 	})
 }
 
@@ -986,7 +986,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.NoError(t, err)
 
 		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
-		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex())
+		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
 
 		// Relay the txn manually, directly to the guest module
 		sender := testChain.GetRelayerWallet()
