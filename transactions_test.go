@@ -961,7 +961,18 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
 		assert.NoError(t, err)
 
-		signedWalletData, err := signedWalletBundle.Execdata()
+		payload, err := sequence.ConvertTransactionsToV3Payload(walletBundle, signedWalletBundle.Space, signedWalletBundle.Nonce)
+		assert.NoError(t, err)
+
+		signedPayloadHash, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), payload)
+		assert.NoError(t, err)
+
+		fmt.Println("==> signedPayloadHash", hex.EncodeToString(signedPayloadHash[:]))
+
+		encodedData, err := v3.Encode(payload, nil)
+		assert.NoError(t, err)
+
+		signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, signedWalletBundle.Signature)
 		assert.NoError(t, err)
 
 		guestBundle := sequence.Transactions{
@@ -971,24 +982,15 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 			},
 			{
 				To:   wallet.Address(),
-				Data: signedWalletData,
+				Data: signedExecdata,
 			},
 		}
 
-		payload, err := sequence.ConvertTransactionsToV3Payload(guestBundle, signedWalletBundle.Space, signedWalletBundle.Nonce)
+		encodedTxns, err := guestBundle.EncodedTransactions()
 		assert.NoError(t, err)
 
-		encoded, err := v3.Encode(payload, nil)
+		execdata, err := contracts.V2.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
 		assert.NoError(t, err)
-
-		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", encoded, []byte{})
-		assert.NoError(t, err)
-
-		metaTxnBytes, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), payload)
-		assert.NoError(t, err)
-
-		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
-		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
 
 		// Relay the txn manually, directly to the guest module
 		sender := testChain.GetRelayerWallet()
@@ -999,6 +1001,11 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 			GasLimit: 1000000, // TODO: compute gas limit
 		})
 		assert.NoError(t, err)
+
+		metaTxnBytes, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), payload)
+		assert.NoError(t, err)
+		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
+		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
 
 		signedTx, err := sender.SignTx(ntx, testChain.ChainID())
 		assert.NoError(t, err)
@@ -1017,10 +1024,9 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		_, _, _, _ = sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
-		// result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
-		// assert.NoError(t, err)
-		// assert.True(t, result.Status == sequence.MetaTxnExecuted)
+		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		assert.NoError(t, err)
+		assert.True(t, result.Status == sequence.MetaTxnExecuted)
 
 		// Wallet should be deployed now
 		isDeployed, err = wallet.IsDeployed()
