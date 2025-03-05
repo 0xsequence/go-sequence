@@ -692,7 +692,10 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	case *v3.WalletConfig:
 		space, nonce := DecodeNonce(nonce)
 
-		payload := ConvertTransactionsToV3Payload(txns, space, nonce)
+		payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+		if err != nil {
+			return nil, err
+		}
 
 		digest, err := v3.HashPayload(w.address, w.chainID, payload)
 		if err != nil {

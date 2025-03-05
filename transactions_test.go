@@ -658,7 +658,9 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		}
 		bundle := txns.Bundle()
 
-		payload := sequence.ConvertTransactionsToV3Payload(bundle, big.NewInt(0), big.NewInt(0))
+		payload, err := sequence.ConvertTransactionsToV3Payload(bundle, big.NewInt(0), big.NewInt(0))
+		assert.NoError(t, err)
+
 		encoded, err := v3.Encode(payload, nil)
 		assert.NoError(t, err)
 
@@ -973,7 +975,9 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 			},
 		}
 
-		payload := sequence.ConvertTransactionsToV3Payload(guestBundle, signedWalletBundle.Space, signedWalletBundle.Nonce)
+		payload, err := sequence.ConvertTransactionsToV3Payload(guestBundle, signedWalletBundle.Space, signedWalletBundle.Nonce)
+		assert.NoError(t, err)
+
 		encoded, err := v3.Encode(payload, nil)
 		assert.NoError(t, err)
 

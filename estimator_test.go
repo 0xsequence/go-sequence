@@ -1148,8 +1148,8 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 		txs := sequence.Transactions{
 			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
+				To:   callmockContract.Address,
+				Data: calldata,
 			},
 		}
 
@@ -1850,8 +1850,8 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 
 		txs := sequence.Transactions{
 			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
+				To:   callmockContract.Address,
+				Data: calldata,
 			},
 		}
 

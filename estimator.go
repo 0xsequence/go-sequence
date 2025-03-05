@@ -472,7 +472,7 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 }
 
 // ConvertTransactionsToV3Payload converts sequence.Transactions to v3.DecodedPayload
-func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.DecodedPayload {
+func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3.DecodedPayload, error) {
 	calls := make([]v3.Call, len(txs))
 	for i, tx := range txs {
 		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
@@ -486,10 +486,19 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.
 		// Handle nested transactions by recursively encoding them
 		data := tx.Data
 		if tx.IsBundle() {
-			subPayload := ConvertTransactionsToV3Payload(tx.Transactions, big.NewInt(0), tx.Nonce)
+			subPayload, err := ConvertTransactionsToV3Payload(tx.Transactions, big.NewInt(0), tx.Nonce)
+			if err != nil {
+				return v3.DecodedPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
+			}
+
 			encodedSubPayload, err := v3.Encode(subPayload, nil)
-			if err == nil {
-				data = encodedSubPayload
+			if err != nil {
+				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload: %w", err)
+			}
+
+			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", encodedSubPayload)
+			if err != nil {
+				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
 			}
 		}
 
@@ -510,7 +519,7 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) v3.
 		Calls:     calls,
 		Space:     space,
 		Nonce:     nonce,
-	}
+	}, nil
 }
 
 func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
@@ -606,7 +615,10 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			payload := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
+			payload, err := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
+			if err != nil {
+				return 0, err
+			}
 
 			encoded, err := v3.Encode(payload, nil)
 			if err != nil {

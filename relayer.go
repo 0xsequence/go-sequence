@@ -9,6 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
@@ -135,7 +136,11 @@ func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Addre
 		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
 	}
 
-	payload := ConvertTransactionsToV3Payload(txns, space, nonce)
+	payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
 	encoded, err := v3.Encode(payload, nil)
 	if err != nil {
 		return common.Address{}, nil, err
