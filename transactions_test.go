@@ -668,21 +668,21 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		assert.NoError(t, err)
 
 		sender := testChain.GetRelayerWallet()
-
-		metaTxnBytes, err := v3.HashPayload(sender.Address(), testChain.ChainID(), payload)
-		assert.NoError(t, err)
-
-		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
-		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
+		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
 
 		// Relay the txn manually, directly to the guest module
-		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
 		ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 			To:       &guestAddress,
 			Data:     execdata,
 			GasLimit: 1000000, // TODO: compute gas limit
 		})
 		assert.NoError(t, err)
+
+		metaTxnBytes, err := v3.HashPayload(guestAddress, testChain.ChainID(), payload)
+		assert.NoError(t, err)
+
+		metaTxnHash := common.BytesToHash(metaTxnBytes[:])
+		metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
 
 		signedTx, err := sender.SignTx(ntx, testChain.ChainID())
 		assert.NoError(t, err)
@@ -695,7 +695,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
 		// Assert that first log in the receipt computes to the guest subdigest / id
-		assert.True(t, strings.Contains(common.BytesToHash(receipt.Logs[0].Data).Hex(), fmt.Sprintf("0x%s", metaTxnID)))
+		assert.True(t, strings.Contains(hex.EncodeToString(receipt.Logs[0].Data), string(metaTxnID)))
 
 		// Check the value
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
