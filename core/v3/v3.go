@@ -835,10 +835,10 @@ func (n *signatureTreeNode) write(writer io.Writer) error {
 }
 
 type signatureTreeSignatureHashLeaf struct {
-	Weight      uint8
-	R           [32]byte
-	YParityAndS [32]byte
-	V           uint8
+	Weight  uint8
+	R       [32]byte
+	S       [32]byte
+	YParity bool
 }
 
 func decodeSignatureHashLeaf(firstByte byte, data *[]byte) (*signatureTreeSignatureHashLeaf, error) {
@@ -855,26 +855,28 @@ func decodeSignatureHashLeaf(firstByte byte, data *[]byte) (*signatureTreeSignat
 		return nil, fmt.Errorf("insufficient data for signature")
 	}
 
-	var r [32]byte
-	copy(r[:], (*data)[:32])
-	var yParityAndS [32]byte
-	copy(yParityAndS[:], (*data)[32:64])
+	r := [32]byte(*data)
+	s := [32]byte((*data)[32:])
+	yParity := s[0]&0x80 != 0
+	s[0] &^= 0x80
 	*data = (*data)[64:]
 
-	yParity := (yParityAndS[0] & 0x80) >> 7
-	v := uint8(27 + yParity)
-
 	return &signatureTreeSignatureHashLeaf{
-		Weight:      weight,
-		R:           r,
-		YParityAndS: yParityAndS,
-		V:           v,
+		Weight:  weight,
+		R:       r,
+		S:       s,
+		YParity: yParity,
 	}, nil
 }
 
 func (l *signatureTreeSignatureHashLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
-	signature := append(l.R[:], l.YParityAndS[:]...)
-	signature = append(signature, l.V)
+	var v byte
+	if l.YParity {
+		v = 28
+	} else {
+		v = 27
+	}
+	signature := bytes.Join([][]byte{l.R[:], l.S[:], {v}}, nil)
 
 	address, err := ecrecover(subdigest, signature)
 	if err != nil {
@@ -933,14 +935,13 @@ func (l *signatureTreeSignatureHashLeaf) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write R: %w", err)
 	}
 
-	s := l.YParityAndS
-	if l.V%2 == 0 {
+	s := l.S
+	if l.YParity {
 		s[0] |= 0x80
 	}
-
 	_, err = writer.Write(s[:])
 	if err != nil {
-		return fmt.Errorf("unable to write YParityAndS: %w", err)
+		return fmt.Errorf("unable to write S: %w", err)
 	}
 
 	return nil
@@ -1426,10 +1427,10 @@ func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
 }
 
 type signatureTreeSignatureEthSignLeaf struct {
-	Weight      uint8
-	R           [32]byte
-	YParityAndS [32]byte
-	V           uint8
+	Weight  uint8
+	R       [32]byte
+	S       [32]byte
+	YParity bool
 }
 
 func decodeSignatureEthSignLeaf(firstByte byte, data *[]byte) (*signatureTreeSignatureEthSignLeaf, error) {
@@ -1446,21 +1447,29 @@ func decodeSignatureEthSignLeaf(firstByte byte, data *[]byte) (*signatureTreeSig
 		return nil, fmt.Errorf("insufficient data for signature")
 	}
 
-	var r [32]byte
-	copy(r[:], (*data)[:32])
-	var yParityAndS [32]byte
-	copy(yParityAndS[:], (*data)[32:64])
+	r := [32]byte(*data)
+	s := [32]byte((*data)[32:])
+	yParity := s[0]&0x80 != 0
+	s[0] &^= 0x80
 	*data = (*data)[64:]
 
 	return &signatureTreeSignatureEthSignLeaf{
-		Weight:      weight,
-		R:           r,
-		YParityAndS: yParityAndS,
+		Weight:  weight,
+		R:       r,
+		S:       s,
+		YParity: yParity,
 	}, nil
 }
 
 func (l *signatureTreeSignatureEthSignLeaf) recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
-	signature := bytes.Join([][]byte{l.R[:], l.YParityAndS[:], {l.V + 27}}, nil)
+	var v byte
+	if l.YParity {
+		v = 28
+	} else {
+		v = 27
+	}
+	signature := bytes.Join([][]byte{l.R[:], l.S[:], {v}}, nil)
+
 	address, err := ecrecover(subdigest.EthSignSubdigest(), signature)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover eth sign signature: %w", err)
@@ -1513,14 +1522,13 @@ func (l *signatureTreeSignatureEthSignLeaf) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write R: %w", err)
 	}
 
-	s := l.YParityAndS
-	if l.V%2 == 0 {
+	s := l.S
+	if l.YParity {
 		s[0] |= 0x80
 	}
-
 	_, err = writer.Write(s[:])
 	if err != nil {
-		return fmt.Errorf("unable to write YParityAndS: %w", err)
+		return fmt.Errorf("unable to write S: %w", err)
 	}
 	return nil
 }
@@ -2073,7 +2081,7 @@ func WalletConfigTreeNodes(nodes ...WalletConfigTree) WalletConfigTree {
 		numberOfNodes := len(nodes)/2 + len(nodes)%2
 		for numberOfNodes > 1 {
 			newNodes := make([]WalletConfigTree, numberOfNodes)
-			for i := 0; i < numberOfNodes; i++ {
+			for i := range numberOfNodes {
 				var left, right WalletConfigTree
 				if i*2 < len(nodes) {
 					left = nodes[i*2]
@@ -2235,28 +2243,18 @@ func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[co
 	if signature, ok := signerSignatures[l.Address]; ok {
 		switch signature.type_ {
 		case core.SignerSignatureTypeEIP712:
-			var r [32]byte
-			copy(r[:], signature.signature[:32])
-			var s [32]byte
-			copy(s[:], signature.signature[32:64])
-			v := signature.signature[64]
 			return &signatureTreeSignatureHashLeaf{
-				Weight:      l.Weight,
-				R:           r,
-				YParityAndS: s,
-				V:           v,
+				Weight:  l.Weight,
+				R:       [32]byte(signature.signature),
+				S:       [32]byte(signature.signature[32:]),
+				YParity: signature.signature[64] == 28,
 			}
 		case core.SignerSignatureTypeEthSign:
-			var r [32]byte
-			copy(r[:], signature.signature[:32])
-			var s [32]byte
-			copy(s[:], signature.signature[32:64])
-			v := signature.signature[64]
 			return &signatureTreeSignatureEthSignLeaf{
-				Weight:      l.Weight,
-				R:           r,
-				YParityAndS: s,
-				V:           v,
+				Weight:  l.Weight,
+				R:       [32]byte(signature.signature),
+				S:       [32]byte(signature.signature[32:]),
+				YParity: signature.signature[64] == 28,
 			}
 		case core.SignerSignatureTypeEIP1271:
 			return &signatureTreeSignatureERC1271Leaf{
@@ -2682,7 +2680,7 @@ func readUintX(size uint8, data *[]byte) (uint64, error) {
 		return 0, fmt.Errorf("insufficient data for uint%d", size*8)
 	}
 	var value uint64
-	for i := 0; i < int(size); i++ {
+	for i := range size {
 		value = (value << 8) | uint64((*data)[i])
 	}
 	*data = (*data)[size:]
