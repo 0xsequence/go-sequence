@@ -247,7 +247,7 @@ func TestTransactionVerbose(t *testing.T) {
 
 		assert.Equal(t, wallet.Address(), walletAddress)
 
-		expectedMetaTxnID, _, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
+		expectedMetaTxnID := sequence.MetaTxnID(hex.EncodeToString(signedTx.Digest.Bytes()))
 		assert.NoError(t, err)
 
 		// Send the transaction

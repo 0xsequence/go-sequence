@@ -2,6 +2,7 @@ package relayer
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -133,13 +134,25 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 	// TODO: lets update LocalRelayer so it'll do auto-bundle creation.. to prepend, and send to guestModule, etc..
 	// its more consistent, and easier for tests..
 
+	var version int
+	switch signedTxs.WalletConfig.(type) {
+	case *v1.WalletConfig:
+		version = 1
+	case *v2.WalletConfig:
+		version = 2
+	case *v3.WalletConfig:
+		version = 3
+	default:
+		return "", nil, nil, fmt.Errorf(`unknown version %T`, signedTxs.WalletConfig)
+	}
+
 	sender := r.Sender
 
 	var to common.Address
 	var execdata []byte
 	var err error
-	switch signedTxs.WalletConfig.(type) {
-	case *v1.WalletConfig, *v2.WalletConfig:
+	switch version {
+	case 1, 2:
 		to, execdata, err = sequence.EncodeTransactionsForRelaying(
 			r,
 			signedTxs.WalletAddress,
@@ -149,7 +162,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 			signedTxs.Nonce,
 			signedTxs.Signature,
 		)
-	case *v3.WalletConfig:
+	case 3:
 		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
 			r,
 			signedTxs.WalletAddress,
@@ -193,8 +206,8 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				},
 			}
 
-			switch signedTxs.WalletConfig.(type) {
-			case *v1.WalletConfig, *v2.WalletConfig:
+			switch version {
+			case 1, 2:
 				encodedTxns, err := txns.EncodedTransactions()
 				if err != nil {
 					return "", nil, nil, err
@@ -205,7 +218,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 					return "", nil, nil, err
 				}
 
-			case *v3.WalletConfig:
+			case 3:
 				_, execdata, err = sequence.EncodeTransactionsForRelayingV3(
 					r,
 					signedTxs.WalletAddress,
@@ -236,9 +249,15 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
-	if err != nil {
-		return "", nil, nil, err
+	var metaTxnID sequence.MetaTxnID
+	switch version {
+	case 1, 2:
+		metaTxnID, _, err = sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
+		if err != nil {
+			return "", nil, nil, err
+		}
+	case 3:
+		metaTxnID = sequence.MetaTxnID(hex.EncodeToString(signedTxs.Digest.Bytes()))
 	}
 
 	ntx, err := sender.NewTransaction(ctx, &ethtxn.TransactionRequest{
