@@ -2242,6 +2242,7 @@ func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[co
 			} else if v == 1 || v == 28 {
 				yParity = true
 			} else if v > 35 {
+				// EIP-155: V = 35 + 2*chainID + parity
 				yParity = ((v - 35) % 2) == 1
 			}
 
