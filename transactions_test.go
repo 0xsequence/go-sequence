@@ -975,7 +975,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, signedWalletBundle.Signature)
 		assert.NoError(t, err)
 
-		guestBundle := sequence.Transactions{
+		guestBundle := []v3.Call{
 			{
 				To:   walletFactoryAddress,
 				Data: walletDeployData,
@@ -986,15 +986,12 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 			},
 		}
 
-		encodedTxns, err := guestBundle.EncodedTransactions()
-		assert.NoError(t, err)
-
-		execdata, err := contracts.V2.WalletGuestModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
+		execdata, err := v3.Encode(v3.DecodedPayload{Kind: v3.KindTransactions, Calls: guestBundle}, &guestAddress)
 		assert.NoError(t, err)
 
 		// Relay the txn manually, directly to the guest module
 		sender := testChain.GetRelayerWallet()
-		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
 		ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
 			To:       &guestAddress,
 			Data:     execdata,
