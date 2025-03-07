@@ -2229,22 +2229,36 @@ func (l *WalletConfigTreeAddressLeaf) unverifiedWeight(signers map[common.Addres
 }
 
 func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
-
 	if signature, ok := signerSignatures[l.Address]; ok {
 		switch signature.type_ {
-		case core.SignerSignatureTypeEIP712:
-			return &signatureTreeSignatureHashLeaf{
-				Weight:  l.Weight,
-				R:       [32]byte(signature.signature),
-				S:       [32]byte(signature.signature[32:]),
-				YParity: signature.signature[64] == 28,
+		case core.SignerSignatureTypeEIP712, core.SignerSignatureTypeEthSign:
+			r := [32]byte(signature.signature[0:32])
+			s := [32]byte(signature.signature[32:64])
+			v := signature.signature[64]
+
+			var yParity bool
+			if v == 0 || v == 27 {
+				yParity = false
+			} else if v == 1 || v == 28 {
+				yParity = true
+			} else if v > 35 {
+				yParity = ((v - 35) % 2) == 1
 			}
-		case core.SignerSignatureTypeEthSign:
-			return &signatureTreeSignatureEthSignLeaf{
-				Weight:  l.Weight,
-				R:       [32]byte(signature.signature),
-				S:       [32]byte(signature.signature[32:]),
-				YParity: signature.signature[64] == 28,
+
+			if signature.type_ == core.SignerSignatureTypeEIP712 {
+				return &signatureTreeSignatureHashLeaf{
+					Weight:  l.Weight,
+					R:       r,
+					S:       s,
+					YParity: yParity,
+				}
+			} else {
+				return &signatureTreeSignatureEthSignLeaf{
+					Weight:  l.Weight,
+					R:       r,
+					S:       s,
+					YParity: yParity,
+				}
 			}
 		case core.SignerSignatureTypeEIP1271:
 			return &signatureTreeSignatureERC1271Leaf{
