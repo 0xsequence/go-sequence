@@ -491,7 +491,7 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3
 				return v3.DecodedPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
 			}
 
-			encodedSubPayload, err := v3.Encode(subPayload, nil)
+			encodedSubPayload, err := v3.Encode(subPayload, &tx.To)
 			if err != nil {
 				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload: %w", err)
 			}
@@ -620,7 +620,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 
-			encoded, err := v3.Encode(payload, nil)
+			encoded, err := v3.Encode(payload, &address)
 			if err != nil {
 				return 0, err
 			}

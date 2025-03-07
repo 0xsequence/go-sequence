@@ -140,7 +140,7 @@ func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Addre
 		return common.Address{}, nil, err
 	}
 
-	encoded, err := v3.Encode(payload, nil)
+	encoded, err := v3.Encode(payload, &walletAddress)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
