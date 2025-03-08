@@ -2,7 +2,6 @@ package sequence_test
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"sort"
 	"testing"
@@ -308,7 +307,7 @@ func TestWalletDeploy(t *testing.T) {
 	})
 }
 
-func TestWalletSignAndRecoverConfigV(t *testing.T) {
+func TestWalletSignAndRecoverConfig(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
@@ -383,9 +382,7 @@ func TestWalletSignAndRecoverConfigV(t *testing.T) {
 
 		digest := core.Digest{Hash: common.BytesToHash(ethcoder.Keccak256([]byte(message)))}
 		subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), digest.Hash)
-		if err != nil {
-			log.Println("error", err)
-		}
+		assert.NoError(t, err)
 
 		recoveredWalletConfig, weight, err := s.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(subDigest)}, wallet.Address(), wallet.GetChainID(), testChain.Provider)
 		assert.NoError(t, err)
