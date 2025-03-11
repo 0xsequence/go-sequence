@@ -12,7 +12,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
-	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -140,7 +139,7 @@ func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Addre
 		return common.Address{}, nil, err
 	}
 
-	encoded, err := v3.Encode(payload, &walletAddress)
+	encoded, err := payload.Encode(&walletAddress)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

@@ -122,13 +122,12 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 			return err
 		}
 
-		_, subdigest, err := ComputeMetaTxnID(chainID, t.To, t.Transactions, t.Nonce, MetaTxnWalletExec)
+		digest, err := ExecuteDigest(t.Transactions, t.Nonce)
 		if err != nil {
 			return err
 		}
-		signature = signature.Reduce(core.Subdigest{Hash: subdigest})
 
-		encoded, err := signature.Data()
+		encoded, err := signature.Reduce(digest.Subdigest(t.To, chainID)).Data()
 		if err != nil {
 			return err
 		}
@@ -167,28 +166,28 @@ func (t *Transaction) Execdata() ([]byte, error) {
 	}
 }
 
-func (t *Transaction) Digest() (common.Hash, error) {
+func (t *Transaction) Digest() (core.Digest, error) {
 	// precondition: the digest only exists for transaction bundles
 	if t.Data != nil {
-		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
+		return core.Digest{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
 	if t.Nonce != nil {
-		return ComputeWalletExecDigest(t.Nonce, t.Transactions)
+		return ExecuteDigest(t.Transactions, t.Nonce)
 	} else {
-		return ComputeSelfExecDigest(t.Transactions)
+		return SelfExecuteDigest(t.Transactions)
 	}
 }
 
-func (t *Transaction) GuestDigest() (common.Hash, error) {
+func (t *Transaction) GuestDigest() (core.Digest, error) {
 	// precondition: the digest only exists for transaction bundles
 	if t.Data != nil {
-		return common.Hash{}, fmt.Errorf("transaction bundles cannot not have calldata")
+		return core.Digest{}, fmt.Errorf("transaction bundles cannot not have calldata")
 	}
 
 	// TODO: should we check t.Nonce and return error, as invarient check..?
 
-	return ComputeGuestExecDigest(t.Transactions)
+	return GuestExecuteDigest(t.Transactions)
 }
 
 // AddToBundle will create a bundle from the passed txns and add it to current transaction
@@ -327,11 +326,11 @@ type SignedTransactions struct {
 	WalletConfig  core.WalletConfig
 	WalletContext WalletContext
 
-	Transactions Transactions // The meta-transactions
-	Space        *big.Int     // Nonce space of the transactions
-	Nonce        *big.Int     // Nonce of the transactions
-	Digest       common.Hash  // Digest of the transactions
-	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
+	Transactions Transactions   // The meta-transactions
+	Space        *big.Int       // Nonce space of the transactions
+	Nonce        *big.Int       // Nonce of the transactions
+	Subdigest    core.Subdigest // Subdigest of the transactions
+	Signature    []byte         // Signature (encoded as bytes from *Signature) of the txn digest
 }
 
 func (t *SignedTransactions) Execdata() ([]byte, error) {
@@ -341,36 +340,6 @@ func (t *SignedTransactions) Execdata() ([]byte, error) {
 	}
 	return contracts.V1.WalletMainModule.Encode("execute", encodedTxns, t.Nonce, t.Signature)
 }
-
-// Transaction events as defined in wallet-contracts IModuleCalls.sol
-var (
-	// NonceChangeEventSig is the signature event emitted as the first event on the batch execution
-	// 0x1f180c27086c7a39ea2a7b25239d1ab92348f07ca7bb59d1438fcf527568f881
-	NonceChangeEventSig = MustEncodeSig("NonceChange(uint256,uint256)")
-
-	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch
-	// 0x3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7
-	V1TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,bytes)")
-
-	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
-	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
-	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	V2TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32,uint256)")
-
-	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
-	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
-	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
-
-	// 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd
-	V3CallSuccess = MustEncodeSig("CallSuccess(bytes32,uint256)")
-	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
-	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
-	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b
-	V3CallAborted = MustEncodeSig("CallAborted(bytes32,uint256,bytes)")
-	// 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b
-	V3CallSkipped = MustEncodeSig("CallSkipped(bytes32,uint256)")
-)
 
 // EncodeNonce with space
 func EncodeNonce(space *big.Int, nonce *big.Int) (*big.Int, error) {

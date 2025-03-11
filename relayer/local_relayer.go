@@ -257,7 +257,7 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 			return "", nil, nil, err
 		}
 	case 3:
-		metaTxnID = sequence.MetaTxnID(hex.EncodeToString(signedTxs.Digest.Bytes()))
+		metaTxnID = sequence.MetaTxnID(signedTxs.Subdigest.MetaTxnID())
 	}
 
 	ntx, err := sender.NewTransaction(ctx, &ethtxn.TransactionRequest{

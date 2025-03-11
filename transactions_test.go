@@ -987,7 +987,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		}
 
 		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
-		execdata, err := v3.Encode(v3.DecodedPayload{Kind: v3.KindTransactions, Calls: guestBundle}, &guestAddress)
+		execdata, err := v3.Encode(v3.Payload{Kind: v3.KindTransactions, Calls: guestBundle}, &guestAddress)
 		assert.NoError(t, err)
 
 		// Relay the txn manually, directly to the guest module

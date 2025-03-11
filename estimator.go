@@ -471,8 +471,8 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 	}
 }
 
-// ConvertTransactionsToV3Payload converts sequence.Transactions to v3.DecodedPayload
-func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3.DecodedPayload, error) {
+// ConvertTransactionsToV3Payload converts sequence.Transactions to v3.Payload
+func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3.Payload, error) {
 	calls := make([]v3.Call, len(txs))
 	for i, tx := range txs {
 		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
@@ -488,17 +488,17 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3
 		if tx.IsBundle() {
 			subPayload, err := ConvertTransactionsToV3Payload(tx.Transactions, big.NewInt(0), tx.Nonce)
 			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
+				return v3.Payload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
 			}
 
-			encodedSubPayload, err := v3.Encode(subPayload, &tx.To)
+			encodedSubPayload, err := subPayload.Encode(&tx.To)
 			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload: %w", err)
+				return v3.Payload{}, fmt.Errorf("unable to encode nested v3 payload: %w", err)
 			}
 
 			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", encodedSubPayload)
 			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+				return v3.Payload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
 			}
 		}
 
@@ -513,7 +513,7 @@ func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3
 		}
 	}
 
-	return v3.DecodedPayload{
+	return v3.Payload{
 		Kind:      v3.KindTransactions,
 		NoChainId: false,
 		Calls:     calls,
@@ -620,7 +620,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 
-			encoded, err := v3.Encode(payload, &address)
+			encoded, err := payload.Encode(&address)
 			if err != nil {
 				return 0, err
 			}

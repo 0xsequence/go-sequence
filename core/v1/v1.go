@@ -139,24 +139,7 @@ func (s *signature) Checkpoint() uint32 {
 	return 0
 }
 
-func (s *signature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	if chainID == nil {
-		if provider == nil {
-			return nil, nil, fmt.Errorf("provider is required if chain ID is not specified")
-		}
-
-		var err error
-		chainID, err = provider.ChainID(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to get chain ID: %w", err)
-		}
-	}
-
-	subdigest := digest.Subdigest(wallet, chainID)
-	return s.RecoverSubdigest(ctx, subdigest, provider, signerSignatures...)
-}
-
-func (s *signature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *signature) Recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}

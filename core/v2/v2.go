@@ -155,23 +155,7 @@ func (s *regularSignature) Checkpoint() uint32 {
 	return s.checkpoint
 }
 
-func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	if chainID == nil {
-		if provider == nil {
-			return nil, nil, fmt.Errorf("provider is required if chain ID is not specified")
-		}
-
-		var err error
-		chainID, err = provider.ChainID(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to get chain ID: %w", err)
-		}
-	}
-
-	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet, chainID), provider, signerSignatures...)
-}
-
-func (s *regularSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *regularSignature) Recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
@@ -310,11 +294,7 @@ func (s *noChainIDSignature) Checkpoint() uint32 {
 	return s.checkpoint
 }
 
-func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	return s.RecoverSubdigest(ctx, digest.Subdigest(wallet), provider, signerSignatures...)
-}
-
-func (s *noChainIDSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *noChainIDSignature) Recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
@@ -468,7 +448,7 @@ func (s chainedSignature) Checkpoint() uint32 {
 	return s[len(s)-1].Checkpoint()
 }
 
-func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s chainedSignature) Recover(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
 	}
@@ -478,7 +458,7 @@ func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, walle
 
 	for i, subsignature := range s {
 		var err error
-		config, weight, err = subsignature.Recover(ctx, digest, wallet, chainID, provider, signerSignatures...)
+		config, weight, err = subsignature.Recover(ctx, subdigest, provider, signerSignatures...)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to recover subsignature %v: %w", i, err)
 		}
@@ -487,14 +467,10 @@ func (s chainedSignature) Recover(ctx context.Context, digest core.Digest, walle
 			return nil, nil, fmt.Errorf("recovered weight %v for subsignature %v does not meet required threshold %v", weight, i, config.Threshold())
 		}
 
-		digest = config.ImageHash().Approval()
+		subdigest = config.ImageHash().Approval().Subdigest(subdigest.Wallet, subdigest.ChainID)
 	}
 
 	return config, weight, nil
-}
-
-func (s chainedSignature) RecoverSubdigest(ctx context.Context, subdigest core.Subdigest, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
-	return nil, nil, fmt.Errorf("chained signatures do not support recovering subdigests")
 }
 
 func (s chainedSignature) Join(subdigest core.Subdigest, other core.Signature[*WalletConfig]) (core.Signature[*WalletConfig], error) {

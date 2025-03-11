@@ -12,7 +12,43 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/core"
 )
+
+// Transaction events as defined in wallet-contracts IModuleCalls.sol
+var (
+	// NonceChangeEventSig is the signature event emitted as the first event on the batch execution
+	// 0x1f180c27086c7a39ea2a7b25239d1ab92348f07ca7bb59d1438fcf527568f881
+	NonceChangeEventSig = EventTopic("NonceChange(uint256,uint256)")
+
+	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch
+	// 0x3dbd1590ea96dd3253a91f24e64e3a502e1225d602a5731357bc12643070ccd7
+	V1TxFailedEventSig = EventTopic("TxFailed(bytes32,bytes)")
+
+	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
+	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
+	// TxExecuted(bytes32 indexed _tx, uint256 _index)
+	V2TxExecutedEventSig = EventTopic("TxExecuted(bytes32,uint256)")
+
+	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
+	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
+	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
+	V2TxFailedEventSig = EventTopic("TxFailed(bytes32,uint256,bytes)")
+
+	// 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd
+	V3CallSuccess = EventTopic("CallSuccess(bytes32,uint256)")
+	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
+	V3CallFailed = EventTopic("CallFailed(bytes32,uint256,bytes)")
+	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b
+	V3CallAborted = EventTopic("CallAborted(bytes32,uint256,bytes)")
+	// 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b
+	V3CallSkipped = EventTopic("CallSkipped(bytes32,uint256)")
+)
+
+func EventTopic(event string) common.Hash {
+	return crypto.Keccak256Hash([]byte(event))
+}
 
 type Receipt struct {
 	*types.Receipt
@@ -317,18 +353,19 @@ func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
 func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int, address common.Address, chainID *big.Int, isGuestExecute bool) ([]*types.Log, []*Receipt, error) {
 	isSelfExecute := nonce == nil
 
-	digestType := MetaTxnWalletExec
-	if isSelfExecute {
-		digestType = MetaTxnSelfExec
-	} else if isGuestExecute {
-		digestType = MetaTxnGuestExec
+	var digest core.Digest
+	var err error
+	if isGuestExecute {
+		digest, err = GuestExecuteDigest(transactions)
+	} else if isSelfExecute {
+		digest, err = SelfExecuteDigest(transactions)
+	} else {
+		digest, err = ExecuteDigest(transactions, nonce)
 	}
-
-	// compute the logged transaction hash
-	metaTxnID, hash, err := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("unable to compute transaction digest: %w", err)
 	}
+	subdigest := digest.Subdigest(address, chainID)
 
 	var topLevelLogs []*types.Log
 	var receipts []*Receipt
@@ -349,7 +386,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 	// create a receipt for each transaction
 	for i, transaction := range transactions {
 		receipt := Receipt{
-			MetaTxnID:   metaTxnID,
+			MetaTxnID:   MetaTxnID(subdigest.MetaTxnID()),
 			Status:      MetaTxnReverted,
 			Index:       uint(i),
 			Transaction: transaction,
@@ -359,7 +396,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash) || V3IsCallSuccessEvent(log, hash)
+			isTxExecuted := V1IsTxExecutedEvent(log, subdigest.Hash) || V2IsTxExecutedEvent(log, subdigest.Hash) || V3IsCallSuccessEvent(log, subdigest.Hash)
 
 			failedHash, failedReason, err := V1DecodeTxFailedEvent(log)
 			if err != nil {
@@ -372,7 +409,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 				failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
 			}
 
-			isTxFailed := err == nil && failedHash == hash
+			isTxFailed := err == nil && failedHash == subdigest.Hash
 
 			if isTxExecuted || isTxFailed {
 				if isTxExecuted {

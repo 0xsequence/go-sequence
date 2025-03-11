@@ -53,13 +53,9 @@ type Signature[C WalletConfig] interface {
 
 	// Recover derives the wallet configuration that the signature applies to.
 	// Also returns the signature's weight.
-	// If chainID is not provided, provider must be provided.
 	// If provider is not provided, EIP-1271 signatures are assumed to be NOT valid and ignored.
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
-	Recover(ctx context.Context, digest Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
-
-	// Recover a signature but only using the subdigest
-	RecoverSubdigest(ctx context.Context, subdigest Subdigest, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
+	Recover(ctx context.Context, subdigest Subdigest, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
 	// Reduce returns an equivalent optimized signature.
 	Reduce(subdigest Subdigest) Signature[C]
@@ -274,7 +270,7 @@ func (d Digest) Subdigest(wallet common.Address, chainID ...*big.Int) Subdigest 
 	return Subdigest{
 		Hash:    crypto.Keccak256Hash([]byte{0x19, 0x01}, common.BigToHash(chainID[0]).Bytes(), wallet.Bytes(), d.Bytes()),
 		Digest:  &d,
-		Wallet:  &wallet,
+		Wallet:  wallet,
 		ChainID: chainID[0],
 	}
 }
@@ -287,10 +283,10 @@ type Subdigest struct {
 	// Digest is the preimage of the subdigest, nil if unknown.
 	Digest *Digest
 
-	// Wallet is the target wallet of the subdigest, nil if unknown.
-	Wallet *common.Address
+	// Wallet is the target wallet of the subdigest, required.
+	Wallet common.Address
 
-	// ChainID is the target chain ID of the subdigest, nil if unknown.
+	// ChainID is the target chain ID of the subdigest, required.
 	ChainID *big.Int
 
 	// EthSignPreimage is the preimage of the eth_sign subdigest, nil if unknown.
@@ -300,7 +296,11 @@ type Subdigest struct {
 // EthSignSubdigest derives the eth_sign subdigest of a subdigest.
 func (s Subdigest) EthSignSubdigest() Subdigest {
 	return Subdigest{
-		Hash:            crypto.Keccak256Hash([]byte("\x19Ethereum Signed Message:\n"), []byte(fmt.Sprintf("%v", len(s.Bytes()))), s.Bytes()),
+		Hash:            crypto.Keccak256Hash([]byte("\x19Ethereum Signed Message:\n32"), s.Bytes()),
 		EthSignPreimage: &s,
 	}
+}
+
+func (s Subdigest) MetaTxnID() string {
+	return common.Bytes2Hex(s.Bytes())
 }

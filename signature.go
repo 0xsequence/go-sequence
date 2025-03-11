@@ -13,7 +13,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
-	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/core"
@@ -23,10 +22,6 @@ import (
 	"github.com/0xsequence/go-sequence/eip6492"
 	"github.com/goware/logger"
 )
-
-func Sign[C core.WalletConfig](wallet *Wallet[C], input common.Hash) ([]byte, error) {
-	return wallet.SignDigest(context.Background(), input)
-}
 
 // GenericDecodeSignature sequence into individual parts
 func GenericDecodeSignature[C core.WalletConfig](sequenceSignature []byte) (core.Signature[C], error) {
@@ -280,14 +275,6 @@ func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash
 	}
 
 	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
-}
-
-func MessageDigest(message []byte) common.Hash {
-	return common.BytesToHash(ethcoder.Keccak256(message))
-}
-
-func MustEncodeSig(str string) common.Hash {
-	return crypto.Keccak256Hash([]byte(str))
 }
 
 func EIP6492Signature(signature []byte, config core.WalletConfig) ([]byte, error) {

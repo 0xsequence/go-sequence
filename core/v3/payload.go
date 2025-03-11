@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 type BehaviorOnError uint8
@@ -32,14 +33,14 @@ type Call struct {
 	BehaviorOnError BehaviorOnError
 }
 
-type DecodedPayload struct {
+type Payload struct {
 	Kind          uint8
 	NoChainId     bool
 	Calls         []Call
 	Space         *big.Int
 	Nonce         *big.Int
 	Message       []byte
-	ImageHash     common.Hash
+	ImageHash     core.ImageHash
 	Digest        common.Hash
 	ParentWallets []common.Address
 }
@@ -80,20 +81,20 @@ func encodeBehaviorOnError(behavior BehaviorOnError) byte {
 }
 
 // Encode encodes a transaction (call) payload into a compact byte array.
-func Encode(payload DecodedPayload, self *common.Address) ([]byte, error) {
-	if payload.Kind != KindTransactions {
+func (p Payload) Encode(self *common.Address) ([]byte, error) {
+	if p.Kind != KindTransactions {
 		return nil, fmt.Errorf("encode only supports transaction payloads")
 	}
 
-	if payload.Space == nil {
-		payload.Space = big.NewInt(0)
+	if p.Space == nil {
+		p.Space = big.NewInt(0)
 	}
-	if payload.Nonce == nil {
-		payload.Nonce = big.NewInt(0)
+	if p.Nonce == nil {
+		p.Nonce = big.NewInt(0)
 	}
 
-	callsLen := len(payload.Calls)
-	nonceBytesNeeded := minIntBytesFor(payload.Nonce)
+	callsLen := len(p.Calls)
+	nonceBytesNeeded := minIntBytesFor(p.Nonce)
 	if nonceBytesNeeded > 15 {
 		return nil, fmt.Errorf("nonce is too large (requires %d bytes, max 15)", nonceBytesNeeded)
 	}
@@ -107,7 +108,7 @@ func Encode(payload DecodedPayload, self *common.Address) ([]byte, error) {
 		  (bits [6..7] are unused/free)
 	*/
 	var globalFlag byte
-	if payload.Space.Sign() == 0 {
+	if p.Space.Sign() == 0 {
 		globalFlag |= 0x01
 	}
 	globalFlag |= byte(nonceBytesNeeded << 1)
@@ -133,16 +134,16 @@ func Encode(payload DecodedPayload, self *common.Address) ([]byte, error) {
 	out.WriteByte(globalFlag)
 
 	// If space isn't 0, store it as exactly 20 bytes (like uint160)
-	if payload.Space.Sign() != 0 {
+	if p.Space.Sign() != 0 {
 		spaceBytes := make([]byte, 20)
-		payload.Space.FillBytes(spaceBytes)
+		p.Space.FillBytes(spaceBytes)
 		out.Write(spaceBytes)
 	}
 
 	// Encode nonce in nonceBytesNeeded bytes
 	if nonceBytesNeeded > 0 {
 		nonceBytes := make([]byte, nonceBytesNeeded)
-		payload.Nonce.FillBytes(nonceBytes)
+		p.Nonce.FillBytes(nonceBytes)
 		out.Write(nonceBytes)
 	}
 
@@ -156,7 +157,7 @@ func Encode(payload DecodedPayload, self *common.Address) ([]byte, error) {
 	}
 
 	// Encode each call
-	for _, call := range payload.Calls {
+	for _, call := range p.Calls {
 		var flags byte
 		if self != nil && call.To == *self {
 			flags |= 0x01
@@ -236,26 +237,33 @@ type TypedDataField struct {
 	Type string `json:"type"`
 }
 
-// HashPayload computes the EIP-712 hash of a payload.
-func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
+// Hash computes the EIP-712 hash of a payload.
+func (p Payload) Hash(wallet common.Address, chainId ...*big.Int) (core.Subdigest, error) {
+	if chainId == nil {
+		chainId = append(chainId, nil)
+	}
+	if chainId[0] == nil {
+		chainId[0] = new(big.Int)
+	}
+
 	domain := ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
-		ChainID:           chainId,
+		ChainID:           chainId[0],
 		VerifyingContract: &wallet,
 	}
 
-	parentWallets := payload.ParentWallets
+	parentWallets := p.ParentWallets
 	if parentWallets == nil {
 		parentWallets = []common.Address{}
 	}
 
-	space := payload.Space
+	space := p.Space
 	if space == nil {
 		space = big.NewInt(0)
 	}
 
-	nonce := payload.Nonce
+	nonce := p.Nonce
 	if nonce == nil {
 		nonce = big.NewInt(0)
 	}
@@ -264,7 +272,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 	var message map[string]interface{}
 	var primaryType string
 
-	switch payload.Kind {
+	switch p.Kind {
 	case KindTransactions:
 		types = map[string][]TypedDataField{
 			"Calls": {
@@ -284,8 +292,8 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 			},
 		}
 		primaryType = "Calls"
-		calls := make([]map[string]interface{}, len(payload.Calls))
-		for i, call := range payload.Calls {
+		calls := make([]map[string]interface{}, len(p.Calls))
+		for i, call := range p.Calls {
 			// Ensure value and gasLimit have valid values
 			value := call.Value
 			if value == nil {
@@ -324,7 +332,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 			},
 		}
 		primaryType = "Message"
-		messageHex := hexutil.Encode(payload.Message)
+		messageHex := hexutil.Encode(p.Message)
 		message = map[string]interface{}{
 			"message": messageHex,
 			"wallets": parentWallets,
@@ -339,7 +347,7 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		}
 		primaryType = "ConfigUpdate"
 		message = map[string]interface{}{
-			"imageHash": payload.ImageHash,
+			"imageHash": p.ImageHash,
 			"wallets":   parentWallets,
 		}
 
@@ -352,12 +360,12 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 		}
 		primaryType = "Digest"
 		message = map[string]interface{}{
-			"digest":  payload.Digest,
+			"digest":  p.Digest,
 			"wallets": parentWallets,
 		}
 
 	default:
-		return [32]byte{}, fmt.Errorf("unknown payload kind: %d", payload.Kind)
+		return core.Subdigest{}, fmt.Errorf("unknown payload kind: %d", p.Kind)
 	}
 
 	typedDataJSON := map[string]interface{}{
@@ -369,26 +377,24 @@ func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload
 
 	typedDataJSONStr, err := json.Marshal(typedDataJSON)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to marshal typed data to JSON: %w", err)
+		return core.Subdigest{}, fmt.Errorf("failed to marshal typed data to JSON: %w", err)
 	}
 
 	typedData, err := ethcoder.TypedDataFromJSON(string(typedDataJSONStr))
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to parse typed data from JSON: %w", err)
+		return core.Subdigest{}, fmt.Errorf("failed to parse typed data from JSON: %w", err)
 	}
 
 	digest, err := typedData.EncodeDigest()
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to encode digest: %w", err)
+		return core.Subdigest{}, fmt.Errorf("failed to encode digest: %w", err)
 	}
 
-	var result [32]byte
-	copy(result[:], digest)
-	return result, nil
+	return core.Subdigest{Hash: common.Hash(digest), Wallet: wallet, ChainID: chainId[0]}, nil
 }
 
-// DecodeABIPayload decodes an ABI-encoded payload into DecodedPayload.
-func DecodeABIPayload(input string) (DecodedPayload, error) {
+// DecodeABIPayload decodes an ABI-encoded payload into a Payload.
+func DecodeABIPayload(input string) (Payload, error) {
 	// Define the ABI with proper tuple array formatting
 	const abiDef = `[{
 		"name": "f",
@@ -419,28 +425,28 @@ func DecodeABIPayload(input string) (DecodedPayload, error) {
 
 	data, err := hexutil.Decode(input)
 	if err != nil {
-		return DecodedPayload{}, fmt.Errorf("invalid hex input: %w", err)
+		return Payload{}, fmt.Errorf("invalid hex input: %w", err)
 	}
 
 	// Parse the ABI definition
 	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
 	if err != nil {
-		return DecodedPayload{}, fmt.Errorf("failed to parse ABI: %w", err)
+		return Payload{}, fmt.Errorf("failed to parse ABI: %w", err)
 	}
 
 	// Decode the input data
 	decodedData, err := parsedABI.Methods["f"].Inputs.Unpack(data)
 	if err != nil {
-		return DecodedPayload{}, fmt.Errorf("failed to decode ABI: %w", err)
+		return Payload{}, fmt.Errorf("failed to decode ABI: %w", err)
 	}
 
 	if len(decodedData) != 1 {
-		return DecodedPayload{}, fmt.Errorf("invalid decoded data length")
+		return Payload{}, fmt.Errorf("invalid decoded data length")
 	}
 
 	v := decodedData[0]
 	if v == nil {
-		return DecodedPayload{}, fmt.Errorf("decoded data is nil")
+		return Payload{}, fmt.Errorf("decoded data is nil")
 	}
 
 	// Try to decode as a struct with JSON tags
@@ -476,15 +482,15 @@ func DecodeABIPayload(input string) (DecodedPayload, error) {
 			}
 		}
 
-		return DecodedPayload{
+		return Payload{
 			Kind:          s.Kind,
 			NoChainId:     s.NoChainId,
 			Calls:         calls,
 			Space:         s.Space,
 			Nonce:         s.Nonce,
 			Message:       s.Message,
-			ImageHash:     common.BytesToHash(s.ImageHash[:]),
-			Digest:        common.BytesToHash(s.Digest[:]),
+			ImageHash:     core.ImageHash{Hash: s.ImageHash},
+			Digest:        s.Digest,
 			ParentWallets: s.ParentWallets,
 		}, nil
 	}
@@ -492,12 +498,12 @@ func DecodeABIPayload(input string) (DecodedPayload, error) {
 	// If struct decoding fails, try JSON marshaling and unmarshaling
 	jsonBytes, err := json.Marshal(v)
 	if err != nil {
-		return DecodedPayload{}, fmt.Errorf("failed to marshal decoded data: %w", err)
+		return Payload{}, fmt.Errorf("failed to marshal decoded data: %w", err)
 	}
 
-	var payload DecodedPayload
+	var payload Payload
 	if err := json.Unmarshal(jsonBytes, &payload); err != nil {
-		return DecodedPayload{}, fmt.Errorf("failed to unmarshal decoded data: %w", err)
+		return Payload{}, fmt.Errorf("failed to unmarshal decoded data: %w", err)
 	}
 
 	return payload, nil
@@ -516,7 +522,7 @@ func ConvertToPacked(payload string) (string, error) {
 	if decoded.Kind != KindTransactions {
 		return "", fmt.Errorf("conversion to packed only implemented for call payloads")
 	}
-	packed, err := Encode(decoded, nil)
+	packed, err := decoded.Encode(nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode to packed: %w", err)
 	}

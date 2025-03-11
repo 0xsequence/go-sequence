@@ -557,7 +557,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	return res, err
 }
 
-func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.DecodedPayload, optChainID ...*big.Int) ([]byte, error) {
+func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -1001,12 +1001,3 @@ func AuxDataFromContext(ctx context.Context) (*AuxData, error) {
 	}
 	return auxData, nil
 }
-
-var (
-	// ImageHashUpdatedEventSig is emitted anytime wallet config is updated.
-	ImageHashUpdatedEventSig = MustEncodeSig("ImageHashUpdated(bytes32)")
-
-	// ImplementationUpdatedEventSig is emitted anytime a wallet's mainModule is changed,
-	// this is a rare occurence.
-	ImplementationUpdatedEventSig = MustEncodeSig("ImplementationUpdated(address)")
-)

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/0xsequence/ethkit/ethcoder"
-	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 /*
@@ -28,119 +27,41 @@ import (
   = keccak256("\x19Ethereum Signed Message:\n32", MetaTxnID)
 */
 
-// MetaTxnExecType represents the kind of execution call for the meta-transaction
-type MetaTxnExecType uint32
-
-const (
-	MetaTxnWalletExec MetaTxnExecType = iota // MainModule.execute
-	MetaTxnSelfExec                          // MainModule.selfExecute
-	MetaTxnGuestExec                         // GuestModule.execute
-)
-
-func ComputeWalletExecDigest(nonce *big.Int, txns Transactions) (common.Hash, error) {
+func ExecuteDigest(transactions Transactions, nonce *big.Int) (core.Digest, error) {
 	if nonce == nil {
-		return common.Hash{}, fmt.Errorf("nonce is required for wallet execute")
+		return core.Digest{}, fmt.Errorf("no nonce")
 	}
-	encodedTxns, err := txns.EncodedTransactions()
+	encoded, err := transactions.EncodedTransactions()
 	if err != nil {
-		return common.Hash{}, err
+		return core.Digest{}, fmt.Errorf("unable to encode transactions: %w", err)
 	}
-	message, err := abiTransactionsDigestType.Pack(nonce, encodedTxns)
+	message, err := abiTransactionsDigestType.Pack(nonce, encoded)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to pack nonce and transactions: %w", err)
+		return core.Digest{}, fmt.Errorf("unable to pack nonce and transactions: %w", err)
 	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+	return core.NewDigest(message), nil
 }
 
-func ComputeSelfExecDigest(txns Transactions) (common.Hash, error) {
-	encodedTxns, err := txns.EncodedTransactions()
+func SelfExecuteDigest(transactions Transactions) (core.Digest, error) {
+	encoded, err := transactions.EncodedTransactions()
 	if err != nil {
-		return common.Hash{}, err
+		return core.Digest{}, fmt.Errorf("unable to encode transactions: %w", err)
 	}
-	message, err := abiTransactionsStringDigestType.Pack("self:", encodedTxns)
+	message, err := abiTransactionsStringDigestType.Pack("self:", encoded)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to pack \"self:\" and transactions: %w", err)
+		return core.Digest{}, fmt.Errorf(`unable to pack "self:" and transactions: %w`, err)
 	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
+	return core.NewDigest(message), nil
 }
 
-func ComputeGuestExecDigest(txns Transactions) (common.Hash, error) {
-	encodedTxns, err := txns.EncodedTransactions()
+func GuestExecuteDigest(transactions Transactions) (core.Digest, error) {
+	encoded, err := transactions.EncodedTransactions()
 	if err != nil {
-		return common.Hash{}, err
+		return core.Digest{}, fmt.Errorf("unable to encode transactions: %w", err)
 	}
-	message, err := abiTransactionsStringDigestType.Pack("guest:", encodedTxns)
+	message, err := abiTransactionsStringDigestType.Pack("guest:", encoded)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to pack \"guest:\" and transactions: %w", err)
+		return core.Digest{}, fmt.Errorf(`unable to pack "guest:" and transactions: %w`, err)
 	}
-	return common.BytesToHash(ethcoder.Keccak256(message)), nil
-}
-
-func ComputeMetaTxnID(chainID *big.Int, address common.Address, txns Transactions, nonce *big.Int, execType MetaTxnExecType) (MetaTxnID, common.Hash, error) {
-	var digest common.Hash
-	var err error
-
-	switch execType {
-	case MetaTxnWalletExec:
-		if nonce == nil {
-			return "", common.Hash{}, fmt.Errorf("wallet exec type requires nonce but is nil")
-		}
-		digest, err = ComputeWalletExecDigest(nonce, txns)
-
-	case MetaTxnSelfExec:
-		digest, err = ComputeSelfExecDigest(txns)
-
-	case MetaTxnGuestExec:
-		digest, err = ComputeGuestExecDigest(txns)
-
-	default:
-		return "", common.Hash{}, fmt.Errorf("unknown exec type")
-	}
-	if err != nil {
-		return "", common.Hash{}, err
-	}
-
-	return ComputeMetaTxnIDFromDigest(chainID, address, digest)
-}
-
-func ComputeMetaTxnIDFromDigest(chainID *big.Int, address common.Address, digest common.Hash) (MetaTxnID, common.Hash, error) {
-	subDigest, err := SubDigest(chainID, address, digest)
-	if err != nil {
-		return "", common.Hash{}, nil
-	}
-
-	metaTxnIDHex := ethcoder.HexEncode(subDigest)
-	if len(metaTxnIDHex) != 66 {
-		return "", common.Hash{}, fmt.Errorf("computed meta txn id is invalid length")
-	}
-	return MetaTxnID(metaTxnIDHex[2:]), common.BytesToHash(subDigest), nil
-}
-
-func SubDigest(chainID *big.Int, address common.Address, digest common.Hash) ([]byte, error) {
-	if chainID == nil {
-		return nil, ErrUnknownChainID
-	}
-
-	// sequence smart wallet uses additional encoding of the digest in GenericIsValidSignature()
-	packedData, err := PackMessageData(chainID, address, digest)
-	if err != nil {
-		return nil, fmt.Errorf("subDigest, packageMessageData failed: %w", err)
-	}
-
-	// returns subdigest
-	return ethcoder.Keccak256(packedData), nil
-}
-
-// PackMessageData encodes a Sequence contract "message"
-func PackMessageData(chainID *big.Int, address common.Address, digest common.Hash) ([]byte, error) {
-	if chainID == nil {
-		return nil, ErrUnknownChainID
-	}
-	output, err := ethcoder.SolidityPack([]string{"string", "uint256", "address", "bytes"}, []interface{}{
-		"\x19\x01", chainID, address, digest[:],
-	})
-	if err != nil {
-		return nil, err
-	}
-	return output, nil
+	return core.NewDigest(message), nil
 }
