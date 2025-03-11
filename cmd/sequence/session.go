@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 )
 
@@ -45,6 +47,9 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 		return "", fmt.Errorf("failed to decode session configuration: %w", err)
 	}
 
+	log.Println("topology")
+	spew.Dump(topology)
+
 	callSigs := make([]v3.SessionCallSignature, len(p.CallSignatures))
 	for i, sigStr := range p.CallSignatures {
 		callSig, err := v3.SessionCallSignatureFromJSON(sigStr)
@@ -54,17 +59,26 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 		callSigs[i] = *callSig
 	}
 
+	log.Println("callSigs")
+	spew.Dump(callSigs)
+
 	explicitAddrs := make([]common.Address, len(p.ExplicitSigners))
 	for i, signer := range p.ExplicitSigners {
 		explicitAddrs[i] = common.HexToAddress(signer)
 	}
+
+	log.Println("explicitAddrs")
+	spew.Dump(explicitAddrs)
 
 	implicitAddrs := make([]common.Address, len(p.ImplicitSigners))
 	for i, signer := range p.ImplicitSigners {
 		implicitAddrs[i] = common.HexToAddress(signer)
 	}
 
-	encoded, err := v3.EncodeSessionCallSignatures(callSigs, topology, explicitAddrs, implicitAddrs)
+	log.Println("implicitAddrs")
+	spew.Dump(implicitAddrs)
+
+	encoded, err := v3.EncodeSessionCallSignatures(topology, callSigs, explicitAddrs, implicitAddrs)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session call signatures: %w", err)
 	}

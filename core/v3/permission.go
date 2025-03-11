@@ -227,96 +227,6 @@ func (pr *ParameterRule) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler for SessionsTopology
-func (s *SessionsTopology) UnmarshalJSON(data []byte) error {
-	// Try to unmarshal as an array format
-	var arr []json.RawMessage
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return fmt.Errorf("failed to unmarshal sessions topology array: %w", err)
-	}
-
-	if len(arr) != 2 {
-		return fmt.Errorf("invalid sessions topology array length: expected 2, got %d", len(arr))
-	}
-
-	// Parse blacklist
-	var blacklistObj struct {
-		Blacklist []common.Address `json:"blacklist"`
-	}
-	if err := json.Unmarshal(arr[0], &blacklistObj); err != nil {
-		return fmt.Errorf("failed to unmarshal blacklist: %w", err)
-	}
-	s.Blacklist = blacklistObj.Blacklist
-
-	// Try to parse second element as an array first
-	var secondElement []json.RawMessage
-	if err := json.Unmarshal(arr[1], &secondElement); err == nil {
-		// It's an array format
-		if len(secondElement) < 1 {
-			return fmt.Errorf("invalid second element array length: expected at least 1")
-		}
-
-		// Parse global signer from first element
-		var globalSignerObj struct {
-			GlobalSigner string `json:"globalSigner"`
-		}
-		if err := json.Unmarshal(secondElement[0], &globalSignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal global signer: %w", err)
-		}
-		s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
-
-		// Parse remaining elements as sessions
-		s.Sessions = make([]SessionNode, 0, len(secondElement)-1)
-		for i := 1; i < len(secondElement); i++ {
-			var session SessionNode
-			if err := json.Unmarshal(secondElement[i], &session); err != nil {
-				return fmt.Errorf("failed to unmarshal session at index %d: %w", i, err)
-			}
-			s.Sessions = append(s.Sessions, session)
-		}
-	} else {
-		// Try as a single object with just globalSigner
-		var globalSignerObj struct {
-			GlobalSigner string `json:"globalSigner"`
-		}
-		if err := json.Unmarshal(arr[1], &globalSignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal global signer: %w", err)
-		}
-		s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
-		s.Sessions = make([]SessionNode, 0)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements json.Marshaler for SessionsTopology
-func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
-	blacklistObj := map[string][]common.Address{
-		"blacklist": s.Blacklist,
-	}
-
-	// Create the second element as an array
-	secondElement := make([]interface{}, 0, len(s.Sessions)+1)
-
-	// Add globalSigner as first element of second array
-	secondElement = append(secondElement, map[string]string{
-		"globalSigner": s.GlobalSigner.String(),
-	})
-
-	// Add all sessions to the second array
-	for _, session := range s.Sessions {
-		secondElement = append(secondElement, session)
-	}
-
-	// Create the final array
-	result := []interface{}{
-		blacklistObj,
-		secondElement,
-	}
-
-	return json.Marshal(result)
-}
-
 // MarshalJSON implements json.Marshaler for ParameterRule
 func (pr *ParameterRule) MarshalJSON() ([]byte, error) {
 	type parameterRuleType struct {
@@ -347,19 +257,4 @@ func (p *Permission) MarshalJSON() ([]byte, error) {
 		Target: p.Target.Hex(),
 		Rules:  p.Rules,
 	})
-}
-
-// EncodeSessionCallSignature encodes a session call signature with a permission index
-func EncodeSessionCallSignature(sig *SessionCallSignature, permissionIndex int) ([]byte, error) {
-	if permissionIndex < 0 {
-		return nil, fmt.Errorf("permission index must be non-negative")
-	}
-
-	// Encode the permission index as a single byte
-	result := []byte{byte(permissionIndex)}
-
-	// Append the signature
-	result = append(result, sig.Signature...)
-
-	return result, nil
 }

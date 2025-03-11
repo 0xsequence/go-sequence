@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -196,8 +197,19 @@ func handleEncodeCallSignature(p *EncodeCallSignatureParams) (string, error) {
 			return "", fmt.Errorf("invalid v value: %w", err)
 		}
 
-		sig.Signature = append(append(r, s...), byte(v))
-		log.Printf("Created signature from r:s:v format: %x", sig.Signature)
+		rBigInt := new(big.Int).SetBytes(r)
+		sBigInt := new(big.Int).SetBytes(s)
+
+		var rBytes, sBytes [32]byte
+		rBigInt.FillBytes(rBytes[:])
+		sBigInt.FillBytes(sBytes[:])
+
+		sig.SessionSignature = v3.RSY{
+			R:       rBytes,
+			S:       sBytes,
+			YParity: byte(v - 27),
+		}
+		log.Printf("Created signature from r:s:v format: %x:%x:%d", rBytes, sBytes, v-27)
 	} else {
 		log.Printf("Processing signature in hex format")
 		// Handle hex-encoded signature
@@ -208,8 +220,20 @@ func handleEncodeCallSignature(p *EncodeCallSignatureParams) (string, error) {
 		if len(sigBytes) != 65 {
 			return "", fmt.Errorf("invalid signature length, expected 65 bytes, got %d", len(sigBytes))
 		}
-		sig.Signature = sigBytes
-		log.Printf("Created signature from hex format: %x", sig.Signature)
+
+		rBigInt := new(big.Int).SetBytes(sigBytes[:32])
+		sBigInt := new(big.Int).SetBytes(sigBytes[32:64])
+
+		var rBytes, sBytes [32]byte
+		rBigInt.FillBytes(rBytes[:])
+		sBigInt.FillBytes(sBytes[:])
+
+		sig.SessionSignature = v3.RSY{
+			R:       rBytes,
+			S:       sBytes,
+			YParity: sigBytes[64] - 27,
+		}
+		log.Printf("Created signature from hex format: %x:%x:%d", rBytes, sBytes, sigBytes[64]-27)
 	}
 
 	// Encode the signature
