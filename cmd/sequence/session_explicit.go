@@ -7,11 +7,46 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
+
+var sessionMgr = NewSessionManager()
+
+type SessionManager struct {
+	identitySigners map[string]string
+	mu              sync.RWMutex
+}
+
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		identitySigners: make(map[string]string),
+	}
+}
+
+func (sm *SessionManager) StoreIdentitySigner(topologyData json.RawMessage, identitySigner string) {
+	if identitySigner == "" {
+		return
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	key := string(topologyData)
+	sm.identitySigners[key] = identitySigner
+	log.Printf("Stored identity signer %s for topology hash", identitySigner)
+}
+
+func (sm *SessionManager) GetIdentitySigner(topologyData json.RawMessage) string {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	key := string(topologyData)
+	return sm.identitySigners[key]
+}
 
 func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 	session, err := v3.SessionPermissionsFromJSON(string(p.ExplicitSession))
@@ -28,12 +63,53 @@ func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 		return "", fmt.Errorf("session topology must be a valid session topology")
 	}
 
-	// Create the final JSON structure manually to ensure correct format
+	var identitySigner string
+
+	if p.IdentitySigner != "" {
+		identitySigner = p.IdentitySigner
+	}
+
+	if identitySigner == "" {
+		identitySigner = sessionMgr.GetIdentitySigner(p.SessionTopology)
+	}
+
+	if identitySigner == "" {
+		var topArray []json.RawMessage
+		if err := json.Unmarshal(p.SessionTopology, &topArray); err == nil && len(topArray) >= 2 {
+			var secondElem json.RawMessage = topArray[1]
+			if len(secondElem) > 0 {
+				if secondElem[0] == '[' {
+					var secondArray []json.RawMessage
+					if err := json.Unmarshal(secondElem, &secondArray); err == nil && len(secondArray) > 0 {
+						var signerObj struct {
+							IdentitySigner string `json:"identitySigner"`
+						}
+						if err := json.Unmarshal(secondArray[0], &signerObj); err == nil && signerObj.IdentitySigner != "" {
+							identitySigner = signerObj.IdentitySigner
+							sessionMgr.StoreIdentitySigner(p.SessionTopology, identitySigner)
+						}
+					}
+				} else if secondElem[0] == '{' {
+					var signerObj struct {
+						IdentitySigner string `json:"identitySigner"`
+					}
+					if err := json.Unmarshal(secondElem, &signerObj); err == nil && signerObj.IdentitySigner != "" {
+						identitySigner = signerObj.IdentitySigner
+						sessionMgr.StoreIdentitySigner(p.SessionTopology, identitySigner)
+					}
+				}
+			}
+		}
+	}
+
+	if identitySigner == "" {
+		identitySigner = topology.GlobalSigner.Hex()
+	}
+
 	blacklistObj := map[string][]common.Address{
 		"blacklist": topology.Blacklist,
 	}
 
-	// Create the session node with the correct format and field order
 	type sessionNodeType struct {
 		Signer      string          `json:"signer"`
 		ValueLimit  string          `json:"valueLimit"`
@@ -48,15 +124,13 @@ func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 		Permissions: session.Permissions,
 	}
 
-	// Create the second element as an array
 	secondElement := []interface{}{
 		map[string]string{
-			"globalSigner": topology.GlobalSigner.Hex(),
+			"identitySigner": identitySigner,
 		},
 		sessionNode,
 	}
 
-	// Add any existing sessions from the input topology
 	for _, s := range topology.Sessions {
 		node := sessionNodeType{
 			Signer:      s.Signer.Hex(),
@@ -67,13 +141,11 @@ func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 		secondElement = append(secondElement, node)
 	}
 
-	// Create the final array
 	finalResult := []interface{}{
 		blacklistObj,
 		secondElement,
 	}
 
-	// Marshal to JSON
 	bytes, err := json.Marshal(finalResult)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)

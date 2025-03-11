@@ -31,14 +31,23 @@ func handleEncodeConfiguration(p *EncodeConfigurationParams) (string, error) {
 }
 
 func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionConfiguration)
+	var topologyStr string
+	if p.SessionConfiguration != "" {
+		topologyStr = p.SessionConfiguration
+	} else if len(p.SessionTopology) > 0 {
+		topologyStr = string(p.SessionTopology)
+	} else {
+		return "", fmt.Errorf("missing session topology configuration")
+	}
+
+	topology, err := v3.SessionsTopologyFromJSON(topologyStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode session configuration: %w", err)
 	}
 
 	callSigs := make([]v3.SessionCallSignature, len(p.CallSignatures))
-	for i, sig := range p.CallSignatures {
-		callSig, err := v3.SessionCallSignatureFromJSON(sig)
+	for i, sigStr := range p.CallSignatures {
+		callSig, err := v3.SessionCallSignatureFromJSON(sigStr)
 		if err != nil {
 			return "", fmt.Errorf("failed to decode call signature %d: %w", i, err)
 		}
@@ -60,7 +69,7 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 		return "", fmt.Errorf("failed to encode session call signatures: %w", err)
 	}
 
-	return common.Bytes2Hex(encoded), nil
+	return string(encoded), nil
 }
 
 func handleImageHash(p *ImageHashParams) (string, error) {
