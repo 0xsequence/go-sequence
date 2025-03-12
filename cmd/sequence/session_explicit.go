@@ -55,12 +55,13 @@ func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 		return "", fmt.Errorf("failed to decode explicit session: %w", err)
 	}
 
-	topology, err := v3.SessionsTopologyFromJSON(string(p.SessionTopology))
+	var topology v3.SessionsTopology
+	err = json.Unmarshal(p.SessionTopology, &topology)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode session topology: %w", err)
 	}
 
-	if !v3.IsSessionsTopology(topology) {
+	if !v3.IsSessionsTopology(&topology) {
 		return "", fmt.Errorf("session topology must be a valid session topology")
 	}
 
@@ -156,12 +157,13 @@ func handleAddExplicitSession(p *AddSessionParams) (string, error) {
 }
 
 func handleRemoveExplicitSession(p *RemoveSessionParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionTopology)
+	var topology v3.SessionsTopology
+	err := json.Unmarshal([]byte(p.SessionTopology), &topology)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode session topology: %w", err)
+		return "", fmt.Errorf("failed to unmarshal session topology: %w", err)
 	}
 
-	if !v3.IsSessionsTopology(topology) {
+	if !v3.IsSessionsTopology(&topology) {
 		return "", fmt.Errorf("session topology must be a valid session topology")
 	}
 
@@ -169,7 +171,7 @@ func handleRemoveExplicitSession(p *RemoveSessionParams) (string, error) {
 		return "", fmt.Errorf("explicit session address must be a valid address")
 	}
 
-	updated := v3.RemoveExplicitSession(topology, p.ExplicitSessionAddress)
+	updated := v3.RemoveExplicitSession(&topology, p.ExplicitSessionAddress)
 	if updated == nil {
 		return "", fmt.Errorf("session topology is empty")
 	}

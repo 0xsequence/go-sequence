@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/big"
 	"strconv"
-	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
@@ -99,248 +98,6 @@ func SessionsTopologyToJSON(topology *SessionsTopology) (string, error) {
 		return "", fmt.Errorf("failed to marshal session topology: %w", err)
 	}
 	return string(bytes), nil
-}
-
-// SessionsTopologyFromJSON converts JSON to a session topology
-func SessionsTopologyFromJSON(data string) (*SessionsTopology, error) {
-	if len(data) > 0 && data[0] == '[' {
-		var topArray []json.RawMessage
-		if err := json.Unmarshal([]byte(data), &topArray); err == nil && len(topArray) >= 2 {
-			var blacklistObj struct {
-				Blacklist []common.Address `json:"blacklist"`
-			}
-			if err := json.Unmarshal(topArray[0], &blacklistObj); err == nil {
-				topology := &SessionsTopology{
-					Blacklist: blacklistObj.Blacklist,
-					Sessions:  []SessionNode{},
-				}
-
-				var secondArray []json.RawMessage
-				if err := json.Unmarshal(topArray[1], &secondArray); err == nil && len(secondArray) > 0 {
-					var identitySignerStrObj struct {
-						IdentitySigner string `json:"identitySigner"`
-						GlobalSigner   string `json:"globalSigner"`
-					}
-
-					if err := json.Unmarshal(secondArray[0], &identitySignerStrObj); err == nil {
-						if identitySignerStrObj.IdentitySigner != "" {
-							topology.GlobalSigner = common.HexToAddress(identitySignerStrObj.IdentitySigner)
-						} else if identitySignerStrObj.GlobalSigner != "" {
-							topology.GlobalSigner = common.HexToAddress(identitySignerStrObj.GlobalSigner)
-						}
-					} else {
-						var identitySignerObj struct {
-							IdentitySigner common.Address `json:"identitySigner"`
-							GlobalSigner   common.Address `json:"globalSigner"`
-						}
-
-						if err := json.Unmarshal(secondArray[0], &identitySignerObj); err == nil {
-							if identitySignerObj.IdentitySigner != (common.Address{}) {
-								topology.GlobalSigner = identitySignerObj.IdentitySigner
-							} else {
-								topology.GlobalSigner = identitySignerObj.GlobalSigner
-							}
-						}
-					}
-
-					for i := 1; i < len(secondArray); i++ {
-						var sessionInfo struct {
-							Signer      common.Address `json:"signer"`
-							ValueLimit  string         `json:"valueLimit"`
-							Deadline    string         `json:"deadline"`
-							Permissions []Permission   `json:"permissions"`
-						}
-
-						if err := json.Unmarshal(secondArray[i], &sessionInfo); err == nil {
-							session := SessionNode{
-								Signer: sessionInfo.Signer,
-							}
-
-							if sessionInfo.ValueLimit != "" && sessionInfo.Deadline != "" {
-								valueLimit, _ := new(big.Int).SetString(sessionInfo.ValueLimit, 10)
-								deadline, _ := new(big.Int).SetString(sessionInfo.Deadline, 10)
-
-								session.Permissions = &SessionPermissions{
-									ValueLimit:  valueLimit,
-									Deadline:    deadline,
-									Permissions: sessionInfo.Permissions,
-								}
-							}
-
-							topology.Sessions = append(topology.Sessions, session)
-						}
-					}
-
-					return topology, nil
-				}
-			}
-		}
-	}
-
-	var topology SessionsTopology
-	if err := json.Unmarshal([]byte(data), &topology); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal session topology: %w", err)
-	}
-	return &topology, nil
-}
-
-// SessionCallSignatureFromJSON converts JSON to a session call signature
-func SessionCallSignatureFromJSON(data string) (*SessionCallSignature, error) {
-	data = strings.TrimSpace(data)
-	if len(data) >= 2 && data[0] == '"' && data[len(data)-1] == '"' {
-		var inner string
-		if err := json.Unmarshal([]byte(data), &inner); err == nil {
-			data = inner
-		} else {
-			return nil, fmt.Errorf("failed to unquote data: %w", err)
-		}
-	}
-
-	var parsed map[string]interface{}
-	if err := json.Unmarshal([]byte(data), &parsed); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
-	}
-
-	if _, hasAttestation := parsed["attestation"]; hasAttestation {
-		// Implicit signature
-		attestationJSON, err := json.Marshal(parsed["attestation"])
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal attestation: %w", err)
-		}
-		attestation, err := AttestationFromJSON(string(attestationJSON))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse attestation: %w", err)
-		}
-
-		identitySigStr, ok := parsed["identitySignature"].(string)
-		if !ok {
-			return nil, fmt.Errorf("identitySignature must be a string")
-		}
-		identitySignature, err := rsyFromRsvStr(identitySigStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse identitySignature: %w", err)
-		}
-
-		sessionSigStr, ok := parsed["sessionSignature"].(string)
-		if !ok {
-			return nil, fmt.Errorf("sessionSignature must be a string")
-		}
-		sessionSignature, err := rsyFromRsvStr(sessionSigStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse sessionSignature: %w", err)
-		}
-
-		return &SessionCallSignature{
-			IsImplicit:        true,
-			Attestation:       &attestation,
-			IdentitySignature: &identitySignature,
-			SessionSignature:  sessionSignature,
-		}, nil
-	}
-
-	// Explicit signature
-	permissionIndex, ok := parsed["permissionIndex"].(string)
-	if !ok {
-		permissionIndexFloat, ok := parsed["permissionIndex"].(float64)
-		if !ok {
-			return nil, fmt.Errorf("permissionIndex must be a string or number")
-		}
-		permissionIndex = fmt.Sprintf("%d", int(permissionIndexFloat))
-	}
-
-	sessionSigStr, ok := parsed["sessionSignature"].(string)
-	if !ok {
-		return nil, fmt.Errorf("sessionSignature must be a string")
-	}
-
-	return processExplicitSignature(permissionIndex, sessionSigStr)
-}
-
-// processExplicitSignature processes an explicit session call signature
-func processExplicitSignature(permissionIndexStr, sessionSignatureStr string) (*SessionCallSignature, error) {
-	if !strings.HasPrefix(sessionSignatureStr, "0x") && !strings.Contains(sessionSignatureStr, ":") {
-		sessionSignatureStr = "0x" + sessionSignatureStr
-	}
-
-	var rsy RSY
-	if strings.Contains(sessionSignatureStr, ":") {
-		var err error
-		rsy, err = rsyFromRsvStr(sessionSignatureStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse sessionSignature: %w", err)
-		}
-	} else {
-		sigBytes := common.FromHex(sessionSignatureStr)
-		if len(sigBytes) != 65 {
-			return nil, fmt.Errorf("invalid signature length, expected 65 bytes, got %d bytes", len(sigBytes))
-		}
-
-		r := new(big.Int).SetBytes(sigBytes[:32])
-		s := new(big.Int).SetBytes(sigBytes[32:64])
-
-		var rBytes, sBytes [32]byte
-		r.FillBytes(rBytes[:])
-		s.FillBytes(sBytes[:])
-
-		rsy = RSY{
-			R:       rBytes,
-			S:       sBytes,
-			YParity: sigBytes[64] - 27, // Adjust v from 27/28 to 0/1
-		}
-	}
-
-	return &SessionCallSignature{
-		IsImplicit:       false,
-		PermissionIndex:  permissionIndexStr,
-		SessionSignature: rsy,
-	}, nil
-}
-
-// rsyFromRsvStr converts a string in r:s:v format to an RSY struct
-func rsyFromRsvStr(sigStr string) (RSY, error) {
-	parts := strings.Split(sigStr, ":")
-	if len(parts) != 3 {
-		return RSY{}, fmt.Errorf("signature must be in r:s:v format")
-	}
-
-	rStr, sStr, vStr := parts[0], parts[1], parts[2]
-	if !strings.HasPrefix(rStr, "0x") {
-		rStr = "0x" + rStr
-	}
-	if !strings.HasPrefix(sStr, "0x") {
-		sStr = "0x" + sStr
-	}
-
-	rBytes := common.FromHex(rStr)
-	if len(rBytes) != 32 {
-		return RSY{}, fmt.Errorf("invalid r size, expected 32 bytes, got %d bytes", len(rBytes))
-	}
-	sBytes := common.FromHex(sStr)
-	if len(sBytes) != 32 {
-		return RSY{}, fmt.Errorf("invalid s size, expected 32 bytes, got %d bytes", len(sBytes))
-	}
-
-	v, err := strconv.Atoi(vStr)
-	if err != nil {
-		return RSY{}, fmt.Errorf("invalid v value: %w", err)
-	}
-	if v != 27 && v != 28 {
-		return RSY{}, fmt.Errorf("invalid v value, expected 27 or 28, got %d", v)
-	}
-	yParity := byte(v - 27)
-
-	r := new(big.Int).SetBytes(rBytes)
-	s := new(big.Int).SetBytes(sBytes)
-
-	var r32, s32 [32]byte
-	r.FillBytes(r32[:])
-	s.FillBytes(s32[:])
-
-	return RSY{
-		R:       r32,
-		S:       s32,
-		YParity: yParity,
-	}, nil
 }
 
 func IsSessionsTopology(v interface{}) bool {
@@ -721,15 +478,6 @@ func RemoveExplicitSession(topology *SessionsTopology, addr string) *SessionsTop
 	return result
 }
 
-// AttestationFromJSON converts JSON to an Attestation (placeholder)
-func AttestationFromJSON(jsonStr string) (Attestation, error) {
-	var attestation Attestation
-	if err := json.Unmarshal([]byte(jsonStr), &attestation); err != nil {
-		return Attestation{}, fmt.Errorf("failed to parse attestation: %w", err)
-	}
-	return attestation, nil
-}
-
 // MarshalJSON implements json.Marshaler for SessionsTopology
 func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
 	blacklistObj := map[string][]common.Address{
@@ -754,59 +502,62 @@ func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements json.Unmarshaler for SessionsTopology
 func (s *SessionsTopology) UnmarshalJSON(data []byte) error {
 	var arr []json.RawMessage
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return fmt.Errorf("failed to unmarshal sessions topology array: %w", err)
-	}
-
-	if len(arr) != 2 {
-		return fmt.Errorf("invalid sessions topology array length: expected 2, got %d", len(arr))
-	}
-
-	var blacklistObj struct {
-		Blacklist []common.Address `json:"blacklist"`
-	}
-	if err := json.Unmarshal(arr[0], &blacklistObj); err != nil {
-		return fmt.Errorf("failed to unmarshal blacklist: %w", err)
-	}
-	s.Blacklist = blacklistObj.Blacklist
-
-	var second json.RawMessage
-	if err := json.Unmarshal(arr[1], &second); err != nil {
-		return fmt.Errorf("failed to unmarshal second element: %w", err)
-	}
-
-	var secondArr []json.RawMessage
-	if err := json.Unmarshal(second, &secondArr); err == nil && len(secondArr) > 0 {
-		var globalSignerObj struct {
-			GlobalSigner string `json:"globalSigner"`
+	if err := json.Unmarshal(data, &arr); err == nil && len(arr) == 2 {
+		var blacklistObj struct {
+			Blacklist []common.Address `json:"blacklist"`
 		}
-		if err := json.Unmarshal(secondArr[0], &globalSignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal globalSigner: %w", err)
+		if err := json.Unmarshal(arr[0], &blacklistObj); err != nil {
+			return fmt.Errorf("failed to unmarshal blacklist: %w", err)
 		}
-		s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
+		s.Blacklist = blacklistObj.Blacklist
 
-		s.Sessions = make([]SessionNode, 0, len(secondArr)-1)
-		for i := 1; i < len(secondArr); i++ {
-			var session SessionNode
-			if err := json.Unmarshal(secondArr[i], &session); err != nil {
-				return fmt.Errorf("failed to unmarshal session at index %d: %w", i-1, err)
+		var second json.RawMessage
+		if err := json.Unmarshal(arr[1], &second); err != nil {
+			return fmt.Errorf("failed to unmarshal second element: %w", err)
+		}
+
+		var secondArr []json.RawMessage
+		if err := json.Unmarshal(second, &secondArr); err == nil && len(secondArr) > 0 {
+			var globalSignerObj struct {
+				GlobalSigner string `json:"globalSigner"`
 			}
-			s.Sessions = append(s.Sessions, session)
+			if err := json.Unmarshal(secondArr[0], &globalSignerObj); err != nil {
+				return fmt.Errorf("failed to unmarshal globalSigner: %w", err)
+			}
+			s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
+
+			s.Sessions = make([]SessionNode, 0, len(secondArr)-1)
+			for i := 1; i < len(secondArr); i++ {
+				var session SessionNode
+				if err := json.Unmarshal(secondArr[i], &session); err != nil {
+					return fmt.Errorf("failed to unmarshal session at index %d: %w", i-1, err)
+				}
+				s.Sessions = append(s.Sessions, session)
+			}
+		} else {
+			var identitySignerObj struct {
+				IdentitySigner string `json:"identitySigner"`
+			}
+			if err := json.Unmarshal(second, &identitySignerObj); err != nil {
+				return fmt.Errorf("failed to unmarshal identitySigner: %w", err)
+			}
+			if identitySignerObj.IdentitySigner == "" {
+				return fmt.Errorf("missing identitySigner in second element")
+			}
+			s.GlobalSigner = common.HexToAddress(identitySignerObj.IdentitySigner)
+			s.Sessions = make([]SessionNode, 0)
 		}
-	} else {
-		var identitySignerObj struct {
-			IdentitySigner string `json:"identitySigner"`
-		}
-		if err := json.Unmarshal(second, &identitySignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal identitySigner: %w", err)
-		}
-		if identitySignerObj.IdentitySigner == "" {
-			return fmt.Errorf("missing identitySigner in second element")
-		}
-		s.GlobalSigner = common.HexToAddress(identitySignerObj.IdentitySigner)
-		s.Sessions = make([]SessionNode, 0)
+
+		return nil
 	}
 
+	type SessionsTopologyAlias SessionsTopology
+	var topology SessionsTopologyAlias
+	if err := json.Unmarshal(data, &topology); err != nil {
+		return fmt.Errorf("failed to unmarshal session topology: %w", err)
+	}
+
+	*s = SessionsTopology(topology)
 	return nil
 }
 
