@@ -17,6 +17,8 @@ import (
 	"github.com/0xsequence/go-sequence/sessions/proto"
 )
 
+var _ Signer = (*Wallet[core.WalletConfig])(nil)
+
 type WalletOptions[C core.WalletConfig] struct {
 	// Config is the wallet multi-sig configuration. Note: the first config of any wallet
 	// before it is deployed is used to derive it's the account address of the wallet.
@@ -55,15 +57,6 @@ func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signe
 		}
 	}
 
-	// Check signers
-	for _, signer := range signers {
-		_, canSignMessage := signer.(MessageSigner)
-		_, canSignDigest := signer.(DigestSigner)
-		if !canSignMessage && !canSignDigest {
-			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
-		}
-	}
-
 	w := &Wallet[C]{
 		config:          walletOptions.Config,
 		context:         seqContext,
@@ -97,12 +90,6 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	seqContext := SequenceContextForWalletConfig(typeOfWallet)
 	if len(optContext) > 0 {
 		seqContext = optContext[0]
-	}
-
-	_, canSignMessage := owner.(MessageSigner)
-	_, canSignDigest := owner.(DigestSigner)
-	if !canSignMessage && !canSignDigest {
-		return nil, fmt.Errorf("sequence.Wallet#UseSigners: %s is not a valid signer, canSignMessage: %v, canSignDigest: %v", owner.Address(), canSignMessage, canSignDigest)
 	}
 
 	if _, ok := core.WalletConfig(typeOfWallet).(*v1.WalletConfig); ok {
@@ -285,31 +272,25 @@ func (w *Wallet[C]) UseSigners(signers ...Signer) (*Wallet[C], error) {
 		Context:         &w.context,
 		SkipSortSigners: w.skipSortSigners,
 		Address:         w.address,
-	})
-
+	}, signers...)
 	if err != nil {
 		return nil, fmt.Errorf("sequence.Wallet#UseSigners: %w", err)
 	}
+
 	if w.provider != nil {
 		err = ww.SetProvider(w.provider)
 		if err != nil {
 			return nil, fmt.Errorf("sequence.Wallet#UseSigners connect: %w", err)
 		}
 	}
+
 	if w.relayer != nil {
 		err = ww.SetRelayer(w.relayer)
 		if err != nil {
 			return nil, fmt.Errorf("sequence.Wallet#UseSigners connect: %w", err)
 		}
 	}
-	for _, signer := range signers {
-		_, canSignMessage := signer.(MessageSigner)
-		_, canSignDigest := signer.(DigestSigner)
-		if !canSignMessage && !canSignDigest {
-			return nil, fmt.Errorf("sequence.Wallet#UseSigners: signer is not a valid signer")
-		}
-	}
-	ww.signers = signers
+
 	return ww, nil
 }
 
@@ -472,256 +453,275 @@ func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, erro
 	return w.GetNonce(optBlockNum...)
 }
 
-func (w *Wallet[C]) SignMessage(msg []byte) ([]byte, error) {
-	return w.SignDigest(context.Background(), MessageDigest(msg))
-}
-
-func (w *Wallet[C]) SignTypedData(typedData *ethcoder.TypedData) ([]byte, []byte, error) {
-	digest, encodedTypedData, err := typedData.Encode()
-	if err != nil {
-		return nil, nil, err
+func (w *Wallet[C]) SignTransactions(ctx context.Context, transactions Transactions, chainID ...*big.Int) (*SignedTransactions, error) {
+	if chainID == nil {
+		chainID = append(chainID, nil)
 	}
-	signature, err := w.SignDigest(context.Background(), common.Hash(digest))
-	if err != nil {
-		return nil, nil, err
+	if chainID[0] == nil {
+		chainID[0] = w.chainID
 	}
-	return signature, encodedTypedData, nil
-}
-
-var _ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
-var _ MessageSigner = (*Wallet[*v2.WalletConfig])(nil)
-var _ MessageSigner = (*Wallet[*v3.WalletConfig])(nil)
-
-func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
-	if w.sessions != nil {
-		err := w.UpdateSessionsConfig(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", err)
-		}
+	if chainID[0] == nil {
+		return nil, fmt.Errorf("no chain id")
 	}
 
-	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
-		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
-	}
-
-	var chainID *big.Int
-	if len(optChainID) > 0 {
-		chainID = optChainID[0]
-	} else {
-		chainID = w.chainID
-	}
-
-	subDigest, err := SubDigest(chainID, w.Address(), digest)
-	if err != nil {
-		return nil, fmt.Errorf("SignDigest, subDigestOf: %w", err)
-	}
-
-	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		signer, _ := w.GetSigner(signerAddress)
-
-		if signer == nil {
-			// signer isn't available, just include the config value of address
-			// without it's signature
-			return 0, nil, core.ErrSigningNoSigner
-		}
-
-		switch signerTyped := signer.(type) {
-		// sequence.Wallet / Signing Service / Guard
-		case DigestSigner:
-			sigValue, err := signerTyped.SignDigest(ctx, common.BytesToHash(subDigest), chainID)
+	for _, transaction := range transactions {
+		if !transaction.RevertOnError && (transaction.GasLimit == nil || transaction.GasLimit.Sign() <= 0) {
+			var err error
+			transactions, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, transactions)
 			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
+				return nil, fmt.Errorf("unable to estimate gas limits: %w", err)
 			}
-
-			// Sequence Wallet SignDigest returns a signature without a type
-			_, pc1 := signer.(*Wallet[*v1.WalletConfig])
-			_, pc2 := signer.(*Wallet[*v2.WalletConfig])
-			if pc1 || pc2 {
-				return core.SignerSignatureTypeEIP1271, sigValue, nil
-			}
-			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
-		// Ethereum Wallet Signer
-		case MessageSigner:
-			sigValue, err := signerTyped.SignMessage(subDigest)
-			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
-			}
-
-			return core.SignerSignatureTypeEthSign, sigValue, nil
-		default:
-			return 0, nil, fmt.Errorf("signer %T is not supported", signer)
-		}
-	}
-
-	res, _, err := w.buildSignature(ctx, sign, chainID)
-	return res, err
-}
-
-func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, error) {
-	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
-		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
-	}
-
-	var chainID *big.Int
-	if len(optChainID) > 0 {
-		chainID = optChainID[0]
-	} else {
-		chainID = w.chainID
-	}
-
-	opHash, err := v3.HashPayload(w.address, chainID, payload)
-	if err != nil {
-		return nil, fmt.Errorf("SignV3Payload, HashPayload: %w", err)
-	}
-
-	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		signer, _ := w.GetSigner(signerAddress)
-
-		if signer == nil {
-			// signer isn't available, just include the config value of address
-			// without it's signature
-			return 0, nil, core.ErrSigningNoSigner
-		}
-
-		switch signerTyped := signer.(type) {
-		// sequence.Wallet / Signing Service / Guard
-		case DigestSigner:
-			sigValue, err := signerTyped.SignDigest(ctx, opHash, chainID)
-			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
-			}
-
-			// Sequence Wallet SignDigest returns a signature without a type
-			_, pc3 := signer.(*Wallet[*v3.WalletConfig])
-			if pc3 {
-				return core.SignerSignatureTypeEIP1271, sigValue, nil
-			}
-			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
-		// Ethereum Wallet Signer
-		case MessageSigner:
-			sigValue, err := signerTyped.SignMessage(opHash[:])
-			if err != nil {
-				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
-			}
-
-			return core.SignerSignatureTypeEthSign, sigValue, nil
-		default:
-			return 0, nil, fmt.Errorf("signer %T is not supported", signer)
-		}
-	}
-
-	res, _, err := w.buildSignature(ctx, sign, chainID)
-	return res, err
-}
-
-var _ DigestSigner = (*Wallet[*v1.WalletConfig])(nil)
-var _ DigestSigner = (*Wallet[*v2.WalletConfig])(nil)
-
-func (w *Wallet[C]) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
-	return w.SignTransactions(ctx, Transactions{txn})
-}
-
-func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
-	if len(txns) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
-	}
-
-	var err error
-
-	// If a transaction has 0 gasLimit and not revertOnError
-	// compute all new gas limits
-	estimateGas := false
-	for _, txn := range txns {
-		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
-			estimateGas = true
 			break
 		}
 	}
-	if estimateGas {
-		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
-		if err != nil {
-			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
-		}
-	}
 
-	// load nonce from transactions
-	nonce, err := txns.Nonce()
+	spaceNonce, err := transactions.Nonce()
 	if err != nil {
-		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
+		return nil, fmt.Errorf("unable to sign transactions: %w", err)
+	}
+	if spaceNonce == nil {
+		spaceNonce, err = w.GetNonce()
+		if err != nil {
+			return nil, fmt.Errorf("unable to get nonce: %w", err)
+		}
+	}
+	space, nonce := DecodeNonce(spaceNonce)
+
+	var subdigest core.Subdigest
+	switch core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		digest, err := ExecuteDigest(transactions, spaceNonce)
+		if err != nil {
+			return nil, fmt.Errorf("unable to compute transaction digest: %w", err)
+		}
+
+		subdigest = digest.Subdigest(w.address, chainID[0])
+
+	case *v3.WalletConfig:
+		payload, err := ConvertTransactionsToV3Payload(transactions, space, nonce)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert transactions to payload: %w", err)
+		}
+
+		subdigest, err = payload.Hash(w.address, chainID[0])
+		if err != nil {
+			return nil, fmt.Errorf("unable to compute transaction subdigest: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown wallet config type %T", w.config)
 	}
 
-	// if nonce is undefined
-	// load latest nonce from wallet
-	if nonce == nil {
-		nonce, err = w.GetNonce()
+	_, signature, err := w.Sign(ctx, subdigest)
+	if err != nil {
+		return nil, fmt.Errorf("unable to sign transactions: %w", err)
+	}
+
+	return &SignedTransactions{
+		ChainID:       chainID[0],
+		WalletAddress: w.address,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  transactions,
+		Space:         space,
+		Nonce:         nonce,
+		Subdigest:     subdigest,
+		Signature:     signature,
+	}, nil
+}
+
+func (w *Wallet[C]) SignMessage(ctx context.Context, message []byte, chainID ...*big.Int) ([]byte, error) {
+	if chainID == nil {
+		chainID = append(chainID, nil)
+	}
+	if chainID[0] == nil {
+		chainID[0] = w.chainID
+	}
+	if chainID[0] == nil {
+		return nil, fmt.Errorf("no chain id")
+	}
+
+	var subdigest core.Subdigest
+	switch core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		subdigest = core.NewDigest(message).Subdigest(w.address, chainID[0])
+
+	case *v3.WalletConfig:
+		var err error
+		subdigest, err = v3.Payload{Kind: v3.KindMessage, Message: message}.Hash(w.address, chainID[0])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to compute message subdigest: %w", err)
 		}
+
+	default:
+		return nil, fmt.Errorf("unknown wallet config type %T", w.config)
+	}
+
+	_, signature, err := w.Sign(ctx, subdigest)
+	return signature, err
+}
+
+func (w *Wallet[C]) SignTypedData(ctx context.Context, data *ethcoder.TypedData, chainID ...*big.Int) ([]byte, error) {
+	digest, err := data.EncodeDigest()
+	if err != nil {
+		return nil, fmt.Errorf("unable to compute typed data digest: %w", err)
+	}
+
+	return w.SignHash(ctx, common.Hash(digest), chainID...)
+}
+
+func (w *Wallet[C]) SignHash(ctx context.Context, hash common.Hash, chainID ...*big.Int) ([]byte, error) {
+	if chainID == nil {
+		chainID = append(chainID, nil)
+	}
+	if chainID[0] == nil {
+		chainID[0] = w.chainID
+	}
+	if chainID[0] == nil {
+		return nil, fmt.Errorf("no chain id")
+	}
+
+	var subdigest core.Subdigest
+	switch core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		subdigest = core.Digest{Hash: hash}.Subdigest(w.address, chainID[0])
+
+	case *v3.WalletConfig:
+		var err error
+		subdigest, err = v3.Payload{Kind: v3.KindDigest, Digest: hash}.Hash(w.address, chainID[0])
+		if err != nil {
+			return nil, fmt.Errorf("unable to compute digest subdigest: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown wallet config type %T", w.config)
+	}
+
+	_, signature, err := w.Sign(ctx, subdigest)
+	return signature, err
+}
+
+func (w *Wallet[C]) SignConfiguration(ctx context.Context, imageHash core.ImageHash) ([]byte, error) {
+	var subdigest core.Subdigest
+	switch core.WalletConfig(w.config).(type) {
+	case *v2.WalletConfig:
+		subdigest = imageHash.Approval().Subdigest(w.address)
+
+	case *v3.WalletConfig:
+		var err error
+		subdigest, err = v3.Payload{Kind: v3.KindConfigUpdate, ImageHash: imageHash}.Hash(w.address)
+		if err != nil {
+			return nil, fmt.Errorf("unable to compute configuration subdigest: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown wallet config type %T", w.config)
+	}
+
+	_, signature, err := w.Sign(ctx, subdigest)
+	return signature, err
+}
+
+func (w *Wallet[C]) SignPayload(ctx context.Context, payload *v3.Payload, chainID ...*big.Int) ([]byte, error) {
+	if chainID == nil {
+		chainID = append(chainID, nil)
+	}
+	if chainID[0] == nil {
+		chainID[0] = w.chainID
+	}
+	if chainID[0] == nil {
+		return nil, fmt.Errorf("no chain id")
 	}
 
 	switch core.WalletConfig(w.config).(type) {
 	case *v1.WalletConfig, *v2.WalletConfig:
-		bundle := Transaction{
-			Transactions: txns,
-			Nonce:        nonce,
-		}
-
-		// Get transactions digest
-		digest, err := bundle.Digest()
-		if err != nil {
-			return nil, err
-		}
-
-		// Sign the transactions
-		sig, err := w.SignDigest(ctx, digest)
-		if err != nil {
-			return nil, err
-		}
-
-		return &SignedTransactions{
-			ChainID:       w.chainID,
-			WalletAddress: w.address,
-			WalletConfig:  w.config,
-			WalletContext: w.context,
-			Transactions:  txns,
-			Nonce:         nonce,
-			Digest:        digest,
-			Signature:     sig,
-		}, nil
+		return nil, fmt.Errorf("refusing to sign v3 payload with non-v3 wallet")
 
 	case *v3.WalletConfig:
-		space, nonce := DecodeNonce(nonce)
-
-		payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+		subdigest, err := payload.Hash(w.address, chainID[0])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to compute payload subdigest: %w", err)
 		}
 
-		digest, err := v3.HashPayload(w.address, w.chainID, payload)
-		if err != nil {
-			return nil, err
-		}
+		_, signature, err := w.Sign(ctx, subdigest)
+		return signature, err
 
-		// Sign the transactions
-		sig, err := w.SignV3Payload(ctx, payload)
-		if err != nil {
-			return nil, err
-		}
+	default:
+		return nil, fmt.Errorf("unknown wallet config type %T", w.config)
+	}
+}
 
-		return &SignedTransactions{
-			ChainID:       w.chainID,
-			WalletAddress: w.address,
-			WalletConfig:  w.config,
-			WalletContext: w.context,
-			Transactions:  txns,
-			Space:         space,
-			Nonce:         nonce,
-			Digest:        digest,
-			Signature:     sig,
-		}, nil
+func (w *Wallet[C]) Sign(ctx context.Context, subdigest core.Subdigest) (core.SignerSignatureType, []byte, error) {
+	if w.sessions != nil {
+		err := w.UpdateSessionsConfig(ctx)
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to save config: %w", err)
+		}
 	}
 
-	return nil, fmt.Errorf("unknown wallet config type")
+	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		signer, _ := w.GetSigner(signerAddress)
+		if signer == nil {
+			return 0, nil, core.ErrSigningNoSigner
+		}
+		return signer.Sign(ctx, subdigest)
+	}
+
+	switch config := core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig:
+		signature, err := config.BuildSignature(ctx, sign)
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to build signature: %w", err)
+		}
+
+		data, err := signature.Data()
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to encode signature: %w", err)
+		}
+
+		return core.SignerSignatureTypeEIP1271, data, nil
+
+	case *v2.WalletConfig:
+		var signature core.Signature[*v2.WalletConfig]
+		var err error
+		if subdigest.ChainID.Sign() == 0 {
+			signature, err = config.BuildNoChainIDSignature(ctx, sign)
+		} else {
+			signature, err = config.BuildRegularSignature(ctx, sign)
+		}
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to build signature: %w", err)
+		}
+
+		data, err := signature.Data()
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to encode signature: %w", err)
+		}
+
+		return core.SignerSignatureTypeEIP1271, data, nil
+
+	case *v3.WalletConfig:
+		var signature core.Signature[*v3.WalletConfig]
+		var err error
+		if subdigest.ChainID.Sign() == 0 {
+			signature, err = config.BuildNoChainIDSignature(ctx, sign)
+		} else {
+			signature, err = config.BuildRegularSignature(ctx, sign)
+		}
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to build signature: %w", err)
+		}
+
+		data, err := signature.Data()
+		if err != nil {
+			return 0, nil, fmt.Errorf("unable to encode signature: %w", err)
+		}
+
+		return core.SignerSignatureTypeEIP1271, data, nil
+
+	default:
+		return 0, nil, fmt.Errorf("unknown wallet config type %T", config)
+	}
 }
 
 func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
@@ -786,7 +786,7 @@ func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*Relaye
 		WalletContext: w.context,
 		Transactions:  txs,
 		Nonce:         nonce,
-		Digest:        digest,
+		Subdigest:     digest.Subdigest(w.address, w.chainID),
 		Signature:     sig,
 	}
 
@@ -832,7 +832,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		txn.GasLimit = big.NewInt(3_000_000)
 	}
 
-	signerTxn, err := w.SignTransaction(ctx, txn)
+	signerTxn, err := w.SignTransactions(ctx, Transactions{txn})
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -857,7 +857,12 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		subdigest, err := v3.Payload{Kind: v3.KindDigest, Digest: digest}.Hash(w.address, w.chainID)
+		if err != nil {
+			return false, err
+		}
+
+		config, weight, err := sig.Recover(context.Background(), subdigest, w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -869,7 +874,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}.Subdigest(w.address, w.chainID), w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -881,7 +886,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}.Subdigest(w.address, w.chainID), w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -889,78 +894,6 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 		}
 	} else {
 		return false, fmt.Errorf("unknown wallet config type")
-	}
-}
-
-func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction, chainID *big.Int) ([]byte, core.Signature[C], error) {
-	var coreWalletConfig core.WalletConfig = w.config
-
-	if config, ok := coreWalletConfig.(*v1.WalletConfig); ok {
-		sig, err := config.BuildSignature(ctx, sign, false)
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, BuildSignature: %w", err)
-		}
-
-		sigEnc, err := sig.Data()
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
-		}
-
-		sigTyped, _ := sig.(core.Signature[C])
-		// todo: implement core.Signature[core.WalletConfig] wrapper
-		return sigEnc, sigTyped, nil
-	} else if config, ok := coreWalletConfig.(*v2.WalletConfig); ok {
-		var (
-			sig core.Signature[*v2.WalletConfig]
-			err error
-		)
-		if chainID.Sign() == 0 {
-			sig, err = config.BuildNoChainIDSignature(ctx, sign, false)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SignDigest, BuildNoChainIDSignature: %w", err)
-			}
-		} else {
-			sig, err = config.BuildRegularSignature(ctx, sign, false)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
-			}
-		}
-
-		sigEnc, err := sig.Data()
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
-		}
-
-		sigTyped, _ := sig.(core.Signature[C])
-		// todo: implement core.Signature[core.WalletConfig] wrapper
-		return sigEnc, sigTyped, nil
-	} else if config, ok := coreWalletConfig.(*v3.WalletConfig); ok {
-		var (
-			sig core.Signature[*v3.WalletConfig]
-			err error
-		)
-		if chainID.Sign() == 0 {
-			sig, err = config.BuildNoChainIDSignature(ctx, sign, false)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SignDigest, BuildNoChainIDSignature: %w", err)
-			}
-		} else {
-			sig, err = config.BuildRegularSignature(ctx, sign, false)
-			if err != nil {
-				return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
-			}
-		}
-
-		sigEnc, err := sig.Data()
-		if err != nil {
-			return nil, nil, fmt.Errorf("SignDigest, sig.Data: %w", err)
-		}
-
-		sigTyped, _ := sig.(core.Signature[C])
-		// todo: implement core.Signature[core.WalletConfig] wrapper
-		return sigEnc, sigTyped, nil
-	} else {
-		return nil, nil, fmt.Errorf("SignDigest, unknown config type")
 	}
 }
 
