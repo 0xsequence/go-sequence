@@ -50,9 +50,10 @@ func (sm *SessionManager) GetIdentitySigner(topologyData json.RawMessage) string
 }
 
 func handleAddExplicitSession(p *AddSessionParams) (string, error) {
-	session, err := v3.SessionPermissionsFromJSON(string(p.ExplicitSession))
+	var session v3.SessionPermissions
+	err := json.Unmarshal(p.ExplicitSession, &session)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode explicit session: %w", err)
+		return "", fmt.Errorf("failed to unmarshal explicit session: %w", err)
 	}
 
 	var topology v3.SessionsTopology

@@ -81,10 +81,18 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 	log.Println("implicitAddrs")
 	spew.Dump(implicitAddrs)
 
-	encoded, err := v3.EncodeSessionCallSignatures(&topology, callSigs, explicitAddrs, implicitAddrs)
+	encoded, err := v3.EncodeSessionCallSignatures(
+		callSigs,
+		&topology,
+		explicitAddrs,
+		implicitAddrs,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session call signatures: %w", err)
 	}
+
+	// Add debug output to see the exact hex representation
+	log.Printf("Encoded bytes (hex): %x", encoded)
 
 	return string(encoded), nil
 }

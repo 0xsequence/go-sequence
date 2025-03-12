@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
@@ -169,9 +170,10 @@ func HashConfigurationTree(tree *ConfigurationTree) [32]byte {
 }
 
 // EncodeSessionCallSignatures encodes a slice of session call signatures
+// This implementation matches the TypeScript implementation in sequence-primitives
 func EncodeSessionCallSignatures(
-	topology *SessionsTopology,
 	callSignatures []SessionCallSignature,
+	topology *SessionsTopology,
 	explicitSigners []common.Address,
 	implicitSigners []common.Address,
 ) ([]byte, error) {
@@ -179,186 +181,282 @@ func EncodeSessionCallSignatures(
 		return nil, fmt.Errorf("topology cannot be nil")
 	}
 
+	// Optimize the configuration tree by rolling unused signers into nodes
 	minimisedTopology := minimiseSessionsTopology(topology, explicitSigners, implicitSigners)
-	topologyBytes, err := encodeMinimizedTopology(minimisedTopology)
+
+	// Encode the topology
+	encodedTopology, err := encodeSessionsTopology(minimisedTopology)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode minimized topology: %w", err)
+		return nil, fmt.Errorf("failed to encode topology: %w", err)
+	}
+
+	// Check if topology is too large
+	if len(encodedTopology) > 0xFFFFFF { // 3 bytes max
+		return nil, fmt.Errorf("session topology is too large")
 	}
 
 	var parts [][]byte
-	parts = append(parts, topologyBytes)
 
+	topologyLengthBytes := []byte{
+		byte((len(encodedTopology) >> 16) & 0xFF),
+		byte((len(encodedTopology) >> 8) & 0xFF),
+		byte(len(encodedTopology) & 0xFF),
+	}
+	parts = append(parts, topologyLengthBytes, encodedTopology)
+
+	type attestationKey struct {
+		data string
+	}
+	attestationMap := make(map[attestationKey]int)
+	var encodedAttestations [][]byte
+
+	// Process all implicit signatures to build the attestation list
+	for _, sig := range callSignatures {
+		if sig.IsImplicit && sig.Attestation != nil {
+			key := attestationKey{data: sig.Attestation.Data}
+			if _, exists := attestationMap[key]; !exists {
+				// Add to attestation map
+				attestationMap[key] = len(encodedAttestations)
+
+				// Encode attestation + identity signature
+				var attestationBytes []byte
+				attestationBytes = append(attestationBytes, []byte(sig.Attestation.Data)...)
+
+				if sig.IdentitySignature != nil {
+					identitySigBytes, err := packRSY(*sig.IdentitySignature)
+					if err != nil {
+						return nil, fmt.Errorf("failed to pack identity signature: %w", err)
+					}
+					attestationBytes = append(attestationBytes, identitySigBytes...)
+				}
+
+				encodedAttestations = append(encodedAttestations, attestationBytes)
+			}
+		}
+	}
+
+	// Check attestation count
+	if len(encodedAttestations) >= 128 {
+		return nil, fmt.Errorf("too many attestations")
+	}
+
+	// Add attestation count as 1 byte
+	parts = append(parts, []byte{byte(len(encodedAttestations))})
+
+	// Add all encoded attestations
+	for _, attestation := range encodedAttestations {
+		parts = append(parts, attestation)
+	}
+
+	// Process call signatures
 	for _, sig := range callSignatures {
 		if sig.IsImplicit {
-			flagByte := byte(0x80)
+			// Implicit signature
+			if sig.Attestation == nil {
+				return nil, fmt.Errorf("implicit signature missing attestation")
+			}
+
+			key := attestationKey{data: sig.Attestation.Data}
+			attestationIndex, exists := attestationMap[key]
+			if !exists {
+				return nil, fmt.Errorf("failed to find attestation index for signature")
+			}
+
+			if attestationIndex >= 128 {
+				return nil, fmt.Errorf("attestation index too large: %d", attestationIndex)
+			}
+
+			flagByte := byte(0x80 | attestationIndex)
 			parts = append(parts, []byte{flagByte})
 
-			if sig.Attestation != nil {
-				attBytes := []byte(sig.Attestation.Data)
-				parts = append(parts, attBytes)
-			}
-
-			if sig.IdentitySignature != nil {
-				idSigBytes, err := packRSY(*sig.IdentitySignature)
-				if err != nil {
-					return nil, fmt.Errorf("failed to pack identitySignature: %w", err)
-				}
-				parts = append(parts, idSigBytes)
-			}
-
+			// Add session signature
 			sessionSigBytes, err := packRSY(sig.SessionSignature)
 			if err != nil {
-				return nil, fmt.Errorf("failed to pack sessionSignature: %w", err)
+				return nil, fmt.Errorf("failed to pack session signature: %w", err)
 			}
 			parts = append(parts, sessionSigBytes)
+
 		} else {
+			// Explicit signature
 			permIndex, err := strconv.Atoi(sig.PermissionIndex)
 			if err != nil {
-				return nil, fmt.Errorf("invalid permissionIndex: %s", sig.PermissionIndex)
+				return nil, fmt.Errorf("invalid permission index: %s", sig.PermissionIndex)
 			}
+
 			if permIndex > 127 {
-				return nil, fmt.Errorf("permissionIndex too large: %d", permIndex)
+				return nil, fmt.Errorf("permission index too large: %d", permIndex)
 			}
+
 			flagByte := byte(permIndex)
 			parts = append(parts, []byte{flagByte})
 
-			rsyBytes, err := packRSY(sig.SessionSignature)
+			sessionSigBytes, err := packRSY(sig.SessionSignature)
 			if err != nil {
-				return nil, fmt.Errorf("failed to pack sessionSignature: %w", err)
+				return nil, fmt.Errorf("failed to pack session signature: %w", err)
 			}
-			parts = append(parts, rsyBytes)
+			parts = append(parts, sessionSigBytes)
 		}
 	}
 
 	return bytes.Join(parts, nil), nil
 }
 
-// encodeMinimizedTopology encodes the minimized topology
-func encodeMinimizedTopology(topology *SessionsTopology) ([]byte, error) {
-	result := []byte{}
-
-	result = append(result, topology.GlobalSigner.Bytes()...)
-
-	sessionsCount := len(topology.Sessions)
-	if sessionsCount > 255 {
-		return nil, fmt.Errorf("too many sessions")
+// encodeSessionsTopology encodes the session topology into bytes
+// This matches the TypeScript implementation of encodeSessionsTopology
+func encodeSessionsTopology(topology *SessionsTopology) ([]byte, error) {
+	if topology == nil {
+		return nil, fmt.Errorf("topology cannot be nil")
 	}
-	result = append(result, byte(sessionsCount))
 
-	for _, session := range topology.Sessions {
-		encodedNode, err := encodeSessionNode(session)
-		if err != nil {
-			return nil, err
+	if len(topology.Sessions) > 1 {
+		var encodedBranches [][]byte
+
+		identitySignerBytes := encodeIdentitySignerLeaf(topology.GlobalSigner)
+		encodedBranches = append(encodedBranches, identitySignerBytes)
+
+		blacklistBytes := encodeBlacklistLeaf(topology.Blacklist)
+		encodedBranches = append(encodedBranches, blacklistBytes)
+
+		for _, session := range topology.Sessions {
+			sessionBytes, err := encodeSessionPermissions(session)
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode session: %w", err)
+			}
+			encodedBranches = append(encodedBranches, sessionBytes)
 		}
-		result = append(result, encodedNode...)
+
+		encoded := bytes.Join(encodedBranches, nil)
+
+		encodedSize := minBytesFor(uint64(len(encoded)))
+		if encodedSize > 15 {
+			return nil, fmt.Errorf("branch too large")
+		}
+
+		flagByte := byte((SESSIONS_FLAG_BRANCH << 4) | encodedSize)
+
+		lengthBytes := make([]byte, encodedSize)
+		encodeLength(len(encoded), lengthBytes)
+
+		result := []byte{flagByte}
+		result = append(result, lengthBytes...)
+		result = append(result, encoded...)
+		return result, nil
 	}
 
-	blacklistCount := len(topology.Blacklist)
-	if blacklistCount > 255 {
-		return nil, fmt.Errorf("too many blacklisted addresses")
-	}
-	result = append(result, byte(blacklistCount))
-
-	for _, addr := range topology.Blacklist {
-		result = append(result, addr.Bytes()...)
+	if len(topology.Sessions) == 1 {
+		return encodeSessionPermissions(topology.Sessions[0])
 	}
 
-	return result, nil
+	return encodeIdentitySignerLeaf(topology.GlobalSigner), nil
 }
 
-// encodeSessionNode encodes a session node
-func encodeSessionNode(node SessionNode) ([]byte, error) {
-	result := []byte{}
-	result = append(result, node.Signer.Bytes()...)
-
-	if node.Permissions != nil {
-		valueLimitBytes := make([]byte, 32)
-		node.Permissions.ValueLimit.FillBytes(valueLimitBytes)
-		result = append(result, valueLimitBytes...)
-
-		deadlineBytes := make([]byte, 32)
-		node.Permissions.Deadline.FillBytes(deadlineBytes)
-		result = append(result, deadlineBytes...)
-
-		permissionsCount := len(node.Permissions.Permissions)
-		if permissionsCount > 255 {
-			return nil, fmt.Errorf("too many permissions")
-		}
-		result = append(result, byte(permissionsCount))
-
-		for _, perm := range node.Permissions.Permissions {
-			result = append(result, perm.Target.Bytes()...)
-
-			rulesCount := len(perm.Rules)
-			if rulesCount > 255 {
-				return nil, fmt.Errorf("too many rules")
-			}
-			result = append(result, byte(rulesCount))
-
-			for _, rule := range perm.Rules {
-				cumulativeByte := byte(0)
-				if rule.Cumulative {
-					cumulativeByte = 1
-				}
-				result = append(result, cumulativeByte)
-				result = append(result, byte(rule.Operation))
-				result = append(result, rule.Value...)
-				offsetBytes := make([]byte, 32)
-				rule.Offset.FillBytes(offsetBytes)
-				result = append(result, offsetBytes...)
-				result = append(result, rule.Mask...)
-			}
-		}
-	} else {
-		result = append(result, 0)
-	}
-
-	// Encode children recursively
-	childrenCount := len(node.Children)
-	if childrenCount > 255 {
-		return nil, fmt.Errorf("too many children")
-	}
-	result = append(result, byte(childrenCount))
-
-	for _, child := range node.Children {
-		childBytes, err := encodeSessionNode(child)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, childBytes...)
-	}
-
-	return result, nil
+func encodeIdentitySignerLeaf(signer common.Address) []byte {
+	flagByte := byte(SESSIONS_FLAG_IDENTITY_SIGNER << 4)
+	result := []byte{flagByte}
+	result = append(result, signer.Bytes()...)
+	return result
 }
 
-// encodeBlacklist encodes the blacklist into bytes
-func encodeBlacklist(blacklist []common.Address) ([]byte, error) {
-	result := []byte{}
+// encodeBlacklistLeaf encodes a blacklist leaf
+func encodeBlacklistLeaf(blacklist []common.Address) []byte {
+	if len(blacklist) > 14 {
+		flagByte := byte((SESSIONS_FLAG_BLACKLIST << 4) | 0x0F)
+		result := []byte{flagByte, byte(len(blacklist))}
+		for _, addr := range blacklist {
+			result = append(result, addr.Bytes()...)
+		}
+		return result
+	}
+
+	flagByte := byte((SESSIONS_FLAG_BLACKLIST << 4) | len(blacklist))
+	result := []byte{flagByte}
 	for _, addr := range blacklist {
 		result = append(result, addr.Bytes()...)
 	}
+	return result
+}
+
+// encodeSessionPermissions encodes session permissions
+func encodeSessionPermissions(session SessionNode) ([]byte, error) {
+	if session.Permissions == nil {
+		return nil, fmt.Errorf("session permissions cannot be nil")
+	}
+
+	flagByte := byte(SESSIONS_FLAG_PERMISSIONS << 4)
+	result := []byte{flagByte}
+
+	permBytes, err := encodePermissionsData(session)
+	if err != nil {
+		return nil, err
+	}
+
+	result = append(result, permBytes...)
 	return result, nil
 }
 
-// containsAddress checks if an address is in a list
-func containsAddress(addrs []common.Address, addr common.Address) bool {
-	for _, a := range addrs {
-		if a == addr {
-			return true
+// encodePermissionsData encodes the internal permission data
+func encodePermissionsData(session SessionNode) ([]byte, error) {
+	if session.Permissions == nil {
+		return nil, fmt.Errorf("permissions cannot be nil")
+	}
+
+	var result []byte
+
+	result = append(result, session.Signer.Bytes()...)
+
+	valueLimitBytes := make([]byte, 32)
+	if session.Permissions.ValueLimit != nil {
+		session.Permissions.ValueLimit.FillBytes(valueLimitBytes)
+	}
+	result = append(result, valueLimitBytes...)
+
+	deadlineBytes := make([]byte, 32)
+	if session.Permissions.Deadline != nil {
+		session.Permissions.Deadline.FillBytes(deadlineBytes)
+	}
+	result = append(result, deadlineBytes...)
+
+	if len(session.Permissions.Permissions) > 255 {
+		return nil, fmt.Errorf("too many permissions: %d", len(session.Permissions.Permissions))
+	}
+	result = append(result, byte(len(session.Permissions.Permissions)))
+
+	for _, perm := range session.Permissions.Permissions {
+		result = append(result, perm.Target.Bytes()...)
+
+		if len(perm.Rules) > 255 {
+			return nil, fmt.Errorf("too many rules: %d", len(perm.Rules))
+		}
+		result = append(result, byte(len(perm.Rules)))
+
+		for _, rule := range perm.Rules {
+			cumByte := byte(0)
+			if rule.Cumulative {
+				cumByte = 1
+			}
+			result = append(result, cumByte)
+
+			result = append(result, byte(rule.Operation))
+
+			result = append(result, rule.Value...)
+
+			offsetBytes := make([]byte, 32)
+			rule.Offset.FillBytes(offsetBytes)
+			result = append(result, offsetBytes...)
+
+			result = append(result, rule.Mask...)
 		}
 	}
-	return false
+
+	return result, nil
 }
 
-// Existing functions like packRSY remain unchanged unless needed
-func packRSY(rsy RSY) ([]byte, error) {
-	result := make([]byte, 64)
-	copy(result[0:32], rsy.R[:])
-	// Combine yParity with S[0] (adjust based on your encoding scheme)
-	yParityAndS := rsy.S[0] | (rsy.YParity & 1)
-	result[32] = yParityAndS
-	copy(result[33:], rsy.S[1:])
-	return result, nil
+// encodeLength encodes a length value into the provided byte slice
+func encodeLength(length int, dest []byte) {
+	for i := 0; i < len(dest); i++ {
+		dest[len(dest)-1-i] = byte(length & 0xFF)
+		length >>= 8
+	}
 }
 
 // minimiseSessionsTopology reduces the topology based on signers
@@ -575,6 +673,377 @@ func EncodeSessionCallSignature(sig *SessionCallSignature, permissionIndex int) 
 	}
 
 	result = append(result, sigBytes...)
+
+	return result, nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler for SessionNode
+func (s *SessionNode) UnmarshalJSON(data []byte) error {
+	type SessionNodeAlias SessionNode
+	var node SessionNodeAlias
+
+	if err := json.Unmarshal(data, &node); err == nil {
+		*s = SessionNode(node)
+		return nil
+	}
+
+	var objMap map[string]json.RawMessage
+	if err := json.Unmarshal(data, &objMap); err != nil {
+		return fmt.Errorf("failed to unmarshal session node: %w", err)
+	}
+
+	if signerBytes, ok := objMap["signer"]; ok {
+		var signerStr string
+		if err := json.Unmarshal(signerBytes, &signerStr); err == nil {
+			s.Signer = common.HexToAddress(signerStr)
+		} else {
+			if err := json.Unmarshal(signerBytes, &s.Signer); err != nil {
+				return fmt.Errorf("failed to unmarshal signer: %w", err)
+			}
+		}
+	}
+
+	hasPermissions := false
+
+	_, hasValueLimit := objMap["valueLimit"]
+	_, hasDeadline := objMap["deadline"]
+	_, hasPermsList := objMap["permissions"]
+
+	if hasValueLimit || hasDeadline || hasPermsList {
+		hasPermissions = true
+		s.Permissions = &SessionPermissions{}
+
+		if valLimitBytes, ok := objMap["valueLimit"]; ok {
+			var valLimitStr string
+			if err := json.Unmarshal(valLimitBytes, &valLimitStr); err == nil {
+				s.Permissions.ValueLimit, _ = new(big.Int).SetString(valLimitStr, 10)
+			} else {
+				var valLimit big.Int
+				if err := json.Unmarshal(valLimitBytes, &valLimit); err != nil {
+					return fmt.Errorf("failed to unmarshal valueLimit: %w", err)
+				}
+				s.Permissions.ValueLimit = &valLimit
+			}
+		}
+
+		if deadlineBytes, ok := objMap["deadline"]; ok {
+			var deadlineStr string
+			if err := json.Unmarshal(deadlineBytes, &deadlineStr); err == nil {
+				s.Permissions.Deadline, _ = new(big.Int).SetString(deadlineStr, 10)
+			} else {
+				var deadline big.Int
+				if err := json.Unmarshal(deadlineBytes, &deadline); err != nil {
+					return fmt.Errorf("failed to unmarshal deadline: %w", err)
+				}
+				s.Permissions.Deadline = &deadline
+			}
+		}
+
+		if permsBytes, ok := objMap["permissions"]; ok {
+			if err := json.Unmarshal(permsBytes, &s.Permissions.Permissions); err != nil {
+				return fmt.Errorf("failed to unmarshal permissions list: %w", err)
+			}
+		}
+	}
+
+	if childrenBytes, ok := objMap["children"]; ok {
+		if err := json.Unmarshal(childrenBytes, &s.Children); err != nil {
+			return fmt.Errorf("failed to unmarshal children: %w", err)
+		}
+	}
+
+	if hasPermissions {
+		s.Permissions = &SessionPermissions{}
+	}
+
+	return nil
+}
+
+func (s *SessionCallSignature) UnmarshalJSON(data []byte) error {
+	dataStr := string(data)
+	dataStr = strings.TrimSpace(dataStr)
+	if len(dataStr) >= 2 && dataStr[0] == '"' && dataStr[len(dataStr)-1] == '"' {
+		var inner string
+		if err := json.Unmarshal(data, &inner); err == nil {
+			dataStr = inner
+			data = []byte(inner)
+		} else {
+			return fmt.Errorf("failed to unquote data: %w", err)
+		}
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	if _, hasAttestation := parsed["attestation"]; hasAttestation {
+		attestationJSON, err := json.Marshal(parsed["attestation"])
+		if err != nil {
+			return fmt.Errorf("failed to marshal attestation: %w", err)
+		}
+		attestation, err := AttestationFromJSON(string(attestationJSON))
+		if err != nil {
+			return fmt.Errorf("failed to parse attestation: %w", err)
+		}
+
+		identitySigStr, ok := parsed["identitySignature"].(string)
+		if !ok {
+			return fmt.Errorf("identitySignature must be a string")
+		}
+		identitySignature, err := rsyFromRsvStr(identitySigStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse identitySignature: %w", err)
+		}
+
+		sessionSigStr, ok := parsed["sessionSignature"].(string)
+		if !ok {
+			return fmt.Errorf("sessionSignature must be a string")
+		}
+		sessionSignature, err := rsyFromRsvStr(sessionSigStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse sessionSignature: %w", err)
+		}
+
+		s.IsImplicit = true
+		s.Attestation = &attestation
+		s.IdentitySignature = &identitySignature
+		s.SessionSignature = sessionSignature
+		return nil
+	}
+
+	permissionIndex, ok := parsed["permissionIndex"].(string)
+	if !ok {
+		permissionIndexFloat, ok := parsed["permissionIndex"].(float64)
+		if !ok {
+			return fmt.Errorf("permissionIndex must be a string or number")
+		}
+		permissionIndex = fmt.Sprintf("%d", int(permissionIndexFloat))
+	}
+
+	sessionSigStr, ok := parsed["sessionSignature"].(string)
+	if !ok {
+		return fmt.Errorf("sessionSignature must be a string")
+	}
+
+	var sessionSignature RSY
+	if strings.HasPrefix(sessionSigStr, "0x") && strings.Contains(sessionSigStr, ":") {
+		var err error
+		sessionSignature, err = rsyFromRsvStr(sessionSigStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse sessionSignature: %w", err)
+		}
+	} else if strings.Contains(sessionSigStr, ":") {
+		parts := strings.Split(sessionSigStr, ":")
+		if len(parts) != 3 {
+			return fmt.Errorf("signature must be in r:s:v format")
+		}
+
+		if !strings.HasPrefix(parts[0], "0x") {
+			parts[0] = "0x" + parts[0]
+		}
+		if !strings.HasPrefix(parts[1], "0x") {
+			parts[1] = "0x" + parts[1]
+		}
+
+		fullSig := strings.Join(parts, ":")
+		var err error
+		sessionSignature, err = rsyFromRsvStr(fullSig)
+		if err != nil {
+			return fmt.Errorf("failed to parse sessionSignature: %w", err)
+		}
+	} else {
+		if !strings.HasPrefix(sessionSigStr, "0x") {
+			sessionSigStr = "0x" + sessionSigStr
+		}
+
+		sigBytes := common.FromHex(sessionSigStr)
+		if len(sigBytes) != 65 {
+			return fmt.Errorf("invalid signature length, expected 65 bytes, got %d bytes", len(sigBytes))
+		}
+
+		r := new(big.Int).SetBytes(sigBytes[:32])
+		s := new(big.Int).SetBytes(sigBytes[32:64])
+
+		var rBytes, sBytes [32]byte
+		r.FillBytes(rBytes[:])
+		s.FillBytes(sBytes[:])
+
+		sessionSignature = RSY{
+			R:       rBytes,
+			S:       sBytes,
+			YParity: sigBytes[64] - 27, // Adjust v from 27/28 to 0/1
+		}
+	}
+
+	s.IsImplicit = false
+	s.PermissionIndex = permissionIndex
+	s.SessionSignature = sessionSignature
+
+	return nil
+}
+
+// AttestationFromJSON converts JSON to an Attestation (placeholder)
+func AttestationFromJSON(jsonStr string) (Attestation, error) {
+	var attestation Attestation
+	if err := json.Unmarshal([]byte(jsonStr), &attestation); err != nil {
+		return Attestation{}, fmt.Errorf("failed to parse attestation: %w", err)
+	}
+	return attestation, nil
+}
+
+// rsyFromRsvStr converts a string in r:s:v format to an RSY struct
+func rsyFromRsvStr(sigStr string) (RSY, error) {
+	parts := strings.Split(sigStr, ":")
+	if len(parts) != 3 {
+		return RSY{}, fmt.Errorf("signature must be in r:s:v format")
+	}
+
+	rStr, sStr, vStr := parts[0], parts[1], parts[2]
+	if !strings.HasPrefix(rStr, "0x") {
+		rStr = "0x" + rStr
+	}
+	if !strings.HasPrefix(sStr, "0x") {
+		sStr = "0x" + sStr
+	}
+
+	rBytes := common.FromHex(rStr)
+	if len(rBytes) != 32 {
+		return RSY{}, fmt.Errorf("invalid r size, expected 32 bytes, got %d bytes", len(rBytes))
+	}
+	sBytes := common.FromHex(sStr)
+	if len(sBytes) != 32 {
+		return RSY{}, fmt.Errorf("invalid s size, expected 32 bytes, got %d bytes", len(sBytes))
+	}
+
+	v, err := strconv.Atoi(vStr)
+	if err != nil {
+		return RSY{}, fmt.Errorf("invalid v value: %w", err)
+	}
+	if v != 27 && v != 28 {
+		return RSY{}, fmt.Errorf("invalid v value, expected 27 or 28, got %d", v)
+	}
+	yParity := byte(v - 27)
+
+	r := new(big.Int).SetBytes(rBytes)
+	s := new(big.Int).SetBytes(sBytes)
+
+	var r32, s32 [32]byte
+	r.FillBytes(r32[:])
+	s.FillBytes(s32[:])
+
+	return RSY{
+		R:       r32,
+		S:       s32,
+		YParity: yParity,
+	}, nil
+}
+
+// packRSY packs an RSY signature into a byte array
+func packRSY(rsy RSY) ([]byte, error) {
+	result := make([]byte, 64)
+
+	copy(result[0:32], rsy.R[:])
+
+	yParityBit := (rsy.YParity & 0x01) << 7
+
+	sByte := (rsy.S[0] & 0x7F) | yParityBit
+	result[32] = sByte
+
+	copy(result[33:64], rsy.S[1:])
+
+	return result, nil
+}
+
+// containsAddress checks if an address is in a list
+func containsAddress(addrs []common.Address, addr common.Address) bool {
+	for _, a := range addrs {
+		if a == addr {
+			return true
+		}
+	}
+	return false
+}
+
+// encodeBlacklist encodes the blacklist into bytes
+func encodeBlacklist(blacklist []common.Address) ([]byte, error) {
+	result := []byte{}
+	for _, addr := range blacklist {
+		result = append(result, addr.Bytes()...)
+	}
+	return result, nil
+}
+
+// encodeSessionNode encodes a session node
+func encodeSessionNode(node SessionNode) ([]byte, error) {
+	result := []byte{}
+	result = append(result, node.Signer.Bytes()...)
+
+	if node.Permissions != nil {
+		valueLimit := node.Permissions.ValueLimit
+		if valueLimit == nil {
+			valueLimit = big.NewInt(0)
+		}
+
+		valueLimitBytes := make([]byte, 32)
+		valueLimit.FillBytes(valueLimitBytes)
+		result = append(result, valueLimitBytes...)
+
+		deadline := node.Permissions.Deadline
+		if deadline == nil {
+			deadline = big.NewInt(0)
+		}
+
+		deadlineBytes := make([]byte, 32)
+		deadline.FillBytes(deadlineBytes)
+		result = append(result, deadlineBytes...)
+
+		permissionsCount := len(node.Permissions.Permissions)
+		if permissionsCount > 255 {
+			return nil, fmt.Errorf("too many permissions")
+		}
+		result = append(result, byte(permissionsCount))
+
+		for _, perm := range node.Permissions.Permissions {
+			result = append(result, perm.Target.Bytes()...)
+
+			rulesCount := len(perm.Rules)
+			if rulesCount > 255 {
+				return nil, fmt.Errorf("too many rules")
+			}
+			result = append(result, byte(rulesCount))
+
+			for _, rule := range perm.Rules {
+				cumulativeByte := byte(0)
+				if rule.Cumulative {
+					cumulativeByte = 1
+				}
+				result = append(result, cumulativeByte)
+				result = append(result, byte(rule.Operation))
+				result = append(result, rule.Value...)
+				offsetBytes := make([]byte, 32)
+				rule.Offset.FillBytes(offsetBytes)
+				result = append(result, offsetBytes...)
+				result = append(result, rule.Mask...)
+			}
+		}
+	} else {
+		result = append(result, 0)
+	}
+
+	childrenCount := len(node.Children)
+	if childrenCount > 255 {
+		return nil, fmt.Errorf("too many children")
+	}
+	result = append(result, byte(childrenCount))
+
+	for _, child := range node.Children {
+		childBytes, err := encodeSessionNode(child)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, childBytes...)
+	}
 
 	return result, nil
 }
