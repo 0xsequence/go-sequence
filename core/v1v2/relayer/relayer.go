@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/core/v1v2"
+	"github.com/0xsequence/go-sequence/core/v1v2/relayer/proto"
 )
 
 type Options struct {
@@ -51,26 +51,26 @@ func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-func MetaTxnStatusFromString(s string) sequence.MetaTxnStatus {
+func MetaTxnStatusFromString(s string) v1v2.MetaTxnStatus {
 	var ethTxnStatus proto.ETHTxnStatus
 	ethTxnStatus.UnmarshalText([]byte(s))
 
 	switch ethTxnStatus {
 	case proto.ETHTxnStatus_UNKNOWN:
-		return sequence.MetaTxnStatusUnknown
+		return v1v2.MetaTxnStatusUnknown
 	case proto.ETHTxnStatus_DROPPED:
-		return sequence.MetaTxnStatusUnknown
+		return v1v2.MetaTxnStatusUnknown
 	case proto.ETHTxnStatus_QUEUED:
-		return sequence.MetaTxnStatusUnknown
+		return v1v2.MetaTxnStatusUnknown
 	case proto.ETHTxnStatus_SENT:
-		return sequence.MetaTxnStatusUnknown
+		return v1v2.MetaTxnStatusUnknown
 	case proto.ETHTxnStatus_SUCCEEDED:
-		return sequence.MetaTxnExecuted
+		return v1v2.MetaTxnExecuted
 	case proto.ETHTxnStatus_PARTIALLY_FAILED:
-		return sequence.MetaTxnFailed
+		return v1v2.MetaTxnFailed
 	case proto.ETHTxnStatus_FAILED:
-		return sequence.MetaTxnFailed
+		return v1v2.MetaTxnFailed
 	default:
-		return sequence.MetaTxnStatusUnknown
+		return v1v2.MetaTxnStatusUnknown
 	}
 }
