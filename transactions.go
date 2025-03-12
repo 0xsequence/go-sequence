@@ -12,7 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
-	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v1 "github.com/0xsequence/go-sequence/core/v1v2/v1"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
