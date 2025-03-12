@@ -1,4 +1,4 @@
-package sequence_test
+package v1v2_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core/v1v2"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func TestReceiptDecoding(t *testing.T) {
 	}
 
 	// These are wallet's intended transactions
-	bundle := sequence.Transactions{
+	bundle := v1v2.Transactions{
 		{
 			To:   callmockContract.Address,
 			Data: send[1],
@@ -50,7 +50,7 @@ func TestReceiptDecoding(t *testing.T) {
 		}, // logs: 5, balance: 8, executed
 		{
 			To: wallet.Address(),
-			Transactions: sequence.Transactions{
+			Transactions: v1v2.Transactions{
 				{
 					To:   callmockContract.Address,
 					Data: send[2],
@@ -63,11 +63,11 @@ func TestReceiptDecoding(t *testing.T) {
 		}, // logs: 9, balance: 6, executed
 		{
 			To: wallet.Address(),
-			Transactions: sequence.Transactions{
+			Transactions: v1v2.Transactions{
 				{
 					To:            wallet.Address(),
 					RevertOnError: true,
-					Transactions: sequence.Transactions{ // subBundle
+					Transactions: v1v2.Transactions{ // subBundle
 						{
 							To:            callmockContract.Address,
 							Data:          send[3],
@@ -109,7 +109,7 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, receipt.Logs, 16)
 
-	receipts, logs, err := sequence.DecodeReceipt(context.Background(), receipt, wallet.GetProvider())
+	receipts, logs, err := v1v2.DecodeReceipt(context.Background(), receipt, wallet.GetProvider())
 	assert.NoError(t, err)
 	assert.Len(t, receipts, len(bundle))
 	assert.Len(t, logs, 1+len(bundle)) // 1 NonceChange + n TxExecuted/TxFailed
@@ -121,35 +121,35 @@ func TestReceiptDecoding(t *testing.T) {
 	}
 
 	// check that all statuses are correct
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[0].Status)
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[1].Status)
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[2].Receipts[0].Status)
-	assert.Equal(t, sequence.MetaTxnFailed, receipts[2].Receipts[1].Status)
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[2].Status)
-	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Receipts[0].Status)
-	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Receipts[1].Status)
-	assert.Equal(t, sequence.MetaTxnReverted, receipts[3].Receipts[0].Status)
-	assert.Equal(t, sequence.MetaTxnFailed, receipts[3].Status)
-	assert.Equal(t, sequence.MetaTxnFailed, receipts[4].Status)
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[5].Status)
-	assert.Equal(t, sequence.MetaTxnFailed, receipts[6].Status)
-	assert.Equal(t, sequence.MetaTxnExecuted, receipts[7].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[0].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[1].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[2].Receipts[0].Status)
+	assert.Equal(t, v1v2.MetaTxnFailed, receipts[2].Receipts[1].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[2].Status)
+	assert.Equal(t, v1v2.MetaTxnReverted, receipts[3].Receipts[0].Receipts[0].Status)
+	assert.Equal(t, v1v2.MetaTxnReverted, receipts[3].Receipts[0].Receipts[1].Status)
+	assert.Equal(t, v1v2.MetaTxnReverted, receipts[3].Receipts[0].Status)
+	assert.Equal(t, v1v2.MetaTxnFailed, receipts[3].Status)
+	assert.Equal(t, v1v2.MetaTxnFailed, receipts[4].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[5].Status)
+	assert.Equal(t, v1v2.MetaTxnFailed, receipts[6].Status)
+	assert.Equal(t, v1v2.MetaTxnExecuted, receipts[7].Status)
 
 	// check that all top-level logs are correct
 	metaTxnID := string(receipts[0].MetaTxnID)
-	_, _, err = sequence.DecodeNonceChangeEvent(logs[0])
+	_, _, err = v1v2.DecodeNonceChangeEvent(logs[0])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[1].Data))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[2].Data))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[3].Data))
-	hash, _, err := sequence.V1DecodeTxFailedEvent(logs[4])
+	hash, _, err := v1v2.V1DecodeTxFailedEvent(logs[4])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
-	hash, _, err = sequence.V1DecodeTxFailedEvent(logs[5])
+	hash, _, err = v1v2.V1DecodeTxFailedEvent(logs[5])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[6].Data))
-	hash, _, err = sequence.V1DecodeTxFailedEvent(logs[7])
+	hash, _, err = v1v2.V1DecodeTxFailedEvent(logs[7])
 	assert.NoError(t, err)
 	assert.Equal(t, metaTxnID, hex.EncodeToString(hash[:]))
 	assert.Equal(t, metaTxnID, hex.EncodeToString(logs[8].Data))
@@ -169,13 +169,13 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.Len(t, receipts[6].Logs, 0)
 	assert.Len(t, receipts[7].Logs, 1)
 
-	// check that sequence.DecodeTxFailedEvent can decode TxFailed events
-	_, reason, err := sequence.V1DecodeTxFailedEvent(receipts[2].Logs[1])
+	// check that v1v2.DecodeTxFailedEvent can decode TxFailed events
+	_, reason, err := v1v2.V1DecodeTxFailedEvent(receipts[2].Logs[1])
 	assert.NoError(t, err)
 	assert.Equal(t, reason, receipts[2].Receipts[1].Reason)
 
 	// check that Receipt.Find() can find our sub-bundle
-	subBundle := sequence.Transactions{
+	subBundle := v1v2.Transactions{
 		{
 			To:            callmockContract.Address,
 			Data:          send[3],
@@ -187,12 +187,12 @@ func TestReceiptDecoding(t *testing.T) {
 			RevertOnError: true,
 		},
 	}
-	subBundleID, _, err := sequence.ComputeMetaTxnID(wallet.GetChainID(), wallet.Address(), subBundle, nil, sequence.MetaTxnSelfExec)
+	subBundleID, _, err := v1v2.ComputeMetaTxnID(wallet.GetChainID(), wallet.Address(), subBundle, nil, v1v2.MetaTxnSelfExec)
 	assert.NoError(t, err)
 	assert.Equal(t, receipts[3].Find(subBundleID), receipts[3].Receipts[0])
 }
 
-func hasNativeReceipt(receipt *sequence.Receipt, native *types.Receipt) bool {
+func hasNativeReceipt(receipt *v1v2.Receipt, native *types.Receipt) bool {
 	if receipt.Receipt != native {
 		return false
 	}
@@ -206,7 +206,7 @@ func hasNativeReceipt(receipt *sequence.Receipt, native *types.Receipt) bool {
 	return true
 }
 
-func haveSameMetaTxnID(receipts []*sequence.Receipt) bool {
+func haveSameMetaTxnID(receipts []*v1v2.Receipt) bool {
 	if len(receipts) <= 1 {
 		return true
 	}
@@ -228,7 +228,7 @@ func haveSameMetaTxnID(receipts []*sequence.Receipt) bool {
 	return true
 }
 
-func areIsomorphic(receipt *sequence.Receipt, transaction *sequence.Transaction) error {
+func areIsomorphic(receipt *v1v2.Receipt, transaction *v1v2.Transaction) error {
 	if receipt.Transaction != transaction {
 		return fmt.Errorf("receipt.Transaction != transaction")
 	}

@@ -1,4 +1,4 @@
-package sequence_test
+package v1v2_test
 
 import (
 	"math/big"
@@ -9,15 +9,15 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
-	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/core/v1v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	rpcURLEthereum = "https://nodes.sequence.app/mainnet"
-	rpcURLArbitrum = "https://nodes.sequence.app/arbitrum"
+	rpcURLEthereum = "https://nodes.v1v2.app/mainnet"
+	rpcURLArbitrum = "https://nodes.v1v2.app/arbitrum"
 )
 
 func TestIsValidMessageSignatureEOA(t *testing.T) {
@@ -33,7 +33,7 @@ func TestIsValidMessageSignatureEOA(t *testing.T) {
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(eoa.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := v1v2.IsValidMessageSignature(eoa.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -43,7 +43,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := v1v2.NewWalletSingleOwner(eoa)
 	assert.NoError(t, err)
 
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
@@ -57,10 +57,10 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 	signature, err := wallet.SignMessage([]byte(eip191Message))
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
+	signature, err = v1v2.EIP6492Signature(signature, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := v1v2.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -68,7 +68,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 func TestIsValidSignatureEIP712Sequence(t *testing.T) {
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := v1v2.NewWalletSingleOwner(eoa)
 	assert.NoError(t, err)
 
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
@@ -120,10 +120,10 @@ func TestIsValidSignatureEIP712Sequence(t *testing.T) {
 	require.NotNil(t, sig)
 	require.NotNil(t, encodedTypedData)
 
-	signature, err := sequence.EIP6492Signature(sig, wallet.GetWalletConfig())
+	signature, err := v1v2.EIP6492Signature(sig, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidTypedDataSignature(wallet.Address(), encodedTypedData, signature, big.NewInt(1), provider, nil)
+	isValid, err := v1v2.IsValidTypedDataSignature(wallet.Address(), encodedTypedData, signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -133,10 +133,10 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := v1v2.NewWalletSingleOwner(eoa)
 	require.NoError(t, err)
 
-	walletChild, err := sequence.NewWalletSingleOwner(wallet)
+	walletChild, err := v1v2.NewWalletSingleOwner(wallet)
 	require.NoError(t, err)
 
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
@@ -153,10 +153,10 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 	signature, err := walletChild.SignMessage([]byte(eip191Message))
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})
+	signature, err = v1v2.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(walletChild.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := v1v2.IsValidMessageSignature(walletChild.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -171,35 +171,35 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 		},
 	}, &signature{
@@ -207,35 +207,35 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 		},
 	})
@@ -246,35 +246,35 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 		},
 	}, &signature{
@@ -282,35 +282,35 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 3,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 		},
 	})
@@ -321,23 +321,23 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 5,
@@ -346,43 +346,43 @@ func TestSignatureReduction(t *testing.T) {
 					Signers: []*signaturePart{
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 					},
 				},
@@ -393,23 +393,23 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 			{
 				Weight: 5,
@@ -418,43 +418,43 @@ func TestSignatureReduction(t *testing.T) {
 					Signers: []*signaturePart{
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeAddress,
+							Type:   v1v2.SignaturePartTypeAddress,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 					},
 				},
@@ -468,23 +468,23 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 5,
@@ -493,43 +493,43 @@ func TestSignatureReduction(t *testing.T) {
 					Signers: []*signaturePart{
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 					},
 				},
@@ -540,27 +540,27 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 5,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 		},
 	})
@@ -571,11 +571,11 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 2,
@@ -584,11 +584,11 @@ func TestSignatureReduction(t *testing.T) {
 					Signers: []*signaturePart{
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 						{
 							Weight: 1,
-							Type:   sequence.SignaturePartTypeEOA,
+							Type:   v1v2.SignaturePartTypeEOA,
 						},
 					},
 				},
@@ -599,15 +599,15 @@ func TestSignatureReduction(t *testing.T) {
 		Signers: []*signaturePart{
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 1,
-				Type:   sequence.SignaturePartTypeEOA,
+				Type:   v1v2.SignaturePartTypeEOA,
 			},
 			{
 				Weight: 2,
-				Type:   sequence.SignaturePartTypeAddress,
+				Type:   v1v2.SignaturePartTypeAddress,
 			},
 		},
 	})
@@ -631,34 +631,34 @@ type signaturePart struct {
 	Signature *signature
 }
 
-func toSequenceSignature(s *signature) *sequence.Signature {
-	var signers sequence.SignatureParts
+func toSequenceSignature(s *signature) *v1v2.Signature {
+	var signers v1v2.SignatureParts
 	for _, signer := range s.Signers {
-		part := sequence.SignaturePart{
+		part := v1v2.SignaturePart{
 			Weight: signer.Weight,
 			Type:   signer.Type,
 		}
 
 		if signer.Signature != nil {
-			part.Type = sequence.SignaturePartTypeDynamic
+			part.Type = v1v2.SignaturePartTypeDynamic
 			part.Value, _ = toSequenceSignature(signer.Signature).Encode()
-			part.Value = append(part.Value, sequence.SignatureTypeEip1271)
-		} else if signer.Type == sequence.SignaturePartTypeEOA {
+			part.Value = append(part.Value, v1v2.SignatureTypeEip1271)
+		} else if signer.Type == v1v2.SignaturePartTypeEOA {
 			wallet, _ := ethwallet.NewWalletFromRandomEntropy()
 			part.Value, _ = wallet.SignMessage([]byte(message))
-			part.Value = append(part.Value, sequence.SignatureTypeEthSign)
+			part.Value = append(part.Value, v1v2.SignatureTypeEthSign)
 		}
 
 		signers = append(signers, &part)
 	}
 
-	return &sequence.Signature{
+	return &v1v2.Signature{
 		Threshold: s.Threshold,
 		Signers:   signers,
 	}
 }
 
-func fromSequenceSignature(s *sequence.Signature) *signature {
+func fromSequenceSignature(s *v1v2.Signature) *signature {
 	var signers []*signaturePart
 	for _, signer := range s.Signers {
 		part := signaturePart{
@@ -666,8 +666,8 @@ func fromSequenceSignature(s *sequence.Signature) *signature {
 			Type:   signer.Type,
 		}
 
-		if signer.Type == sequence.SignaturePartTypeDynamic {
-			sig, _ := sequence.GenericDecodeSignature(signer.Value[:len(signer.Value)-1])
+		if signer.Type == v1v2.SignaturePartTypeDynamic {
+			sig, _ := v1v2.GenericDecodeSignature(signer.Value[:len(signer.Value)-1])
 			part.Signature = fromSequenceSignature(sig)
 		}
 

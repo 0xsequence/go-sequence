@@ -1,4 +1,4 @@
-package sequence_test
+package v1v2_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-ethauth"
-	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core/v1v2"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/goware/logger"
 	"github.com/stretchr/testify/assert"
@@ -19,11 +19,11 @@ func TestEthAuthEIP6492(t *testing.T) {
 	signer, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	wallet, err := sequence.NewWalletSingleOwner(signer)
+	wallet, err := v1v2.NewWalletSingleOwner(signer)
 	assert.NoError(t, err)
 
 	log := logger.NewLogger(logger.LogLevel_INFO)
-	ethAuth, err := ethauth.New(sequence.ValidateSequenceAccountProof(log))
+	ethAuth, err := ethauth.New(v1v2.ValidateSequenceAccountProof(log))
 	assert.NoError(t, err)
 	err = ethAuth.ConfigJsonRpcProvider(testutil.DefaultTestChainOptions.NodeURL)
 	assert.NoError(t, err)
@@ -42,7 +42,7 @@ func TestEthAuthEIP6492(t *testing.T) {
 	signature, err := wallet.SignDigest(context.Background(), digest, testChain.ChainID())
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
+	signature, err = v1v2.EIP6492Signature(signature, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
 	proof.Signature = hexutil.Encode(signature)

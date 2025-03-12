@@ -16,13 +16,13 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/core/v1v2"
 	"github.com/stretchr/testify/assert"
 )
 
-var sequenceContext = sequence.WalletContext{
+var sequenceContext = v1v2.WalletContext{
 	FactoryAddress:              common.HexToAddress("0xf9D09D634Fb818b05149329C1dcCFAeA53639d96"),
 	MainModuleAddress:           common.HexToAddress("0xd01F11855bCcb95f88D7A48492F66410d4637313"),
 	MainModuleUpgradableAddress: common.HexToAddress("0x7EFE6cE415956c5f80C6530cC6cc81b4808F6118"),
@@ -31,7 +31,7 @@ var sequenceContext = sequence.WalletContext{
 	CreationCode:                hexutil.Encode(contracts.V1.CreationCode),
 }
 
-var sequenceContextV2 = sequence.WalletContext{
+var sequenceContextV2 = v1v2.WalletContext{
 	FactoryAddress:              common.HexToAddress("0xFaA5c0b14d1bED5C888Ca655B9a8A5911F78eF4A"),
 	MainModuleAddress:           common.HexToAddress("0xfBf8f1A5E00034762D928f46d438B947f5d4065d"),
 	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
@@ -40,36 +40,36 @@ var sequenceContextV2 = sequence.WalletContext{
 	CreationCode:                hexutil.Encode(contracts.V2.CreationCode),
 }
 
-var sequenceContextV3 = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0x4B755c6A321C86bD35bBbb5CD56321FE48b51d1e"),
-	MainModuleAddress:           common.HexToAddress("0x60f9f4D6dE7652cDA9032015Ad7768ceA345AA03"),
-	MainModuleUpgradableAddress: common.HexToAddress("0xF0097C3c3140cB82E5c3B1716239B88C1d50915b"),
-	GuestModuleAddress:          common.HexToAddress("0x795D33818a6F6a719C34b6f9591EC74d3Ee26b47"),
-	UtilsAddress:                common.HexToAddress("0x60f9f4D6dE7652cDA9032015Ad7768ceA345AA03"),
-	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
-}
+// var sequenceContextV3 = v1v2.WalletContext{
+// 	FactoryAddress:              common.HexToAddress("0x4B755c6A321C86bD35bBbb5CD56321FE48b51d1e"),
+// 	MainModuleAddress:           common.HexToAddress("0x60f9f4D6dE7652cDA9032015Ad7768ceA345AA03"),
+// 	MainModuleUpgradableAddress: common.HexToAddress("0xF0097C3c3140cB82E5c3B1716239B88C1d50915b"),
+// 	GuestModuleAddress:          common.HexToAddress("0x795D33818a6F6a719C34b6f9591EC74d3Ee26b47"),
+// 	UtilsAddress:                common.HexToAddress("0x60f9f4D6dE7652cDA9032015Ad7768ceA345AA03"),
+// 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
+// }
 
-func SequenceContext() sequence.WalletContext {
+func SequenceContext() v1v2.WalletContext {
 	return sequenceContextV2
 }
 
-func V1SequenceContext() sequence.WalletContext {
+func V1SequenceContext() v1v2.WalletContext {
 	return sequenceContext
 }
 
-func V2SequenceContext() sequence.WalletContext {
+func V2SequenceContext() v1v2.WalletContext {
 	return sequenceContextV2
 }
 
-func V3SequenceContext() sequence.WalletContext {
-	return sequenceContextV3
-}
+// func V3SequenceContext() v1v2.WalletContext {
+// 	return sequenceContextV3
+// }
 
-func SequenceContexts() map[uint8]sequence.WalletContext {
-	return map[uint8]sequence.WalletContext{
+func SequenceContexts() map[uint8]v1v2.WalletContext {
+	return map[uint8]v1v2.WalletContext{
 		1: sequenceContext,
 		2: sequenceContextV2,
-		3: sequenceContextV3,
+		// 3: sequenceContextV3,
 	}
 }
 
@@ -109,8 +109,8 @@ func DummyPrivateKey(seed uint64) string {
 	return fmt.Sprintf("%064x", seed)
 }
 
-func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
-	stx := &sequence.Transaction{
+func SignAndSend[C core.WalletConfig](t *testing.T, wallet *v1v2.Wallet[C], to common.Address, data []byte) error {
+	stx := &v1v2.Transaction{
 		// DelegateCall:  false,
 		// RevertOnError: false,
 		// GasLimit: big.NewInt(800000),
@@ -122,7 +122,7 @@ func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *v1v2.Wallet[C], stx *v1v2.Transaction) error {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
@@ -142,10 +142,10 @@ func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequen
 	return err
 }
 
-func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {
-	var stxs []*sequence.Transaction
+func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *v1v2.Wallet[C], to common.Address, data [][]byte) error {
+	var stxs []*v1v2.Transaction
 	for i := 0; i < len(data); i++ {
-		stxs = append(stxs, &sequence.Transaction{
+		stxs = append(stxs, &v1v2.Transaction{
 			// DelegateCall:  false,
 			// RevertOnError: false,
 			// GasLimit: big.NewInt(800000),

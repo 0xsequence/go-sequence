@@ -18,7 +18,7 @@ import (
 
 // Sequence Universal Deployer constant values, do not change these.
 //
-// See: https://github.com/0xsequence/sequence.js/blob/master/packages/deployer/src/constants.ts
+// See: https://github.com/0xsequence/v1v2.js/blob/master/packages/deployer/src/constants.ts
 // which are the identical values to the ones below.
 
 var (
@@ -35,7 +35,7 @@ var (
 	// it however, then make sure to also update UNIVERSAL_DEPLOYER_2_ADDRESS.
 	//
 	// this value was originally copied from typings/contracts/factories/UniversalDeployer2__factory.ts
-	// from https://github.com/0xsequence/sequence.js/blob/master/packages/deployer
+	// from https://github.com/0xsequence/v1v2.js/blob/master/packages/deployer
 	UNIVERSAL_DEPLOYER_2_BYTECODE = common.FromHex("0x608060405234801561001057600080fd5b5061013d806100206000396000f3fe60806040526004361061001e5760003560e01c80639c4ae2d014610023575b600080fd5b6100cb6004803603604081101561003957600080fd5b81019060208101813564010000000081111561005457600080fd5b82018360208201111561006657600080fd5b8035906020019184600183028401116401000000008311171561008857600080fd5b91908080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525092955050913592506100cd915050565b005b60008183516020850134f56040805173ffffffffffffffffffffffffffffffffffffffff83168152905191925081900360200190a050505056fea264697066735822122033609f614f03931b92d88c309d698449bb77efcd517328d341fa4f923c5d8c7964736f6c63430007060033")
 
 	UNIVERSAL_DEPLOYER_2_ABI = ethcontract.MustParseABI(`[

@@ -1,4 +1,4 @@
-package sequence_test
+package v1v2_test
 
 import (
 	"context"
@@ -13,10 +13,11 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v1v2 "github.com/0xsequence/go-sequence/core/v1v2"
+	"github.com/0xsequence/go-sequence/core/v1v2/relayer"
 	v1 "github.com/0xsequence/go-sequence/core/v1v2/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v1v2/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/relayer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func TestWalletAddress(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
 
-		w, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
+		w, err := v1v2.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
 			CreationCode:      hexutil.Encode(contracts.V1.CreationCode),
@@ -43,7 +44,7 @@ func TestWalletAddress(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
 
-		w, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, sequence.WalletContext{
+		w, err := v1v2.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
 			CreationCode:      hexutil.Encode(contracts.V2.CreationCode),
@@ -58,7 +59,7 @@ func TestWalletAddress(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "0x1d76701Ba8B8B87Eb36C4cB30B17aea32c22846c", eoa.Address().Hex())
 
-		w, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, sequence.WalletContext{
+		w, err := v1v2.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3"),
 			MainModuleAddress: common.HexToAddress("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"),
 			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
@@ -71,12 +72,12 @@ func TestWalletAddress(t *testing.T) {
 
 func TestWalletSignMessage(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
-		// base on test in https://github.com/0xsequence/sequence.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
+		// base on test in https://github.com/0xsequence/v1v2.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
 		eoa, err := ethwallet.NewWalletFromPrivateKey("87306d4b9fe56c2af23c7cc3bc69914eba8f7c8fc1d35b4c9a7dd7ea198a428b")
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, sequence.WalletContext{
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
 			CreationCode:      hexutil.Encode(contracts.V1.CreationCode),
@@ -97,12 +98,12 @@ func TestWalletSignMessage(t *testing.T) {
 	})
 
 	t.Run("v2", func(t *testing.T) {
-		// base on test in https://github.com/0xsequence/sequence.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
+		// base on test in https://github.com/0xsequence/v1v2.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
 		eoa, err := ethwallet.NewWalletFromPrivateKey("87306d4b9fe56c2af23c7cc3bc69914eba8f7c8fc1d35b4c9a7dd7ea198a428b")
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, sequence.WalletContext{
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
 			CreationCode:      hexutil.Encode(contracts.V2.CreationCode),
@@ -127,7 +128,7 @@ func TestWalletSignMessage(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, sequence.WalletContext{
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, v1v2.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
 			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
@@ -150,12 +151,12 @@ func TestWalletSignMessage(t *testing.T) {
 
 func TestWalletSignMessageAndValidate(t *testing.T) {
 	t.Run("v1", func(t *testing.T) {
-		// base on test in https://github.com/0xsequence/sequence.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
+		// base on test in https://github.com/0xsequence/v1v2.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
 		eoa, err := ethwallet.NewWalletFromPrivateKey("87306d4b9fe56c2af23c7cc3bc69914eba8f7c8fc1d35b4c9a7dd7ea198a428b")
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
 		assert.NoError(t, err)
 		assert.Equal(t, "0xdb6a2e3368C302723B71A1Cd154510a11952998E", wallet.Address().Hex())
 
@@ -169,18 +170,18 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		expectedSig := "0x00010001aea46cf46662768aa0287f04788afeaf84ed12eda6dd759bdb500db113b289b20cbc85a8dbb040e14082b401b081e33f16a9685993b168212a1a0f4e686cb8b31c02"
 		assert.Equal(t, expectedSig, ethcoder.HexEncode(sig))
 
-		isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)
+		isValidSig, err := wallet.IsValidSignature(v1v2.MessageDigest(ethcoder.MustHexDecode(message)), sig)
 		assert.NoError(t, err)
 		assert.True(t, isValidSig)
 	})
 
 	t.Run("v2", func(t *testing.T) {
-		// base on test in https://github.com/0xsequence/sequence.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
+		// base on test in https://github.com/0xsequence/v1v2.js/blob/master/packages/wallet/tests/wallet.unit.spec.ts
 		eoa, err := ethwallet.NewWalletFromPrivateKey("87306d4b9fe56c2af23c7cc3bc69914eba8f7c8fc1d35b4c9a7dd7ea198a428b")
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
 		assert.NoError(t, err)
 		assert.Equal(t, "0xA26bE1afd2517c4Da0FA0464953EC0D43aA0552b", wallet.Address().Hex())
 
@@ -194,7 +195,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		expectedSig := "0x010001000000000001a91667dc105882d23a555c49e0e76a135c70bf7e4493cc9550a1bff6ffb7525372c7f67e8d6e18ccba35bdabe9264c8241c6a7fec88ccd8b74fcf680f83009541b02"
 		assert.Equal(t, expectedSig, ethcoder.HexEncode(sig))
 
-		isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)
+		isValidSig, err := wallet.IsValidSignature(v1v2.MessageDigest(ethcoder.MustHexDecode(message)), sig)
 		assert.NoError(t, err)
 		assert.True(t, isValidSig)
 	})
@@ -204,7 +205,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "0xd63A09C47FDc03e2Cff620446b37f205A7D0679D", eoa.Address().Hex())
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
 		assert.NoError(t, err)
 		assert.Equal(t, "0x7AFC40947041350252C4E86F7581fA3a4fE6eb07", wallet.Address().Hex())
 
@@ -218,7 +219,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		expectedSig := "0x04000171a25c939935e4913e0f2fee8af8318b521903bac0b3c81d2ff09cfaf76593c508d7ee20a50cc8e1a245d6fb80edbc66f6a25f70822b69005b4d9e458d909e3992"
 		assert.Equal(t, expectedSig, ethcoder.HexEncode(sig))
 
-		isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)
+		isValidSig, err := wallet.IsValidSignature(v1v2.MessageDigest(ethcoder.MustHexDecode(message)), sig)
 		assert.NoError(t, err)
 		assert.True(t, isValidSig)
 	})
@@ -232,7 +233,7 @@ func TestWalletDeploy(t *testing.T) {
 		rel, err := relayer.NewLocalRelayer(testChain.MustWallet(0), nil)
 		require.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		err = wallet.SetProvider(testChain.Provider)
@@ -259,7 +260,7 @@ func TestWalletDeploy(t *testing.T) {
 		rel, err := relayer.NewLocalRelayer(testChain.MustWallet(0), nil)
 		require.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		err = wallet.SetProvider(testChain.Provider)
@@ -286,7 +287,7 @@ func TestWalletDeploy(t *testing.T) {
 		rel, err := relayer.NewLocalRelayer(testChain.MustWallet(0), nil)
 		require.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		err = wallet.SetProvider(testChain.Provider)
@@ -312,7 +313,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		wallet.SetChainID(big.NewInt(3))
@@ -331,7 +332,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		assert.GreaterOrEqual(t, 0, weight.Cmp(big.NewInt(0).SetUint64(uint64(recoveredWalletConfig.Threshold_))))
 		assert.Len(t, recoveredWalletConfig.Signers_, 1)
 
-		address, err := sequence.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -340,7 +341,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		wallet.SetChainID(big.NewInt(3))
@@ -359,7 +360,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		assert.GreaterOrEqual(t, 0, weight.Cmp(big.NewInt(0).SetUint64(uint64(recoveredWalletConfig.Threshold_))))
 		assert.Equal(t, recoveredWalletConfig.Tree.ImageHash(), wallet.GetWalletConfig().Tree.ImageHash())
 
-		address, err := sequence.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -368,7 +369,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
+		wallet, err := v1v2.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
 		assert.NoError(t, err)
 
 		wallet.SetChainID(big.NewInt(3))
@@ -381,7 +382,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		digest := core.Digest{Hash: common.BytesToHash(ethcoder.Keccak256([]byte(message)))}
-		subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), digest.Hash)
+		subDigest, err := v1v2.SubDigest(wallet.GetChainID(), wallet.Address(), digest.Hash)
 		assert.NoError(t, err)
 
 		recoveredWalletConfig, weight, err := s.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(subDigest)}, wallet.Address(), wallet.GetChainID(), testChain.Provider)
@@ -391,7 +392,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		assert.GreaterOrEqual(t, 0, weight.Cmp(big.NewInt(0).SetUint64(uint64(recoveredWalletConfig.Threshold_))))
 		assert.Equal(t, recoveredWalletConfig.Tree.ImageHash(), wallet.GetWalletConfig().Tree.ImageHash())
 
-		address, err := sequence.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(recoveredWalletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -413,9 +414,9 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 			},
 		}
 
-		sequence.V1SortWalletConfig(walletConfig)
+		v1v2.V1SortWalletConfig(walletConfig)
 
-		wallet, err := sequence.GenericNewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
+		wallet, err := v1v2.GenericNewWallet[*v1.WalletConfig](v1v2.WalletOptions[*v1.WalletConfig]{
 			Config: walletConfig,
 		}, eoa1)
 		assert.NoError(t, err)
@@ -426,17 +427,17 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
-		subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
+		subDigest, err := v1v2.SubDigest(wallet.GetChainID(), wallet.Address(), common.BytesToHash(ethcoder.Keccak256([]byte(message))))
 		assert.NoError(t, err)
 
-		recoveredWalletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v1.WalletConfig](subDigest, sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+		recoveredWalletConfig, weight, err := v1v2.GenericRecoverWalletConfigFromDigest[*v1.WalletConfig](subDigest, sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold())
 		assert.Equal(t, weight.Cmp(big.NewInt(int64(2))), 0)
 		assert.Len(t, recoveredWalletConfig.Signers(), 2)
 
-		address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -460,7 +461,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 			},
 		}
 
-		wallet, err := sequence.GenericNewWallet[*v2.WalletConfig](sequence.WalletOptions[*v2.WalletConfig]{
+		wallet, err := v1v2.GenericNewWallet[*v2.WalletConfig](v1v2.WalletOptions[*v2.WalletConfig]{
 			Config: walletConfig,
 		}, eoa1)
 		assert.NoError(t, err)
@@ -471,14 +472,14 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
-		recoveredWalletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+		recoveredWalletConfig, weight, err := v1v2.GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold())
 		assert.Equal(t, weight.Cmp(big.NewInt(int64(2))), 0)
 		assert.Len(t, recoveredWalletConfig.Signers(), 2)
 
-		address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -502,7 +503,7 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 			},
 		}
 
-		wallet, err := sequence.GenericNewWallet[*v3.WalletConfig](sequence.WalletOptions[*v3.WalletConfig]{
+		wallet, err := v1v2.GenericNewWallet[*v3.WalletConfig](v1v2.WalletOptions[*v3.WalletConfig]{
 			Config: walletConfig,
 		}, eoa1)
 		assert.NoError(t, err)
@@ -513,14 +514,14 @@ func TestWalletSignAndRecoverConfigOfMultipleSigners(t *testing.T) {
 		sig, err := wallet.SignMessage([]byte(message))
 		assert.NoError(t, err)
 
-		recoveredWalletConfig, weight, err := sequence.GenericRecoverWalletConfigFromDigest[*v3.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
+		recoveredWalletConfig, weight, err := v1v2.GenericRecoverWalletConfigFromDigest[*v3.WalletConfig](ethcoder.Keccak256([]byte(message)), sig, wallet.Address(), wallet.GetWalletContext(), wallet.GetChainID(), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(3), recoveredWalletConfig.Threshold())
 		assert.Equal(t, weight.Cmp(big.NewInt(int64(2))), 0)
 		assert.Len(t, recoveredWalletConfig.Signers(), 2)
 
-		address, err := sequence.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
+		address, err := v1v2.AddressFromWalletConfig(walletConfig, wallet.GetWalletContext())
 		assert.NoError(t, err)
 		assert.Equal(t, wallet.Address(), address)
 	})
@@ -546,7 +547,7 @@ func TestShouldIgnoreConfigSortV1(t *testing.T) {
 		Signers_:   signers,
 	}
 
-	wallet, err := sequence.GenericNewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
+	wallet, err := v1v2.GenericNewWallet[*v1.WalletConfig](v1v2.WalletOptions[*v1.WalletConfig]{
 		Config:          walletConfig,
 		SkipSortSigners: true,
 	}, eoa1)
@@ -576,9 +577,9 @@ func TestWalletWithNonDeterministicConfigV1(t *testing.T) {
 		},
 	}
 
-	sequence.V1SortWalletConfig(walletConfig)
+	v1v2.V1SortWalletConfig(walletConfig)
 
-	wallet, err := sequence.GenericNewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
+	wallet, err := v1v2.GenericNewWallet[*v1.WalletConfig](v1v2.WalletOptions[*v1.WalletConfig]{
 		Config:          walletConfig,
 		Address:         randomAddr,
 		SkipSortSigners: true,
@@ -656,7 +657,7 @@ func TestWalletSignDigestWithNotFirstSigner(t *testing.T) {
 		},
 	}
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+	wallet, err := v1v2.NewWallet(v1v2.WalletOptions[*v2.WalletConfig]{
 		Config: walletConfig,
 	}, &NotFirstTestSigner{Wallet: eoa2}, eoa1)
 	require.NoError(t, err)
@@ -667,7 +668,7 @@ func TestWalletSignDigestWithNotFirstSigner(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, sig)
 
-	wallet, err = sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+	wallet, err = v1v2.NewWallet(v1v2.WalletOptions[*v2.WalletConfig]{
 		Config: walletConfig,
 	}, eoa1, &NotFirstTestSigner{Wallet: eoa2})
 	require.NoError(t, err)
@@ -715,7 +716,7 @@ func TestWalletLazyDeployment(t *testing.T) {
 		},
 	}
 
-	wallet, err := sequence.NewWallet(sequence.WalletOptions[*v2.WalletConfig]{
+	wallet, err := v1v2.NewWallet(v1v2.WalletOptions[*v2.WalletConfig]{
 		Config: walletConfig,
 	}, eoa1)
 	require.NoError(t, err)
@@ -736,7 +737,7 @@ func TestWalletLazyDeployment(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, isDeployed)
 
-	sigTx, err := wallet.SignTransaction(context.Background(), &sequence.Transaction{
+	sigTx, err := wallet.SignTransaction(context.Background(), &v1v2.Transaction{
 		To:    eoa1.Address(),
 		Value: big.NewInt(1),
 	})
