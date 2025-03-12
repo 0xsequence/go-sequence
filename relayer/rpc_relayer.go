@@ -17,6 +17,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -155,15 +158,32 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		}
 	}
 
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		signedTxs.WalletAddress,
-		signedTxs.WalletConfig,
-		signedTxs.WalletContext,
-		signedTxs.Transactions,
-		signedTxs.Nonce,
-		signedTxs.Signature,
-	)
+	var to common.Address
+	var execdata []byte
+	switch signedTxs.WalletConfig.(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelaying(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	case *v3.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.ChainID,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Space,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	}
 	if err != nil {
 		return "", nil, nil, err
 	}

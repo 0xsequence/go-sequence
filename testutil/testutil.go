@@ -583,6 +583,7 @@ func (c *TestChain) RandomNonce() *big.Int {
 	return encoded
 }
 
+// ... existing code ...
 func (c *TestChain) V1DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))

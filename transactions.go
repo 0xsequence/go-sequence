@@ -328,6 +328,7 @@ type SignedTransactions struct {
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
+	Space        *big.Int     // Nonce space of the transactions
 	Nonce        *big.Int     // Nonce of the transactions
 	Digest       common.Hash  // Digest of the transactions
 	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
@@ -354,22 +355,21 @@ var (
 	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
 	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
 	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	V2TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+	V2TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32,uint256)")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
 
-	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v3)
-	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
-	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	V3TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
-
-	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v3)
-	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
-	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	V3TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	// 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd
+	V3CallSuccess = MustEncodeSig("CallSuccess(bytes32,uint256)")
+	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
+	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
+	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b
+	V3CallAborted = MustEncodeSig("CallAborted(bytes32,uint256,bytes)")
+	// 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b
+	V3CallSkipped = MustEncodeSig("CallSkipped(bytes32,uint256)")
 )
 
 // EncodeNonce with space

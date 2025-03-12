@@ -66,3 +66,31 @@ jobs:
 
       - name: Test
         run: make test
+
+  v3-workflow:
+    name: Workflow for V3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Commit SHA
+        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}"
+      - name: Trigger Private Workflow
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context;
+            const privateOwner = '0xsequence';
+            const privateRepo = 'sequence-v3';
+            const workflowId = 13719302078;
+            const token = ${{ secrets.GITHUB_TOKEN }};
+            const octokit = new Octokit({ auth: token });
+            await octokit.rest.repos.createDispatchEvent({
+              owner: privateOwner,
+              repo: privateRepo,
+              workflow_id: workflowId,
+              ref: 'main',
+              inputs: {
+                sdk_type: 'go',
+                commit_hash: process.env.COMMIT_SHA
+              }
+            });

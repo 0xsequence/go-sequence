@@ -157,30 +157,104 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
-func V3IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
-	return len(log.Topics) == 2 &&
-		log.Topics[0] == V3TxExecutedEventSig &&
-		bytes.Equal(log.Topics[1][:], hash[:])
+func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSuccess {
+		return false
+	}
+	transaction, _, err := V3DecodeCallSuccessEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
 }
 
-func V3IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
-	return len(log.Topics) == 2 &&
-		log.Topics[0] == V3TxFailedEventSig &&
-		bytes.Equal(log.Topics[1][:], hash[:])
+func V3IsCallFailedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallFailed {
+		return false
+	}
+	transaction, _, _, err := V3DecodeCallFailedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
 }
 
-func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
-	return V2IsTxExecutedEvent(log, hash)
+func V3IsCallAbortedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallAborted {
+		return false
+	}
+	transaction, _, _, err := V3DecodeCallAbortedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3IsCallSkippedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSkipped {
+		return false
+	}
+	transaction, _, err := V3DecodeCallSkippedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3DecodeCallSuccessEvent(log *types.Log) (common.Hash, *big.Int, error) {
+	var transaction common.Hash
+	var index *big.Int
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
+	if err != nil {
+		return common.Hash{}, nil, err
+	}
+	return transaction, index, nil
+}
+
+func V3DecodeCallFailedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
+	var transaction common.Hash
+	var index *big.Int
+	var result []byte
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallFailed event: %w", err)
+	}
+	revert, err := abi.UnpackRevert(result)
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to unpack revert: %w", err)
+	}
+	return transaction, index, revert, nil
+}
+
+func V3DecodeCallAbortedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
+	var transaction common.Hash
+	var index *big.Int
+	var result []byte
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallAborted event: %w", err)
+	}
+	revert, err := abi.UnpackRevert(result)
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to unpack revert: %w", err)
+	}
+	return transaction, index, revert, nil
+}
+
+func V3DecodeCallSkippedEvent(log *types.Log) (common.Hash, *big.Int, error) {
+	var transaction common.Hash
+	var index *big.Int
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
+	if err != nil {
+		return common.Hash{}, nil, err
+	}
+	return transaction, index, nil
 }
 
 func V2IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
 		log.Topics[0] == V2TxFailedEventSig &&
 		bytes.Equal(log.Topics[1][:], hash[:])
-}
-
-func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
-	return V2IsTxFailedEvent(log, hash)
 }
 
 func V1DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
@@ -190,7 +264,7 @@ func V1DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
 
 	var hash common.Hash
 	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
 		return common.Hash{}, "", err
 	}
 
@@ -211,28 +285,7 @@ func V2DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
 
 	var index uint
 	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
-		return common.Hash{}, "", 0, err
-	}
-
-	reason, err := abi.UnpackRevert(revert)
-	if err != nil {
-		return common.Hash{}, "", 0, err
-	}
-
-	return hash, reason, index, nil
-}
-
-func V3DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
-	if len(log.Topics) != 2 || log.Topics[0] != V3TxFailedEventSig {
-		return common.Hash{}, "", 0, fmt.Errorf("not a TxFailed event")
-	}
-
-	hash := common.BytesToHash(log.Topics[1][:])
-
-	var index uint
-	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
 		return common.Hash{}, "", 0, err
 	}
 
@@ -254,7 +307,7 @@ func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
 	}
 
 	var space, nonce *big.Int
-	if err := ethcoder.AbiDecoder([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
 		return nil, nil, err
 	}
 
@@ -306,13 +359,17 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := V1IsTxExecutedEvent(log, hash) || IsTxExecutedEvent(log, hash)
+			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash) || V3IsCallSuccessEvent(log, hash)
+
 			failedHash, failedReason, err := V1DecodeTxFailedEvent(log)
 			if err != nil {
 				failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
 			}
 			if err != nil {
-				failedHash, failedReason, _, err = V3DecodeTxFailedEvent(log)
+				failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
+			}
+			if err != nil {
+				failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
 			}
 
 			isTxFailed := err == nil && failedHash == hash

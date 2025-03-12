@@ -94,7 +94,10 @@ func DecodeRevertReason(logs []*types.Log) []string {
 			_, reason, _, err = V2DecodeTxFailedEvent(log)
 		}
 		if err != nil {
-			_, reason, _, err = V3DecodeTxFailedEvent(log)
+			_, _, reason, err = V3DecodeCallFailedEvent(log)
+		}
+		if err != nil {
+			_, _, reason, err = V3DecodeCallAbortedEvent(log)
 		}
 		reasons = append(reasons, reason)
 	}

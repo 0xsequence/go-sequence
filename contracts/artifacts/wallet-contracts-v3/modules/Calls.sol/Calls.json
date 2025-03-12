@@ -656,6 +656,12 @@
           "internalType": "uint256",
           "name": "_index",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "_returnData",
+          "type": "bytes"
         }
       ],
       "name": "CallAborted",
@@ -675,6 +681,12 @@
           "internalType": "uint256",
           "name": "_index",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "_returnData",
+          "type": "bytes"
         }
       ],
       "name": "CallFailed",
