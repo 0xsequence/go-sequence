@@ -19,33 +19,95 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCreateIntentBundle_Valid(t *testing.T) {
+	// Create a valid payload
+	payload := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           big.NewInt(0),
+				Data:            []byte("transaction1"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
+	}
+
+	bundle, err := sequence.CreateIntentBundle(payload)
+	require.NoError(t, err)
+	require.NotNil(t, bundle)
+
+	spew.Dump(bundle)
+}
+
+// TestCreateIntentDigestLeaves_Valid creates a valid payload and computes the intent digest
 func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
-	// Create a valid transaction (stx) with required fields.
-	stx1 := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(0),
-		Data:          []byte("transaction1"),
+	// Create valid payloads with required fields
+	payload1 := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            []byte("transaction1"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
-	stx2 := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(1),
-		Data:          []byte("transaction2"),
+
+	payload2 := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(1),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            []byte("transaction2"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
-	stx3 := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(2),
-		Data:          []byte("transaction3"),
+
+	payload3 := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(2),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            []byte("transaction3"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
 
 	t.Run("One batch", func(t *testing.T) {
-		// Use the valid transaction in a slice (representing one batch).
-		txns := []*sequence.Transaction{stx1}
-		batches := [][]*sequence.Transaction{txns}
+		// Use a single payload
+		batches := []v3.DecodedPayload{payload1}
 
-		bundle, err := sequence.CreateIntentBundle(txns)
+		bundle, err := sequence.CreateIntentBundle(payload1)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -59,21 +121,25 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		anyAddressLeaf, ok := (*tree).(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		// Verify that the leaf's digest matches the transaction's digest.
-		digest, err := bundle.Digest()
+		// Verify that the leaf's digest matches the payload's digest
+		dummyWallet := common.Address{}
+		dummyChainID := big.NewInt(1)
+
+		// Add missing fields that might be required for EIP712
+		bundle.ParentWallets = []common.Address{}
+
+		digest, err := v3.HashPayload(dummyWallet, dummyChainID, bundle)
 		require.NoError(t, err)
-		require.Equal(t, digest, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, common.BytesToHash(digest[:]), anyAddressLeaf.Digest.Hash, "digests do not match")
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		// Use the valid transaction in a slice (representing one batch).
-		txns1 := []*sequence.Transaction{stx1}
-		txns2 := []*sequence.Transaction{stx2}
-		batches := [][]*sequence.Transaction{txns1, txns2}
+		// Use two payloads
+		batches := []v3.DecodedPayload{payload1, payload2}
 
-		bundle1, err := sequence.CreateIntentBundle(txns1)
+		bundle1, err := sequence.CreateIntentBundle(payload1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(txns2)
+		bundle2, err := sequence.CreateIntentBundle(payload2)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -94,27 +160,31 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		rightLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		// Verify that both leaves' digests match the transaction's digest.
-		digest1, err := bundle1.Digest()
+		// Verify that both leaves' digests match the payload's digest.
+		dummyWallet := common.Address{}
+		dummyChainID := big.NewInt(1)
+
+		// Add missing fields that might be required for EIP712
+		bundle1.ParentWallets = []common.Address{}
+		bundle2.ParentWallets = []common.Address{}
+
+		digest1, err := v3.HashPayload(dummyWallet, dummyChainID, bundle1)
 		require.NoError(t, err)
-		digest2, err := bundle2.Digest()
+		digest2, err := v3.HashPayload(dummyWallet, dummyChainID, bundle2)
 		require.NoError(t, err)
-		require.Equal(t, digest1, leftLeaf.Digest.Hash, "left leaf digest does not match")
-		require.Equal(t, digest2, rightLeaf.Digest.Hash, "right leaf digest does not match")
+		require.Equal(t, common.BytesToHash(digest1[:]), leftLeaf.Digest.Hash, "left leaf digest does not match")
+		require.Equal(t, common.BytesToHash(digest2[:]), rightLeaf.Digest.Hash, "right leaf digest does not match")
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		// Use the valid transaction in a slice (representing one batch).
-		txns1 := []*sequence.Transaction{stx1}
-		txns2 := []*sequence.Transaction{stx2}
-		txns3 := []*sequence.Transaction{stx3}
-		batches := [][]*sequence.Transaction{txns1, txns2, txns3}
+		// Use three payloads
+		batches := []v3.DecodedPayload{payload1, payload2, payload3}
 
-		bundle1, err := sequence.CreateIntentBundle(txns1)
+		bundle1, err := sequence.CreateIntentBundle(payload1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(txns2)
+		bundle2, err := sequence.CreateIntentBundle(payload2)
 		require.NoError(t, err)
-		bundle3, err := sequence.CreateIntentBundle(txns3)
+		bundle3, err := sequence.CreateIntentBundle(payload3)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -141,28 +211,48 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		leftRightLeaf, ok := leftLeaf.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "left right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		// Verify that all leaves' digests match the transaction's digest.
-		digest1, err := bundle1.Digest()
+		// Verify that all leaves' digests match the payload's digest.
+		dummyWallet := common.Address{}
+		dummyChainID := big.NewInt(1)
+
+		// Add missing fields that might be required for EIP712
+		bundle1.ParentWallets = []common.Address{}
+		bundle2.ParentWallets = []common.Address{}
+		bundle3.ParentWallets = []common.Address{}
+
+		digest1, err := v3.HashPayload(dummyWallet, dummyChainID, bundle1)
 		require.NoError(t, err)
-		digest2, err := bundle2.Digest()
+		digest2, err := v3.HashPayload(dummyWallet, dummyChainID, bundle2)
 		require.NoError(t, err)
-		digest3, err := bundle3.Digest()
+		digest3, err := v3.HashPayload(dummyWallet, dummyChainID, bundle3)
 		require.NoError(t, err)
-		require.Equal(t, digest1, leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
-		require.Equal(t, digest2, leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
-		require.Equal(t, digest3, rightLeaf.Digest.Hash, "right leaf digest does not match")
+		require.Equal(t, common.BytesToHash(digest1[:]), leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
+		require.Equal(t, common.BytesToHash(digest2[:]), leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
+		require.Equal(t, common.BytesToHash(digest3[:]), rightLeaf.Digest.Hash, "right leaf digest does not match")
 	})
 }
 
 func TestCreateIntentConfiguration_Valid(t *testing.T) {
-	// Create a valid transaction.
-	stx := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(0),
+	// Create a valid payload
+	payload := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            nil,
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
-	txns := []*sequence.Transaction{stx}
-	batches := [][]*sequence.Transaction{txns}
+
+	batches := []v3.DecodedPayload{payload}
 
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
@@ -182,16 +272,27 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
 
-	stx := &sequence.Transaction{
-		To:            callmockContract.Address,
-		Data:          calldata,
-		RevertOnError: true,
-		Nonce:         big.NewInt(0),
+	payload := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              callmockContract.Address,
+				Value:           nil,
+				Data:            calldata,
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
-		// Wrap the transaction in a batch.
-		batches := [][]*sequence.Transaction{{stx}}
+		// Use the payload directly
+		batches := []v3.DecodedPayload{payload}
 
 		// Create the intent configuration
 		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches)
@@ -232,32 +333,54 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	})
 
 	t.Run("different transactions produce different signatures", func(t *testing.T) {
-		// Create two different transactions
+		// Create two different payloads
 		calldata1, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 		require.NoError(t, err)
 
 		calldata2, err := callmockContract.Encode("testCall", big.NewInt(66), ethcoder.MustHexDecode("0x332255"))
 		require.NoError(t, err)
 
-		tx1 := &sequence.Transaction{
-			To:            callmockContract.Address,
-			Data:          calldata1,
-			RevertOnError: true,
-			Nonce:         big.NewInt(0),
+		payload1 := v3.DecodedPayload{
+			Kind:      v3.KindTransactions,
+			NoChainId: true,
+			Nonce:     big.NewInt(0),
+			Space:     big.NewInt(0),
+			Calls: []v3.Call{
+				{
+					To:              callmockContract.Address,
+					Value:           nil,
+					Data:            calldata1,
+					GasLimit:        big.NewInt(0),
+					DelegateCall:    false,
+					OnlyFallback:    false,
+					BehaviorOnError: v3.Revert,
+				},
+			},
 		}
 
-		tx2 := &sequence.Transaction{
-			To:            callmockContract.Address,
-			Data:          calldata2,
-			RevertOnError: true,
-			Nonce:         big.NewInt(0),
+		payload2 := v3.DecodedPayload{
+			Kind:      v3.KindTransactions,
+			NoChainId: true,
+			Nonce:     big.NewInt(0),
+			Space:     big.NewInt(0),
+			Calls: []v3.Call{
+				{
+					To:              callmockContract.Address,
+					Value:           nil,
+					Data:            calldata2,
+					GasLimit:        big.NewInt(0),
+					DelegateCall:    false,
+					OnlyFallback:    false,
+					BehaviorOnError: v3.Revert,
+				},
+			},
 		}
 
-		// Create signatures for each transaction as separate batches.
-		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), [][]*sequence.Transaction{{tx1}})
+		// Create signatures for each payload as separate batches
+		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1})
 		require.NoError(t, err)
 
-		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), [][]*sequence.Transaction{{tx2}})
+		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -265,10 +388,10 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	})
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
-		// Wrap the transaction in a batch.
-		batches := [][]*sequence.Transaction{{stx}}
+		// Use the payload directly
+		batches := []v3.DecodedPayload{payload}
 
-		// Create the same transaction twice
+		// Create the same payload signature twice
 		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
@@ -285,21 +408,35 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
 
-	// Create two valid transactions with different Data fields so their digests differ.
-	stx1 := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(0),
-		Data:          []byte("transaction1"),
+	// Create a payload with multiple calls
+	multiCallPayload := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            []byte("transaction1"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+			{
+				To:              common.Address{},
+				Value:           nil,
+				Data:            []byte("transaction2"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
-	stx2 := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Nonce:         big.NewInt(0),
-		Data:          []byte("transaction2"),
-	}
-	txns := []*sequence.Transaction{stx1, stx2}
-	batches := [][]*sequence.Transaction{txns}
+
+	batches := []v3.DecodedPayload{multiCallPayload}
 
 	// Create a signature
 	sig, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
@@ -308,16 +445,19 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	// Convert the full signature into a hex string.
 	sigHex := common.Bytes2Hex(sig)
 
-	// Create the bundle from the transactions
-	bundle, err := sequence.CreateIntentBundle(txns)
+	// Create the bundle from the payload
+	bundle, err := sequence.CreateIntentBundle(multiCallPayload)
 	require.NoError(t, err)
 
 	// Compute the digest of the bundle
-	bundleDigest, err := bundle.Digest()
+	dummyWallet := common.Address{}
+	dummyChainID := big.NewInt(1)
+	bundleDigest, err := v3.HashPayload(dummyWallet, dummyChainID, bundle)
 	require.NoError(t, err)
 
 	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
-	assert.Contains(t, sigHex, bundleDigest.Hex()[2:], "signature should contain transaction bundle digest")
+	bundleDigestHex := common.BytesToHash(bundleDigest[:]).Hex()
+	assert.Contains(t, sigHex, bundleDigestHex[2:], "signature should contain transaction bundle digest")
 }
 
 func TestConfigurationSignatureERC20Transfer(t *testing.T) {
@@ -334,20 +474,29 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	transferCalldata, err := erc20.Encode("transfer", recipient, big.NewInt(50))
 	require.NoError(t, err)
 
-	// Create a transaction that calls the ERC20 transfer.
-	tx := &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		To:            erc20.Address,
-		Data:          transferCalldata,
-		Nonce:         big.NewInt(0),
+	// Create a payload for ERC20 transfer
+	transferPayload := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              erc20.Address,
+				Value:           nil,
+				Data:            transferCalldata,
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
 	}
 
-	// Wrap the transaction in a single batch.
-	txns := []*sequence.Transaction{tx}
-	batches := [][]*sequence.Transaction{txns}
-
+	batches := []v3.DecodedPayload{transferPayload}
 	require.NoError(t, err)
+
+	spew.Dump(batches)
 
 	// Generate a configuration signature for the batch.
 	configSig, err := sequence.CreateIntentConfigurationSignature(mainSigner.Address(), batches)
@@ -357,7 +506,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	assert.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
 
 	// Use a v3 dummy Sequence wallet
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, []v3.DecodedPayload{transferPayload})
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
 
@@ -384,8 +533,8 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	require.Len(t, balances, 1)
 	require.Equal(t, "100", balances[0])
 
-	// Get the signed transactions
-	signedTxns, err := wallet.GetSignedIntentTransactions(context.Background(), txns, configSig)
+	// Get the signed transactions using the DecodedPayload directly
+	signedTxns, err := wallet.GetSignedIntentTransactionsWithDecodedPayloads(context.Background(), []v3.DecodedPayload{transferPayload}, configSig)
 	require.NoError(t, err)
 
 	// Send the transaction bundle

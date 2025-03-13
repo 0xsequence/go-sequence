@@ -3,66 +3,85 @@ package sequence
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 )
 
-// `CreateIntentBundle` creates a bundle of transactions with the initial nonce 0
-func CreateIntentBundle(txns []*Transaction) (Transaction, error) {
-	bundle := Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		Transactions:  txns,
-		Nonce:         big.NewInt(0),
+// `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
+func CreateIntentBundle(payload v3.DecodedPayload) (v3.DecodedPayload, error) {
+	bundle := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls:     payload.Calls,
+	}
+
+	// Set consistent gas limit to 0 for all calls
+	for i := range bundle.Calls {
+		bundle.Calls[i].GasLimit = big.NewInt(0)
 	}
 
 	return bundle, nil
 }
 
-// `CreateIntentDigestLeaves` iterates over each batch of transactions,
-// validates that each transaction in the batch meets the following criteria:
-//   - DelegateCall must be false,
-//   - RevertOnError must be true,
+// `CreateIntentDigestTree` iterates over each batch of payloads,
+// validates that each call in the payload meets the following criteria:
+//   - GasLimit must be 0,
 //
-// For each valid batch, it creates a bundle of transactions, computes its digest,
+// For each valid batch, it creates a bundle, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentDigestTree(batchTxns [][]*Transaction) (*v3.WalletConfigTree, error) {
+func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfigTree, error) {
 	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
 
-	for batchIndex, batch := range batchTxns {
-		// Optional: Ensure the batch is not empty.
-		if len(batch) == 0 {
-			return nil, fmt.Errorf("batch at index %d is empty", batchIndex)
-		}
-
-		// Validate each transaction in the batch.
-		for j, tx := range batch {
-			if tx.DelegateCall {
-				return nil, fmt.Errorf("batch %d, transaction %d: DelegateCall must be false", batchIndex, j)
-			}
-			if !tx.RevertOnError {
-				return nil, fmt.Errorf("batch %d, transaction %d: RevertOnError must be true", batchIndex, j)
+	for batchIndex, payload := range batchPayloads {
+		// Validate each call in the payload
+		for j, call := range payload.Calls {
+			if call.GasLimit != nil && call.GasLimit.Cmp(big.NewInt(0)) != 0 {
+				return nil, fmt.Errorf("batch %d, call %d: GasLimit must be 0", batchIndex, j)
 			}
 		}
 
 		// Create the intent bundle for this batch.
-		bundle, err := CreateIntentBundle(batch)
+		bundle, err := CreateIntentBundle(payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
 
-		// Compute digest of the bundle.
-		digest, err := bundle.Digest()
+		spew.Dump(bundle)
+
+		// Use a zero address and no chain ID since we're constructing a `noChainID` and `AnyAddressSubdigestLeaf` payload which hashes w/ zero address
+		noChainID := big.NewInt(0)
+		zeroAddress := common.Address{}
+
+		// Make sure all required fields for the payload are set
+		if bundle.Space == nil {
+			bundle.Space = big.NewInt(0)
+		}
+		if bundle.Nonce == nil {
+			bundle.Nonce = big.NewInt(0)
+		}
+		if bundle.ParentWallets == nil {
+			bundle.ParentWallets = []common.Address{}
+		}
+
+		spew.Dump(bundle)
+
+		digest, err := v3.HashPayload(zeroAddress, noChainID, bundle)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute digest for batch %d: %w", batchIndex, err)
 		}
 
+		log.Println("digest", common.Bytes2Hex(digest[:]))
+
 		// Create a subdigest leaf with the computed digest.
 		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
-			Digest: core.Subdigest{Hash: digest},
+			Digest: core.Subdigest{Hash: common.BytesToHash(digest[:])},
 		}
 		leaves = append(leaves, leaf)
 	}
@@ -86,7 +105,7 @@ func CreateIntentDigestTree(batchTxns [][]*Transaction) (*v3.WalletConfigTree, e
 }
 
 // CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transaction) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, batches []v3.DecodedPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentDigestTree(batches)
 	if err != nil {
@@ -113,7 +132,7 @@ func CreateIntentConfiguration(mainSigner common.Address, batches [][]*Transacti
 }
 
 // `CreateIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func CreateIntentConfigurationSignature(mainSigner common.Address, batches [][]*Transaction) ([]byte, error) {
+func CreateIntentConfigurationSignature(mainSigner common.Address, batches []v3.DecodedPayload) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, batches)
 	if err != nil {

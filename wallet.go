@@ -725,90 +725,79 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	return nil, fmt.Errorf("unknown wallet config type")
 }
 
-func (w *Wallet[C]) GetSignedIntentTransaction(ctx context.Context, txn *Transaction, sig []byte) (*SignedTransactions, error) {
-	return w.GetSignedIntentTransactions(ctx, Transactions{txn}, sig)
+// GetSignedIntentTransactionWithDecodedPayload creates an intent signature for a v3.DecodedPayload.
+func (w *Wallet[C]) GetSignedIntentTransactionWithDecodedPayload(ctx context.Context, payload v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
+	return w.GetSignedIntentPayload(ctx, payload, sig)
 }
 
-func (w *Wallet[C]) GetSignedIntentTransactions(ctx context.Context, txns Transactions, sig []byte) (*SignedTransactions, error) {
-	if len(txns) == 0 {
-		return nil, fmt.Errorf("cannot sign an empty set of transactions")
+// GetSignedIntentTransactionsWithDecodedPayloads creates an intent signature for multiple v3.DecodedPayload objects.
+func (w *Wallet[C]) GetSignedIntentTransactionsWithDecodedPayloads(ctx context.Context, payloads []v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
+	if len(payloads) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of payloads")
 	}
 
-	var err error
+	// For now, we only support a single payload in the batch
+	if len(payloads) > 1 {
+		return nil, fmt.Errorf("multiple payloads not supported yet, please use CreateIntentDigestTree for multiple payloads")
+	}
 
-	log.Println("txns", txns)
-	log.Println("sig", sig)
+	return w.GetSignedIntentPayload(ctx, payloads[0], sig)
+}
 
-	// If a transaction has 0 gasLimit and not revertOnError
-	// compute all new gas limits
-	estimateGas := false
-	for _, txn := range txns {
-		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
-			estimateGas = true
-			break
+// GetSignedIntentPayload is the core implementation for creating intent signatures.
+func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
+	// Logging for debugging purposes
+	log.Println("Creating intent bundle from payload:", payload)
+	log.Println("Using provided signature:", common.Bytes2Hex(sig))
+
+	// Create the intent bundle from the payload
+	bundle, err := CreateIntentBundle(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compute the digest of the payload
+	digest, err := v3.HashPayload(w.address, w.chainID, bundle)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log the intent payload digest for debugging
+	log.Println("Intent payload digest:", common.Bytes2Hex(digest[:]))
+
+	// Sign the payload
+	sig, err = w.SignV3Payload(ctx, bundle)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log the final signature for debugging
+	log.Println("Intent signature created:", common.Bytes2Hex(sig))
+
+	// Convert payload back to Transactions for compatibility with SignedTransactions
+	txns := make(Transactions, len(payload.Calls))
+	for i, call := range payload.Calls {
+		txns[i] = &Transaction{
+			To:            call.To,
+			Value:         call.Value,
+			Data:          call.Data,
+			GasLimit:      call.GasLimit,
+			DelegateCall:  call.DelegateCall,
+			RevertOnError: call.BehaviorOnError == v3.Revert,
+			Nonce:         payload.Nonce,
 		}
 	}
-	if estimateGas {
-		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
-		if err != nil {
-			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
-		}
-	}
 
-	// load nonce from transactions
-	nonce, err := txns.Nonce()
-	if err != nil {
-		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
-	}
-
-	// if nonce is undefined
-	// load latest nonce from wallet
-	if nonce == nil {
-		nonce, err = w.GetNonce()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	space, nonce := DecodeNonce(nonce)
-
-	payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	digest, err := v3.HashPayload(w.address, w.chainID, payload)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println("digest", digest)
-
-	// Sign the transactions
-	sig, err = w.SignV3Payload(ctx, payload)
-	if err != nil {
-		return nil, err
-	}
-
-	bundle := Transaction{
-		Transactions: txns,
-		Nonce:        nonce,
-	}
-
-	// Get transactions digest
-	digest, err = bundle.Digest()
-	if err != nil {
-		return nil, err
-	}
-
+	// Return the signed transactions
 	return &SignedTransactions{
 		ChainID:       w.chainID,
 		WalletAddress: w.address,
 		WalletConfig:  w.config,
 		WalletContext: w.context,
 		Transactions:  txns,
-		Nonce:         nonce,
-		Digest:        digest,
+		Space:         payload.Space,
+		Nonce:         payload.Nonce,
+		Digest:        common.BytesToHash(digest[:]),
 		Signature:     sig,
 	}, nil
 }
