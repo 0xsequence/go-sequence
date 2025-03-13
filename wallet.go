@@ -3,6 +3,7 @@ package sequence
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -735,6 +736,9 @@ func (w *Wallet[C]) GetSignedIntentTransactions(ctx context.Context, txns Transa
 
 	var err error
 
+	log.Println("txns", txns)
+	log.Println("sig", sig)
+
 	// If a transaction has 0 gasLimit and not revertOnError
 	// compute all new gas limits
 	estimateGas := false
@@ -766,13 +770,33 @@ func (w *Wallet[C]) GetSignedIntentTransactions(ctx context.Context, txns Transa
 		}
 	}
 
+	space, nonce := DecodeNonce(nonce)
+
+	payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	digest, err := v3.HashPayload(w.address, w.chainID, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("digest", digest)
+
+	// Sign the transactions
+	sig, err = w.SignV3Payload(ctx, payload)
+	if err != nil {
+		return nil, err
+	}
+
 	bundle := Transaction{
 		Transactions: txns,
 		Nonce:        nonce,
 	}
 
 	// Get transactions digest
-	digest, err := bundle.Digest()
+	digest, err = bundle.Digest()
 	if err != nil {
 		return nil, err
 	}
