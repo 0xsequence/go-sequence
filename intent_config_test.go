@@ -123,7 +123,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 		// Verify that the leaf's digest matches the payload's digest
 		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(1)
+		dummyChainID := big.NewInt(0)
 
 		// Add missing fields that might be required for EIP712
 		bundle.ParentWallets = []common.Address{}
@@ -162,7 +162,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 		// Verify that both leaves' digests match the payload's digest.
 		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(1)
+		dummyChainID := big.NewInt(0)
 
 		// Add missing fields that might be required for EIP712
 		bundle1.ParentWallets = []common.Address{}
@@ -213,7 +213,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 		// Verify that all leaves' digests match the payload's digest.
 		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(1)
+		dummyChainID := big.NewInt(0)
 
 		// Add missing fields that might be required for EIP712
 		bundle1.ParentWallets = []common.Address{}
@@ -451,7 +451,7 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 
 	// Compute the digest of the bundle
 	dummyWallet := common.Address{}
-	dummyChainID := big.NewInt(1)
+	dummyChainID := big.NewInt(0)
 	bundleDigest, err := v3.HashPayload(dummyWallet, dummyChainID, bundle)
 	require.NoError(t, err)
 

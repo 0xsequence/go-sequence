@@ -9,7 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
@@ -53,8 +52,6 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
 
-		spew.Dump(bundle)
-
 		// Use a zero address and no chain ID since we're constructing a `noChainID` and `AnyAddressSubdigestLeaf` payload which hashes w/ zero address
 		noChainID := big.NewInt(0)
 		zeroAddress := common.Address{}
@@ -69,8 +66,6 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 		if bundle.ParentWallets == nil {
 			bundle.ParentWallets = []common.Address{}
 		}
-
-		spew.Dump(bundle)
 
 		digest, err := v3.HashPayload(zeroAddress, noChainID, bundle)
 		if err != nil {
