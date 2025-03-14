@@ -1,0 +1,192 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "BaseSig",
+  "sourceName": "src/modules/auth/BaseSig.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "kind",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "noChainId",
+              "type": "bool"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "to",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "data",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "gasLimit",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "delegateCall",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "onlyFallback",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "behaviorOnError",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct Payload.Call[]",
+              "name": "calls",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "space",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "message",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "imageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "digest",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[]",
+              "name": "parentWallets",
+              "type": "address[]"
+            }
+          ],
+          "internalType": "struct Payload.Decoded",
+          "name": "_payload",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_subdigest",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "_signer",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "InvalidNestedSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_flag",
+          "type": "uint256"
+        }
+      ],
+      "name": "InvalidSignatureFlag",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_threshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_weight",
+          "type": "uint256"
+        }
+      ],
+      "name": "LowWeightChainedSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "imageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpoint",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct Snapshot",
+          "name": "_snapshot",
+          "type": "tuple"
+        }
+      ],
+      "name": "UnusedSnapshot",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_nextCheckpoint",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_checkpoint",
+          "type": "uint256"
+        }
+      ],
+      "name": "WrongChainedCheckpointOrder",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220f98c990c3c2a6fc75c065cc4b64e90dd4a30f6b9a287cefc53a5cf1d808bf25464736f6c634300081b0033",
+  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220f98c990c3c2a6fc75c065cc4b64e90dd4a30f6b9a287cefc53a5cf1d808bf25464736f6c634300081b0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
