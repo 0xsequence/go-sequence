@@ -750,14 +750,8 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.Decod
 	log.Println("Creating intent bundle from payload:", payload)
 	log.Println("Using provided signature:", common.Bytes2Hex(sig))
 
-	// Create the intent bundle from the payload
-	bundle, err := CreateIntentBundle(payload)
-	if err != nil {
-		return nil, err
-	}
-
 	// Compute the digest of the payload
-	digest, err := v3.HashPayload(w.address, w.chainID, bundle)
+	digest, err := v3.HashPayload(common.Address{}, big.NewInt(0), payload)
 	if err != nil {
 		return nil, err
 	}
@@ -766,7 +760,7 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.Decod
 	log.Println("Intent payload digest:", common.Bytes2Hex(digest[:]))
 
 	// Sign the payload
-	sig, err = w.SignV3Payload(ctx, bundle)
+	sig, err = w.SignV3Payload(ctx, payload)
 	if err != nil {
 		return nil, err
 	}

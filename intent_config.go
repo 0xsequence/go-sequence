@@ -9,6 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
@@ -72,7 +73,7 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 			return nil, fmt.Errorf("failed to compute digest for batch %d: %w", batchIndex, err)
 		}
 
-		log.Println("digest", common.Bytes2Hex(digest[:]))
+		log.Println("CreateIntentDigestTree digest:", common.Bytes2Hex(digest[:]))
 
 		// Create a subdigest leaf with the computed digest.
 		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
@@ -134,16 +135,20 @@ func CreateIntentConfigurationSignature(mainSigner common.Address, batches []v3.
 		return nil, err
 	}
 
-	// Build a no chain ID signature with an empty callback function.
+	// Use BuildNoChainIDSignature with an empty signing function
+	// Since we want the address leaves without signatures, we'll just return ErrSigningNoSigner
+	// This causes the signature tree builder to include the address leaf without a signature
 	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// For all signers, return a zero value, since intent signatures are not signed by the main signer.
-		return 0, nil, nil
+		// Return error to indicate we don't want to sign
+		return 0, nil, core.ErrSigningNoSigner
 	}, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build no chain ID signature: %w", err)
 	}
 
-	// Get the signature data.
+	spew.Dump(sig)
+
+	// Get the signature data
 	data, err := sig.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature data: %w", err)

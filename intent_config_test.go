@@ -3,6 +3,7 @@ package sequence_test
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"testing"
 
@@ -322,6 +323,13 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		sig, err := v3.Core.DecodeSignature(signature)
 		require.NoError(t, err, "signature should be decodable")
 
+		// Get the config from the signature
+		recoveredConfig, _, err := sig.RecoverSubdigest(context.Background(), anyAddressSubdigestLeaf.Digest, nil)
+		spew.Dump(recoveredConfig)
+
+		require.NoError(t, err)
+		require.NotNil(t, recoveredConfig, "recovered config should not be nil")
+
 		// Get the full signature in string
 		sigDataStr, err := sig.Data()
 		require.NoError(t, err)
@@ -539,6 +547,8 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 
 	// Send the transaction bundle
 	metaTxnID, sentTx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTxns)
+	log.Println("metaTxnID", metaTxnID)
+
 	require.NoError(t, err)
 	require.NotEmpty(t, metaTxnID)
 	require.NotNil(t, sentTx)
