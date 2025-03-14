@@ -525,8 +525,7 @@ type NumTxnsRelayed struct {
 	Period  uint64 `json:"period"`
 }
 
-type RuntimeChecks struct {
-}
+type RuntimeChecks struct{}
 
 type SequenceContext struct {
 	Factory              string `json:"factory"`
