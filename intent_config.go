@@ -1,7 +1,6 @@
 package sequence
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -128,23 +127,21 @@ func CreateIntentConfiguration(mainSigner common.Address, batches []v3.DecodedPa
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, batches []v3.DecodedPayload) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, batches []v3.DecodedPayload, noChainID bool) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, batches)
 	if err != nil {
 		return nil, err
 	}
 
-	// Use BuildNoChainIDSignature with an empty signing function
-	// Since we want the address leaves without signatures, we'll just return ErrSigningNoSigner
-	// This causes the signature tree builder to include the address leaf without a signature
-	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// Return error to indicate we don't want to sign
-		return 0, nil, core.ErrSigningNoSigner
-	}, false)
+	sig, err := config.BuildSubdigestSignature(noChainID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build no chain ID signature: %w", err)
+		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
 	}
+
+	spew.Dump(config.Tree)
+
+	log.Printf("sig: %s", sig)
 
 	spew.Dump(sig)
 

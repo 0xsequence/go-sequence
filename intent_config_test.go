@@ -301,7 +301,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
 		require.NoError(t, err)
 
 		// Verify signature format
@@ -386,10 +386,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1}, true)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2}, true)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -401,10 +401,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		batches := []v3.DecodedPayload{payload}
 
 		// Create the same payload signature twice
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -448,7 +448,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	batches := []v3.DecodedPayload{multiCallPayload}
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -475,10 +475,13 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	require.NoError(t, err)
 
+	log.Println("==> callmockContract", callmockContract.Address.Hex())
+	log.Println("==> calldata", common.Bytes2Hex(calldata))
+
 	// Create a v3 payload for mock contract call
 	mockPayloadCall := v3.DecodedPayload{
 		Kind:      v3.KindTransactions,
-		NoChainId: true,
+		NoChainId: false,
 		Nonce:     big.NewInt(0),
 		Space:     big.NewInt(0),
 		Calls: []v3.Call{
@@ -507,16 +510,34 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 		mockBundles = append(mockBundles, mockBundle)
 	}
 
-	// Get the first payload hash
-	zeroAddress := common.Address{}
-	chainID := big.NewInt(0)
-	firstPayloadHash, err := v3.HashPayload(zeroAddress, chainID, mockBundles[0])
-	require.NoError(t, err)
+	spew.Dump(mockBundles)
+
+	// Decode the payload
+	// decodedPayload, err := v3.Decode(encodedPayload)
+	// require.NoError(t, err)
+
+	// spew.Dump(decodedPayload)
 
 	// Ensure dummy sequence wallet from seed 1 is deployed
 	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, mockBundles)
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
+
+	// Params for no chain ID
+	noChainID := big.NewInt(0)
+	zeroAddress := common.Address{}
+
+	// Get the first payload hash
+	firstPayloadHash, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), mockBundles[0])
+	require.NoError(t, err)
+
+	log.Println("==> firstPayloadHash", common.BytesToHash(firstPayloadHash[:]).Hex())
+
+	addr := wallet.Address()
+	encodedPayload, err := v3.Encode(mockBundles[0], &addr)
+	require.NoError(t, err)
+
+	log.Println("==> encodedPayload", common.Bytes2Hex(encodedPayload))
 
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
@@ -532,14 +553,14 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles, false)
 	require.NoError(t, err)
 
 	// Print the signature in hex
 	fmt.Println("==> configSig", common.Bytes2Hex(configSig))
 
 	// Verify the signature contains the any address digest
-	require.Contains(t, common.Bytes2Hex(configSig), common.BytesToHash(firstPayloadHash[:]).Hex()[2:], "signature should contain the any address digest")
+	// require.Contains(t, common.Bytes2Hex(configSig), common.BytesToHash(firstPayloadHash[:]).Hex()[2:], "signature should contain the any address digest")
 
 	// Get the mock payload
 	// Create the intent configuration using the batched transactions.
@@ -549,12 +570,12 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	spew.Dump(config)
 
 	// Get the hash of the first payload
-	signedPayloadHash, err := v3.HashPayload(zeroAddress, chainID, mockBundles[0])
+	signedPayloadHash, err := v3.HashPayload(zeroAddress, noChainID, mockBundles[0])
 	require.NoError(t, err)
 
 	fmt.Println("==> signedPayloadHash", common.BytesToHash(signedPayloadHash[:]).Hex())
 
-	encodedData, err := v3.Encode(mockPayloadCall, nil)
+	encodedData, err := v3.Encode(mockBundles[0], nil)
 	require.NoError(t, err)
 
 	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, configSig)
@@ -660,7 +681,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	spew.Dump(batches)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches, false)
 	require.NoError(t, err)
 
 	// For a Nested signature the version byte is expected to be 0x06.

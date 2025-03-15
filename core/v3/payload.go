@@ -236,214 +236,155 @@ type TypedDataField struct {
 	Type string `json:"type"`
 }
 
-// manualHashPayload computes the EIP-712 hash of a payload directly, bypassing the ethcoder library.
-func manualHashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
-	// Set default values for nil fields to avoid encoding issues
-	if payload.ParentWallets == nil {
-		payload.ParentWallets = []common.Address{}
-	}
-	if payload.Space == nil {
-		payload.Space = big.NewInt(0)
-	}
-	if payload.Nonce == nil {
-		payload.Nonce = big.NewInt(0)
+// HashPayload computes the EIP-712 hash of a payload.
+func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
+	domain := ethcoder.TypedDataDomain{
+		Name:              "Sequence Wallet",
+		Version:           "3",
+		ChainID:           chainId,
+		VerifyingContract: &wallet,
 	}
 
-	// Calculate domainSeparator as per EIP-712 spec
-	domainTypeHash := ethcoder.Keccak256([]byte("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"))
-	nameHash := ethcoder.Keccak256([]byte("Sequence Wallet"))
-	versionHash := ethcoder.Keccak256([]byte("3"))
-
-	// Encode domain values
-	domainValues := []byte{}
-	domainValues = append(domainValues, domainTypeHash...)
-	domainValues = append(domainValues, nameHash...)
-	domainValues = append(domainValues, versionHash...)
-
-	// Encode chainId
-	chainIdBytes := make([]byte, 32)
-	if chainId != nil {
-		chainId.FillBytes(chainIdBytes)
+	parentWallets := payload.ParentWallets
+	if parentWallets == nil {
+		parentWallets = []common.Address{}
 	}
-	domainValues = append(domainValues, chainIdBytes...)
 
-	// Encode wallet address (verifyingContract)
-	walletPadded := make([]byte, 32)
-	copy(walletPadded[12:], wallet[:])
-	domainValues = append(domainValues, walletPadded...)
+	space := payload.Space
+	if space == nil {
+		space = big.NewInt(0)
+	}
 
-	// Compute domain separator
-	domainSeparator := ethcoder.Keccak256(domainValues)
+	nonce := payload.Nonce
+	if nonce == nil {
+		nonce = big.NewInt(0)
+	}
 
-	// Compute struct hash based on payload kind
-	var structHash []byte
+	var types map[string][]TypedDataField
+	var message map[string]interface{}
+	var primaryType string
 
 	switch payload.Kind {
 	case KindTransactions:
-		calls := hashCalls(payload.Calls)
-
-		// Encode the Calls struct
-		callsTypeHash := ethcoder.Keccak256([]byte("Calls(Call[] calls,uint256 space,uint256 nonce,address[] wallets)Call(address to,uint256 value,bytes data,uint256 gasLimit,bool delegateCall,bool onlyFallback,uint256 behaviorOnError)"))
-
-		// Encode payload values
-		structValues := []byte{}
-		structValues = append(structValues, callsTypeHash...)
-		structValues = append(structValues, calls...)
-
-		// Encode space
-		spaceBytes := make([]byte, 32)
-		if payload.Space != nil {
-			payload.Space.FillBytes(spaceBytes)
+		types = map[string][]TypedDataField{
+			"Calls": {
+				{Name: "calls", Type: "Call[]"},
+				{Name: "space", Type: "uint256"},
+				{Name: "nonce", Type: "uint256"},
+				{Name: "wallets", Type: "address[]"},
+			},
+			"Call": {
+				{Name: "to", Type: "address"},
+				{Name: "value", Type: "uint256"},
+				{Name: "data", Type: "bytes"},
+				{Name: "gasLimit", Type: "uint256"},
+				{Name: "delegateCall", Type: "bool"},
+				{Name: "onlyFallback", Type: "bool"},
+				{Name: "behaviorOnError", Type: "uint256"},
+			},
 		}
-		structValues = append(structValues, spaceBytes...)
+		primaryType = "Calls"
+		calls := make([]map[string]interface{}, len(payload.Calls))
+		for i, call := range payload.Calls {
+			// Ensure value and gasLimit have valid values
+			value := call.Value
+			if value == nil {
+				value = big.NewInt(0)
+			}
 
-		// Encode nonce
-		nonceBytes := make([]byte, 32)
-		if payload.Nonce != nil {
-			payload.Nonce.FillBytes(nonceBytes)
+			gasLimit := call.GasLimit
+			if gasLimit == nil {
+				gasLimit = big.NewInt(0)
+			}
+
+			// Hex-encode the data bytes to ensure proper format for the typed data parser
+			dataHex := hexutil.Encode(call.Data)
+			calls[i] = map[string]interface{}{
+				"to":              call.To,
+				"value":           value,
+				"data":            dataHex,
+				"gasLimit":        gasLimit,
+				"delegateCall":    call.DelegateCall,
+				"onlyFallback":    call.OnlyFallback,
+				"behaviorOnError": big.NewInt(int64(call.BehaviorOnError)),
+			}
 		}
-		structValues = append(structValues, nonceBytes...)
-
-		// Encode parent wallets
-		walletsHash := hashAddresses(payload.ParentWallets)
-		structValues = append(structValues, walletsHash...)
-
-		structHash = ethcoder.Keccak256(structValues)
+		message = map[string]interface{}{
+			"calls":   calls,
+			"space":   space,
+			"nonce":   nonce,
+			"wallets": parentWallets,
+		}
 
 	case KindMessage:
-		// For KindMessage, encode similarly
-		messageTypeHash := ethcoder.Keccak256([]byte("Message(bytes message,address[] wallets)"))
-		messageHash := ethcoder.Keccak256(payload.Message)
-
-		structValues := []byte{}
-		structValues = append(structValues, messageTypeHash...)
-		structValues = append(structValues, messageHash...)
-
-		walletsHash := hashAddresses(payload.ParentWallets)
-		structValues = append(structValues, walletsHash...)
-
-		structHash = ethcoder.Keccak256(structValues)
+		types = map[string][]TypedDataField{
+			"Message": {
+				{Name: "message", Type: "bytes"},
+				{Name: "wallets", Type: "address[]"},
+			},
+		}
+		primaryType = "Message"
+		messageHex := hexutil.Encode(payload.Message)
+		message = map[string]interface{}{
+			"message": messageHex,
+			"wallets": parentWallets,
+		}
 
 	case KindConfigUpdate:
-		// For KindConfigUpdate, encode similarly
-		configTypeHash := ethcoder.Keccak256([]byte("ConfigUpdate(bytes32 imageHash,address[] wallets)"))
-
-		structValues := []byte{}
-		structValues = append(structValues, configTypeHash...)
-		structValues = append(structValues, payload.ImageHash[:]...)
-
-		walletsHash := hashAddresses(payload.ParentWallets)
-		structValues = append(structValues, walletsHash...)
-
-		structHash = ethcoder.Keccak256(structValues)
+		types = map[string][]TypedDataField{
+			"ConfigUpdate": {
+				{Name: "imageHash", Type: "bytes32"},
+				{Name: "wallets", Type: "address[]"},
+			},
+		}
+		primaryType = "ConfigUpdate"
+		message = map[string]interface{}{
+			"imageHash": payload.ImageHash,
+			"wallets":   parentWallets,
+		}
 
 	case KindDigest:
-		// For KindDigest, encode similarly
-		digestTypeHash := ethcoder.Keccak256([]byte("Digest(bytes32 digest,address[] wallets)"))
-
-		structValues := []byte{}
-		structValues = append(structValues, digestTypeHash...)
-		structValues = append(structValues, payload.Digest[:]...)
-
-		walletsHash := hashAddresses(payload.ParentWallets)
-		structValues = append(structValues, walletsHash...)
-
-		structHash = ethcoder.Keccak256(structValues)
+		types = map[string][]TypedDataField{
+			"Digest": {
+				{Name: "digest", Type: "bytes32"},
+				{Name: "wallets", Type: "address[]"},
+			},
+		}
+		primaryType = "Digest"
+		message = map[string]interface{}{
+			"digest":  payload.Digest,
+			"wallets": parentWallets,
+		}
 
 	default:
 		return [32]byte{}, fmt.Errorf("unknown payload kind: %d", payload.Kind)
 	}
 
-	// Final hash computation as per EIP-712 spec
-	// Final digest = keccak256("\x19\x01" ‖ domainSeparator ‖ structHash)
-	eip712Data := []byte{0x19, 0x01}
-	eip712Data = append(eip712Data, domainSeparator...)
-	eip712Data = append(eip712Data, structHash...)
-
-	result := ethcoder.Keccak256(eip712Data)
-
-	var resultBytes [32]byte
-	copy(resultBytes[:], result)
-	return resultBytes, nil
-}
-
-// Helper to hash an array of calls according to EIP-712 encoding rules
-func hashCalls(calls []Call) []byte {
-	var callsHashes []byte
-	for _, call := range calls {
-		callHash := hashCall(call)
-		callsHashes = append(callsHashes, callHash...)
-	}
-	return ethcoder.Keccak256(callsHashes)
-}
-
-// Helper to hash a single call according to EIP-712 encoding rules
-func hashCall(call Call) []byte {
-	callTypeHash := ethcoder.Keccak256([]byte("Call(address to,uint256 value,bytes data,uint256 gasLimit,bool delegateCall,bool onlyFallback,uint256 behaviorOnError)"))
-
-	// Encode 'to' address
-	toPadded := make([]byte, 32)
-	copy(toPadded[12:], call.To[:])
-
-	// Encode value
-	valueBytes := make([]byte, 32)
-	if call.Value != nil {
-		call.Value.FillBytes(valueBytes)
+	typedDataJSON := map[string]interface{}{
+		"types":       types,
+		"primaryType": primaryType,
+		"domain":      domain,
+		"message":     message,
 	}
 
-	// Encode data hash
-	dataHash := ethcoder.Keccak256(call.Data)
-
-	// Encode gasLimit
-	gasLimitBytes := make([]byte, 32)
-	if call.GasLimit != nil {
-		call.GasLimit.FillBytes(gasLimitBytes)
+	typedDataJSONStr, err := json.Marshal(typedDataJSON)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to marshal typed data to JSON: %w", err)
 	}
 
-	// Encode delegateCall
-	var delegateCallByte [32]byte
-	if call.DelegateCall {
-		delegateCallByte[31] = 1
+	typedData, err := ethcoder.TypedDataFromJSON(string(typedDataJSONStr))
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to parse typed data from JSON: %w", err)
 	}
 
-	// Encode onlyFallback
-	var onlyFallbackByte [32]byte
-	if call.OnlyFallback {
-		onlyFallbackByte[31] = 1
+	digest, err := typedData.EncodeDigest()
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to encode digest: %w", err)
 	}
 
-	// Encode behaviorOnError
-	behaviorBytes := make([]byte, 32)
-	behaviorBytes[31] = byte(call.BehaviorOnError)
-
-	// Combine all fields
-	callValues := []byte{}
-	callValues = append(callValues, callTypeHash...)
-	callValues = append(callValues, toPadded...)
-	callValues = append(callValues, valueBytes...)
-	callValues = append(callValues, dataHash...)
-	callValues = append(callValues, gasLimitBytes...)
-	callValues = append(callValues, delegateCallByte[:]...)
-	callValues = append(callValues, onlyFallbackByte[:]...)
-	callValues = append(callValues, behaviorBytes...)
-
-	return ethcoder.Keccak256(callValues)
-}
-
-// Helper to hash an array of addresses according to EIP-712 encoding rules
-func hashAddresses(addresses []common.Address) []byte {
-	var addressesHashes []byte
-	for _, addr := range addresses {
-		addrPadded := make([]byte, 32)
-		copy(addrPadded[12:], addr[:])
-		addressesHashes = append(addressesHashes, addrPadded...)
-	}
-	return ethcoder.Keccak256(addressesHashes)
-}
-
-// HashPayload computes the EIP-712 hash of a payload.
-func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
-	return manualHashPayload(wallet, chainId, payload)
+	var result [32]byte
+	copy(result[:], digest)
+	return result, nil
 }
 
 // DecodeABIPayload decodes an ABI-encoded payload into DecodedPayload.
