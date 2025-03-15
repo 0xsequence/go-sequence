@@ -2,14 +2,16 @@ package prototyp
 
 import (
 	"database/sql/driver"
+	"encoding"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
 
 // Hash is a type alias for common.Hash used for data normalization
-// with JSON/Database marshalling.
+// with JSON/Database marshalling. Hash is expected to be a hex string.
 //
 // NOTE: when used with a db like postgres, the column type must be a `bytea`
 type Hash string
@@ -52,8 +54,16 @@ func (h Hash) ToShortHash() Hash {
 	return h[0:10]
 }
 
+var (
+	h                            = Hash("")
+	_ encoding.BinaryMarshaler   = h
+	_ encoding.BinaryUnmarshaler = &h
+	_ encoding.TextMarshaler     = h
+	_ encoding.TextUnmarshaler   = &h
+)
+
 // UnmarshalText implements encoding.TextMarshaler.
-func (h *Hash) MarshalText() ([]byte, error) {
+func (h Hash) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }
 
@@ -63,26 +73,38 @@ func (h *Hash) UnmarshalText(src []byte) error {
 	return nil
 }
 
-func (h *Hash) ExtensionType() int8 {
-	return 10
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (h Hash) MarshalBinary() ([]byte, error) {
+	return HexStringToBytes(string(h)), nil
 }
 
-func (h *Hash) Len() int {
-	return len(h.String())
-}
-
-func (h *Hash) MarshalBinaryTo(b []byte) error {
-	copy(b[:], h.String())
-	return nil
-}
-
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
 func (h *Hash) UnmarshalBinary(b []byte) error {
-	*h = HashFromString(string(b))
+	*h = Hash(HexBytesToString(b))
 	return nil
 }
 
 func (h Hash) String() string {
 	return string(h)
+}
+
+func (h Hash) Hex() string {
+	return string(h)
+}
+
+func (h Hash) Len() int {
+	return len(h.String())
+}
+
+func (h Hash) ByteSize() int {
+	if len(h) == 0 {
+		return 0
+	}
+	if has0xPrefix(string(h)) {
+		return (len(h) - 2) / 2
+	} else {
+		return len(h) / 2
+	}
 }
 
 func (h Hash) IsZeroValue() bool {
@@ -102,6 +124,27 @@ func (h Hash) IsZeroValue() bool {
 		return true
 	}
 	return false
+}
+
+func (h Hash) IsValidHex() bool {
+	if len(h) == 0 {
+		return false
+	}
+
+	s := string(h)
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	if len(s) == 0 {
+		return true // its valid, but its empty
+	}
+	for _, c := range s {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (h Hash) IsValidAddress() bool {
@@ -125,7 +168,7 @@ func (h Hash) IsValidTxnHash() bool {
 }
 
 func (h Hash) Bytes() []byte {
-	return h.Hash().Bytes()
+	return HexStringToBytes(string(h))
 }
 
 func (h *Hash) Hash() common.Hash {
@@ -147,7 +190,11 @@ func (h *Hash) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
-	*h = HashFromBytes(src.([]byte))
+	b, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("expected []byte, got %T", src)
+	}
+	*h = HashFromBytes(b)
 	return nil
 }
 
@@ -157,4 +204,23 @@ func ToHashList[T Hexer](list []T) []Hash {
 		result = append(result, ToHash(a))
 	}
 	return result
+}
+
+func HexBytesToString(b []byte) string {
+	return "0x" + hex.EncodeToString(b)
+}
+
+func HexStringToBytes(s string) []byte {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	if len(s)%2 == 1 {
+		s = "0" + s
+	}
+	h, _ := hex.DecodeString(s)
+	return h
+}
+
+func has0xPrefix(str string) bool {
+	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }
