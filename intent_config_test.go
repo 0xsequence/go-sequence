@@ -11,12 +11,13 @@ import (
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 
+	"github.com/0xsequence/go-sequence/contracts"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -263,7 +264,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	require.NotNil(t, config)
 }
 
-func TestCreateIntentConfigurationSignature(t *testing.T) {
+func TestGetIntentConfigurationSignature(t *testing.T) {
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
@@ -271,7 +272,7 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	// Create a mock transaction
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	payload := v3.DecodedPayload{
 		Kind:      v3.KindTransactions,
@@ -300,7 +301,7 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Verify signature format
@@ -385,10 +386,10 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		}
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1})
 		require.NoError(t, err)
 
-		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -400,10 +401,10 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 		batches := []v3.DecodedPayload{payload}
 
 		// Create the same payload signature twice
-		sig1, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
-		sig2, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -411,7 +412,7 @@ func TestCreateIntentConfigurationSignature(t *testing.T) {
 	})
 }
 
-func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
+func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
@@ -447,7 +448,7 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	batches := []v3.DecodedPayload{multiCallPayload}
 
 	// Create a signature
-	sig, err := sequence.CreateIntentConfigurationSignature(eoa1.Address(), batches)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -465,7 +466,159 @@ func TestCreateIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 
 	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
 	bundleDigestHex := common.BytesToHash(bundleDigest[:]).Hex()
-	assert.Contains(t, sigHex, bundleDigestHex[2:], "signature should contain transaction bundle digest")
+	require.Contains(t, sigHex, bundleDigestHex[2:], "signature should contain transaction bundle digest")
+}
+
+func TestV3IntentConfigWalletDeployment(t *testing.T) {
+	// Create normal txn of: callmockContract.testCall(55, 0x112255)
+	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
+	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+	require.NoError(t, err)
+
+	// Create a v3 payload for mock contract call
+	mockPayloadCall := v3.DecodedPayload{
+		Kind:      v3.KindTransactions,
+		NoChainId: true,
+		Nonce:     big.NewInt(0),
+		Space:     big.NewInt(0),
+		Calls: []v3.Call{
+			{
+				To:              callmockContract.Address,
+				Value:           nil,
+				Data:            calldata,
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.Revert,
+			},
+		},
+	}
+
+	// Create batches from the mockPayloadCall
+	// This is needed since the `CreateIntentBundle` function expects an array of `DecodedPayload`.
+	mockPayloadInitialBatch := []v3.DecodedPayload{mockPayloadCall}
+	mockBundles := []v3.DecodedPayload{}
+
+	// Create the processed bundles for the initial batch
+	for _, batch := range mockPayloadInitialBatch {
+		// Create the processed bundle for the payload
+		mockBundle, err := sequence.CreateIntentBundle(batch)
+		require.NoError(t, err)
+		mockBundles = append(mockBundles, mockBundle)
+	}
+
+	// Get the first payload hash
+	zeroAddress := common.Address{}
+	chainID := big.NewInt(0)
+	firstPayloadHash, err := v3.HashPayload(zeroAddress, chainID, mockBundles[0])
+	require.NoError(t, err)
+
+	// Ensure dummy sequence wallet from seed 1 is deployed
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, mockBundles)
+	require.NoError(t, err)
+	require.NotNil(t, wallet)
+
+	// Get the main signer
+	signers := wallet.GetWalletConfig().Signers()
+	var mainSigner common.Address
+	for addr := range signers {
+		mainSigner = addr
+		break
+	}
+	require.NotNil(t, mainSigner)
+
+	// Wallet deployment data
+	_, walletFactoryAddress, walletDeployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
+	require.NoError(t, err)
+
+	// Generate a configuration signature for the batch.
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles)
+	require.NoError(t, err)
+
+	// Print the signature in hex
+	fmt.Println("==> configSig", common.Bytes2Hex(configSig))
+
+	// Verify the signature contains the any address digest
+	require.Contains(t, common.Bytes2Hex(configSig), common.BytesToHash(firstPayloadHash[:]).Hex()[2:], "signature should contain the any address digest")
+
+	// Get the mock payload
+	// Create the intent configuration using the batched transactions.
+	config, err := sequence.CreateIntentConfiguration(mainSigner, mockBundles)
+	require.NoError(t, err)
+
+	spew.Dump(config)
+
+	// Get the hash of the first payload
+	signedPayloadHash, err := v3.HashPayload(zeroAddress, chainID, mockBundles[0])
+	require.NoError(t, err)
+
+	fmt.Println("==> signedPayloadHash", common.BytesToHash(signedPayloadHash[:]).Hex())
+
+	encodedData, err := v3.Encode(mockPayloadCall, nil)
+	require.NoError(t, err)
+
+	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, configSig)
+	require.NoError(t, err)
+
+	fmt.Println("==> signedExecdata", common.Bytes2Hex(signedExecdata))
+
+	spew.Dump(signedExecdata)
+
+	guestBundle := []v3.Call{
+		{
+			To:   walletFactoryAddress,
+			Data: walletDeployData,
+		},
+		{
+			To:   wallet.Address(),
+			Data: signedExecdata,
+		},
+	}
+
+	guestAddress := testChain.V3SequenceContext().GuestModuleAddress
+	execdata, err := v3.Encode(v3.DecodedPayload{Kind: v3.KindTransactions, Calls: guestBundle}, &guestAddress)
+	require.NoError(t, err)
+
+	// Relay the txn manually, directly to the guest module
+	sender := testChain.GetRelayerWallet()
+	ntx, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To:       &guestAddress,
+		Data:     execdata,
+		GasLimit: 1000000, // TODO: compute gas limit
+	})
+	require.NoError(t, err)
+
+	metaTxnBytes, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), mockPayloadCall)
+	require.NoError(t, err)
+	metaTxnHash := common.BytesToHash(metaTxnBytes[:])
+	metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
+
+	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
+	require.NoError(t, err)
+
+	_, waitReceipt, err := sender.SendTransaction(context.Background(), signedTx)
+	require.NoError(t, err)
+
+	receipt, err := waitReceipt(context.Background())
+	require.NoError(t, err)
+	spew.Dump(receipt)
+	require.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	// Check the value
+	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
+	require.NoError(t, err)
+	require.Len(t, ret, 1)
+	require.Equal(t, "2255", ret[0])
+
+	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
+	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	require.NoError(t, err)
+	require.True(t, result.Status == sequence.MetaTxnExecuted)
+
+	// Wallet should be deployed now
+	isDeployed, err := wallet.IsDeployed()
+	require.NoError(t, err)
+	require.True(t, isDeployed)
 }
 
 func TestConfigurationSignatureERC20Transfer(t *testing.T) {
@@ -507,14 +660,14 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	spew.Dump(batches)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.CreateIntentConfigurationSignature(mainSigner.Address(), batches)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches)
 	require.NoError(t, err)
 
 	// For a Nested signature the version byte is expected to be 0x06.
-	assert.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
+	require.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
 
 	// Use a v3 dummy Sequence wallet
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, []v3.DecodedPayload{transferPayload})
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
 
@@ -542,7 +695,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	require.Equal(t, "100", balances[0])
 
 	// Get the signed transactions using the DecodedPayload directly
-	signedTxns, err := wallet.GetSignedIntentTransactionsWithDecodedPayloads(context.Background(), []v3.DecodedPayload{transferPayload}, configSig)
+	signedTxns, err := wallet.GetSignedIntentTransactionsWithDecodedPayloads(context.Background(), batches, configSig)
 	require.NoError(t, err)
 
 	// Send the transaction bundle
