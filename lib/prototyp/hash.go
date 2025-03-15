@@ -55,11 +55,11 @@ func (h Hash) ToShortHash() Hash {
 }
 
 var (
-	h                            = Hash("")
-	_ encoding.BinaryMarshaler   = h
-	_ encoding.BinaryUnmarshaler = &h
-	_ encoding.TextMarshaler     = h
-	_ encoding.TextUnmarshaler   = &h
+	_h                            = Hash("")
+	_  encoding.BinaryMarshaler   = _h
+	_  encoding.BinaryUnmarshaler = &_h
+	_  encoding.TextMarshaler     = _h
+	_  encoding.TextUnmarshaler   = &_h
 )
 
 // UnmarshalText implements encoding.TextMarshaler.
