@@ -105,6 +105,10 @@ func (b BigInt) String() string {
 	return b.Int().String()
 }
 
+func (b BigInt) Bytes() []byte {
+	return b.Int().Bytes()
+}
+
 func (b BigInt) Int() *big.Int {
 	v := big.Int(b)
 	return &v

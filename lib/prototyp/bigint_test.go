@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBigIntJSONMarshalling(t *testing.T) {
@@ -26,6 +27,20 @@ func TestBigIntJSONMarshalling(t *testing.T) {
 	if b1.Int().Cmp(b2.Int()) != 0 {
 		assert.Fail(t, "bigints are not the same after unmarshalling")
 	}
+}
+
+func TestBigIntBinaryMarshalling(t *testing.T) {
+	b := NewBigInt(123)
+	data, err := b.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, []byte{123}, data)
+	require.Equal(t, "123", b.String())
+
+	var b2 BigInt
+	err = b2.UnmarshalBinary(data)
+	require.NoError(t, err)
+	require.Equal(t, b, b2)
+	require.Equal(t, "123", b2.String())
 }
 
 func TestBigIntValue(t *testing.T) {
