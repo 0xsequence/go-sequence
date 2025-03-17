@@ -3,6 +3,7 @@ package prototyp
 import (
 	"database/sql/driver"
 	"encoding/hex"
+	"fmt"
 )
 
 // HashMaybe is a nullable Hash value useful for database fields which accept NULL type.
@@ -49,6 +50,27 @@ func (h *HashMaybe) UnmarshalText(src []byte) error {
 	return nil
 }
 
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (h HashMaybe) MarshalBinary() ([]byte, error) {
+	if h.IsAssigned {
+		return h.Hash.MarshalBinary()
+	} else {
+		return []byte{}, nil
+	}
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+func (h *HashMaybe) UnmarshalBinary(b []byte) error {
+	if len(b) == 0 {
+		h.IsAssigned = false
+		return nil
+	} else {
+		h.IsAssigned = true
+		h.Hash = Hash(HexBytesToString(b))
+		return nil
+	}
+}
+
 func (h HashMaybe) Value() (driver.Value, error) {
 	if h.IsAssigned {
 		s := h.String()
@@ -65,28 +87,25 @@ func (h *HashMaybe) Scan(src interface{}) error {
 	if src == nil {
 		return nil
 	}
+	b, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("expected []byte, got %T", src)
+	}
 
-	h.Hash = HashFromBytes(src.([]byte))
+	h.Hash = HashFromBytes(b)
 	h.IsAssigned = true
 	return nil
 }
 
-func (h *HashMaybe) ExtensionType() int8 {
-	return 11
-}
-
-func (h *HashMaybe) Len() int {
+func (h HashMaybe) Len() int {
 	return len(h.Hash.String())
 }
 
-func (h *HashMaybe) MarshalBinaryTo(b []byte) error {
-	copy(b[:], h.Hash.String())
-	return nil
-}
-
-func (h *HashMaybe) UnmarshalBinary(b []byte) error {
-	*h = HashMaybeFromString(string(b))
-	return nil
+func (h HashMaybe) ByteSize() int {
+	if h.IsAssigned {
+		return h.Hash.ByteSize()
+	}
+	return 0
 }
 
 func ToHashMaybe(h Hexer) HashMaybe {
