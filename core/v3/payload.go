@@ -238,10 +238,15 @@ type TypedDataField struct {
 
 // HashPayload computes the EIP-712 hash of a payload.
 func HashPayload(wallet common.Address, chainId *big.Int, payload DecodedPayload) ([32]byte, error) {
+	effectiveChainId := chainId
+	if payload.NoChainId {
+		effectiveChainId = big.NewInt(0)
+	}
+
 	domain := ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
-		ChainID:           chainId,
+		ChainID:           effectiveChainId,
 		VerifyingContract: &wallet,
 	}
 
