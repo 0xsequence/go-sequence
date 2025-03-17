@@ -603,8 +603,18 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		Data: hexutil.Encode(callData),
 	}
 
+	encodedImpAddr, err := provider.ContractQuery(context.Background(), wallet.Hex(), "PROXY_getImplementation()", "address", nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(encodedImpAddr) == 0 {
+		return nil, fmt.Errorf("cannot get implementation address of wallet %v", wallet.Hex())
+	}
+
+	impAddr := common.HexToAddress(encodedImpAddr[0])
+
 	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasEstimatorCodeV2},
+		impAddr: {Code: walletGasEstimatorCodeV2},
 	}
 	for address, override := range overrides {
 		if address == wallet {
