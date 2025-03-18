@@ -7,7 +7,7 @@ toolchain go1.23.5
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.30.8-0.20250315225140-6d6291de8ed3
+	github.com/0xsequence/ethkit v1.31.0
 	github.com/0xsequence/go-ethauth v0.14.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1

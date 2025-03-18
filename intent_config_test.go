@@ -41,7 +41,7 @@ func TestCreateIntentBundle_Valid(t *testing.T) {
 		},
 	}
 
-	bundle, err := sequence.CreateIntentBundle(payload)
+	bundle, err := sequence.CreateIntentBundle(payload, false)
 	require.NoError(t, err)
 	require.NotNil(t, bundle)
 
@@ -109,10 +109,10 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use a single payload
 		batches := []v3.DecodedPayload{payload1}
 
-		bundle, err := sequence.CreateIntentBundle(payload1)
+		bundle, err := sequence.CreateIntentBundle(payload1, false)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -124,13 +124,12 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
 
 		// Verify that the leaf's digest matches the payload's digest
-		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(0)
+		zeroAddress := common.Address{}
 
 		// Add missing fields that might be required for EIP712
 		bundle.ParentWallets = []common.Address{}
 
-		digest, err := v3.HashPayload(dummyWallet, dummyChainID, bundle)
+		digest, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle)
 		require.NoError(t, err)
 		require.Equal(t, common.BytesToHash(digest[:]), anyAddressLeaf.Digest.Hash, "digests do not match")
 	})
@@ -139,12 +138,12 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use two payloads
 		batches := []v3.DecodedPayload{payload1, payload2}
 
-		bundle1, err := sequence.CreateIntentBundle(payload1)
+		bundle1, err := sequence.CreateIntentBundle(payload1, false)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(payload2)
+		bundle2, err := sequence.CreateIntentBundle(payload2, false)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -163,16 +162,15 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
 		// Verify that both leaves' digests match the payload's digest.
-		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(0)
+		zeroAddress := common.Address{}
 
 		// Add missing fields that might be required for EIP712
 		bundle1.ParentWallets = []common.Address{}
 		bundle2.ParentWallets = []common.Address{}
 
-		digest1, err := v3.HashPayload(dummyWallet, dummyChainID, bundle1)
+		digest1, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle1)
 		require.NoError(t, err)
-		digest2, err := v3.HashPayload(dummyWallet, dummyChainID, bundle2)
+		digest2, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle2)
 		require.NoError(t, err)
 		require.Equal(t, common.BytesToHash(digest1[:]), leftLeaf.Digest.Hash, "left leaf digest does not match")
 		require.Equal(t, common.BytesToHash(digest2[:]), rightLeaf.Digest.Hash, "right leaf digest does not match")
@@ -182,14 +180,14 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use three payloads
 		batches := []v3.DecodedPayload{payload1, payload2, payload3}
 
-		bundle1, err := sequence.CreateIntentBundle(payload1)
+		bundle1, err := sequence.CreateIntentBundle(payload1, false)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(payload2)
+		bundle2, err := sequence.CreateIntentBundle(payload2, false)
 		require.NoError(t, err)
-		bundle3, err := sequence.CreateIntentBundle(payload3)
+		bundle3, err := sequence.CreateIntentBundle(payload3, false)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -214,19 +212,18 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		require.True(t, ok, "left right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
 		// Verify that all leaves' digests match the payload's digest.
-		dummyWallet := common.Address{}
-		dummyChainID := big.NewInt(0)
+		zeroAddress := common.Address{}
 
 		// Add missing fields that might be required for EIP712
 		bundle1.ParentWallets = []common.Address{}
 		bundle2.ParentWallets = []common.Address{}
 		bundle3.ParentWallets = []common.Address{}
 
-		digest1, err := v3.HashPayload(dummyWallet, dummyChainID, bundle1)
+		digest1, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle1)
 		require.NoError(t, err)
-		digest2, err := v3.HashPayload(dummyWallet, dummyChainID, bundle2)
+		digest2, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle2)
 		require.NoError(t, err)
-		digest3, err := v3.HashPayload(dummyWallet, dummyChainID, bundle3)
+		digest3, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle3)
 		require.NoError(t, err)
 		require.Equal(t, common.BytesToHash(digest1[:]), leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
 		require.Equal(t, common.BytesToHash(digest2[:]), leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
@@ -259,7 +256,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, batches)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, batches, testChain.ChainID(), false)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -297,11 +294,11 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		batches := []v3.DecodedPayload{payload}
 
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 
 		// Verify signature format
@@ -386,10 +383,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1}, true)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload1}, testChain.ChainID(), false)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2}, true)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.DecodedPayload{payload2}, testChain.ChainID(), true)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -401,10 +398,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		batches := []v3.DecodedPayload{payload}
 
 		// Create the same payload signature twice
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -448,20 +445,19 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	batches := []v3.DecodedPayload{multiCallPayload}
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, true)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
 	sigHex := common.Bytes2Hex(sig)
 
 	// Create the bundle from the payload
-	bundle, err := sequence.CreateIntentBundle(multiCallPayload)
+	bundle, err := sequence.CreateIntentBundle(multiCallPayload, false)
 	require.NoError(t, err)
 
 	// Compute the digest of the bundle
-	dummyWallet := common.Address{}
-	dummyChainID := big.NewInt(0)
-	bundleDigest, err := v3.HashPayload(dummyWallet, dummyChainID, bundle)
+	zeroAddress := common.Address{}
+	bundleDigest, err := v3.HashPayload(zeroAddress, testChain.ChainID(), bundle)
 	require.NoError(t, err)
 
 	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
@@ -505,7 +501,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	// Create the processed bundles for the initial batch
 	for _, batch := range mockPayloadInitialBatch {
 		// Create the processed bundle for the payload
-		mockBundle, err := sequence.CreateIntentBundle(batch)
+		mockBundle, err := sequence.CreateIntentBundle(batch, false)
 		require.NoError(t, err)
 		mockBundles = append(mockBundles, mockBundle)
 	}
@@ -524,11 +520,10 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.NotNil(t, wallet)
 
 	// Params for no chain ID
-	noChainID := big.NewInt(0)
 	zeroAddress := common.Address{}
 
 	// Get the first payload hash
-	firstPayloadHash, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), mockBundles[0])
+	firstPayloadHash, err := v3.HashPayload(zeroAddress, testChain.ChainID(), mockBundles[0])
 	require.NoError(t, err)
 
 	log.Println("==> firstPayloadHash", common.BytesToHash(firstPayloadHash[:]).Hex())
@@ -553,7 +548,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles, false)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles, testChain.ChainID(), false)
 	require.NoError(t, err)
 
 	// Print the signature in hex
@@ -564,18 +559,24 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 
 	// Get the mock payload
 	// Create the intent configuration using the batched transactions.
-	config, err := sequence.CreateIntentConfiguration(mainSigner, mockBundles)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, mockBundles, testChain.ChainID(), false)
 	require.NoError(t, err)
 
 	spew.Dump(config)
 
+	// Get the image of the config
+	configImageHash := config.ImageHash()
+	fmt.Println("==> configImageHash", configImageHash.Hex())
+
 	// Get the hash of the first payload
-	signedPayloadHash, err := v3.HashPayload(zeroAddress, noChainID, mockBundles[0])
+	signedPayloadHash, err := v3.HashPayload(zeroAddress, testChain.ChainID(), mockBundles[0])
 	require.NoError(t, err)
+
+	spew.Dump(mockBundles[0])
 
 	fmt.Println("==> signedPayloadHash", common.BytesToHash(signedPayloadHash[:]).Hex())
 
-	encodedData, err := v3.Encode(mockBundles[0], nil)
+	encodedData, err := v3.Encode(mockBundles[0], &addr)
 	require.NoError(t, err)
 
 	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, configSig)
@@ -681,7 +682,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	spew.Dump(batches)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches, false)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches, testChain.ChainID(), false)
 	require.NoError(t, err)
 
 	// For a Nested signature the version byte is expected to be 0x06.

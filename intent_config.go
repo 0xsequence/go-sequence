@@ -12,10 +12,10 @@ import (
 )
 
 // `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
-func CreateIntentBundle(payload v3.DecodedPayload) (v3.DecodedPayload, error) {
+func CreateIntentBundle(payload v3.DecodedPayload, noChainId bool) (v3.DecodedPayload, error) {
 	bundle := v3.DecodedPayload{
 		Kind:      v3.KindTransactions,
-		NoChainId: true,
+		NoChainId: noChainId,
 		Nonce:     big.NewInt(0),
 		Space:     big.NewInt(0),
 		Calls:     payload.Calls,
@@ -35,7 +35,7 @@ func CreateIntentBundle(payload v3.DecodedPayload) (v3.DecodedPayload, error) {
 //
 // For each valid batch, it creates a bundle, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfigTree, error) {
+func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload, chainId *big.Int, noChainId bool) (*v3.WalletConfigTree, error) {
 	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
 
 	for batchIndex, payload := range batchPayloads {
@@ -47,13 +47,12 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 		}
 
 		// Create the intent bundle for this batch.
-		bundle, err := CreateIntentBundle(payload)
+		bundle, err := CreateIntentBundle(payload, noChainId)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
 
-		// Use a zero address and no chain ID since we're constructing a `noChainID` and `AnyAddressSubdigestLeaf` payload which hashes w/ zero address
-		noChainID := big.NewInt(0)
+		// Use a zero address since we're constructing a `AnyAddressSubdigestLeaf` payload which hashes w/ zero address
 		zeroAddress := common.Address{}
 
 		// Make sure all required fields for the payload are set
@@ -67,7 +66,7 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 			bundle.ParentWallets = []common.Address{}
 		}
 
-		digest, err := v3.HashPayload(zeroAddress, noChainID, bundle)
+		digest, err := v3.HashPayload(zeroAddress, chainId, bundle)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute digest for batch %d: %w", batchIndex, err)
 		}
@@ -100,9 +99,9 @@ func CreateIntentDigestTree(batchPayloads []v3.DecodedPayload) (*v3.WalletConfig
 }
 
 // CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, batches []v3.DecodedPayload) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, batches []v3.DecodedPayload, chainId *big.Int, noChainId bool) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
-	tree, err := CreateIntentDigestTree(batches)
+	tree, err := CreateIntentDigestTree(batches, chainId, noChainId)
 	if err != nil {
 		return nil, err
 	}
@@ -127,14 +126,14 @@ func CreateIntentConfiguration(mainSigner common.Address, batches []v3.DecodedPa
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, batches []v3.DecodedPayload, noChainID bool) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, batches []v3.DecodedPayload, chainId *big.Int, noChainId bool) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
-	config, err := CreateIntentConfiguration(mainSigner, batches)
+	config, err := CreateIntentConfiguration(mainSigner, batches, chainId, noChainId)
 	if err != nil {
 		return nil, err
 	}
 
-	sig, err := config.BuildSubdigestSignature(noChainID)
+	sig, err := config.BuildSubdigestSignature(noChainId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
 	}
