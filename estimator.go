@@ -623,7 +623,7 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		addrToOverride: {Code: walletGasEstimatorCodeV2},
 	}
 	for address, override := range overrides {
-		if address == addrToOverride || address == wallet {
+		if address == wallet || address == addrToOverride {
 			return nil, fmt.Errorf("cannot override wallet or implementation address %v", addrToOverride.Hex())
 		}
 
