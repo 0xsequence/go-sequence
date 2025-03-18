@@ -605,7 +605,6 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 
 	addrToOverride := wallet
 
-	// Get implementation address and override code with walletGasEstimatorCodeV2
 	var storageValue string
 	rpcCall := ethrpc.NewCallBuilder[string]("eth_getStorageAt", nil, wallet.Hex(), common.BytesToHash(common.LeftPadBytes(wallet.Bytes(), 32)).Hex(), block)
 	_, err = provider.Do(context.Background(), rpcCall.Into(&storageValue))
@@ -623,7 +622,7 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		addrToOverride: {Code: walletGasEstimatorCodeV2},
 	}
 	for address, override := range overrides {
-		if address == wallet || address == addrToOverride {
+		if address == addrToOverride || address == wallet {
 			return nil, fmt.Errorf("cannot override wallet or implementation address %v", addrToOverride.Hex())
 		}
 
