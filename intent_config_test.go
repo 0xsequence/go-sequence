@@ -610,7 +610,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	metaTxnBytes, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), mockPayloadCall)
+	metaTxnBytes, err := v3.HashPayload(wallet.Address(), testChain.ChainID(), mockBundles[0])
 	require.NoError(t, err)
 	metaTxnHash := common.BytesToHash(metaTxnBytes[:])
 	metaTxnID := sequence.MetaTxnID(metaTxnHash.Hex()[2:])
