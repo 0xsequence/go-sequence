@@ -27,17 +27,11 @@ type Payload interface {
 	ChainID() *big.Int
 }
 
-type EncodablePayload interface {
-	Payload
-
-	Encode(address common.Address) []byte
-}
-
 var (
-	_ EncodablePayload = calls{}
-	_ Payload          = message{}
-	_ Payload          = configUpdate{}
-	_ Payload          = digest{}
+	_ Payload = CallsPayload{}
+	_ Payload = messagePayload{}
+	_ Payload = configUpdatePayload{}
+	_ Payload = digestPayload{}
 )
 
 type PayloadDigest struct {
@@ -80,7 +74,7 @@ func (p payload) domain() ethcoder.TypedDataDomain {
 	}
 }
 
-func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) EncodablePayload {
+func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
@@ -106,7 +100,7 @@ func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce
 		parentWallets[0] = []common.Address{}
 	}
 
-	return calls{
+	return CallsPayload{
 		payload: payload{
 			address:       address,
 			chainID:       chainID,
@@ -257,14 +251,14 @@ const (
 	BehaviorOnErrorAbort                  = 2
 )
 
-type calls struct {
+type CallsPayload struct {
 	payload
 
 	calls        []Call
 	space, nonce *big.Int
 }
 
-func (c calls) Digest() PayloadDigest {
+func (c CallsPayload) Digest() PayloadDigest {
 	calls := make([]any, 0, len(c.calls))
 	for _, call := range c.calls {
 		calls = append(calls, any(call.asMap()))
@@ -312,7 +306,7 @@ func (c calls) Digest() PayloadDigest {
 	return PayloadDigest{Hash: common.Hash(digest), Preimage: c}
 }
 
-func (c calls) Encode(address common.Address) []byte {
+func (c CallsPayload) Encode(address common.Address) []byte {
 	var flags byte
 	var buffer bytes.Buffer
 
@@ -347,19 +341,19 @@ func (c calls) Encode(address common.Address) []byte {
 	return data
 }
 
-func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (EncodablePayload, error) {
+func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPayload, error) {
 	var calls []Call
 	var space, nonce *big.Int
 
 	if len(data) < 1 {
-		return nil, fmt.Errorf("no flags")
+		return CallsPayload{}, fmt.Errorf("no flags")
 	}
 	var flags byte
 	flags, data = data[0], data[1:]
 
 	if flags&0x01 == 0 {
 		if len(data) < 20 {
-			return nil, fmt.Errorf("no space")
+			return CallsPayload{}, fmt.Errorf("no space")
 		}
 		space.SetBytes(data[:20])
 		data = data[20:]
@@ -367,7 +361,7 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (Encodab
 
 	nonceSize := int(flags >> 1 & 0x07)
 	if len(data) < nonceSize {
-		return nil, fmt.Errorf("no nonce")
+		return CallsPayload{}, fmt.Errorf("no nonce")
 	}
 	nonce.SetBytes(data[:nonceSize])
 	data = data[nonceSize:]
@@ -377,12 +371,12 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (Encodab
 		calls_ = 1
 	} else if flags&0x20 == 0 {
 		if len(data) < 1 {
-			return nil, fmt.Errorf("no number of calls")
+			return CallsPayload{}, fmt.Errorf("no number of calls")
 		}
 		calls_, data = int(data[0]), data[1:]
 	} else {
 		if len(data) < 2 {
-			return nil, fmt.Errorf("no number of calls")
+			return CallsPayload{}, fmt.Errorf("no number of calls")
 		}
 		calls_, data = int(data[0])<<8+int(data[1]), data[2:]
 	}
@@ -392,7 +386,7 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (Encodab
 		var err error
 		call, data, err = decodeCall(data, address)
 		if err != nil {
-			return nil, fmt.Errorf("unable to decode call %v: %w", len(calls), err)
+			return CallsPayload{}, fmt.Errorf("unable to decode call %v: %w", len(calls), err)
 		}
 
 		calls = append(calls, call)
@@ -415,7 +409,7 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 		parentWallets[0] = []common.Address{}
 	}
 
-	return message{
+	return messagePayload{
 		payload: payload{
 			address:       address,
 			chainID:       chainID,
@@ -426,13 +420,13 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 	}
 }
 
-type message struct {
+type messagePayload struct {
 	payload
 
 	message []byte
 }
 
-func (m message) Digest() PayloadDigest {
+func (m messagePayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(m.parentWallets))
 	for _, wallet := range m.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -473,7 +467,7 @@ func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWa
 		parentWallets[0] = []common.Address{}
 	}
 
-	return configUpdate{
+	return configUpdatePayload{
 		payload: payload{
 			address:       address,
 			chainID:       new(big.Int),
@@ -484,13 +478,13 @@ func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWa
 	}
 }
 
-type configUpdate struct {
+type configUpdatePayload struct {
 	payload
 
 	imageHash core.ImageHashable
 }
 
-func (u configUpdate) Digest() PayloadDigest {
+func (u configUpdatePayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(u.parentWallets))
 	for _, wallet := range u.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -531,7 +525,7 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 		parentWallets[0] = []common.Address{}
 	}
 
-	return digest{
+	return digestPayload{
 		payload: payload{
 			address:       address,
 			chainID:       chainID,
@@ -542,13 +536,13 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 	}
 }
 
-type digest struct {
+type digestPayload struct {
 	payload
 
 	digest common.Hash
 }
 
-func (d digest) Digest() PayloadDigest {
+func (d digestPayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(d.parentWallets))
 	for _, wallet := range d.parentWallets {
 		wallets = append(wallets, any(wallet))
