@@ -107,9 +107,9 @@ func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce
 			parentWallets: parentWallets[0],
 		},
 
-		calls: calls_,
-		space: space,
-		nonce: nonce,
+		Calls: calls_,
+		Space: space,
+		Nonce: nonce,
 	}
 }
 
@@ -254,13 +254,13 @@ const (
 type CallsPayload struct {
 	payload
 
-	calls        []Call
-	space, nonce *big.Int
+	Calls        []Call
+	Space, Nonce *big.Int
 }
 
 func (p CallsPayload) Digest() PayloadDigest {
-	calls := make([]any, 0, len(p.calls))
-	for _, call := range p.calls {
+	calls := make([]any, 0, len(p.Calls))
+	for _, call := range p.Calls {
 		calls = append(calls, any(call.asMap()))
 	}
 
@@ -292,8 +292,8 @@ func (p CallsPayload) Digest() PayloadDigest {
 		},
 		Message: map[string]any{
 			"calls":   calls,
-			"space":   p.space,
-			"nonce":   p.nonce,
+			"space":   p.Space,
+			"nonce":   p.Nonce,
 			"wallets": wallets,
 		},
 	}
@@ -310,18 +310,18 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 	var flags byte
 	var buffer bytes.Buffer
 
-	if p.space.Sign() == 0 {
+	if p.Space.Sign() == 0 {
 		flags |= 0x01
 	} else {
 		var space [20]byte
-		mustWrite(&buffer, p.space.FillBytes(space[:]))
+		mustWrite(&buffer, p.Space.FillBytes(space[:]))
 	}
 
-	nonce := p.nonce.Bytes()
+	nonce := p.Nonce.Bytes()
 	flags |= byte(len(nonce)) << 1
 	mustWrite(&buffer, nonce)
 
-	calls := len(p.calls)
+	calls := len(p.Calls)
 	if calls == 1 {
 		flags |= 0x10
 	} else if calls < 0x100 {
@@ -331,7 +331,7 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 		mustWrite(&buffer, []byte{byte(calls >> 8), byte(calls)})
 	}
 
-	for _, call := range p.calls {
+	for _, call := range p.Calls {
 		mustWrite(&buffer, call.encode(address))
 	}
 
