@@ -258,19 +258,19 @@ type CallsPayload struct {
 	space, nonce *big.Int
 }
 
-func (c CallsPayload) Digest() PayloadDigest {
-	calls := make([]any, 0, len(c.calls))
-	for _, call := range c.calls {
+func (p CallsPayload) Digest() PayloadDigest {
+	calls := make([]any, 0, len(p.calls))
+	for _, call := range p.calls {
 		calls = append(calls, any(call.asMap()))
 	}
 
-	wallets := make([]any, 0, len(c.parentWallets))
-	for _, wallet := range c.parentWallets {
+	wallets := make([]any, 0, len(p.parentWallets))
+	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
 	}
 
 	data := ethcoder.TypedData{
-		Domain:      c.domain(),
+		Domain:      p.domain(),
 		PrimaryType: "Calls",
 		Types: map[string][]ethcoder.TypedDataArgument{
 			"EIP712Domain": eip712Domain,
@@ -292,8 +292,8 @@ func (c CallsPayload) Digest() PayloadDigest {
 		},
 		Message: map[string]any{
 			"calls":   calls,
-			"space":   c.space,
-			"nonce":   c.nonce,
+			"space":   p.space,
+			"nonce":   p.nonce,
 			"wallets": wallets,
 		},
 	}
@@ -303,25 +303,25 @@ func (c CallsPayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: c}
+	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
-func (c CallsPayload) Encode(address common.Address) []byte {
+func (p CallsPayload) Encode(address common.Address) []byte {
 	var flags byte
 	var buffer bytes.Buffer
 
-	if c.space.Sign() == 0 {
+	if p.space.Sign() == 0 {
 		flags |= 0x01
 	} else {
 		var space [20]byte
-		mustWrite(&buffer, c.space.FillBytes(space[:]))
+		mustWrite(&buffer, p.space.FillBytes(space[:]))
 	}
 
-	nonce := c.nonce.Bytes()
+	nonce := p.nonce.Bytes()
 	flags |= byte(len(nonce)) << 1
 	mustWrite(&buffer, nonce)
 
-	calls := len(c.calls)
+	calls := len(p.calls)
 	if calls == 1 {
 		flags |= 0x10
 	} else if calls < 0x100 {
@@ -331,7 +331,7 @@ func (c CallsPayload) Encode(address common.Address) []byte {
 		mustWrite(&buffer, []byte{byte(calls >> 8), byte(calls)})
 	}
 
-	for _, call := range c.calls {
+	for _, call := range p.calls {
 		mustWrite(&buffer, call.encode(address))
 	}
 
@@ -426,14 +426,14 @@ type messagePayload struct {
 	message []byte
 }
 
-func (m messagePayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(m.parentWallets))
-	for _, wallet := range m.parentWallets {
+func (p messagePayload) Digest() PayloadDigest {
+	wallets := make([]any, 0, len(p.parentWallets))
+	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
 	}
 
 	data := ethcoder.TypedData{
-		Domain:      m.domain(),
+		Domain:      p.domain(),
 		PrimaryType: "Message",
 		Types: map[string][]ethcoder.TypedDataArgument{
 			"EIP712Domain": eip712Domain,
@@ -443,7 +443,7 @@ func (m messagePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"message": m.message,
+			"message": p.message,
 			"wallets": wallets,
 		},
 	}
@@ -453,7 +453,7 @@ func (m messagePayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: m}
+	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
 func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWallets ...[]common.Address) Payload {
@@ -484,14 +484,14 @@ type configUpdatePayload struct {
 	imageHash core.ImageHashable
 }
 
-func (u configUpdatePayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(u.parentWallets))
-	for _, wallet := range u.parentWallets {
+func (p configUpdatePayload) Digest() PayloadDigest {
+	wallets := make([]any, 0, len(p.parentWallets))
+	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
 	}
 
 	data := ethcoder.TypedData{
-		Domain:      u.domain(),
+		Domain:      p.domain(),
 		PrimaryType: "ConfigUpdate",
 		Types: map[string][]ethcoder.TypedDataArgument{
 			"EIP712Domain": eip712Domain,
@@ -501,7 +501,7 @@ func (u configUpdatePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"imageHash": u.imageHash.ImageHash().Hash,
+			"imageHash": p.imageHash.ImageHash().Hash,
 			"wallets":   wallets,
 		},
 	}
@@ -511,7 +511,7 @@ func (u configUpdatePayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: u}
+	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
 func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
@@ -542,14 +542,14 @@ type digestPayload struct {
 	digest common.Hash
 }
 
-func (d digestPayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(d.parentWallets))
-	for _, wallet := range d.parentWallets {
+func (p digestPayload) Digest() PayloadDigest {
+	wallets := make([]any, 0, len(p.parentWallets))
+	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
 	}
 
 	data := ethcoder.TypedData{
-		Domain:      d.domain(),
+		Domain:      p.domain(),
 		PrimaryType: "Digest",
 		Types: map[string][]ethcoder.TypedDataArgument{
 			"EIP712Domain": eip712Domain,
@@ -559,7 +559,7 @@ func (d digestPayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"digest":  d.digest,
+			"digest":  p.digest,
 			"wallets": wallets,
 		},
 	}
@@ -569,7 +569,7 @@ func (d digestPayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: d}
+	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
 func mustWrite(writer io.Writer, data []byte) {
