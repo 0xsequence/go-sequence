@@ -969,7 +969,8 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		}
 
 		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
-		execdata := v3.Calls(guestAddress, testChain.ChainID(), guestBundle, nil, nil).Encode(guestAddress)
+		execdata := v3.ConstructCallsPayload(guestAddress, testChain.ChainID(), guestBundle, big.NewInt(0), big.NewInt(0)).Encode(guestAddress)
+		assert.NoError(t, err)
 
 		// Relay the txn manually, directly to the guest module
 		sender := testChain.GetRelayerWallet()

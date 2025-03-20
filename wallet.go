@@ -719,42 +719,39 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	return nil, fmt.Errorf("unknown wallet config type")
 }
 
-// GetSignedIntentTransactionWithDecodedPayload creates an intent signature for a v3.DecodedPayload.
-func (w *Wallet[C]) GetSignedIntentTransactionWithDecodedPayload(ctx context.Context, payload v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
-	return w.GetSignedIntentPayload(ctx, payload, sig)
+// GetSignedIntentTransactionWithCallsPayload creates an intent signature for a v3.CallsPayload.
+func (w *Wallet[C]) GetSignedIntentTransactionWithCallsPayload(ctx context.Context, callsPayload v3.CallsPayload, sig []byte) (*SignedTransactions, error) {
+	return w.GetSignedIntentPayload(ctx, callsPayload, sig)
 }
 
-// GetSignedIntentTransactionsWithDecodedPayloads creates an intent signature for multiple v3.DecodedPayload objects.
-func (w *Wallet[C]) GetSignedIntentTransactionsWithDecodedPayloads(ctx context.Context, payloads []v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
-	if len(payloads) == 0 {
+// GetSignedIntentTransactionsWithCallsPayloads creates an intent signature for multiple v3.CallsPayload objects.
+func (w *Wallet[C]) GetSignedIntentTransactionsWithCallsPayloads(ctx context.Context, callsPayloads []v3.CallsPayload, sig []byte) (*SignedTransactions, error) {
+	if len(callsPayloads) == 0 {
 		return nil, fmt.Errorf("cannot sign an empty set of payloads")
 	}
 
 	// For now, we only support a single payload in the batch
-	if len(payloads) > 1 {
+	if len(callsPayloads) > 1 {
 		return nil, fmt.Errorf("multiple payloads not supported yet, please use CreateIntentDigestTree for multiple payloads")
 	}
 
-	return w.GetSignedIntentPayload(ctx, payloads[0], sig)
+	return w.GetSignedIntentPayload(ctx, callsPayloads[0], sig)
 }
 
 // GetSignedIntentPayload is the core implementation for creating intent signatures.
-func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.DecodedPayload, sig []byte) (*SignedTransactions, error) {
+func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, callsPayload v3.CallsPayload, sig []byte) (*SignedTransactions, error) {
 	// Logging for debugging purposes
-	log.Println("Creating intent bundle from payload:", payload)
+	log.Println("Creating intent bundle from payload:", callsPayload)
 	log.Println("Using provided signature:", common.Bytes2Hex(sig))
 
 	// Compute the digest of the payload
-	digest, err := v3.HashPayload(common.Address{}, big.NewInt(0), payload)
-	if err != nil {
-		return nil, err
-	}
+	digest := callsPayload.Digest()
 
 	// Log the intent payload digest for debugging
-	log.Println("Intent payload digest:", common.Bytes2Hex(digest[:]))
+	log.Println("Intent payload digest:", digest.Hash.Hex())
 
 	// Sign the payload
-	sig, err = w.SignV3Payload(ctx, payload)
+	sig, err := w.SignV3Payload(ctx, callsPayload)
 	if err != nil {
 		return nil, err
 	}
@@ -763,16 +760,16 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.Decod
 	log.Println("Intent signature created:", common.Bytes2Hex(sig))
 
 	// Convert payload back to Transactions for compatibility with SignedTransactions
-	txns := make(Transactions, len(payload.Calls))
-	for i, call := range payload.Calls {
+	txns := make(Transactions, len(callsPayload.Calls))
+	for i, call := range callsPayload.Calls {
 		txns[i] = &Transaction{
 			To:            call.To,
 			Value:         call.Value,
 			Data:          call.Data,
 			GasLimit:      call.GasLimit,
 			DelegateCall:  call.DelegateCall,
-			RevertOnError: call.BehaviorOnError == v3.Revert,
-			Nonce:         payload.Nonce,
+			RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			Nonce:         callsPayload.Nonce,
 		}
 	}
 
@@ -783,9 +780,9 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload v3.Decod
 		WalletConfig:  w.config,
 		WalletContext: w.context,
 		Transactions:  txns,
-		Space:         payload.Space,
-		Nonce:         payload.Nonce,
-		Digest:        common.BytesToHash(digest[:]),
+		Space:         callsPayload.Space,
+		Nonce:         callsPayload.Nonce,
+		Digest:        digest.Hash,
 		Signature:     sig,
 	}, nil
 }
