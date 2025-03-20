@@ -1,8 +1,7 @@
 module github.com/0xsequence/go-sequence
 
 go 1.22.0
-
-toolchain go1.23.1
+toolchain go1.24.1
 
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
@@ -16,6 +15,7 @@ require (
 	github.com/goware/logger v0.3.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.5.0
 )
 
 require (
@@ -48,12 +48,12 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
-	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
