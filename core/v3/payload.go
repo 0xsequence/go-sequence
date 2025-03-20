@@ -790,7 +790,10 @@ func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Paylo
 	return Message(address, chainID, message), nil
 }
 
-func ConfigUpdate(address common.Address, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
+func ConfigUpdate(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
+	if chainID == nil {
+		chainID = new(big.Int)
+	}
 	if isNil(imageHash) {
 		panic(fmt.Errorf("no config"))
 	}
@@ -804,7 +807,7 @@ func ConfigUpdate(address common.Address, imageHash common.Hash, parentWallets .
 	return ConfigUpdatePayload{
 		payload: payload{
 			address:       address,
-			chainID:       new(big.Int),
+			chainID:       chainID,
 			parentWallets: parentWallets[0],
 		},
 
@@ -860,14 +863,14 @@ func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
 	return buffer.Bytes()
 }
 
-func DecodeConfigUpdate(address common.Address, data []byte) (Payload, error) {
+func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
 	if len(data) < 33 {
 		return nil, fmt.Errorf("config update payload too short")
 	}
 	data = data[1:]
 	var hash common.Hash
 	copy(hash[:], data[:32])
-	return ConfigUpdate(address, hash), nil
+	return ConfigUpdate(address, chainID, hash), nil
 }
 
 func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
@@ -971,7 +974,7 @@ func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (Pa
 	case KindMessage:
 		return Message(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
 	case KindConfigUpdate:
-		return ConfigUpdate(address, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
+		return ConfigUpdate(address, chainID, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
 	case KindDigest:
 		return Digest(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
 	default:
