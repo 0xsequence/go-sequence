@@ -12,7 +12,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
-	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -135,17 +134,12 @@ func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Addre
 		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
 	}
 
-	payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+	payload, err := txns.Payload(walletAddress, chainID, space, nonce)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
 
-	encoded, err := v3.Encode(payload, &walletAddress)
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", encoded, seqSig)
+	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

@@ -471,58 +471,12 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 	}
 }
 
-// ConvertTransactionsToV3Payload converts sequence.Transactions to v3.DecodedPayload
-func ConvertTransactionsToV3Payload(txs Transactions, space, nonce *big.Int) (v3.DecodedPayload, error) {
-	calls := make([]v3.Call, len(txs))
-	for i, tx := range txs {
-		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
-		var behaviorOnError v3.BehaviorOnError
-		if tx.RevertOnError {
-			behaviorOnError = v3.Revert
-		} else {
-			behaviorOnError = v3.Ignore
-		}
-
-		// Handle nested transactions by recursively encoding them
-		data := tx.Data
-		if tx.IsBundle() {
-			subPayload, err := ConvertTransactionsToV3Payload(tx.Transactions, big.NewInt(0), tx.Nonce)
-			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
-			}
-
-			encodedSubPayload, err := v3.Encode(subPayload, &tx.To)
-			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload: %w", err)
-			}
-
-			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", encodedSubPayload)
-			if err != nil {
-				return v3.DecodedPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
-			}
-		}
-
-		calls[i] = v3.Call{
-			To:              tx.To,
-			Value:           tx.Value,
-			Data:            data,
-			GasLimit:        tx.GasLimit,
-			DelegateCall:    tx.DelegateCall,
-			OnlyFallback:    false,
-			BehaviorOnError: behaviorOnError,
-		}
+func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
+	chainID, err := provider.ChainID(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("unable to get chain id: %w", err)
 	}
 
-	return v3.DecodedPayload{
-		Kind:      v3.KindTransactions,
-		NoChainId: false,
-		Calls:     calls,
-		Space:     space,
-		Nonce:     nonce,
-	}, nil
-}
-
-func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, address common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txs Transactions) (uint64, error) {
 	isEOA, err := e.AreEOAs(ctx, provider, walletConfig)
 	if err != nil {
 		return 0, err
@@ -615,17 +569,13 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			payload, err := ConvertTransactionsToV3Payload(subTxs, big.NewInt(0), nonce)
+			// TODO: set nonce space
+			payload, err := subTxs.Payload(address, chainID, new(big.Int), nonce)
 			if err != nil {
 				return 0, err
 			}
 
-			encoded, err := v3.Encode(payload, &address)
-			if err != nil {
-				return 0, err
-			}
-
-			execData, err := contracts.V3.WalletEstimator.Encode("estimate", encoded, signature)
+			execData, err := contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
 			if err != nil {
 				return 0, err
 			}

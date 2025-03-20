@@ -558,7 +558,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	return res, err
 }
 
-func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.DecodedPayload, optChainID ...*big.Int) ([]byte, error) {
+func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -570,10 +570,7 @@ func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.DecodedPayload
 		chainID = w.chainID
 	}
 
-	opHash, err := v3.HashPayload(w.address, chainID, payload)
-	if err != nil {
-		return nil, fmt.Errorf("SignV3Payload, HashPayload: %w", err)
-	}
+	opHash := payload.Digest()
 
 	sign := func(ctx context.Context, signerAddress common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		signer, _ := w.GetSigner(signerAddress)
@@ -587,7 +584,7 @@ func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.DecodedPayload
 		switch signerTyped := signer.(type) {
 		// sequence.Wallet / Signing Service / Guard
 		case DigestSigner:
-			sigValue, err := signerTyped.SignDigest(ctx, opHash, chainID)
+			sigValue, err := signerTyped.SignDigest(ctx, opHash.Hash, chainID)
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignDigest subDigest: %w", err)
 			}
@@ -600,7 +597,7 @@ func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.DecodedPayload
 			return core.SignerSignatureType(sigValue[len(sigValue)-1]), sigValue[:len(sigValue)-1], nil
 		// Ethereum Wallet Signer
 		case MessageSigner:
-			sigValue, err := signerTyped.SignMessage(opHash[:])
+			sigValue, err := signerTyped.SignMessage(opHash.Bytes())
 			if err != nil {
 				return 0, nil, fmt.Errorf("signer.SignMessage subDigest: %w", err)
 			}
@@ -693,15 +690,12 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	case *v3.WalletConfig:
 		space, nonce := DecodeNonce(nonce)
 
-		payload, err := ConvertTransactionsToV3Payload(txns, space, nonce)
+		payload, err := txns.Payload(w.address, w.chainID, space, nonce)
 		if err != nil {
 			return nil, err
 		}
 
-		digest, err := v3.HashPayload(w.address, w.chainID, payload)
-		if err != nil {
-			return nil, err
-		}
+		digest := payload.Digest()
 
 		// Sign the transactions
 		sig, err := w.SignV3Payload(ctx, payload)
@@ -717,7 +711,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 			Transactions:  txns,
 			Space:         space,
 			Nonce:         nonce,
-			Digest:        digest,
+			Digest:        digest.Hash,
 			Signature:     sig,
 		}, nil
 	}

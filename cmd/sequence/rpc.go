@@ -155,6 +155,7 @@ func handlePayloadHash(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+	log.Printf("Calling handleHash with params: %+v", p)
 	return handleHash(&p)
 }
 

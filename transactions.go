@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -210,6 +211,45 @@ func NewTransactionsFromValues(values []Transaction) Transactions {
 		transactions = append(transactions, &values[i])
 	}
 	return transactions
+}
+
+func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce *big.Int) (v3.CallsPayload, error) {
+	calls := make([]v3.Call, len(t))
+	for i, tx := range t {
+		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
+		var behaviorOnError v3.BehaviorOnError
+		if tx.RevertOnError {
+			behaviorOnError = v3.BehaviorOnErrorRevert
+		} else {
+			behaviorOnError = v3.BehaviorOnErrorIgnore
+		}
+
+		// Handle nested transactions by recursively encoding them
+		data := tx.Data
+		if tx.IsBundle() {
+			subPayload, err := tx.Transactions.Payload(tx.To, chainID, big.NewInt(0), tx.Nonce)
+			if err != nil {
+				return v3.CallsPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
+			}
+
+			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", subPayload.Encode(tx.To))
+			if err != nil {
+				return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+			}
+		}
+
+		calls[i] = v3.Call{
+			To:              tx.To,
+			Value:           tx.Value,
+			Data:            data,
+			GasLimit:        tx.GasLimit,
+			DelegateCall:    tx.DelegateCall,
+			OnlyFallback:    false,
+			BehaviorOnError: behaviorOnError,
+		}
+	}
+
+	return v3.Calls(to, chainID, calls, space, nonce), nil
 }
 
 func (t Transactions) EncodeRaw() ([]byte, error) {
