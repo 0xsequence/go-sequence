@@ -8,6 +8,8 @@ import (
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
+//go:generate go run go.uber.org/mock/mockgen -destination relayer.mock.go -package relayer ./proto Relayer
+
 type Options struct {
 	HTTPClient   proto.HTTPClient
 	JWTAuthToken string

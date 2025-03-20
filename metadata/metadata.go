@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+//go:generate go run go.uber.org/mock/mockgen -destination metadata.mock.go -package metadata . Metadata
+
 type Options struct {
 	HTTPClient         HTTPClient
 	JWTAuthToken       string
