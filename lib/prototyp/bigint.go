@@ -195,14 +195,38 @@ func (b *BigInt) UnmarshalJSON(text []byte) error {
 	return b.UnmarshalText(text)
 }
 
-// MarshalBinary implements encoding.BinaryMarshaler.
-func (b BigInt) MarshalBinary() (data []byte, err error) {
-	return b.Int().Bytes(), nil
+// MarshalBinary implements encoding.BinaryMarshaler. The first byte is the sign byte
+// to represent positive or negative numbers.
+func (b BigInt) MarshalBinary() ([]byte, error) {
+	if b.Int().Sign() < 0 {
+		// Prepend a sign byte (0xFF for negative)
+		return append([]byte{0xFF}, b.Int().Bytes()...), nil
+	} else {
+		// For zero or positive numbers, prepend 0x00
+		return append([]byte{0x00}, b.Int().Bytes()...), nil
+	}
 }
 
-// UnmarshalBinary implements encoding.BinaryUnmarshaler.
+// UnmarshalBinary implements encoding.BinaryUnmarshaler. The first byte is the sign byte
+// to represent positive or negative numbers.
 func (b *BigInt) UnmarshalBinary(buff []byte) error {
-	i := big.NewInt(0).SetBytes(buff)
+	if len(buff) == 0 {
+		*b = BigInt(*big.NewInt(0))
+		return nil
+	}
+
+	// Extract the sign byte
+	signByte := buff[0]
+	valueBytes := buff[1:]
+
+	// Create big.Int from the value bytes
+	i := big.NewInt(0).SetBytes(valueBytes)
+
+	// Apply sign if negative
+	if signByte == 0xFF {
+		i.Neg(i)
+	}
+
 	*b = BigInt(*i)
 	return nil
 }
