@@ -344,17 +344,17 @@ func (d PayloadDigest) Digest() PayloadDigest {
 	return d
 }
 
-type payload struct {
+type basePayload struct {
 	address       common.Address
 	chainID       *big.Int
 	parentWallets []common.Address
 }
 
-func (p payload) Address() common.Address {
+func (p basePayload) Address() common.Address {
 	return p.address
 }
 
-func (p payload) ChainID() *big.Int {
+func (p basePayload) ChainID() *big.Int {
 	return p.chainID
 }
 
@@ -365,7 +365,7 @@ var eip712Domain = []ethcoder.TypedDataArgument{
 	{Name: "verifyingContract", Type: "address"},
 }
 
-func (p payload) domain() ethcoder.TypedDataDomain {
+func (p basePayload) domain() ethcoder.TypedDataDomain {
 	return ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
@@ -374,7 +374,7 @@ func (p payload) domain() ethcoder.TypedDataDomain {
 	}
 }
 
-func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
+func ConstructCallsPayload(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
@@ -401,7 +401,7 @@ func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce
 	}
 
 	return CallsPayload{
-		payload: payload{
+		basePayload: basePayload{
 			address:       address,
 			chainID:       chainID,
 			parentWallets: parentWallets[0],
@@ -552,10 +552,11 @@ const (
 )
 
 type CallsPayload struct {
-	payload
+	basePayload
 
-	Calls        []Call
-	Space, Nonce *big.Int
+	Calls []Call
+	Space *big.Int
+	Nonce *big.Int
 }
 
 func (p CallsPayload) Digest() PayloadDigest {
@@ -694,10 +695,10 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 		calls = append(calls, call)
 	}
 
-	return Calls(address, chainID, calls, space, nonce), nil
+	return ConstructCallsPayload(address, chainID, calls, space, nonce), nil
 }
 
-func Message(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
+func ConstructMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
@@ -712,7 +713,7 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 	}
 
 	return MessagePayload{
-		payload: payload{
+		basePayload: basePayload{
 			address:       address,
 			chainID:       chainID,
 			parentWallets: parentWallets[0],
@@ -723,7 +724,7 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 }
 
 type MessagePayload struct {
-	payload
+	basePayload
 
 	message []byte
 }
@@ -787,10 +788,10 @@ func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Paylo
 		return nil, fmt.Errorf("message data too short")
 	}
 	message := data[:msgLen]
-	return Message(address, chainID, message), nil
+	return ConstructMessagePayload(address, chainID, message), nil
 }
 
-func ConfigUpdate(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
+func ConstructConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
@@ -805,7 +806,7 @@ func ConfigUpdate(address common.Address, chainID *big.Int, imageHash common.Has
 	}
 
 	return ConfigUpdatePayload{
-		payload: payload{
+		basePayload: basePayload{
 			address:       address,
 			chainID:       chainID,
 			parentWallets: parentWallets[0],
@@ -816,7 +817,7 @@ func ConfigUpdate(address common.Address, chainID *big.Int, imageHash common.Has
 }
 
 type ConfigUpdatePayload struct {
-	payload
+	basePayload
 
 	imageHash common.Hash
 }
@@ -870,10 +871,10 @@ func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (
 	data = data[1:]
 	var hash common.Hash
 	copy(hash[:], data[:32])
-	return ConfigUpdate(address, chainID, hash), nil
+	return ConstructConfigUpdatePayload(address, chainID, hash), nil
 }
 
-func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
+func ConstructDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
@@ -885,7 +886,7 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 	}
 
 	return DigestPayload{
-		payload: payload{
+		basePayload: basePayload{
 			address:       address,
 			chainID:       chainID,
 			parentWallets: parentWallets[0],
@@ -896,7 +897,7 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 }
 
 type DigestPayload struct {
-	payload
+	basePayload
 
 	digest common.Hash
 }
@@ -970,13 +971,13 @@ func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (Pa
 
 	switch decoded.Kind {
 	case KindTransactions:
-		return Calls(address, chainID, decoded.Calls, decoded.Space, decoded.Nonce, []common.Address(decoded.ParentWallets)), nil
+		return ConstructCallsPayload(address, chainID, decoded.Calls, decoded.Space, decoded.Nonce, []common.Address(decoded.ParentWallets)), nil
 	case KindMessage:
-		return Message(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
+		return ConstructMessagePayload(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
 	case KindConfigUpdate:
-		return ConfigUpdate(address, chainID, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
+		return ConstructConfigUpdatePayload(address, chainID, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
 	case KindDigest:
-		return Digest(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
+		return ConstructDigestPayload(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
 	default:
 		return nil, fmt.Errorf("unknown payload kind: %d", decoded.Kind)
 	}
