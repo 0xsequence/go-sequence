@@ -384,15 +384,15 @@ func Calls(address common.Address, chainID *big.Int, calls_ []Call, space, nonce
 	if space == nil {
 		space = new(big.Int)
 	}
-	if space.Sign() < 0 || space.Cmp(new(big.Int).Lsh(common.Big1, 160)) >= 0 {
-		panic(fmt.Errorf("space %v is out of bounds [0, 2^160)", space))
-	}
+	// if space.Sign() < 0 || space.Cmp(new(big.Int).Lsh(common.Big1, 160)) >= 0 {
+	// 	panic(fmt.Errorf("space %v is out of bounds [0, 2^160)", space))
+	// }
 	if nonce == nil {
 		nonce = new(big.Int)
 	}
-	if nonce.Sign() < 0 || nonce.Cmp(new(big.Int).Lsh(common.Big1, 56)) >= 0 {
-		panic(fmt.Errorf("nonce %v is out of bounds [0, 2^56)", nonce))
-	}
+	// if nonce.Sign() < 0 || nonce.Cmp(new(big.Int).Lsh(common.Big1, 56)) >= 0 {
+	// 	panic(fmt.Errorf("nonce %v is out of bounds [0, 2^56)", nonce))
+	// }
 	if parentWallets == nil {
 		parentWallets = append(parentWallets, nil)
 	}
