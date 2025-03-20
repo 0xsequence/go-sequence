@@ -249,7 +249,7 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 		}
 	}
 
-	return v3.Calls(to, chainID, calls, space, nonce), nil
+	return v3.ConstructCallsPayload(to, chainID, calls, space, nonce), nil
 }
 
 func (t Transactions) EncodeRaw() ([]byte, error) {
