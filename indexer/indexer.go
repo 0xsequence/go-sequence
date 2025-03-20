@@ -5,8 +5,6 @@ import (
 	"net/http"
 )
 
-//go:generate go run go.uber.org/mock/mockgen -destination indexer.mock.go -package indexer . Indexer
-
 type Options struct {
 	HTTPClient   HTTPClient
 	JWTAuthToken string
