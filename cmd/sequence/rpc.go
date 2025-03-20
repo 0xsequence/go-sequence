@@ -126,6 +126,22 @@ func handleDevToolsRandomSessionTopology(params json.RawMessage) (interface{}, e
 	return handleRandomSessionTopology(&p)
 }
 
+func handlePayloadToAbi(params json.RawMessage) (interface{}, error) {
+	var p PayloadToAbiParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleToAbi(&p)
+}
+
+func handlePayloadToPacked(params json.RawMessage) (interface{}, error) {
+	var p PayloadToPackedParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+	return handleToPacked(&p)
+}
+
 func handlePayloadToJson(params json.RawMessage) (interface{}, error) {
 	var p PayloadToJsonParams
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -139,6 +155,7 @@ func handlePayloadHash(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+	log.Printf("Calling handleHash with params: %+v", p)
 	return handleHash(&p)
 }
 
@@ -297,6 +314,10 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleDevToolsRandomConfig(req.Params)
 	case "devTools_randomSessionTopology":
 		result, err = handleDevToolsRandomSessionTopology(req.Params)
+	case "payload_toAbi":
+		result, err = handlePayloadToAbi(req.Params)
+	case "payload_toPacked":
+		result, err = handlePayloadToPacked(req.Params)
 	case "payload_toJson":
 		result, err = handlePayloadToJson(req.Params)
 	case "payload_hashFor":

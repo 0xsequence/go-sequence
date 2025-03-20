@@ -6,11 +6,310 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 )
+
+const (
+	KindTransactions uint8 = 0x00
+	KindMessage      uint8 = 0x01
+	KindConfigUpdate uint8 = 0x02
+	KindDigest       uint8 = 0x03
+)
+
+type DecodedPayload struct {
+	Kind          uint8
+	NoChainId     bool
+	Calls         []Call
+	Space         *big.Int
+	Nonce         *big.Int
+	Message       []byte
+	ImageHash     common.Hash
+	Digest        common.Hash
+	ParentWallets []common.Address
+}
+
+func DecodeABIPayload(input string) (DecodedPayload, error) {
+	data, err := hexutil.Decode(input)
+
+	if err != nil {
+		return DecodedPayload{}, fmt.Errorf("invalid hex input: %w", err)
+	}
+
+	const abiDef = `[{
+		"name": "f",
+		"type": "function",
+		"inputs": [{
+			"type": "tuple",
+			"components": [
+				{"name": "kind", "type": "uint8"},
+				{"name": "noChainId", "type": "bool"},
+				{"name": "calls", "type": "tuple[]", "components": [
+					{"name": "to", "type": "address"},
+					{"name": "value", "type": "uint256"},
+					{"name": "data", "type": "bytes"},
+					{"name": "gasLimit", "type": "uint256"},
+					{"name": "delegateCall", "type": "bool"},
+					{"name": "onlyFallback", "type": "bool"},
+					{"name": "behaviorOnError", "type": "uint256"}
+				]},
+				{"name": "space", "type": "uint256"},
+				{"name": "nonce", "type": "uint256"},
+				{"name": "message", "type": "bytes"},
+				{"name": "imageHash", "type": "bytes32"},
+				{"name": "digest", "type": "bytes32"},
+				{"name": "parentWallets", "type": "address[]"}
+			]
+		}]
+	}]`
+
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	if err != nil {
+		return DecodedPayload{}, fmt.Errorf("failed to parse ABI: %w", err)
+	}
+
+	decodedData, err := parsedABI.Methods["f"].Inputs.Unpack(data)
+	if err != nil {
+		return DecodedPayload{}, fmt.Errorf("failed to decode ABI: %w", err)
+	}
+
+	if len(decodedData) != 1 {
+		return DecodedPayload{}, fmt.Errorf("invalid decoded data length")
+	}
+
+	v := decodedData[0]
+	if v == nil {
+		return DecodedPayload{}, fmt.Errorf("decoded data is nil")
+	}
+
+	if s, ok := v.(struct {
+		Kind      uint8 `json:"kind"`
+		NoChainId bool  `json:"noChainId"`
+		Calls     []struct {
+			To              common.Address `json:"to"`
+			Value           *big.Int       `json:"value"`
+			Data            []uint8        `json:"data"`
+			GasLimit        *big.Int       `json:"gasLimit"`
+			DelegateCall    bool           `json:"delegateCall"`
+			OnlyFallback    bool           `json:"onlyFallback"`
+			BehaviorOnError *big.Int       `json:"behaviorOnError"`
+		} `json:"calls"`
+		Space         *big.Int         `json:"space"`
+		Nonce         *big.Int         `json:"nonce"`
+		Message       []uint8          `json:"message"`
+		ImageHash     [32]uint8        `json:"imageHash"`
+		Digest        [32]uint8        `json:"digest"`
+		ParentWallets []common.Address `json:"parentWallets"`
+	}); ok {
+		calls := make([]Call, len(s.Calls))
+		for i, call := range s.Calls {
+			calls[i] = Call{
+				To:              call.To,
+				Value:           call.Value,
+				Data:            call.Data,
+				GasLimit:        call.GasLimit,
+				DelegateCall:    call.DelegateCall,
+				OnlyFallback:    call.OnlyFallback,
+				BehaviorOnError: BehaviorOnError(call.BehaviorOnError.Uint64()),
+			}
+		}
+
+		var imageHash common.Hash
+		copy(imageHash[:], s.ImageHash[:])
+
+		var digest common.Hash
+		copy(digest[:], s.Digest[:])
+
+		return DecodedPayload{
+			Kind:          s.Kind,
+			NoChainId:     s.NoChainId,
+			Calls:         calls,
+			Space:         s.Space,
+			Nonce:         s.Nonce,
+			Message:       s.Message,
+			ImageHash:     imageHash,
+			Digest:        digest,
+			ParentWallets: s.ParentWallets,
+		}, nil
+	}
+
+	return DecodedPayload{}, fmt.Errorf("failed to decode payload")
+}
+
+func minIntBytesFor(val *big.Int) int {
+	if val == nil {
+		return 0
+	}
+	return max(1, (val.BitLen()+7)/8)
+}
+
+func encodeBehaviorOnError(behavior BehaviorOnError) byte {
+	switch behavior {
+	case BehaviorOnErrorIgnore:
+		return 0
+	case BehaviorOnErrorRevert:
+		return 1
+	case BehaviorOnErrorAbort:
+		return 2
+	default:
+		return 0
+	}
+}
+
+func EncodeDecodedPayload(payload DecodedPayload, self *common.Address) ([]byte, error) {
+	if payload.Kind != KindTransactions {
+		return nil, fmt.Errorf("encode only supports transaction payloads")
+	}
+
+	if payload.Space == nil {
+		payload.Space = big.NewInt(0)
+	}
+	if payload.Nonce == nil {
+		payload.Nonce = big.NewInt(0)
+	}
+
+	callsLen := len(payload.Calls)
+	nonceBytesNeeded := minIntBytesFor(payload.Nonce)
+	if nonceBytesNeeded > 15 {
+		return nil, fmt.Errorf("nonce is too large (requires %d bytes, max 15)", nonceBytesNeeded)
+	}
+
+	/*
+		globalFlag layout:
+		  bit 0: spaceZeroFlag => 1 if space == 0, else 0
+		  bits [1..3]: how many bytes we use to encode nonce
+		  bit 4: singleCallFlag => 1 if there's exactly one call
+		  bit 5: callsCountSizeFlag => 1 if #calls stored in 2 bytes, 0 if in 1 byte
+		  (bits [6..7] are unused/free)
+	*/
+	var globalFlag byte
+	if payload.Space.Sign() == 0 {
+		globalFlag |= 0x01
+	}
+	globalFlag |= byte(nonceBytesNeeded << 1)
+	if callsLen == 1 {
+		globalFlag |= 0x10
+	}
+
+	// Determine calls count size (1 or 2 bytes) if not a single call
+	var callsCountSize int
+	if callsLen != 1 {
+		if callsLen < 256 {
+			callsCountSize = 1
+		} else if callsLen < 65536 {
+			callsCountSize = 2
+			globalFlag |= 0x20
+		} else {
+			return nil, fmt.Errorf("too many calls: %d (max 65535)", callsLen)
+		}
+	}
+
+	// Start building the output with a bytes.Buffer
+	var out bytes.Buffer
+	out.WriteByte(globalFlag)
+
+	// If space isn't 0, store it as exactly 20 bytes (like uint160)
+	if payload.Space.Sign() != 0 {
+		spaceBytes := make([]byte, 20)
+		payload.Space.FillBytes(spaceBytes)
+		out.Write(spaceBytes)
+	}
+
+	// Encode nonce in nonceBytesNeeded bytes
+	if nonceBytesNeeded > 0 {
+		nonceBytes := make([]byte, nonceBytesNeeded)
+		payload.Nonce.FillBytes(nonceBytes)
+		out.Write(nonceBytes)
+	}
+
+	// Store callsLen if not single-call
+	if callsLen != 1 {
+		if callsCountSize == 1 {
+			out.WriteByte(byte(callsLen))
+		} else {
+			out.Write([]byte{byte(callsLen >> 8), byte(callsLen)})
+		}
+	}
+
+	// Encode each call
+	for _, call := range payload.Calls {
+		var flags byte
+		if self != nil && call.To == *self {
+			flags |= 0x01
+		}
+		if call.Value != nil && call.Value.Sign() != 0 {
+			flags |= 0x02
+		}
+		if len(call.Data) > 0 {
+			flags |= 0x04
+		}
+		if call.GasLimit != nil && call.GasLimit.Sign() != 0 {
+			flags |= 0x08
+		}
+		if call.DelegateCall {
+			flags |= 0x10
+		}
+		if call.OnlyFallback {
+			flags |= 0x20
+		}
+		behavior := encodeBehaviorOnError(call.BehaviorOnError)
+		flags |= behavior << 6
+
+		// Write the flags byte
+		out.WriteByte(flags)
+
+		// If toSelf bit not set, store 20-byte address
+		if flags&0x01 == 0 {
+			addrBytes := call.To.Bytes()
+			if len(addrBytes) != 20 {
+				return nil, fmt.Errorf("invalid 'to' address length: %d bytes", len(addrBytes))
+			}
+			out.Write(addrBytes)
+		}
+
+		// If hasValue, store 32 bytes of value
+		if flags&0x02 != 0 {
+			valueBytes := make([]byte, 32)
+			if call.Value == nil {
+				call.Value = big.NewInt(0)
+			}
+			call.Value.FillBytes(valueBytes)
+			out.Write(valueBytes)
+		}
+
+		// If hasData, store 3 bytes of data length + data
+		if flags&0x04 != 0 {
+			dataLen := len(call.Data)
+			if dataLen > 0xffffff { // Max value for 3 bytes
+				return nil, fmt.Errorf("call data too large: %d bytes (max 16777215)", dataLen)
+			}
+			dataLenBytes := []byte{
+				byte(dataLen >> 16),
+				byte(dataLen >> 8),
+				byte(dataLen),
+			}
+			out.Write(dataLenBytes)
+			out.Write(call.Data)
+		}
+
+		// If hasGasLimit, store 32 bytes of gasLimit
+		if flags&0x08 != 0 {
+			gasBytes := make([]byte, 32)
+			if call.GasLimit == nil {
+				call.GasLimit = big.NewInt(0)
+			}
+			call.GasLimit.FillBytes(gasBytes)
+			out.Write(gasBytes)
+		}
+	}
+
+	// Return the encoded bytes
+	return out.Bytes(), nil
+}
 
 type PayloadDigestable interface {
 	Digest() PayloadDigest
@@ -25,13 +324,14 @@ type Payload interface {
 
 	Address() common.Address
 	ChainID() *big.Int
+	Encode(address common.Address) []byte
 }
 
 var (
 	_ Payload = CallsPayload{}
-	_ Payload = messagePayload{}
-	_ Payload = configUpdatePayload{}
-	_ Payload = digestPayload{}
+	_ Payload = MessagePayload{}
+	_ Payload = ConfigUpdatePayload{}
+	_ Payload = DigestPayload{}
 )
 
 type PayloadDigest struct {
@@ -247,8 +547,8 @@ type BehaviorOnError int
 
 const (
 	BehaviorOnErrorIgnore BehaviorOnError = 0
-	BehaviorOnErrorRevert                 = 1
-	BehaviorOnErrorAbort                  = 2
+	BehaviorOnErrorRevert BehaviorOnError = 1
+	BehaviorOnErrorAbort  BehaviorOnError = 2
 )
 
 type CallsPayload struct {
@@ -342,8 +642,9 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 }
 
 func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPayload, error) {
-	var calls []Call
 	var space, nonce *big.Int
+	space = new(big.Int)
+	nonce = new(big.Int)
 
 	if len(data) < 1 {
 		return CallsPayload{}, fmt.Errorf("no flags")
@@ -381,6 +682,7 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 		calls_, data = int(data[0])<<8+int(data[1]), data[2:]
 	}
 
+	var calls []Call
 	for len(calls) < calls_ {
 		var call Call
 		var err error
@@ -409,7 +711,7 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 		parentWallets[0] = []common.Address{}
 	}
 
-	return messagePayload{
+	return MessagePayload{
 		payload: payload{
 			address:       address,
 			chainID:       chainID,
@@ -420,13 +722,13 @@ func Message(address common.Address, chainID *big.Int, message_ []byte, parentWa
 	}
 }
 
-type messagePayload struct {
+type MessagePayload struct {
 	payload
 
 	message []byte
 }
 
-func (p messagePayload) Digest() PayloadDigest {
+func (p MessagePayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -456,7 +758,39 @@ func (p messagePayload) Digest() PayloadDigest {
 	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
-func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWallets ...[]common.Address) Payload {
+func (p MessagePayload) Encode(address common.Address) []byte {
+	var buffer bytes.Buffer
+
+	// Write kind byte for Message (0x01)
+	mustWrite(&buffer, []byte{KindMessage})
+
+	// Write message length as 3 bytes
+	size := len(p.message)
+	mustWrite(&buffer, []byte{byte(size >> 16), byte(size >> 8), byte(size)})
+
+	// Write message data
+	if len(p.message) > 0 {
+		mustWrite(&buffer, p.message)
+	}
+
+	return buffer.Bytes()
+}
+
+func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
+	if len(data) < 4 { // kind byte + 3 bytes length
+		return nil, fmt.Errorf("message payload too short")
+	}
+	data = data[1:] // Skip kind byte
+	msgLen := int(data[0])<<16 + int(data[1])<<8 + int(data[2])
+	data = data[3:]
+	if len(data) < msgLen {
+		return nil, fmt.Errorf("message data too short")
+	}
+	message := data[:msgLen]
+	return Message(address, chainID, message), nil
+}
+
+func ConfigUpdate(address common.Address, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
 	if isNil(imageHash) {
 		panic(fmt.Errorf("no config"))
 	}
@@ -467,7 +801,7 @@ func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWa
 		parentWallets[0] = []common.Address{}
 	}
 
-	return configUpdatePayload{
+	return ConfigUpdatePayload{
 		payload: payload{
 			address:       address,
 			chainID:       new(big.Int),
@@ -478,13 +812,13 @@ func ConfigUpdate(address common.Address, imageHash core.ImageHashable, parentWa
 	}
 }
 
-type configUpdatePayload struct {
+type ConfigUpdatePayload struct {
 	payload
 
-	imageHash core.ImageHashable
+	imageHash common.Hash
 }
 
-func (p configUpdatePayload) Digest() PayloadDigest {
+func (p ConfigUpdatePayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -501,7 +835,7 @@ func (p configUpdatePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"imageHash": p.imageHash.ImageHash().Hash,
+			"imageHash": p.imageHash,
 			"wallets":   wallets,
 		},
 	}
@@ -512,6 +846,28 @@ func (p configUpdatePayload) Digest() PayloadDigest {
 	}
 
 	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+}
+
+func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
+	var buffer bytes.Buffer
+
+	// Write kind byte for ConfigUpdate (0x02)
+	mustWrite(&buffer, []byte{KindConfigUpdate})
+
+	// Write image hash
+	mustWrite(&buffer, p.imageHash.Bytes())
+
+	return buffer.Bytes()
+}
+
+func DecodeConfigUpdate(address common.Address, data []byte) (Payload, error) {
+	if len(data) < 33 {
+		return nil, fmt.Errorf("config update payload too short")
+	}
+	data = data[1:]
+	var hash common.Hash
+	copy(hash[:], data[:32])
+	return ConfigUpdate(address, hash), nil
 }
 
 func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
@@ -525,7 +881,7 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 		parentWallets[0] = []common.Address{}
 	}
 
-	return digestPayload{
+	return DigestPayload{
 		payload: payload{
 			address:       address,
 			chainID:       chainID,
@@ -536,13 +892,13 @@ func Digest(address common.Address, chainID *big.Int, digest_ common.Hash, paren
 	}
 }
 
-type digestPayload struct {
+type DigestPayload struct {
 	payload
 
 	digest common.Hash
 }
 
-func (p digestPayload) Digest() PayloadDigest {
+func (p DigestPayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -572,6 +928,18 @@ func (p digestPayload) Digest() PayloadDigest {
 	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
 }
 
+func (p DigestPayload) Encode(address common.Address) []byte {
+	var buffer bytes.Buffer
+
+	// Write kind byte for Digest (0x03)
+	mustWrite(&buffer, []byte{KindDigest})
+
+	// Write digest
+	mustWrite(&buffer, p.digest.Bytes())
+
+	return buffer.Bytes()
+}
+
 func mustWrite(writer io.Writer, data []byte) {
 	_, err := writer.Write(data)
 	if err != nil {
@@ -589,4 +957,24 @@ func isNil(value any) bool {
 		return value_.IsNil()
 	}
 	return false
+}
+
+func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
+	decoded, err := DecodeABIPayload(hexutil.Encode(data))
+	if err != nil {
+		return nil, err
+	}
+
+	switch decoded.Kind {
+	case KindTransactions:
+		return Calls(address, chainID, decoded.Calls, decoded.Space, decoded.Nonce, []common.Address(decoded.ParentWallets)), nil
+	case KindMessage:
+		return Message(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
+	case KindConfigUpdate:
+		return ConfigUpdate(address, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
+	case KindDigest:
+		return Digest(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
+	default:
+		return nil, fmt.Errorf("unknown payload kind: %d", decoded.Kind)
+	}
 }
