@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -212,6 +213,45 @@ func NewTransactionsFromValues(values []Transaction) Transactions {
 	return transactions
 }
 
+func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce *big.Int) (v3.CallsPayload, error) {
+	calls := make([]v3.Call, len(t))
+	for i, tx := range t {
+		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
+		var behaviorOnError v3.BehaviorOnError
+		if tx.RevertOnError {
+			behaviorOnError = v3.BehaviorOnErrorRevert
+		} else {
+			behaviorOnError = v3.BehaviorOnErrorIgnore
+		}
+
+		// Handle nested transactions by recursively encoding them
+		data := tx.Data
+		if tx.IsBundle() {
+			subPayload, err := tx.Transactions.Payload(tx.To, chainID, big.NewInt(0), tx.Nonce)
+			if err != nil {
+				return v3.CallsPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
+			}
+
+			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", subPayload.Encode(tx.To))
+			if err != nil {
+				return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+			}
+		}
+
+		calls[i] = v3.Call{
+			To:              tx.To,
+			Value:           tx.Value,
+			Data:            data,
+			GasLimit:        tx.GasLimit,
+			DelegateCall:    tx.DelegateCall,
+			OnlyFallback:    false,
+			BehaviorOnError: behaviorOnError,
+		}
+	}
+
+	return v3.ConstructCallsPayload(to, chainID, calls, space, nonce), nil
+}
+
 func (t Transactions) EncodeRaw() ([]byte, error) {
 	encoded, err := t.EncodedTransactions()
 	if err != nil {
@@ -328,6 +368,7 @@ type SignedTransactions struct {
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
+	Space        *big.Int     // Nonce space of the transactions
 	Nonce        *big.Int     // Nonce of the transactions
 	Digest       common.Hash  // Digest of the transactions
 	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
@@ -354,12 +395,21 @@ var (
 	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
 	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
 	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	V2TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+	V2TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32,uint256)")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
+
+	// 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd
+	V3CallSuccess = MustEncodeSig("CallSuccess(bytes32,uint256)")
+	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
+	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
+	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b
+	V3CallAborted = MustEncodeSig("CallAborted(bytes32,uint256,bytes)")
+	// 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b
+	V3CallSkipped = MustEncodeSig("CallSkipped(bytes32,uint256)")
 )
 
 // EncodeNonce with space

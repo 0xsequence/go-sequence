@@ -1,0 +1,102 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Payload",
+  "sourceName": "src/modules/Payload.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "BEHAVIOR_ABORT_ON_ERROR",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BEHAVIOR_IGNORE_ERROR",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BEHAVIOR_REVERT_ON_ERROR",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "KIND_CONFIG_UPDATE",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "KIND_DIGEST",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "KIND_MESSAGE",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "KIND_TRANSACTIONS",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60eb610038600b82828239805160001a607314602b57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe7300000000000000000000000000000000000000003014608060405260043610607e5760003560e01c8063420b0c2511605f578063420b0c251460835780634a7d2aa01460a05780634e5f57151460a7578063b570180a1460ae57600080fd5b80630739d59a146083578063075a3d2d1460a05780633d5c1f9b1460a7575b600080fd5b608a600281565b60405160ff909116815260200160405180910390f35b608a600081565b608a600181565b608a60038156fea2646970667358221220d79c970add14588d204919792f294dc22a8689e2375acd56471f3f7d0cda12e764736f6c634300081b0033",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610607e5760003560e01c8063420b0c2511605f578063420b0c251460835780634a7d2aa01460a05780634e5f57151460a7578063b570180a1460ae57600080fd5b80630739d59a146083578063075a3d2d1460a05780633d5c1f9b1460a7575b600080fd5b608a600281565b60405160ff909116815260200160405180910390f35b608a600081565b608a600181565b608a60038156fea2646970667358221220d79c970add14588d204919792f294dc22a8689e2375acd56471f3f7d0cda12e764736f6c634300081b0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
