@@ -602,6 +602,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 					continue
 				}
 				opHash := common.BytesToHash(log.Data[0:32])
+				fmt.Println("==> CallSuccess data", common.Bytes2Hex(log.Data))
 				fmt.Println("CallSuccess event found with opHash:", opHash.Hex())
 			}
 		}
