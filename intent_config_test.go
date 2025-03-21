@@ -22,8 +22,8 @@ import (
 )
 
 func TestCreateIntentBundle_Valid(t *testing.T) {
-	// Create a valid payload
-	payload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	// Create an intent operation
+	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           big.NewInt(0),
@@ -35,7 +35,7 @@ func TestCreateIntentBundle_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	bundle, err := sequence.CreateIntentBundle(payload, false)
+	bundle, err := sequence.CreateIntentBundle(op)
 	require.NoError(t, err)
 	require.NotNil(t, bundle)
 
@@ -44,8 +44,8 @@ func TestCreateIntentBundle_Valid(t *testing.T) {
 
 // TestCreateIntentDigestLeaves_Valid creates a valid payload and computes the intent digest
 func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
-	// Create valid payloads with required fields
-	payload1 := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	// Create valid intent operations with required fields
+	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -57,7 +57,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	payload2 := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -69,7 +69,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	payload3 := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op3 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -83,12 +83,12 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 	t.Run("One batch", func(t *testing.T) {
 		// Use a single payload
-		batches := []v3.CallsPayload{payload1}
+		batches := []*sequence.IntentOperation{op1}
 
-		bundle, err := sequence.CreateIntentBundle(payload1, false)
+		bundle, err := sequence.CreateIntentBundle(op1)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
+		tree, err := sequence.CreateIntentDigestTree(batches)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -105,14 +105,14 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 	t.Run("Two batches", func(t *testing.T) {
 		// Use two payloads
-		batches := []v3.CallsPayload{payload1, payload2}
+		batches := []*sequence.IntentOperation{op1, op2}
 
-		bundle1, err := sequence.CreateIntentBundle(payload1, false)
+		bundle1, err := sequence.CreateIntentBundle(op1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(payload2, false)
+		bundle2, err := sequence.CreateIntentBundle(op2)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
+		tree, err := sequence.CreateIntentDigestTree(batches)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -138,16 +138,16 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 	t.Run("Three batches", func(t *testing.T) {
 		// Use three payloads
-		batches := []v3.CallsPayload{payload1, payload2, payload3}
+		batches := []*sequence.IntentOperation{op1, op2, op3}
 
-		bundle1, err := sequence.CreateIntentBundle(payload1, false)
+		bundle1, err := sequence.CreateIntentBundle(op1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(payload2, false)
+		bundle2, err := sequence.CreateIntentBundle(op2)
 		require.NoError(t, err)
-		bundle3, err := sequence.CreateIntentBundle(payload3, false)
+		bundle3, err := sequence.CreateIntentBundle(op3)
 		require.NoError(t, err)
 
-		tree, err := sequence.CreateIntentDigestTree(batches, testChain.ChainID(), false)
+		tree, err := sequence.CreateIntentDigestTree(batches)
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
 
@@ -182,7 +182,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 
 func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Create a valid payload
-	payload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -194,12 +194,12 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	batches := []v3.CallsPayload{payload}
+	batches := []*sequence.IntentOperation{op}
 
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, batches, testChain.ChainID(), false)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, batches)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -214,7 +214,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 	require.NoError(t, err)
 
-	payload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
 			Value:           nil,
@@ -228,14 +228,14 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Use the payload directly
-		batches := []v3.CallsPayload{payload}
+		batches := []*sequence.IntentOperation{op}
 
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches, testChain.ChainID(), false)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), false)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
 		fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -285,7 +285,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		calldata2, err := callmockContract.Encode("testCall", big.NewInt(66), ethcoder.MustHexDecode("0x332255"))
 		require.NoError(t, err)
 
-		payload1 := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 			{
 				To:              callmockContract.Address,
 				Value:           nil,
@@ -297,7 +297,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 			},
 		}, big.NewInt(0), big.NewInt(0))
 
-		payload2 := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 			{
 				To:              callmockContract.Address,
 				Value:           nil,
@@ -310,10 +310,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.CallsPayload{payload1}, testChain.ChainID(), false)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*sequence.IntentOperation{op1})
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []v3.CallsPayload{payload2}, testChain.ChainID(), true)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*sequence.IntentOperation{op2})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -322,13 +322,13 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		batches := []v3.CallsPayload{payload}
+		ops := []*sequence.IntentOperation{op}
 
 		// Create the same payload signature twice
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -342,7 +342,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a payload with multiple calls
-	multiCallPayload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -363,17 +363,17 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	batches := []v3.CallsPayload{multiCallPayload}
+	ops := []*sequence.IntentOperation{op1}
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), true)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
 	sigHex := common.Bytes2Hex(sig)
 
 	// Create the bundle from the payload
-	bundle, err := sequence.CreateIntentBundle(multiCallPayload, false)
+	bundle, err := sequence.CreateIntentBundle(op1)
 	require.NoError(t, err)
 
 	// Compute the digest of the bundle
@@ -395,7 +395,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	log.Println("==> calldata", common.Bytes2Hex(calldata))
 
 	// Create a v3 payload for mock contract call
-	mockPayloadCall := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
 			Value:           nil,
@@ -409,18 +409,19 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 
 	// Create batches from the mockPayloadCall
 	// This is needed since the `CreateIntentBundle` function expects an array of `CallsPayload`.
-	mockPayloadInitialBatch := []v3.CallsPayload{mockPayloadCall}
-	mockBundles := []v3.CallsPayload{}
+	ops := []*sequence.IntentOperation{op1}
+
+	mockPayloads := []v3.CallsPayload{}
 
 	// Create the processed bundles for the initial batch
-	for _, batch := range mockPayloadInitialBatch {
+	for _, op := range ops {
 		// Create the processed bundle for the payload
-		mockBundle, err := sequence.CreateIntentBundle(batch, false)
+		mockPayload, err := sequence.CreateIntentBundle(op)
 		require.NoError(t, err)
-		mockBundles = append(mockBundles, mockBundle)
+		mockPayloads = append(mockPayloads, mockPayload)
 	}
 
-	spew.Dump(mockBundles)
+	spew.Dump(mockPayloads)
 
 	// Decode the payload
 	// CallsPayload, err := v3.Decode(encodedPayload)
@@ -429,18 +430,18 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	// spew.Dump(CallsPayload)
 
 	// Ensure dummy sequence wallet from seed 1 is deployed
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, mockBundles)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, ops)
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
 
 	// Get the first payload hash
-	firstPayloadHash := mockBundles[0].Digest()
+	firstPayloadHash := mockPayloads[0].Digest()
 	require.NoError(t, err)
 
 	log.Println("==> firstPayloadHash", firstPayloadHash.Hash.Hex())
 
 	addr := wallet.Address()
-	encodedPayload := mockBundles[0].Encode(addr)
+	encodedPayload := mockPayloads[0].Encode(addr)
 	require.NoError(t, err)
 
 	log.Println("==> encodedPayload", common.Bytes2Hex(encodedPayload))
@@ -459,7 +460,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, mockBundles, testChain.ChainID(), false)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner, ops)
 	require.NoError(t, err)
 
 	// Print the signature in hex
@@ -470,7 +471,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 
 	// Get the mock payload
 	// Create the intent configuration using the batched transactions.
-	config, err := sequence.CreateIntentConfiguration(mainSigner, mockBundles, testChain.ChainID(), false)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, ops)
 	require.NoError(t, err)
 
 	spew.Dump(config)
@@ -480,14 +481,14 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	fmt.Println("==> configImageHash", configImageHash.Hex())
 
 	// Get the hash of the first payload
-	signedPayloadHash := mockBundles[0].Digest()
+	signedPayloadHash := mockPayloads[0].Digest()
 	require.NoError(t, err)
 
-	spew.Dump(mockBundles[0])
+	spew.Dump(mockPayloads[0])
 
 	fmt.Println("==> signedPayloadHash", signedPayloadHash.Hash.Hex())
 
-	encodedData := mockBundles[0].Encode(addr)
+	encodedData := mockPayloads[0].Encode(addr)
 	require.NoError(t, err)
 
 	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, configSig)
@@ -523,7 +524,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	metaTxnDigest := mockBundles[0].Digest()
+	metaTxnDigest := mockPayloads[0].Digest()
 	require.NoError(t, err)
 	metaTxnID := sequence.MetaTxnID(metaTxnDigest.Hash.Hex()[2:])
 
@@ -570,7 +571,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a payload for ERC20 transfer
-	transferPayload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
 			To:              erc20.Address,
 			Value:           nil,
@@ -582,20 +583,20 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	batches := []v3.CallsPayload{transferPayload}
+	ops := []*sequence.IntentOperation{op1}
 	require.NoError(t, err)
 
-	spew.Dump(batches)
+	spew.Dump(ops)
 
 	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches, testChain.ChainID(), false)
+	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), ops)
 	require.NoError(t, err)
 
 	// For a Nested signature the version byte is expected to be 0x06.
 	require.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
 
 	// Use a v3 dummy Sequence wallet
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, ops)
 	require.NoError(t, err)
 	require.NotNil(t, wallet)
 
@@ -623,7 +624,7 @@ func TestConfigurationSignatureERC20Transfer(t *testing.T) {
 	require.Equal(t, "100", balances[0])
 
 	// Get the signed transactions using the CallsPayload directly
-	signedTxns, err := wallet.GetSignedIntentTransactionsWithCallsPayloads(context.Background(), batches, configSig)
+	signedTxns, err := wallet.GetSignedIntentTransactionsWithIntentOperations(context.Background(), ops)
 	require.NoError(t, err)
 
 	// Send the transaction bundle
