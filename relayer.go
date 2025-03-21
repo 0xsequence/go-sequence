@@ -98,47 +98,12 @@ const (
 	MetaTxnReverted
 )
 
-// returns `to` address (either guest or wallet) and `data` of signed-metatx-calldata, aka execdata
-func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
-	// TODO/NOTE: first version, we assume the wallet is deployed, then we can add bundlecreation after.
-	// .....
-
-	if len(txns) == 0 {
-		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
-	}
-
-	// Encode transaction to be sent to a deployed wallet
-	var err error
-	if walletAddress == (common.Address{}) {
-		walletAddress, err = AddressFromWalletConfig(walletConfig, walletContext)
-		if err != nil {
-			return common.Address{}, nil, err
-		}
-	}
-
-	encodedTxns, err := txns.EncodedTransactions()
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	execdata, err := contracts.V1.WalletMainModule.Encode("execute", encodedTxns, nonce, seqSig)
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	return walletAddress, execdata, nil
-}
-
 func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Address, chainID *big.Int, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, space *big.Int, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
 	if len(txns) == 0 {
 		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
 	}
 
-	payload, err := txns.Payload(walletAddress, chainID, space, nonce)
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
+	payload := txns.Payload(walletAddress, chainID, space, nonce)
 	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
 	if err != nil {
 		return common.Address{}, nil, err

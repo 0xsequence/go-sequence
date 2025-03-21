@@ -259,7 +259,7 @@ func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, opt
 	}
 
 	// Fetch the meta transaction receipt from the receipt listener
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	result, receipt, _, err := sequence.FetchReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
 		return 0, nil, err
 	}

@@ -86,24 +86,6 @@ func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext Wallet
 	return common.Address{}, common.Address{}, nil, fmt.Errorf("unsupported wallet config version")
 }
 
-func DecodeRevertReason(logs []*types.Log) []string {
-	reasons := []string{}
-	for _, log := range logs {
-		_, reason, err := V1DecodeTxFailedEvent(log)
-		if err != nil {
-			_, reason, _, err = V2DecodeTxFailedEvent(log)
-		}
-		if err != nil {
-			_, _, reason, err = V3DecodeCallFailedEvent(log)
-		}
-		if err != nil {
-			_, _, reason, err = V3DecodeCallAbortedEvent(log)
-		}
-		reasons = append(reasons, reason)
-	}
-	return reasons
-}
-
 func ParseHexOrDec(s string) (*big.Int, bool) {
 	if len(s) > 2 && s[0:2] == "0x" {
 		return new(big.Int).SetString(s[2:], 16)

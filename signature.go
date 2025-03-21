@@ -328,24 +328,15 @@ func EIP6492SignatureWithMultipleDeployments(signature []byte, configs []core.Wa
 			return nil, fmt.Errorf("unable to encode deploy call: %w", err)
 		}
 
-		txns = append(txns, &Transaction{
-			RevertOnError: true,
-			To:            factory,
-			Data:          deploy,
+		txns = append(txns, v3.Call{
+			To:              factory,
+			Data:            deploy,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
 		})
 	}
 
-	encodedTxns, err := txns.EncodedTransactions()
-	if err != nil {
-		return nil, err
-	}
-
-	execdata, err := contracts.V2.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
-	if err != nil {
-		return nil, err
-	}
-
-	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{sequenceContextV2.GuestModuleAddress, execdata, signature})
+	data := v3.EncodeCalls(sequenceContextV3.GuestModuleAddress, txns, nil, nil)
+	signature, err := ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{sequenceContextV2.GuestModuleAddress, data, signature})
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
 	}

@@ -608,31 +608,35 @@ func (p CallsPayload) Digest() PayloadDigest {
 }
 
 func (p CallsPayload) Encode(address common.Address) []byte {
+	return EncodeCalls(address, p.Calls, p.Space, p.Nonce)
+}
+
+func EncodeCalls(address common.Address, calls []Call, space, nonce *big.Int) []byte {
 	var flags byte
 	var buffer bytes.Buffer
 
-	if p.Space.Sign() == 0 {
+	if space.Sign() == 0 {
 		flags |= 0x01
 	} else {
-		var space [20]byte
-		mustWrite(&buffer, p.Space.FillBytes(space[:]))
+		var space_ [20]byte
+		mustWrite(&buffer, space.FillBytes(space_[:]))
 	}
 
-	nonce := p.Nonce.Bytes()
-	flags |= byte(len(nonce)) << 1
-	mustWrite(&buffer, nonce)
+	nonce_ := nonce.Bytes()
+	flags |= byte(len(nonce_)) << 1
+	mustWrite(&buffer, nonce_)
 
-	calls := len(p.Calls)
-	if calls == 1 {
+	calls_ := len(calls)
+	if calls_ == 1 {
 		flags |= 0x10
-	} else if calls < 0x100 {
-		mustWrite(&buffer, []byte{byte(calls)})
+	} else if calls_ < 0x100 {
+		mustWrite(&buffer, []byte{byte(calls_)})
 	} else {
 		flags |= 0x20
-		mustWrite(&buffer, []byte{byte(calls >> 8), byte(calls)})
+		mustWrite(&buffer, []byte{byte(calls_ >> 8), byte(calls_)})
 	}
 
-	for _, call := range p.Calls {
+	for _, call := range calls {
 		mustWrite(&buffer, call.encode(address))
 	}
 

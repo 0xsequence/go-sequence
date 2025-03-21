@@ -284,7 +284,7 @@ func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, o
 	if r.receiptListener == nil {
 		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
 	}
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	result, receipt, _, err := sequence.FetchReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
 		return 0, nil, err
 	}
