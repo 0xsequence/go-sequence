@@ -13,11 +13,8 @@ import (
 
 // `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
 func CreateIntentBundle(payload v3.CallsPayload, noChainId bool) (v3.CallsPayload, error) {
-	bundle := v3.CallsPayload{
-		Nonce: big.NewInt(0),
-		Space: big.NewInt(0),
-		Calls: payload.Calls,
-	}
+	// Construct the payload with the correct address, chain ID, and calls.
+	bundle := v3.ConstructCallsPayload(payload.Address(), payload.ChainID(), payload.Calls, big.NewInt(0), big.NewInt(0))
 
 	// Set consistent gas limit to 0 for all calls
 	for i := range bundle.Calls {

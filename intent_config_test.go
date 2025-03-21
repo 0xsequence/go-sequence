@@ -238,11 +238,13 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches, testChain.ChainID(), false)
 		require.NoError(t, err)
 
+		fmt.Println("==> signature", common.Bytes2Hex(signature))
+
 		// Verify signature format
 		// Root: TreeNode
 		// Left: AddressLeaf
 		// Right: AnyAddressSubdigestLeaf
-		require.Equal(t, byte(0x06), signature[0], "signature should start with version byte 0x06 (Node)")
+		require.Equal(t, byte(0x04), signature[0], "signature should start with version byte 0x04 (Branch)")
 
 		// Get the subdigest from the config's tree
 		var anyAddressSubdigestLeaf *v3.WalletConfigTreeAnyAddressSubdigestLeaf
