@@ -116,6 +116,11 @@ func CreateIntentConfiguration(mainSigner common.Address, batches []v3.CallsPayl
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
 func GetIntentConfigurationSignature(mainSigner common.Address, batches []v3.CallsPayload, chainId *big.Int, noChainId bool) ([]byte, error) {
+	log.Println("==> GetIntentConfigurationSignature")
+
+	log.Println("==> batches first data call", common.Bytes2Hex(batches[0].Calls[0].Data))
+	spew.Dump(batches)
+
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, batches, chainId, noChainId)
 	if err != nil {
