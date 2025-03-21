@@ -425,6 +425,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	// This is needed since the `CreateIntentBundle` function expects an array of `CallsPayload`.
 	mockPayloadInitialBatch := []v3.CallsPayload{mockPayloadCall}
 	mockBundles := []v3.CallsPayload{}
+	metaTxnIds := []string{}
 
 	// Create the processed bundles for the initial batch
 	for _, batch := range mockPayloadInitialBatch {
@@ -434,7 +435,19 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 		mockBundles = append(mockBundles, mockBundle)
 	}
 
+	// Create the digest for each call in the payload
+	for _, bundle := range mockBundles {
+		for _, call := range bundle.Calls {
+			metaTxnIds = append(metaTxnIds, v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{call}, big.NewInt(0), big.NewInt(0)).Digest().Hash.Hex())
+		}
+	}
+
 	spew.Dump(mockBundles)
+	spew.Dump(metaTxnIds)
+
+	for _, id := range metaTxnIds {
+		fmt.Println("==> metaTxnId", id)
+	}
 
 	// Decode the payload
 	// CallsPayload, err := v3.Decode(encodedPayload)
@@ -594,9 +607,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 		}
 	}
 
-	metaTxnDigest := mockBundles[0].Digest()
-	require.NoError(t, err)
-	metaTxnID := sequence.MetaTxnID(metaTxnDigest.Hash.Hex()[2:])
+	metaTxnID := sequence.MetaTxnID(metaTxnIds[0])
 
 	// Check the value
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
