@@ -1,6 +1,7 @@
 module github.com/0xsequence/go-sequence
 
-go 1.22.0
+go 1.23.0
+
 toolchain go1.24.1
 
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
