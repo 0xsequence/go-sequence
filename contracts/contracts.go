@@ -12,7 +12,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
 	sale1155 "github.com/0xsequence/go-sequence/contracts/gen/sale/erc1155"
 	sale721 "github.com/0xsequence/go-sequence/contracts/gen/sale/erc721"
-	"github.com/0xsequence/go-sequence/contracts/gen/sequencemarketplace"
+	sequencemarketplace "github.com/0xsequence/go-sequence/contracts/gen/sequence_marketplace"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	walletfactory1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
 	walletgasestimator1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"

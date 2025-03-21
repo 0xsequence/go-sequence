@@ -54,12 +54,12 @@
 //
 // sequence marketplace
 //
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sequencemarketplace --type=SequenceMarketplace --outFile=./sequencemarketplace/sequence_marketplace.gen.go --artifactsFile=../artifacts/sequencemarketplace/ISequenceMarket.sol/ISequenceMarket.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sequence_marketplace --type=SequenceMarketplace --outFile=./sequence_marketplace/sequence_marketplace.gen.go --artifactsFile=../artifacts/sequence_marketplace/ISequenceMarket.sol/ISequenceMarket.json
 
 //
 // sale
 //
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale  --type=Sale --outFile=./sale/erc721/sale_erc721.gen.go   --artifactsFile=../artifacts/sale/IERC721Sale.sol/IERC721Sale.json
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale --type=Sale --outFile=./sale/erc1155/sale_erc1155.gen.go --artifactsFile=../artifacts/sale/IERC1155Sale.sol/IERC1155Sale.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale_erc721  --type=Sale --outFile=./sale/erc721/sale_erc721.gen.go   --artifactsFile=../artifacts/sale/IERC721Sale.sol/IERC721Sale.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale_erc1155 --type=Sale --outFile=./sale/erc1155/sale_erc1155.gen.go --artifactsFile=../artifacts/sale/IERC1155Sale.sol/IERC1155Sale.json
 
 package gen
