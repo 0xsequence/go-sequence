@@ -6,9 +6,13 @@ import (
 	"github.com/0xsequence/ethkit/ethartifact"
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
+	sale1155 "github.com/0xsequence/go-sequence/contracts/gen/sale/erc1155"
+	sale721 "github.com/0xsequence/go-sequence/contracts/gen/sale/erc721"
+	"github.com/0xsequence/go-sequence/contracts/gen/sequencemarketplace"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	walletfactory1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
 	walletgasestimator1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
@@ -24,8 +28,7 @@ import (
 	walletutils2 "github.com/0xsequence/go-sequence/contracts/gen/v2/walletutils"
 )
 
-var (
-	GasEstimator,
+var GasEstimator,
 	IERC1271,
 	ERC20Mock,
 	IERC20,
@@ -38,8 +41,10 @@ var (
 	NiftyswapExchange20,
 	NiftyswapFactory,
 	WrapAndNiftyswap,
+	SequenceMarketplace,
+	Sale721,
+	Sale1155,
 	_ ethartifact.Artifact
-)
 
 var V1 struct {
 	WalletFactory              ethartifact.Artifact
@@ -60,10 +65,8 @@ var V2 struct {
 	WalletGasEstimator         ethartifact.Artifact
 }
 
-var (
-	//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
-	artifact_erc20mock string
-)
+//go:embed artifacts/erc1155/mocks/ERC20Mock.sol/ERC20Mock.json
+var artifact_erc20mock string
 
 func init() {
 	V1.WalletFactory = artifact("WALLET_FACTORY", walletfactory1.WalletFactoryABI, walletfactory1.WalletFactoryBin)
@@ -96,6 +99,10 @@ func init() {
 	NiftyswapExchange20 = artifact("NIFTYSWAP_EXCHANGE_20", niftyswap.NiftyswapExchange20ABI, niftyswap.NiftyswapExchange20Bin)
 	NiftyswapFactory = artifact("NIFTYSWAP_FACTORY", niftyswap.NiftyswapFactoryABI, niftyswap.NiftyswapFactoryBin)
 	WrapAndNiftyswap = artifact("WRAP_AND_NIFTYSWAP", niftyswap.WrapAndNiftyswapABI, niftyswap.WrapAndNiftyswapBin)
+
+	SequenceMarketplace = artifact("SEQUENCE_MARKETPLACE", sequencemarketplace.SequenceMarketplaceABI, sequencemarketplace.SequenceMarketplaceMetaData.Bin)
+	Sale721 = artifact("SALE_ERC721", sale721.SaleABI, sale721.SaleMetaData.Bin)
+	Sale1155 = artifact("SALE_ERC1155", sale1155.SaleABI, sale1155.SaleMetaData.Bin)
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }

@@ -51,4 +51,15 @@
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=ierc1271 --type=IERC1271 --outFile=./ierc1271/ierc1271.gen.go --artifactsFile=../artifacts/erc1271/ierc1271.json
 
+//
+// sequence marketplace
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sequencemarketplace --type=SequenceMarketplace --outFile=./sequencemarketplace/sequence_marketplace.gen.go --artifactsFile=../artifacts/sequencemarketplace/ISequenceMarket.sol/ISequenceMarket.json
+
+//
+// sale
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale  --type=Sale --outFile=./sale/erc721/sale_erc721.gen.go   --artifactsFile=../artifacts/sale/IERC721Sale.sol/IERC721Sale.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sale --type=Sale --outFile=./sale/erc1155/sale_erc1155.gen.go --artifactsFile=../artifacts/sale/IERC1155Sale.sol/IERC1155Sale.json
+
 package gen
