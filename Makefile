@@ -38,3 +38,7 @@ check-testchain-running:
 
 wait-on-chain:
 	cd ./testutil/chain && pnpm wait:server
+
+.PHONY: mock
+mock:
+	go generate ./mock
