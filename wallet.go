@@ -739,7 +739,7 @@ func (w *Wallet[C]) GetSignedIntentTransactionsWithCallsPayloads(ctx context.Con
 }
 
 // GetSignedIntentPayload is the core implementation for creating intent signatures.
-func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, callsPayload v3.CallsPayload, sig []byte) (*SignedTransactions, error) {
+func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, callsPayload v3.CallsPayload, sig []byte, optSign ...bool) (*SignedTransactions, error) {
 	// Logging for debugging purposes
 	log.Println("Creating intent bundle from payload:", callsPayload)
 	log.Println("Using provided signature:", common.Bytes2Hex(sig))
@@ -751,9 +751,12 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, callsPayload v3.
 	log.Println("Intent payload digest:", digest.Hash.Hex())
 
 	// Sign the payload
-	sig, err := w.SignV3Payload(ctx, callsPayload)
-	if err != nil {
-		return nil, err
+	if len(optSign) > 0 && optSign[0] {
+		signature, err := w.SignV3Payload(ctx, callsPayload)
+		if err != nil {
+			return nil, err
+		}
+		sig = signature
 	}
 
 	// Log the final signature for debugging

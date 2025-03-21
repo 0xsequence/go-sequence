@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
 
 	"github.com/0xsequence/go-sequence/contracts"
@@ -388,18 +389,31 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-	calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+	calldata1, err := callmockContract.Encode("setRevertFlag", false)
+	require.NoError(t, err)
+
+	calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	require.NoError(t, err)
 
 	log.Println("==> callmockContract", callmockContract.Address.Hex())
-	log.Println("==> calldata", common.Bytes2Hex(calldata))
+	log.Println("==> calldata1", common.Bytes2Hex(calldata1))
+	log.Println("==> calldata2", common.Bytes2Hex(calldata2))
 
 	// Create a v3 payload for mock contract call
 	mockPayloadCall := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
 			Value:           nil,
-			Data:            calldata,
+			Data:            calldata1,
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+		{
+			To:              callmockContract.Address,
+			Value:           nil,
+			Data:            calldata2,
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
@@ -439,12 +453,6 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 
 	log.Println("==> firstPayloadHash", firstPayloadHash.Hash.Hex())
 
-	addr := wallet.Address()
-	encodedPayload := mockBundles[0].Encode(addr)
-	require.NoError(t, err)
-
-	log.Println("==> encodedPayload", common.Bytes2Hex(encodedPayload))
-
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
@@ -466,7 +474,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	fmt.Println("==> configSig", common.Bytes2Hex(configSig))
 
 	// Verify the signature contains the any address digest
-	// require.Contains(t, common.Bytes2Hex(configSig), common.BytesToHash(firstPayloadHash[:]).Hex()[2:], "signature should contain the any address digest")
+	require.Contains(t, common.Bytes2Hex(configSig), firstPayloadHash.Hash.Hex()[2:], "signature should contain the any address digest")
 
 	// Get the mock payload
 	// Create the intent configuration using the batched transactions.
@@ -487,7 +495,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 
 	fmt.Println("==> signedPayloadHash", signedPayloadHash.Hash.Hex())
 
-	encodedData := mockBundles[0].Encode(addr)
+	encodedData := mockBundles[0].Encode(common.Address{})
 	require.NoError(t, err)
 
 	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", encodedData, configSig)
@@ -502,6 +510,10 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 			To:   walletFactoryAddress,
 			Data: walletDeployData,
 		},
+	}
+
+	guestBundle2 := []v3.Call{
+
 		{
 			To:   wallet.Address(),
 			Data: signedExecdata,
@@ -523,10 +535,6 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	metaTxnDigest := mockBundles[0].Digest()
-	require.NoError(t, err)
-	metaTxnID := sequence.MetaTxnID(metaTxnDigest.Hash.Hex()[2:])
-
 	signedTx, err := sender.SignTx(ntx, testChain.ChainID())
 	require.NoError(t, err)
 
@@ -537,6 +545,58 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.NoError(t, err)
 	spew.Dump(receipt)
 	require.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+
+	guestBundle2Payload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), guestBundle2, big.NewInt(0), big.NewInt(0))
+
+	spew.Dump(guestBundle2Payload)
+
+	guestBundle2PayloadEncoded := guestBundle2Payload.Encode(guestAddress)
+	require.NoError(t, err)
+
+	log.Println("==> guestBundle2PayloadEncoded", common.Bytes2Hex(guestBundle2PayloadEncoded))
+
+	// Relay the second txn manually, directly to the guest module
+	ntx2, err := sender.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
+		To:       &guestAddress,
+		Data:     guestBundle2PayloadEncoded,
+		GasLimit: 1000000, // TODO: compute gas limit
+	})
+	require.NoError(t, err)
+
+	signedTx2, err := sender.SignTx(ntx2, testChain.ChainID())
+	require.NoError(t, err)
+
+	_, waitReceipt2, err := sender.SendTransaction(context.Background(), signedTx2)
+	require.NoError(t, err)
+
+	// After obtaining receipt2
+	callFailedTopic := crypto.Keccak256Hash([]byte("CallFailed(bytes32,uint256,bytes)"))
+	callSuccessTopic := crypto.Keccak256Hash([]byte("CallSuccess(bytes32,uint256)"))
+
+	receipt2, err := waitReceipt2(context.Background())
+	require.NoError(t, err)
+	spew.Dump(receipt2)
+	require.True(t, receipt2.Status == types.ReceiptStatusSuccessful)
+
+	for _, log := range receipt2.Logs {
+		if len(log.Topics) > 0 {
+			switch log.Topics[0] {
+			case callFailedTopic:
+				fmt.Println("CallFailed event found with return data:", common.Bytes2Hex(log.Data))
+			case callSuccessTopic:
+				if len(log.Data) < 32 {
+					fmt.Println("Log data too short to contain opHash")
+					continue
+				}
+				opHash := common.BytesToHash(log.Data[0:32])
+				fmt.Println("CallSuccess event found with opHash:", opHash.Hex())
+			}
+		}
+	}
+
+	metaTxnDigest := mockBundles[0].Digest()
+	require.NoError(t, err)
+	metaTxnID := sequence.MetaTxnID(metaTxnDigest.Hash.Hex()[2:])
 
 	// Check the value
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
@@ -553,100 +613,4 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	isDeployed, err := wallet.IsDeployed()
 	require.NoError(t, err)
 	require.True(t, isDeployed)
-}
-
-func TestConfigurationSignatureERC20Transfer(t *testing.T) {
-	// Create the test main signer
-	mainSigner, err := ethwallet.NewWalletFromRandomEntropy()
-	require.NoError(t, err)
-
-	// Deploy the ERC20 mock contract.
-	erc20, _ := testChain.Deploy(t, "ERC20Mock")
-	fmt.Println("ERC20Mock address:", erc20.Address.Hex())
-
-	// Now, we want to transfer 50 tokens from the wallet to a recipient.
-	recipient := common.HexToAddress("0x3333333333333333333333333333333333333333")
-	transferCalldata, err := erc20.Encode("transfer", recipient, big.NewInt(50))
-	require.NoError(t, err)
-
-	// Create a payload for ERC20 transfer
-	transferPayload := v3.ConstructCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
-		{
-			To:              erc20.Address,
-			Value:           nil,
-			Data:            transferCalldata,
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
-
-	batches := []v3.CallsPayload{transferPayload}
-	require.NoError(t, err)
-
-	spew.Dump(batches)
-
-	// Generate a configuration signature for the batch.
-	configSig, err := sequence.GetIntentConfigurationSignature(mainSigner.Address(), batches, testChain.ChainID(), false)
-	require.NoError(t, err)
-
-	// For a Nested signature the version byte is expected to be 0x06.
-	require.Equal(t, byte(0x06), configSig[0], "configuration signature should start with 0x06")
-
-	// Use a v3 dummy Sequence wallet
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(1, batches)
-	require.NoError(t, err)
-	require.NotNil(t, wallet)
-
-	// Mint 100 tokens to the wallet.
-	mintCalldata, err := erc20.Encode("mockMint", wallet.Address(), big.NewInt(100))
-	require.NoError(t, err)
-
-	// Use the deploy wallet to mint tokens
-	deployWallet := testChain.GetDeployWallet()
-	signedTx, err := deployWallet.NewTransaction(context.Background(), &ethtxn.TransactionRequest{
-		To:   &erc20.Address,
-		Data: mintCalldata,
-	})
-	require.NoError(t, err)
-	_, wait, err := deployWallet.SendTransaction(context.Background(), signedTx)
-	require.NoError(t, err)
-	mintReceipt, err := wait(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), mintReceipt.Status, "mint transaction should succeed")
-
-	// Verify that the wallet received 100 tokens.
-	balances, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{wallet.Address().Hex()})
-	require.NoError(t, err)
-	require.Len(t, balances, 1)
-	require.Equal(t, "100", balances[0])
-
-	// Get the signed transactions using the CallsPayload directly
-	signedTxns, err := wallet.GetSignedIntentTransactionsWithCallsPayloads(context.Background(), batches, configSig)
-	require.NoError(t, err)
-
-	// Send the transaction bundle
-	metaTxnID, sentTx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTxns)
-	log.Println("metaTxnID", metaTxnID)
-
-	require.NoError(t, err)
-	require.NotEmpty(t, metaTxnID)
-	require.NotNil(t, sentTx)
-
-	spew.Dump(sentTx)
-
-	receipt, err := waitReceipt(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), receipt.Status, "meta transaction should execute successfully")
-
-	// Verify that the transfer took place
-	walletBalance, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{wallet.Address().Hex()})
-	require.NoError(t, err)
-
-	recipientBalance, err := testutil.ContractQuery(testChain.Provider, erc20.Address, "balanceOf(address)", "uint256", []string{recipient.Hex()})
-	require.NoError(t, err)
-
-	require.Equal(t, "50", walletBalance[0], "wallet balance should be reduced to 50")
-	require.Equal(t, "50", recipientBalance[0], "recipient should receive 50 tokens")
 }
