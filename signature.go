@@ -282,10 +282,6 @@ func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash
 	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
-func MessageDigest(message []byte) common.Hash {
-	return common.BytesToHash(ethcoder.Keccak256(message))
-}
-
 func MustEncodeSig(str string) common.Hash {
 	return crypto.Keccak256Hash([]byte(str))
 }
