@@ -13,6 +13,8 @@ func IntentDataTypeToName[T any](t *T) IntentName {
 		return IntentName_initiateAuth
 	case *IntentDataOpenSession:
 		return IntentName_openSession
+	case *IntentDataOpenScopedSession:
+		return IntentName_openScopedSession
 	case *IntentDataCloseSession:
 		return IntentName_closeSession
 	case *IntentDataValidateSession:
