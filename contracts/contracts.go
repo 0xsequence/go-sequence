@@ -100,9 +100,9 @@ func init() {
 	NiftyswapFactory = artifact("NIFTYSWAP_FACTORY", niftyswap.NiftyswapFactoryABI, niftyswap.NiftyswapFactoryBin)
 	WrapAndNiftyswap = artifact("WRAP_AND_NIFTYSWAP", niftyswap.WrapAndNiftyswapABI, niftyswap.WrapAndNiftyswapBin)
 
-	SequenceMarketplace = artifact("SEQUENCE_MARKETPLACE", seqmarketplace.SequenceMarketplaceABI, seqmarketplace.SequenceMarketplaceMetaData.Bin)
-	Sale721 = artifact("SALE_ERC721", seqsale721.SaleABI, seqsale721.SaleMetaData.Bin)
-	Sale1155 = artifact("SALE_ERC1155", seqsale1155.SaleABI, seqsale1155.SaleMetaData.Bin)
+	SequenceMarketplace = artifact("SEQ_MARKETPLACE", seqmarketplace.SequenceMarketplaceABI, seqmarketplace.SequenceMarketplaceMetaData.Bin)
+	Sale721 = artifact("SEQ_SALE_ERC721", seqsale721.SaleABI, seqsale721.SaleMetaData.Bin)
+	Sale1155 = artifact("SEQ_SALE_ERC1155", seqsale1155.SaleABI, seqsale1155.SaleMetaData.Bin)
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }
