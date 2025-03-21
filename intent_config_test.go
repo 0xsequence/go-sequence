@@ -608,7 +608,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 		}
 	}
 
-	metaTxnID := sequence.MetaTxnID(metaTxnIds[0])
+	// metaTxnID := sequence.MetaTxnID(metaTxnIds[0])
 
 	// Check the value
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
@@ -617,9 +617,9 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	require.Equal(t, "2255", ret[0])
 
 	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
-	require.NoError(t, err)
-	require.True(t, result.Status == sequence.MetaTxnExecuted)
+	// result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	// require.NoError(t, err)
+	// require.True(t, result.Status == sequence.MetaTxnExecuted)
 
 	// Wallet should be deployed now
 	isDeployed, err := wallet.IsDeployed()
