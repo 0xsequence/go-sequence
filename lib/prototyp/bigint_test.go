@@ -30,17 +30,33 @@ func TestBigIntJSONMarshalling(t *testing.T) {
 }
 
 func TestBigIntBinaryMarshalling(t *testing.T) {
-	b := NewBigInt(123)
-	data, err := b.MarshalBinary()
-	require.NoError(t, err)
-	require.Equal(t, []byte{123}, data)
-	require.Equal(t, "123", b.String())
+	{
+		b := NewBigInt(123)
+		data, err := b.MarshalBinary()
+		require.NoError(t, err)
+		require.Equal(t, []byte{0x00, 123}, data)
+		require.Equal(t, "123", b.String())
 
-	var b2 BigInt
-	err = b2.UnmarshalBinary(data)
-	require.NoError(t, err)
-	require.Equal(t, b, b2)
-	require.Equal(t, "123", b2.String())
+		var b2 BigInt
+		err = b2.UnmarshalBinary(data)
+		require.NoError(t, err)
+		require.Equal(t, b, b2)
+		require.Equal(t, "123", b2.String())
+	}
+
+	{
+		b := NewBigInt(-123)
+		data, err := b.MarshalBinary()
+		require.NoError(t, err)
+		require.Equal(t, []byte{0xFF, 123}, data)
+		require.Equal(t, "-123", b.String())
+
+		var b2 BigInt
+		err = b2.UnmarshalBinary(data)
+		require.NoError(t, err)
+		require.Equal(t, b, b2)
+		require.Equal(t, "-123", b2.String())
+	}
 }
 
 func TestBigIntValue(t *testing.T) {
@@ -53,6 +69,11 @@ func TestBigIntValue(t *testing.T) {
 	assert.True(t, ok)
 
 	assert.Equal(t, int64(123), b2.Int64())
+}
+
+func TestBigIntNegative(t *testing.T) {
+	b := NewBigInt(-1)
+	require.Equal(t, "-1", b.String())
 }
 
 func TestBigIntAdd(t *testing.T) {
