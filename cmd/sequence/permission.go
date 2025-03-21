@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
@@ -9,12 +10,13 @@ import (
 )
 
 func handleToPackedSession(p *PermissionToPackedSessionParams) (string, error) {
-	permission, err := v3.SessionPermissionsFromJSON(p.SessionPermission)
+	var permission v3.SessionPermissions
+	err := json.Unmarshal([]byte(p.SessionPermission), &permission)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode session permission: %w", err)
+		return "", fmt.Errorf("failed to unmarshal session permission: %w", err)
 	}
 
-	packed, err := v3.EncodeSessionPermissions(permission)
+	packed, err := v3.EncodeSessionPermissions(&permission)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session permission: %w", err)
 	}
@@ -23,12 +25,13 @@ func handleToPackedSession(p *PermissionToPackedSessionParams) (string, error) {
 }
 
 func handleToPackedPermission(p *PermissionToPackedParams) (string, error) {
-	permission, err := v3.PermissionFromJSON(p.Permission)
+	var permission v3.Permission
+	err := json.Unmarshal([]byte(p.Permission), &permission)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode permission: %w", err)
+		return "", fmt.Errorf("failed to unmarshal permission: %w", err)
 	}
 
-	packed, err := v3.EncodePermission(permission)
+	packed, err := v3.EncodePermission(&permission)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode permission: %w", err)
 	}

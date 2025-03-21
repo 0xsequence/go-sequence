@@ -101,10 +101,61 @@ type EncodeCallSignatureParams struct {
 }
 
 type EncodeSessionCallSignaturesParams struct {
-	SessionConfiguration string   `json:"sessionConfiguration"`
-	CallSignatures       []string `json:"callSignatures"`
-	ExplicitSigners      []string `json:"explicitSigners"`
-	ImplicitSigners      []string `json:"implicitSigners"`
+	SessionConfiguration string          `json:"-"`
+	SessionTopology      json.RawMessage `json:"-"`
+
+	CallSignatures []string `json:"-"`
+
+	ExplicitSigners []string `json:"-"`
+	ImplicitSigners []string `json:"-"`
+}
+
+// UnmarshalJSON implements a custom JSON unmarshaler for EncodeSessionCallSignaturesParams
+func (p *EncodeSessionCallSignaturesParams) UnmarshalJSON(data []byte) error {
+	type rawParams struct {
+		SessionConfiguration json.RawMessage `json:"sessionConfiguration"`
+		SessionTopology      json.RawMessage `json:"sessionTopology"`
+		CallSignatures       json.RawMessage `json:"callSignatures"`
+		ExplicitSigners      []string        `json:"explicitSigners"`
+		ImplicitSigners      []string        `json:"implicitSigners"`
+	}
+
+	var raw rawParams
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if len(raw.SessionConfiguration) > 0 {
+		p.SessionConfiguration = string(raw.SessionConfiguration)
+	}
+	if len(raw.SessionTopology) > 0 {
+		p.SessionTopology = raw.SessionTopology
+	}
+
+	p.ExplicitSigners = raw.ExplicitSigners
+	p.ImplicitSigners = raw.ImplicitSigners
+
+	if len(raw.CallSignatures) > 0 {
+		var sigArray []json.RawMessage
+		if err := json.Unmarshal(raw.CallSignatures, &sigArray); err == nil {
+			callSigs := make([]string, len(sigArray))
+			for i, sig := range sigArray {
+				callSigs[i] = string(sig)
+			}
+			p.CallSignatures = callSigs
+		} else {
+			var singleSig string
+			if jsonErr := json.Unmarshal(raw.CallSignatures, &singleSig); jsonErr == nil {
+				p.CallSignatures = []string{singleSig}
+			} else {
+				p.CallSignatures = []string{string(raw.CallSignatures)}
+			}
+		}
+	} else {
+		p.CallSignatures = []string{}
+	}
+
+	return nil
 }
 
 type ImageHashParams struct {
@@ -114,6 +165,7 @@ type ImageHashParams struct {
 type AddSessionParams struct {
 	ExplicitSession json.RawMessage `json:"explicitSession"`
 	SessionTopology json.RawMessage `json:"sessionTopology"`
+	IdentitySigner  string          `json:"-"` // Used internally, not from JSON
 }
 
 type RemoveSessionParams struct {
