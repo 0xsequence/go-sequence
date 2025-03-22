@@ -744,7 +744,7 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperat
 	log.Println("Creating intent bundle from payload:", op)
 
 	// Compute the digest of the payload
-	bundle, err := CreateIntentBundle(op)
+	bundle, err := CreateIntentCallsPayload(op)
 	if err != nil {
 		return nil, err
 	}

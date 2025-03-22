@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateIntentBundle_Valid(t *testing.T) {
+func TestCreateIntentCallsPayload_Valid(t *testing.T) {
 	// Create an intent operation
 	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
@@ -35,15 +35,15 @@ func TestCreateIntentBundle_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	bundle, err := sequence.CreateIntentBundle(op)
+	bundle, err := sequence.CreateIntentCallsPayload(op)
 	require.NoError(t, err)
 	require.NotNil(t, bundle)
 
 	spew.Dump(bundle)
 }
 
-// TestCreateIntentDigestLeaves_Valid creates a valid payload and computes the intent digest
-func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
+// TestCreateIntentDigestTree_Valid creates a valid payload and computes the intent digest
+func TestCreateIntentDigestTree_Valid(t *testing.T) {
 	// Create valid intent operations with required fields
 	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
 		{
@@ -85,7 +85,7 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use a single payload
 		batches := []*sequence.IntentOperation{op1}
 
-		bundle, err := sequence.CreateIntentBundle(op1)
+		bundle, err := sequence.CreateIntentCallsPayload(op1)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -107,9 +107,9 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use two payloads
 		batches := []*sequence.IntentOperation{op1, op2}
 
-		bundle1, err := sequence.CreateIntentBundle(op1)
+		bundle1, err := sequence.CreateIntentCallsPayload(op1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(op2)
+		bundle2, err := sequence.CreateIntentCallsPayload(op2)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -140,11 +140,11 @@ func TestCreateIntentDigestLeaves_Valid(t *testing.T) {
 		// Use three payloads
 		batches := []*sequence.IntentOperation{op1, op2, op3}
 
-		bundle1, err := sequence.CreateIntentBundle(op1)
+		bundle1, err := sequence.CreateIntentCallsPayload(op1)
 		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentBundle(op2)
+		bundle2, err := sequence.CreateIntentCallsPayload(op2)
 		require.NoError(t, err)
-		bundle3, err := sequence.CreateIntentBundle(op3)
+		bundle3, err := sequence.CreateIntentCallsPayload(op3)
 		require.NoError(t, err)
 
 		tree, err := sequence.CreateIntentDigestTree(batches)
@@ -373,7 +373,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	sigHex := common.Bytes2Hex(sig)
 
 	// Create the bundle from the payload
-	bundle, err := sequence.CreateIntentBundle(op1)
+	bundle, err := sequence.CreateIntentCallsPayload(op1)
 	require.NoError(t, err)
 
 	// Compute the digest of the bundle
@@ -408,7 +408,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create batches from the mockPayloadCall
-	// This is needed since the `CreateIntentBundle` function expects an array of `CallsPayload`.
+	// This is needed since the `CreateIntentCallsPayload` function expects an array of `CallsPayload`.
 	ops := []*sequence.IntentOperation{op1}
 
 	mockPayloads := []v3.CallsPayload{}
@@ -416,7 +416,7 @@ func TestV3IntentConfigWalletDeployment(t *testing.T) {
 	// Create the processed bundles for the initial batch
 	for _, op := range ops {
 		// Create the processed bundle for the payload
-		mockPayload, err := sequence.CreateIntentBundle(op)
+		mockPayload, err := sequence.CreateIntentCallsPayload(op)
 		require.NoError(t, err)
 		mockPayloads = append(mockPayloads, mockPayload)
 	}

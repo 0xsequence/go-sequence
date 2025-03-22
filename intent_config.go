@@ -32,8 +32,8 @@ func NewIntentOperation(chainId *big.Int, calls []v3.Call, space *big.Int, nonce
 	}
 }
 
-// `CreateIntentBundle` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
-func CreateIntentBundle(op *IntentOperation) (v3.CallsPayload, error) {
+// `CreateIntentCallsPayload` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
+func CreateIntentCallsPayload(op *IntentOperation) (v3.CallsPayload, error) {
 	// If the chainId is not provided, throw an error
 	if op.chainId == nil {
 		return v3.CallsPayload{}, fmt.Errorf("chainId is required")
@@ -78,20 +78,9 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 		}
 
 		// Create the intent bundle for this batch.
-		bundle, err := CreateIntentBundle(op)
+		bundle, err := CreateIntentCallsPayload(op)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
-		}
-
-		// Use a zero address since we're constructing a `AnyAddressSubdigestLeaf` payload which hashes w/ zero address
-		// zeroAddress := common.Address{}
-
-		// Make sure all required fields for the payload are set
-		if bundle.Space == nil {
-			bundle.Space = big.NewInt(0)
-		}
-		if bundle.Nonce == nil {
-			bundle.Nonce = big.NewInt(0)
 		}
 
 		digest := bundle.Digest()
@@ -123,9 +112,8 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 	return &tree, nil
 }
 
-// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfig, error) {
-	// Create the subdigest leaves from the batched transactions.
+// CreateIntentTree creates a tree from a list of intent operations and a main signer address.
+func CreateIntentTree(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfigTree, error) {
 	tree, err := CreateIntentDigestTree(ops)
 	if err != nil {
 		return nil, err
@@ -138,13 +126,24 @@ func CreateIntentConfiguration(mainSigner common.Address, ops []*IntentOperation
 	}
 
 	// Construct the new wallet config using:
+	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, *tree)
+
+	return &fullTree, nil
+}
+
+// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+func CreateIntentConfiguration(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfig, error) {
+	// Create the subdigest leaves from the batched transactions.
+	tree, err := CreateIntentTree(mainSigner, ops)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct the new wallet config using:
 	config := &v3.WalletConfig{
 		Threshold_:  1,
 		Checkpoint_: 0,
-		Tree: v3.WalletConfigTreeNodes(
-			mainSignerLeaf,
-			*tree,
-		),
+		Tree:        *tree,
 	}
 
 	return config, nil
