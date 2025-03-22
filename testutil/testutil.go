@@ -710,6 +710,62 @@ func (c *TestChain) V3DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	return genericWallet, nil
 }
 
+func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, ops []*sequence.IntentOperation, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
+	// Generate a single-owner sequence wallet based on a private key generated from seed above
+	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
+	if err != nil {
+		return nil, err
+	}
+
+	// Create an intent config
+	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), ops)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new wallet using the intentConfig v3.WalletConfig.
+	wallet, err := sequence.V3NewWallet(sequence.WalletOptions[*v3.WalletConfig]{
+		Config: intentConfig,
+		Context: func() *sequence.WalletContext {
+			ctx := V3SequenceContext()
+			return &ctx
+		}(),
+	}, owner)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set provider on sequence wallet
+	err = wallet.SetProvider(c.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set relayer on sequence wallet, which is used when the wallet sends transactions
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptsListener)
+	if err != nil {
+		return nil, err
+	}
+	err = wallet.SetRelayer(localRelayer)
+	if err != nil {
+		return nil, err
+	}
+
+	genericWallet := sequence.GenericNewWalletWithCoreWalletConfig[*v3.WalletConfig](wallet)
+
+	// Skip deploying the dummy wallet if specified
+	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {
+		return genericWallet, nil
+	}
+
+	err = c.DeploySequenceWallet(genericWallet)
+	if err != nil {
+		return nil, err
+	}
+
+	return genericWallet, nil
+}
+
 func (c *TestChain) DeploySequenceWallet(wallet *sequence.Wallet[core.WalletConfig]) error {
 	// Check if wallet is already deployed, in which case we will return right away
 	ok, _ := wallet.IsDeployed()
