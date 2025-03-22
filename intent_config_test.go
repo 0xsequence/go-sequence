@@ -180,6 +180,186 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 	})
 }
 
+// TestCreateIntentTree_Valid creates a valid payload and computes the intent digest
+func TestCreateIntentTree_Valid(t *testing.T) {
+	// Create valid intent operations with required fields
+	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+		{
+			To:              common.Address{},
+			Value:           nil,
+			Data:            []byte("transaction1"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+		{
+			To:              common.Address{},
+			Value:           nil,
+			Data:            []byte("transaction2"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	op3 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+		{
+			To:              common.Address{},
+			Value:           nil,
+			Data:            []byte("transaction3"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	t.Run("One batch", func(t *testing.T) {
+		// Use a single payload
+		batches := []*sequence.IntentOperation{op1}
+
+		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		require.NoError(t, err)
+		require.NotNil(t, tree)
+
+		spew.Dump(tree)
+
+		// Type assert to the concrete type
+		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "tree should be a WalletConfigTreeNode")
+
+		addressLeaf, ok := nodeTree.Left.(*v3.WalletConfigTreeAddressLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAddressLeaf")
+		require.Equal(t, addressLeaf.Address, common.Address{}, "address leaf should be the main signer")
+
+		anyAddressLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		// Get the digest of the leaf
+		digest := anyAddressLeaf.Digest.Hash
+		require.NotNil(t, digest)
+
+		// Get the digest of the payload
+		bundle, err := sequence.CreateIntentCallsPayload(op1)
+		require.NoError(t, err)
+		require.NotNil(t, bundle)
+	})
+
+	t.Run("Two batches", func(t *testing.T) {
+		// Use two payloads
+		batches := []*sequence.IntentOperation{op1, op2}
+
+		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		require.NoError(t, err)
+		require.NotNil(t, tree)
+
+		spew.Dump(tree)
+
+		// Type assert to the concrete type
+		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "tree should be a WalletConfigTreeNode")
+
+		addressLeaf, ok := nodeTree.Left.(*v3.WalletConfigTreeAddressLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAddressLeaf")
+		require.Equal(t, addressLeaf.Address, common.Address{}, "address leaf should be the main signer")
+
+		nodeRight, ok := nodeTree.Right.(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "right node should be WalletConfigTreeNode")
+
+		anyAddressLeaf, ok := nodeRight.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "right node should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		anyAddressLeaf2, ok := nodeRight.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		// Get the digest of the leaf
+		digest := anyAddressLeaf.Digest.Hash
+		require.NotNil(t, digest)
+
+		// Get the digest of the payload
+		bundle, err := sequence.CreateIntentCallsPayload(op1)
+		require.NoError(t, err)
+		require.NotNil(t, bundle)
+
+		bundle2, err := sequence.CreateIntentCallsPayload(op2)
+		require.NoError(t, err)
+		require.NotNil(t, bundle2)
+
+		bundleDigest := bundle.Digest()
+		bundle2Digest := bundle2.Digest()
+
+		require.Equal(t, bundleDigest.Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
+		require.Equal(t, bundle2Digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+	})
+
+	t.Run("Three batches", func(t *testing.T) {
+		// Use three payloads
+		batches := []*sequence.IntentOperation{op1, op2, op3}
+
+		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		require.NoError(t, err)
+
+		spew.Dump(tree)
+
+		// Type assert to the concrete type
+		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "tree should be a WalletConfigTreeNode")
+
+		addressLeaf, ok := nodeTree.Left.(*v3.WalletConfigTreeAddressLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAddressLeaf")
+		require.Equal(t, addressLeaf.Address, common.Address{}, "address leaf should be the main signer")
+
+		nodeRight, ok := nodeTree.Right.(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "right node should be WalletConfigTreeNode")
+
+		anyAddressLeaf, ok := nodeRight.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "right node should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		nodeLeft, ok := nodeRight.Left.(*v3.WalletConfigTreeNode)
+		require.True(t, ok, "left node should be WalletConfigTreeNode")
+
+		anyAddressLeaf2, ok := nodeLeft.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		anyAddressLeaf3, ok := nodeLeft.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
+
+		digest1 := anyAddressLeaf.Digest.Hash
+		require.NotNil(t, digest1)
+
+		digest2 := anyAddressLeaf2.Digest.Hash
+		require.NotNil(t, digest2)
+
+		digest3 := anyAddressLeaf3.Digest.Hash
+		require.NotNil(t, digest3)
+
+		bundle, err := sequence.CreateIntentCallsPayload(op1)
+		require.NoError(t, err)
+		require.NotNil(t, bundle)
+
+		bundle2, err := sequence.CreateIntentCallsPayload(op2)
+		require.NoError(t, err)
+		require.NotNil(t, bundle2)
+
+		bundle3, err := sequence.CreateIntentCallsPayload(op3)
+		require.NoError(t, err)
+		require.NotNil(t, bundle3)
+
+		bundleDigest := bundle.Digest()
+		bundle2Digest := bundle2.Digest()
+		bundle3Digest := bundle3.Digest()
+
+		require.Equal(t, bundleDigest.Hash, anyAddressLeaf3.Digest.Hash, "digests do not match")
+		require.Equal(t, bundle2Digest.Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
+		require.Equal(t, bundle3Digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+	})
+}
+
 func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Create a valid payload
 	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
