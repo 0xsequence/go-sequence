@@ -4,18 +4,26 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/contracts"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 type SignedTransactions struct {
-	Transactions
+	v3.CallsPayload
 	Signature []byte
 }
 
-type Transactions []v3.Call
+func (t SignedTransactions) Data() ([]byte, error) {
+	return contracts.V3.WalletStage1Module.Encode("execute", t.Encode(t.Address()), t.Signature)
+}
 
-func (t Transactions) Payload(address common.Address, chainID *big.Int, space, nonce *big.Int) v3.CallsPayload {
-	return v3.ConstructCallsPayload(address, chainID, t, space, nonce)
+type Transactions struct {
+	Calls        []v3.Call
+	Space, Nonce *big.Int
+}
+
+func (t Transactions) Payload(address common.Address, chainID *big.Int) v3.CallsPayload {
+	return v3.ConstructCallsPayload(address, chainID, t.Calls, t.Space, t.Nonce)
 }
 
 type Transaction struct {

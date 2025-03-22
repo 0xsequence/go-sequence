@@ -2,16 +2,14 @@ package sequence
 
 import (
 	"context"
-	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -74,7 +72,7 @@ type Relayer interface {
 	FeeOptions(ctx context.Context, signedTxs *SignedTransactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error)
 
 	// ..
-	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
+	Wait(ctx context.Context, payload v3.PayloadDigestable) (MetaTxnStatus, *types.Receipt, error)
 
 	// ..
 	Client() proto.Relayer
@@ -97,17 +95,3 @@ const (
 	MetaTxnFailed
 	MetaTxnReverted
 )
-
-func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Address, chainID *big.Int, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, space *big.Int, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
-	if len(txns) == 0 {
-		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
-	}
-
-	payload := txns.Payload(walletAddress, chainID, space, nonce)
-	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	return walletAddress, execdata, nil
-}

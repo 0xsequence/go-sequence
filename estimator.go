@@ -520,7 +520,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	}
 
-	estimates := make([]*big.Int, len(txs)+1)
+	estimates := make([]*big.Int, len(txs.Calls)+1)
 
 	// The nonce is ignored by the MainModuleGasEstimator
 	// so we use a stub nonce takes at least 4 bytes
@@ -531,7 +531,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 	for i := range estimates {
 		// TODO: set nonce space
-		payload := txs[0:i].Payload(address, chainID, new(big.Int), nonce)
+		payload := Transactions{Calls: txs.Calls[0:i], Nonce: nonce}.Payload(address, chainID)
 
 		data, err := contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
 		if err != nil {
@@ -550,8 +550,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	}
 
 	// Apply gas limits to all transactions
-	for i := range txs {
-		txs[i].GasLimit = big.NewInt(0).Sub(estimates[i+1], estimates[i])
+	for i := range txs.Calls {
+		txs.Calls[i].GasLimit = big.NewInt(0).Sub(estimates[i+1], estimates[i])
 	}
 
 	return estimates[len(estimates)-1].Uint64(), nil
@@ -562,16 +562,16 @@ func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Tra
 		block = "latest"
 	}
 
-	calls := make([]walletestimator.PayloadCall, 0, len(transactions))
-	for _, transaction := range transactions {
+	calls := make([]walletestimator.PayloadCall, 0, len(transactions.Calls))
+	for _, call := range transactions.Calls {
 		calls = append(calls, walletestimator.PayloadCall{
-			To:              transaction.To,
-			Value:           transaction.Value,
-			Data:            transaction.Data,
-			GasLimit:        transaction.GasLimit,
-			DelegateCall:    transaction.DelegateCall,
-			OnlyFallback:    transaction.OnlyFallback,
-			BehaviorOnError: big.NewInt(int64(transaction.BehaviorOnError)),
+			To:              call.To,
+			Value:           call.Value,
+			Data:            call.Data,
+			GasLimit:        call.GasLimit,
+			DelegateCall:    call.DelegateCall,
+			OnlyFallback:    call.OnlyFallback,
+			BehaviorOnError: big.NewInt(int64(call.BehaviorOnError)),
 		})
 	}
 

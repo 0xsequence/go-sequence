@@ -2,6 +2,7 @@ package sequence
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -435,19 +436,22 @@ func (w *Wallet[C]) GetSignerWeight() *big.Int {
 	return big.NewInt(0).SetUint64(uint64(w.config.SignersWeight(signers)))
 }
 
-func (w *Wallet[C]) GetNonce(optBlockNum ...*big.Int) (*big.Int, error) {
+func (w *Wallet[C]) GetNonce(space *big.Int, optBlockNum ...*big.Int) (*big.Int, error) {
 	if w.relayer == nil {
 		return nil, ErrRelayerNotSet
+	}
+	if space == nil {
+		space = new(big.Int)
 	}
 	var blockNum *big.Int
 	if len(optBlockNum) > 0 {
 		blockNum = optBlockNum[0]
 	}
-	return w.relayer.GetNonce(context.Background(), w.config, w.context, nil, blockNum)
+	return w.relayer.GetNonce(context.Background(), w.config, w.context, space, blockNum)
 }
 
 func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) {
-	return w.GetNonce(optBlockNum...)
+	return w.GetNonce(nil, optBlockNum...)
 }
 
 func (w *Wallet[C]) SignMessage(ctx context.Context, message []byte) ([]byte, error) {
@@ -488,12 +492,12 @@ func (w *Wallet[C]) Sign(ctx context.Context, payload v3.Payload) (core.SignerSi
 	return core.SignerSignatureTypeEIP1271, signature, err
 }
 
-func (w *Wallet[C]) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
-	return w.SignTransactions(ctx, Transactions{txn})
+func (w *Wallet[C]) SignTransaction(ctx context.Context, txn v3.Call) (*SignedTransactions, error) {
+	return w.SignTransactions(ctx, Transactions{Calls: []v3.Call{txn}})
 }
 
 func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
-	if len(txns) == 0 {
+	if len(txns.Calls) == 0 {
 		return nil, fmt.Errorf("cannot sign an empty set of transactions")
 	}
 
@@ -502,8 +506,8 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	// If a transaction has 0 gasLimit and not revertOnError
 	// compute all new gas limits
 	estimateGas := false
-	for _, txn := range txns {
-		if !txn.RevertOnError && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
+	for _, txn := range txns.Calls {
+		if txn.BehaviorOnError != v3.BehaviorOnErrorRevert && (txn.GasLimit == nil || txn.GasLimit.Cmp(big.NewInt(0)) == 0) {
 			estimateGas = true
 			break
 		}
@@ -515,60 +519,30 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		}
 	}
 
-	// load nonce from transactions
-	nonce, err := txns.Nonce()
-	if err != nil {
-		return nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
-	}
-
-	// if nonce is undefined
-	// load latest nonce from wallet
-	if nonce == nil {
-		nonce, err = w.GetNonce()
-		if err != nil {
-			return nil, err
+	var space, nonce *big.Int
+	if txns.Nonce != nil {
+		if txns.Space != nil {
+			space, nonce = txns.Space, txns.Nonce
+		} else {
+			space, nonce = common.Big0, txns.Nonce
+		}
+	} else {
+		if txns.Space != nil {
+			space = txns.Space
+			nonce, err = w.GetNonce(space)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get nonce for space %v: %w", txns.Space, err)
+			}
+		} else {
+			var data [20]byte
+			rand.Read(data[:])
+			space, nonce = new(big.Int).SetBytes(data[:]), common.Big0
 		}
 	}
 
 	switch core.WalletConfig(w.config).(type) {
-	case *v1.WalletConfig, *v2.WalletConfig:
-		bundle := Transaction{
-			Transactions: txns,
-			Nonce:        nonce,
-		}
-
-		// Get transactions digest
-		digest, err := bundle.Digest()
-		if err != nil {
-			return nil, err
-		}
-
-		// Sign the transactions
-		sig, err := w.SignDigest(ctx, digest)
-		if err != nil {
-			return nil, err
-		}
-
-		return &SignedTransactions{
-			ChainID:       w.chainID,
-			WalletAddress: w.address,
-			WalletConfig:  w.config,
-			WalletContext: w.context,
-			Transactions:  txns,
-			Nonce:         nonce,
-			Digest:        digest,
-			Signature:     sig,
-		}, nil
-
 	case *v3.WalletConfig:
-		space, nonce := DecodeNonce(nonce)
-
-		payload, err := txns.Payload(w.address, w.chainID, space, nonce)
-		if err != nil {
-			return nil, err
-		}
-
-		digest := payload.Digest()
+		payload := Transactions{Calls: txns.Calls, Space: space, Nonce: nonce}.Payload(w.address, w.chainID)
 
 		// Sign the transactions
 		_, signature, err := w.Sign(ctx, payload)
@@ -576,17 +550,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 			return nil, err
 		}
 
-		return &SignedTransactions{
-			ChainID:       w.chainID,
-			WalletAddress: w.address,
-			WalletConfig:  w.config,
-			WalletContext: w.context,
-			Transactions:  txns,
-			Space:         space,
-			Nonce:         nonce,
-			Digest:        digest.Hash,
-			Signature:     signature,
-		}, nil
+		return &SignedTransactions{CallsPayload: payload, Signature: signature}, nil
 	}
 
 	return nil, fmt.Errorf("unknown wallet config type")
@@ -609,29 +573,29 @@ func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*Relaye
 		return []*RelayerFeeOption{}, nil, ErrRelayerNotSet
 	}
 
-	// prepare for signed txs
-	nonce, err := txs.Nonce()
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot load nonce from transactions: %w", err)
-	}
-
-	if nonce == nil {
-		nonce, err = w.GetNonce()
-		if err != nil {
-			return nil, nil, err
+	var space, nonce *big.Int
+	if txs.Nonce != nil {
+		if txs.Space != nil {
+			space, nonce = txs.Space, txs.Nonce
+		} else {
+			space, nonce = common.Big0, txs.Nonce
+		}
+	} else {
+		if txs.Space != nil {
+			var err error
+			space = txs.Space
+			nonce, err = w.GetNonce(space)
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to get nonce for space %v: %w", txs.Space, err)
+			}
+		} else {
+			var data [20]byte
+			rand.Read(data[:])
+			space, nonce = new(big.Int).SetBytes(data[:]), common.Big0
 		}
 	}
 
-	bundle := Transaction{
-		Transactions: txs,
-		Nonce:        nonce,
-	}
-
-	// get transactions digest
-	digest, err := bundle.Digest()
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot get digest from transactions: %w", err)
-	}
+	payload := v3.ConstructCallsPayload(w.address, w.chainID, txs.Calls, space, nonce)
 
 	// prepare for fee estimation
 	areEOAs, err := w.estimator.AreEOAs(ctx, w.provider, w.config)
@@ -647,16 +611,7 @@ func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*Relaye
 	sig := w.estimator.BuildStubSignature(w.config, willSign, areEOAs)
 
 	// signed txs
-	signedTxs := &SignedTransactions{
-		ChainID:       w.chainID,
-		WalletAddress: w.address,
-		WalletConfig:  w.config,
-		WalletContext: w.context,
-		Transactions:  txs,
-		Nonce:         nonce,
-		Digest:        digest,
-		Signature:     sig,
-	}
+	signedTxs := &SignedTransactions{CallsPayload: payload, Signature: sig}
 
 	// get fee options
 	return w.relayer.FeeOptions(ctx, signedTxs)
@@ -683,10 +638,10 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
 	}
 
-	var txn = &Transaction{
-		RevertOnError: true,
-		To:            walletFactoryAddress,
-		Data:          deploymentData,
+	var txn = v3.Call{
+		To:              walletFactoryAddress,
+		Data:            deploymentData,
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
 	}
 
 	// for v1 sequence wallet default does not work

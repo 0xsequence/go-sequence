@@ -252,33 +252,22 @@ func (r *RpcRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedT
 }
 
 // ....
-func (r *RpcRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *RpcRelayer) Wait(ctx context.Context, payload v3.PayloadDigestable) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	// Fetch the meta transaction receipt from the relayer service
 	if r.receiptListener == nil {
 		return r.waitMetaTxnReceipt(ctx, metaTxnID, optTimeout...)
 	}
 
 	// Fetch the meta transaction receipt from the receipt listener
-	result, receipt, _, err := sequence.FetchReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	receipt, status, _, _, err := sequence.FetchReceipt(ctx, r.receiptListener, payload)
 	if err != nil {
 		return 0, nil, err
-	}
-	var status sequence.MetaTxnStatus
-	if result != nil {
-		status = result.Status
 	}
 	return status, receipt.Receipt(), nil
 }
 
-func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, payload v3.PayloadDigestable) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	// TODO: in future GetMetaTxnReceipt() will be renamed to WaitTransactionReceipt()
-
-	var clear context.CancelFunc
-	if len(optTimeout) > 0 {
-		ctx, clear = context.WithTimeout(ctx, optTimeout[0])
-		defer clear()
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -290,7 +279,7 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 		default:
 		}
 
-		metaTxnReceipt, err := r.Service.GetMetaTxnReceipt(ctx, metaTxnID.String())
+		metaTxnReceipt, err := r.Service.GetMetaTxnReceipt(ctx, payload.Digest().String())
 		if metaTxnReceipt == nil && err == nil {
 			// currently we assume that if the receipt is nil, and error is nil, then
 			// we're still searching for the transaction. This is a hack, and we should
