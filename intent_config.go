@@ -114,7 +114,7 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 
 // CreateIntentTree creates a tree from a list of intent operations and a main signer address.
 func CreateIntentTree(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfigTree, error) {
-	tree, err := CreateIntentDigestTree(ops)
+	digestTree, err := CreateIntentDigestTree(ops)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func CreateIntentTree(mainSigner common.Address, ops []*IntentOperation) (*v3.Wa
 	}
 
 	// Construct the new wallet config using:
-	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, *tree)
+	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, *digestTree)
 
 	return &fullTree, nil
 }
