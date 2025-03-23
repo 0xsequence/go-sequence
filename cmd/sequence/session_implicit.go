@@ -10,13 +10,11 @@ import (
 )
 
 func handleAddBlacklist(p *AddBlacklistParams) (string, error) {
-	var topology v3.SessionsTopology
-	if err := json.Unmarshal([]byte(p.SessionConfiguration), &topology); err != nil {
-		return "", fmt.Errorf("failed to decode session configuration: %w", err)
-	}
-
 	blacklistAddr := common.HexToAddress(p.BlacklistAddress)
-	updated := v3.AddToImplicitBlacklist(&topology, blacklistAddr)
+	updated, err := v3.AddToImplicitBlacklist(p.SessionTopology, blacklistAddr)
+	if err != nil {
+		return "", fmt.Errorf("failed to add to implicit blacklist: %w", err)
+	}
 
 	jsonBytes, err := json.Marshal(updated)
 	if err != nil {
@@ -27,13 +25,11 @@ func handleAddBlacklist(p *AddBlacklistParams) (string, error) {
 }
 
 func handleRemoveBlacklist(p *RemoveBlacklistParams) (string, error) {
-	var topology v3.SessionsTopology
-	if err := json.Unmarshal([]byte(p.SessionConfiguration), &topology); err != nil {
-		return "", fmt.Errorf("failed to decode session configuration: %w", err)
-	}
-
 	blacklistAddr := common.HexToAddress(p.BlacklistAddress)
-	updated := v3.RemoveFromImplicitBlacklist(&topology, blacklistAddr)
+	updated, err := v3.RemoveFromImplicitBlacklist(p.SessionTopology, blacklistAddr)
+	if err != nil {
+		return "", fmt.Errorf("failed to remove from implicit blacklist: %w", err)
+	}
 
 	jsonBytes, err := json.Marshal(updated)
 	if err != nil {
@@ -51,21 +47,25 @@ func newSessionImplicitCmd() *cobra.Command {
 	}
 
 	addCmd := &cobra.Command{
-		Use:   "blacklist-add [blacklist-address] [session-configuration]",
+		Use:   "blacklist-add [blacklist-address] [session-topology]",
 		Short: "Add an address to the implicit session blacklist",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return fmt.Errorf("blacklist address is required")
 			}
 
-			config, err := fromPosOrStdin(args, 1)
+			sessionTopologyString, err := fromPosOrStdin(args, 1)
 			if err != nil {
 				return err
 			}
+			sessionTopology, err := v3.SessionsTopologyFromJSON(sessionTopologyString)
+			if err != nil {
+				return fmt.Errorf("failed to decode session topology: %w", err)
+			}
 
 			result, err := handleAddBlacklist(&AddBlacklistParams{
-				BlacklistAddress:     args[0],
-				SessionConfiguration: config,
+				BlacklistAddress: args[0],
+				SessionTopology:  sessionTopology,
 			})
 			if err != nil {
 				return err
@@ -76,21 +76,25 @@ func newSessionImplicitCmd() *cobra.Command {
 	}
 
 	removeCmd := &cobra.Command{
-		Use:   "blacklist-remove [blacklist-address] [session-configuration]",
+		Use:   "blacklist-remove [blacklist-address] [session-topology]",
 		Short: "Remove an address from the implicit session blacklist",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return fmt.Errorf("blacklist address is required")
 			}
 
-			config, err := fromPosOrStdin(args, 1)
+			sessionTopologyString, err := fromPosOrStdin(args, 1)
 			if err != nil {
 				return err
 			}
+			sessionTopology, err := v3.SessionsTopologyFromJSON(sessionTopologyString)
+			if err != nil {
+				return fmt.Errorf("failed to decode session topology: %w", err)
+			}
 
 			result, err := handleRemoveBlacklist(&RemoveBlacklistParams{
-				BlacklistAddress:     args[0],
-				SessionConfiguration: config,
+				BlacklistAddress: args[0],
+				SessionTopology:  sessionTopology,
 			})
 			if err != nil {
 				return err

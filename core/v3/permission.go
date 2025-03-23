@@ -5,19 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
 
+// ParameterOperation represents the comparison operation for a parameter rule.
 type ParameterOperation uint8
 
 const (
-	EQUAL                 ParameterOperation = 0
-	NOT_EQUAL             ParameterOperation = 1
-	GREATER_THAN_OR_EQUAL ParameterOperation = 2
-	LESS_THAN_OR_EQUAL    ParameterOperation = 3
+	EQUAL ParameterOperation = iota
+	NOT_EQUAL
+	GREATER_THAN_OR_EQUAL
+	LESS_THAN_OR_EQUAL
 )
 
+// ParameterRule defines one rule for comparing a parameter.
 type ParameterRule struct {
 	Cumulative bool               `json:"cumulative"`
 	Operation  ParameterOperation `json:"operation"`
@@ -26,11 +30,13 @@ type ParameterRule struct {
 	Mask       []byte             `json:"mask"`
 }
 
+// Permission represents a permission with a target address and a set of parameter rules.
 type Permission struct {
 	Target common.Address  `json:"target"`
 	Rules  []ParameterRule `json:"rules"`
 }
 
+// SessionPermissions groups a signer with its associated permissions.
 type SessionPermissions struct {
 	Signer      common.Address `json:"signer"`
 	ValueLimit  *big.Int       `json:"valueLimit"`
@@ -43,18 +49,24 @@ const (
 	MAX_RULES_COUNT       = (1 << 8) - 1
 )
 
-// EncodeSessionPermissions encodes session permissions into bytes
+// -----------------------------------------------------------------------------
+// Binary Encoding
+// -----------------------------------------------------------------------------
+
+// EncodeSessionPermissions encodes a SessionPermissions structure into bytes.
 func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	if len(sp.Permissions) > MAX_PERMISSIONS_COUNT {
 		return nil, fmt.Errorf("too many permissions")
 	}
-
 	var result []byte
-	result = append(result, common.LeftPadBytes(sp.Signer.Bytes(), 20)...)
-	result = append(result, common.LeftPadBytes(sp.ValueLimit.Bytes(), 32)...)
-	result = append(result, common.LeftPadBytes(sp.Deadline.Bytes(), 32)...)
+	// Append signer as 20-byte left‐padded value.
+	result = append(result, LeftPad(sp.Signer.Bytes(), 20)...)
+	// Append valueLimit (32 bytes) and deadline (32 bytes).
+	result = append(result, LeftPad(sp.ValueLimit.Bytes(), 32)...)
+	result = append(result, LeftPad(sp.Deadline.Bytes(), 32)...)
+	// Append a single byte with the number of permissions.
 	result = append(result, byte(len(sp.Permissions)))
-
+	// Encode each permission.
 	for _, perm := range sp.Permissions {
 		encoded, err := EncodePermission(&perm)
 		if err != nil {
@@ -62,40 +74,35 @@ func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 		}
 		result = append(result, encoded...)
 	}
-
 	return result, nil
 }
 
-// EncodePermission encodes a permission into bytes
+// EncodePermission encodes a Permission into bytes.
 func EncodePermission(p *Permission) ([]byte, error) {
 	if len(p.Rules) > MAX_RULES_COUNT {
 		return nil, fmt.Errorf("too many rules")
 	}
-
 	var result []byte
-	result = append(result, common.LeftPadBytes(p.Target.Bytes(), 20)...)
+	// Append target (20 bytes).
+	result = append(result, LeftPad(p.Target.Bytes(), 20)...)
+	// Append a single byte with the number of rules.
 	result = append(result, byte(len(p.Rules)))
-
+	// Append each encoded parameter rule.
 	for _, rule := range p.Rules {
-		encoded := encodeParameterRule(&rule)
-		result = append(result, encoded...)
+		result = append(result, encodeParameterRule(&rule)...)
 	}
-
 	return result, nil
 }
 
-// encodeParameterRule encodes a parameter rule into bytes
+// encodeParameterRule encodes a ParameterRule into bytes.
+// The first byte packs the 3‑bit operation (shifted left by 1) and 1‑bit cumulative flag.
 func encodeParameterRule(r *ParameterRule) []byte {
-	// Combine operation and cumulative flag into a single byte
-	// 0x[operationx3][cumulative]
-	operationCumulative := byte(r.Operation<<1) | boolToByte(r.Cumulative)
-
+	opCumulative := byte(r.Operation<<1) | boolToByte(r.Cumulative)
 	var result []byte
-	result = append(result, operationCumulative)
-	result = append(result, common.LeftPadBytes(r.Value, 32)...)
-	result = append(result, common.LeftPadBytes(r.Offset.Bytes(), 32)...)
-	result = append(result, common.LeftPadBytes(r.Mask, 32)...)
-
+	result = append(result, opCumulative)
+	result = append(result, LeftPad(r.Value, 32)...)
+	result = append(result, LeftPad(r.Offset.Bytes(), 32)...)
+	result = append(result, LeftPad(r.Mask, 32)...)
 	return result
 }
 
@@ -106,260 +113,332 @@ func boolToByte(b bool) byte {
 	return 0
 }
 
-// SessionPermissionsFromJSON decodes session permissions from JSON
-func SessionPermissionsFromJSON(data string) (*SessionPermissions, error) {
+// DecodeSessionPermissions decodes a byte slice into a SessionPermissions structure.
+func DecodeSessionPermissions(b []byte) (SessionPermissions, error) {
+	if len(b) < 85 {
+		return SessionPermissions{}, fmt.Errorf("insufficient bytes for session permissions")
+	}
 	var sp SessionPermissions
-	if err := json.Unmarshal([]byte(data), &sp); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal session permissions: %w", err)
+	sp.Signer = common.BytesToAddress(b[0:20])
+	sp.ValueLimit = new(big.Int).SetBytes(b[20:52])
+	sp.Deadline = new(big.Int).SetBytes(b[52:84])
+	permCount := int(b[84])
+	ptr := 85
+	var perms []Permission
+	for i := 0; i < permCount; i++ {
+		perm, consumed, err := decodePermission(b[ptr:])
+		if err != nil {
+			return SessionPermissions{}, err
+		}
+		perms = append(perms, perm)
+		ptr += consumed
 	}
-	return &sp, nil
+	sp.Permissions = perms
+	return sp, nil
 }
 
-// PermissionFromJSON decodes a permission from JSON
-func PermissionFromJSON(data string) (*Permission, error) {
-	var p Permission
-	if err := json.Unmarshal([]byte(data), &p); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal permission: %w", err)
+// decodePermission decodes a Permission from bytes. It returns the Permission, the number of bytes consumed, and an error if any.
+func decodePermission(b []byte) (Permission, int, error) {
+	if len(b) < 21 {
+		return Permission{}, 0, fmt.Errorf("insufficient bytes for permission")
 	}
-	return &p, nil
+	var perm Permission
+	perm.Target = common.BytesToAddress(b[0:20])
+	rulesCount := int(b[20])
+	ptr := 21
+	var rules []ParameterRule
+	for i := 0; i < rulesCount; i++ {
+		if len(b) < ptr+97 {
+			return Permission{}, 0, fmt.Errorf("insufficient bytes for parameter rule")
+		}
+		rule := decodeParameterRule(b[ptr : ptr+97])
+		rules = append(rules, rule)
+		ptr += 97
+	}
+	perm.Rules = rules
+	return perm, ptr, nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler for SessionPermissions
-func (sp *SessionPermissions) UnmarshalJSON(data []byte) error {
-	type Alias SessionPermissions
-	aux := struct {
-		ValueLimit json.RawMessage `json:"valueLimit"`
-		Deadline   json.RawMessage `json:"deadline"`
-		*Alias
-	}{
-		Alias: (*Alias)(sp),
+// decodeParameterRule decodes a 97‑byte slice into a ParameterRule.
+func decodeParameterRule(b []byte) ParameterRule {
+	opCumulative := b[0]
+	cumulative := (opCumulative & 1) == 1
+	operation := opCumulative >> 1
+	value := b[1:33]
+	offset := new(big.Int).SetBytes(b[33:65])
+	mask := b[65:97]
+	return ParameterRule{
+		Cumulative: cumulative,
+		Operation:  ParameterOperation(operation),
+		Value:      value,
+		Offset:     offset,
+		Mask:       mask,
 	}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	// Parse ValueLimit
-	if len(aux.ValueLimit) > 0 {
-		valueLimit := new(big.Int)
-		var strVal string
-		if err := json.Unmarshal(aux.ValueLimit, &strVal); err != nil {
-			// If string unmarshal fails, try as number
-			var numVal json.Number
-			if err := json.Unmarshal(aux.ValueLimit, &numVal); err != nil {
-				return fmt.Errorf("invalid valueLimit format: %w", err)
-			}
-			strVal = numVal.String()
-		}
-		if _, ok := valueLimit.SetString(strVal, 0); !ok {
-			return fmt.Errorf("invalid valueLimit: %s", strVal)
-		}
-		sp.ValueLimit = valueLimit
-	}
-
-	// Parse Deadline
-	if len(aux.Deadline) > 0 {
-		deadline := new(big.Int)
-		var strVal string
-		if err := json.Unmarshal(aux.Deadline, &strVal); err != nil {
-			// If string unmarshal fails, try as number
-			var numVal json.Number
-			if err := json.Unmarshal(aux.Deadline, &numVal); err != nil {
-				return fmt.Errorf("invalid deadline format: %w", err)
-			}
-			strVal = numVal.String()
-		}
-		if _, ok := deadline.SetString(strVal, 0); !ok {
-			return fmt.Errorf("invalid deadline: %s", strVal)
-		}
-		sp.Deadline = deadline
-	}
-
-	return nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler for ParameterRule
-func (pr *ParameterRule) UnmarshalJSON(data []byte) error {
-	type Alias ParameterRule
-	aux := struct {
-		Value  string          `json:"value"`
-		Offset json.RawMessage `json:"offset"`
-		Mask   string          `json:"mask"`
-		*Alias
-	}{
-		Alias: (*Alias)(pr),
-	}
+// -----------------------------------------------------------------------------
+// ABI Encoding
+// -----------------------------------------------------------------------------
 
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	// Parse Value
-	if aux.Value != "" {
-		value := common.FromHex(aux.Value)
-		pr.Value = value
-	}
-
-	// Parse Offset
-	if len(aux.Offset) > 0 {
-		offset := new(big.Int)
-		var strVal string
-		if err := json.Unmarshal(aux.Offset, &strVal); err != nil {
-			// If string unmarshal fails, try as number
-			var numVal json.Number
-			if err := json.Unmarshal(aux.Offset, &numVal); err != nil {
-				return fmt.Errorf("invalid offset format: %w", err)
-			}
-			strVal = numVal.String()
-		}
-		if _, ok := offset.SetString(strVal, 0); !ok {
-			return fmt.Errorf("invalid offset: %s", strVal)
-		}
-		pr.Offset = offset
-	}
-
-	// Parse Mask
-	if aux.Mask != "" {
-		mask := common.FromHex(aux.Mask)
-		pr.Mask = mask
-	}
-
-	return nil
+// permissionStructAbi defines the ABI tuple for Permission.
+var permissionStructAbi = []abi.ArgumentMarshaling{
+	{
+		Name: "target",
+		Type: "address",
+	},
+	{
+		Name: "rules",
+		Type: "tuple[]",
+		Components: []abi.ArgumentMarshaling{
+			{Name: "cumulative", Type: "bool"},
+			{Name: "operation", Type: "uint8"},
+			{Name: "value", Type: "bytes32"},
+			{Name: "offset", Type: "uint256"},
+			{Name: "mask", Type: "bytes32"},
+		},
+	},
 }
 
-// UnmarshalJSON implements json.Unmarshaler for SessionsTopology
-func (s *SessionsTopology) UnmarshalJSON(data []byte) error {
-	// Try to unmarshal as an array format
-	var arr []json.RawMessage
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return fmt.Errorf("failed to unmarshal sessions topology array: %w", err)
+// AbiEncodePermission packs a Permission into an ABI-encoded hex string.
+func AbiEncodePermission(p *Permission) (string, error) {
+	// Define internal types for ABI encoding.
+	type ruleABI struct {
+		Cumulative bool
+		Operation  uint8
+		Value      [32]byte
+		Offset     *big.Int
+		Mask       [32]byte
 	}
-
-	if len(arr) != 2 {
-		return fmt.Errorf("invalid sessions topology array length: expected 2, got %d", len(arr))
+	type permissionABI struct {
+		Target common.Address
+		Rules  []ruleABI
 	}
-
-	// Parse blacklist
-	var blacklistObj struct {
-		Blacklist []common.Address `json:"blacklist"`
+	var rules []ruleABI
+	for _, r := range p.Rules {
+		var val [32]byte
+		copy(val[:], LeftPad(r.Value, 32))
+		var mask [32]byte
+		copy(mask[:], LeftPad(r.Mask, 32))
+		rules = append(rules, ruleABI{
+			Cumulative: r.Cumulative,
+			Operation:  uint8(r.Operation),
+			Value:      val,
+			Offset:     r.Offset,
+			Mask:       mask,
+		})
 	}
-	if err := json.Unmarshal(arr[0], &blacklistObj); err != nil {
-		return fmt.Errorf("failed to unmarshal blacklist: %w", err)
+	perm := permissionABI{
+		Target: p.Target,
+		Rules:  rules,
 	}
-	s.Blacklist = blacklistObj.Blacklist
-
-	// Try to parse second element as an array first
-	var secondElement []json.RawMessage
-	if err := json.Unmarshal(arr[1], &secondElement); err == nil {
-		// It's an array format
-		if len(secondElement) < 1 {
-			return fmt.Errorf("invalid second element array length: expected at least 1")
-		}
-
-		// Parse global signer from first element
-		var globalSignerObj struct {
-			GlobalSigner string `json:"globalSigner"`
-		}
-		if err := json.Unmarshal(secondElement[0], &globalSignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal global signer: %w", err)
-		}
-		s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
-
-		// Parse remaining elements as sessions
-		s.Sessions = make([]SessionNode, 0, len(secondElement)-1)
-		for i := 1; i < len(secondElement); i++ {
-			var session SessionNode
-			if err := json.Unmarshal(secondElement[i], &session); err != nil {
-				return fmt.Errorf("failed to unmarshal session at index %d: %w", i, err)
-			}
-			s.Sessions = append(s.Sessions, session)
-		}
-	} else {
-		// Try as a single object with just globalSigner
-		var globalSignerObj struct {
-			GlobalSigner string `json:"globalSigner"`
-		}
-		if err := json.Unmarshal(arr[1], &globalSignerObj); err != nil {
-			return fmt.Errorf("failed to unmarshal global signer: %w", err)
-		}
-		s.GlobalSigner = common.HexToAddress(globalSignerObj.GlobalSigner)
-		s.Sessions = make([]SessionNode, 0)
+	// Build ABI arguments.
+	args, err := argumentsFromABIArguments(permissionStructAbi)
+	if err != nil {
+		return "", fmt.Errorf("failed to build ABI arguments: %w", err)
 	}
-
-	return nil
+	packed, err := args.Pack(perm.Target, perm.Rules)
+	if err != nil {
+		return "", fmt.Errorf("failed to pack permission: %w", err)
+	}
+	return "0x" + hex.EncodeToString(packed), nil
 }
 
-// MarshalJSON implements json.Marshaler for SessionsTopology
-func (s *SessionsTopology) MarshalJSON() ([]byte, error) {
-	blacklistObj := map[string][]common.Address{
-		"blacklist": s.Blacklist,
+// argumentsFromABIArguments converts a slice of ArgumentMarshaling into abi.Arguments.
+func argumentsFromABIArguments(argMarsh []abi.ArgumentMarshaling) (abi.Arguments, error) {
+	var args abi.Arguments
+	for _, am := range argMarsh {
+		t, err := abi.NewType(am.Type, "", am.Components)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, abi.Argument{
+			Name: am.Name,
+			Type: t,
+		})
 	}
-
-	// Create the second element as an array
-	secondElement := make([]interface{}, 0, len(s.Sessions)+1)
-
-	// Add globalSigner as first element of second array
-	secondElement = append(secondElement, map[string]string{
-		"globalSigner": s.GlobalSigner.String(),
-	})
-
-	// Add all sessions to the second array
-	for _, session := range s.Sessions {
-		secondElement = append(secondElement, session)
-	}
-
-	// Create the final array
-	result := []interface{}{
-		blacklistObj,
-		secondElement,
-	}
-
-	return json.Marshal(result)
+	return args, nil
 }
 
-// MarshalJSON implements json.Marshaler for ParameterRule
-func (pr *ParameterRule) MarshalJSON() ([]byte, error) {
-	type parameterRuleType struct {
-		Cumulative bool               `json:"cumulative"`
-		Operation  ParameterOperation `json:"operation"`
-		Value      string             `json:"value"`
-		Offset     string             `json:"offset"`
-		Mask       string             `json:"mask"`
-	}
+// -----------------------------------------------------------------------------
+// JSON Conversion
+// -----------------------------------------------------------------------------
 
-	return json.Marshal(parameterRuleType{
-		Cumulative: pr.Cumulative,
-		Operation:  pr.Operation,
-		Value:      "0x" + hex.EncodeToString(pr.Value),
-		Offset:     pr.Offset.String(),
-		Mask:       "0x" + hex.EncodeToString(pr.Mask),
-	})
+// SessionPermissionsToJSON converts SessionPermissions to its JSON string representation.
+func (sp *SessionPermissions) MarshalJSON() ([]byte, error) {
+	enc := encodeSessionPermissionsForJson(sp)
+	return json.Marshal(enc)
 }
 
-// MarshalJSON implements json.Marshaler for Permission
+// encodeSessionPermissionsForJson returns a map representing SessionPermissions.
+func encodeSessionPermissionsForJson(sp *SessionPermissions) map[string]interface{} {
+	perms := make([]interface{}, 0, len(sp.Permissions))
+	for _, p := range sp.Permissions {
+		perms = append(perms, encodePermissionForJson(&p))
+	}
+	return map[string]interface{}{
+		"signer":      sp.Signer.Hex(),
+		"valueLimit":  sp.ValueLimit.String(),
+		"deadline":    sp.Deadline.String(),
+		"permissions": perms,
+	}
+}
+
+// PermissionToJSON converts a Permission to its JSON string representation.
 func (p *Permission) MarshalJSON() ([]byte, error) {
-	type permissionType struct {
-		Target string          `json:"target"`
-		Rules  []ParameterRule `json:"rules"`
-	}
-
-	return json.Marshal(permissionType{
-		Target: p.Target.Hex(),
-		Rules:  p.Rules,
-	})
+	enc := encodePermissionForJson(p)
+	return json.Marshal(enc)
 }
 
-// EncodeSessionCallSignature encodes a session call signature with a permission index
-func EncodeSessionCallSignature(sig *SessionCallSignature, permissionIndex int) ([]byte, error) {
-	if permissionIndex < 0 {
-		return nil, fmt.Errorf("permission index must be non-negative")
+// encodePermissionForJson returns a map representing a Permission.
+func encodePermissionForJson(p *Permission) map[string]interface{} {
+	rules := make([]interface{}, 0, len(p.Rules))
+	for _, r := range p.Rules {
+		rules = append(rules, encodeParameterRuleForJson(r))
 	}
+	return map[string]interface{}{
+		"target": p.Target.Hex(),
+		"rules":  rules,
+	}
+}
 
-	// Encode the permission index as a single byte
-	result := []byte{byte(permissionIndex)}
+// ParameterRuleToJSON converts a ParameterRule to a JSON string.
+func (r *ParameterRule) MarshalJSON() ([]byte, error) {
+	enc := encodeParameterRuleForJson(*r)
+	return json.Marshal(enc)
+}
 
-	// Append the signature
-	result = append(result, sig.Signature...)
+// encodeParameterRuleForJson returns a map representing a ParameterRule.
+func encodeParameterRuleForJson(r ParameterRule) map[string]interface{} {
+	return map[string]interface{}{
+		"cumulative": r.Cumulative,
+		"operation":  r.Operation,
+		"value":      "0x" + hex.EncodeToString(r.Value),
+		"offset":     r.Offset.String(),
+		"mask":       "0x" + hex.EncodeToString(r.Mask),
+	}
+}
 
-	return result, nil
+// SessionPermissionsFromJSON parses a JSON string into a SessionPermissions struct.
+func (sp *SessionPermissions) UnmarshalJSON(data []byte) error {
+	var parsed interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return fmt.Errorf("failed to unmarshal session permissions JSON: %w", err)
+	}
+	*sp = sessionPermissionsFromParsed(parsed)
+	return nil
+}
+
+// sessionPermissionsFromParsed converts a parsed JSON object (map) into SessionPermissions.
+func sessionPermissionsFromParsed(parsed interface{}) SessionPermissions {
+	m, ok := parsed.(map[string]interface{})
+	if !ok {
+		panic("invalid type for session permissions")
+	}
+	return SessionPermissions{
+		Signer:     common.HexToAddress(m["signer"].(string)),
+		ValueLimit: valueToBigInt(m["valueLimit"]),
+		Deadline:   valueToBigInt(m["deadline"]),
+		Permissions: func() []Permission {
+			raw := m["permissions"].([]interface{})
+			perms := make([]Permission, len(raw))
+			for i, v := range raw {
+				perms[i] = permissionFromParsed(v)
+			}
+			return perms
+		}(),
+	}
+}
+
+// PermissionFromJSON parses a JSON string into a Permission.
+func (p *Permission) UnmarshalJSON(data []byte) error {
+	var parsed interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return fmt.Errorf("failed to unmarshal permission JSON: %w", err)
+	}
+	*p = permissionFromParsed(parsed)
+	return nil
+}
+
+// permissionFromParsed converts a parsed JSON object (map) into a Permission.
+func permissionFromParsed(parsed interface{}) Permission {
+	m, ok := parsed.(map[string]interface{})
+	if !ok {
+		panic("invalid type for permission")
+	}
+	return Permission{
+		Target: common.HexToAddress(m["target"].(string)),
+		Rules: func() []ParameterRule {
+			raw := m["rules"].([]interface{})
+			rules := make([]ParameterRule, len(raw))
+			for i, v := range raw {
+				rules[i] = parameterRuleFromParsed(v)
+			}
+			return rules
+		}(),
+	}
+}
+
+// parameterRuleFromParsed converts a parsed JSON object into a ParameterRule.
+func parameterRuleFromParsed(parsed interface{}) ParameterRule {
+	m, ok := parsed.(map[string]interface{})
+	if !ok {
+		panic("invalid type for parameter rule")
+	}
+	valueStr := strings.TrimPrefix(m["value"].(string), "0x")
+	maskStr := strings.TrimPrefix(m["mask"].(string), "0x")
+
+	return ParameterRule{
+		Cumulative: m["cumulative"].(bool),
+		Operation:  ParameterOperation(uint8(m["operation"].(float64))),
+		Value:      mustDecodeHex(valueStr),
+		Offset:     valueToBigInt(m["offset"]),
+		Mask:       mustDecodeHex(maskStr),
+	}
+}
+
+// mustDecodeHex decodes a hex string and panics if it fails.
+func mustDecodeHex(s string) []byte {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+// valueToBigInt converts a string (or number) to *big.Int.
+func valueToBigInt(v interface{}) *big.Int {
+	switch val := v.(type) {
+	case string:
+		i, ok := new(big.Int).SetString(val, 10)
+		if !ok {
+			panic("cannot convert string to big.Int: " + val)
+		}
+		return i
+	case float64:
+		return big.NewInt(int64(val))
+	case int64:
+		return big.NewInt(val)
+	case int:
+		return big.NewInt(int64(val))
+	default:
+		s := fmt.Sprintf("%v", v)
+		i, ok := new(big.Int).SetString(s, 10)
+		if !ok {
+			panic("cannot convert to big.Int: " + s)
+		}
+		return i
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+
+// LeftPad returns a new byte slice padded on the left with zeros to the given length.
+func LeftPad(b []byte, length int) []byte {
+	if len(b) >= length {
+		return b
+	}
+	pad := make([]byte, length-len(b))
+	return append(pad, b...)
 }

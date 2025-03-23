@@ -127,7 +127,8 @@ func TestSessionPermissionsFromJSON(t *testing.T) {
 		]
 	}`
 
-	_, err := SessionPermissionsFromJSON(validJSON)
+	var session SessionPermissions
+	err := json.Unmarshal([]byte(validJSON), &session)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal SessionPermissions: %v", err)
 	}
@@ -139,7 +140,7 @@ func TestSessionPermissionsFromJSON(t *testing.T) {
 		"permissions": "invalid data"
 	}`
 
-	_, err = SessionPermissionsFromJSON(invalidJSON)
+	err = json.Unmarshal([]byte(invalidJSON), &session)
 	if err == nil {
 		t.Fatalf("Expected error, but got nil")
 	}

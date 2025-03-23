@@ -1,6 +1,10 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	v3 "github.com/0xsequence/go-sequence/core/v3"
+)
 
 // Address params
 type AddressCalculateParams struct {
@@ -67,7 +71,7 @@ type PayloadToPackedParams struct {
 	Payload string `json:"payload"`
 }
 
-type PayloadToJsonParams struct {
+type PayloadToJSONParams struct {
 	Payload string `json:"payload"`
 }
 
@@ -77,56 +81,68 @@ type PayloadHashParams struct {
 	Payload string `json:"payload"`
 }
 
-// Permission params
-type PermissionToPackedSessionParams struct {
-	SessionPermission string `json:"sessionPermission"`
-}
-
-type PermissionToPackedParams struct {
-	Permission string `json:"permission"`
-}
-
 // Session params
 type EmptyTopologyParams struct {
-	GlobalSigner string `json:"globalSigner"`
+	IdentitySigner string `json:"identitySigner"`
 }
 
-type EncodeConfigurationParams struct {
-	SessionConfiguration string `json:"sessionConfiguration"`
+type EncodeTopologyParams struct {
+	SessionTopology v3.SessionsTopology `json:"sessionTopology"`
 }
 
 type EncodeCallSignatureParams struct {
-	Signature       string `json:"signature"`
-	PermissionIndex int    `json:"permissionIndex"`
+	// Always
+	SessionSignature string `json:"sessionSignature"`
+	// Implicit
+	Attestation       string `json:"attestation"`
+	IdentitySignature string `json:"identitySignature"`
+	// Explicit
+	PermissionIndex string `json:"permissionIndex"`
 }
 
 type EncodeSessionCallSignaturesParams struct {
-	SessionConfiguration string   `json:"sessionConfiguration"`
-	CallSignatures       []string `json:"callSignatures"`
-	ExplicitSigners      []string `json:"explicitSigners"`
-	ImplicitSigners      []string `json:"implicitSigners"`
+	SessionTopology v3.SessionsTopology    `json:"sessionTopology"`
+	CallSignatures  []CallSignaturesParams `json:"callSignatures"`
+	ExplicitSigners []string               `json:"explicitSigners"`
+	ImplicitSigners []string               `json:"implicitSigners"`
+}
+
+type CallSignaturesParams struct {
+	Attestation struct {
+		ApprovedSigner  string `json:"approvedSigner"`
+		IdentityType    string `json:"identityType"`
+		IssuerHash      string `json:"issuerHash"`
+		AudienceHash    string `json:"audienceHash"`
+		ApplicationData string `json:"applicationData"`
+		AuthData        struct {
+			RedirectUrl string `json:"redirectUrl"`
+		} `json:"authData"`
+	} `json:"attestation"`
+	IdentitySignature string `json:"identitySignature"` // RSV string
+	SessionSignature  string `json:"sessionSignature"`  // RSV string
+	PermissionIndex   string `json:"permissionIndex"`
 }
 
 type ImageHashParams struct {
-	SessionConfiguration string `json:"sessionConfiguration"`
+	SessionTopology v3.SessionsTopology `json:"sessionTopology"`
 }
 
 type AddSessionParams struct {
-	ExplicitSession json.RawMessage `json:"explicitSession"`
-	SessionTopology json.RawMessage `json:"sessionTopology"`
+	ExplicitSession json.RawMessage     `json:"explicitSession"`
+	SessionTopology v3.SessionsTopology `json:"sessionTopology"`
 }
 
 type RemoveSessionParams struct {
-	ExplicitSessionAddress string `json:"explicitSessionAddress"`
-	SessionTopology        string `json:"sessionTopology"`
+	ExplicitSessionAddress string              `json:"explicitSessionAddress"`
+	SessionTopology        v3.SessionsTopology `json:"sessionTopology"`
 }
 
 type AddBlacklistParams struct {
-	BlacklistAddress     string `json:"blacklistAddress"`
-	SessionConfiguration string `json:"sessionConfiguration"`
+	BlacklistAddress string              `json:"blacklistAddress"`
+	SessionTopology  v3.SessionsTopology `json:"sessionTopology"`
 }
 
 type RemoveBlacklistParams struct {
-	BlacklistAddress     string `json:"blacklistAddress"`
-	SessionConfiguration string `json:"sessionConfiguration"`
+	BlacklistAddress string              `json:"blacklistAddress"`
+	SessionTopology  v3.SessionsTopology `json:"sessionTopology"`
 }

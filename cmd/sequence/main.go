@@ -19,9 +19,9 @@ func main() {
 		newConfigCmd(),
 		newDevToolsCmd(),
 		newSignatureCmd(),
-		newPermissionCmd(),
 		newSessionCmd(),
 		newSessionExplicitCmd(),
+		newSessionImplicitCmd(),
 		newServerCmd(),
 		newAddressCmd(),
 	)
