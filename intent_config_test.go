@@ -16,7 +16,6 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +38,7 @@ func TestCreateIntentCallsPayload_Valid(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, bundle)
 
-	spew.Dump(bundle)
+	// spew.Dump(bundle)
 }
 
 // TestCreateIntentDigestTree_Valid creates a valid payload and computes the intent digest
@@ -93,7 +92,7 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		require.NotNil(t, tree, "expected a tree")
 
 		// Dump the tree
-		spew.Dump((*tree))
+		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		anyAddressLeaf, ok := (*tree).(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
@@ -117,7 +116,7 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		require.NotNil(t, tree, "expected a tree")
 
 		// Dump the tree
-		spew.Dump((*tree))
+		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -152,7 +151,7 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		require.NotNil(t, tree, "expected a tree")
 
 		// Dump the tree
-		spew.Dump((*tree))
+		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -227,7 +226,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
-		spew.Dump(tree)
+		// spew.Dump(tree)
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -258,7 +257,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
-		spew.Dump(tree)
+		// spew.Dump(tree)
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -304,7 +303,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
 		require.NoError(t, err)
 
-		spew.Dump(tree)
+		// spew.Dump(tree)
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -418,7 +417,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
 		require.NoError(t, err)
 
-		fmt.Println("==> signature", common.Bytes2Hex(signature))
+		// fmt.Println("==> signature", common.Bytes2Hex(signature))
 
 		// Verify signature format
 		// Root: TreeNode
@@ -442,7 +441,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 		// Get the config from the signature
 		recoveredConfig, _, err := sig.RecoverSubdigest(context.Background(), anyAddressSubdigestLeaf.Digest, nil)
-		spew.Dump(recoveredConfig)
+		// spew.Dump(recoveredConfig)
 
 		require.NoError(t, err)
 		require.NotNil(t, recoveredConfig, "recovered config should not be nil")
@@ -612,28 +611,6 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	_, walletFactoryAddress, walletDeployData, err := sequence.EncodeWalletDeployment(wallet.GetWalletConfig(), wallet.GetWalletContext())
 	assert.NoError(t, err)
 
-	// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
-	// Then we send it to the GuestModule
-
-	// walletBundle := sequence.Transactions{
-	// 	{
-	// 		To: wallet.Address(),
-	// 		Transactions: sequence.Transactions{
-	// 			{
-	// 				To:   callmockContract.Address,
-	// 				Data: calldata1,
-	// 			},
-	// 			{
-	// 				To:   callmockContract.Address,
-	// 				Data: calldata2,
-	// 			},
-	// 		},
-	// 	},
-	// }
-
-	// signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
-	// assert.NoError(t, err)
-
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
@@ -647,30 +624,22 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, ops)
 	require.NoError(t, err)
 
-	// payload, err := walletBundle.Payload(common.Address{}, testChain.ChainID(), nil, nil)
-	// assert.NoError(t, err)
-	// fmt.Println("payload")
-	// spew.Dump(payload)
-
 	bundle, err := sequence.CreateIntentCallsPayload(op1)
 	assert.NoError(t, err)
 
-	// Since the opHash is generated w/ the wallet addr, add a valid wallet address
+	// Since the opHash is generated w/ the wallet addr, create a payload w/ the valid wallet address
 	opHashBundle, err := sequence.CreateIntentCallsPayload(op1, wallet.Address())
 	assert.NoError(t, err)
 
-	// fmt.Println("==> payload.Digest", payload.Digest().Hash)
-	fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
-
-	// require.True(t, payload.Digest().Hash == bundle.Digest().Hash)
+	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
 
 	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", bundle.Encode(common.Address{}), intentConfigSig)
 	assert.NoError(t, err)
 
-	fmt.Println("==> signedPayloadHash", bundle.Digest().Hash.Hex())
-	fmt.Println("==> payload", common.Bytes2Hex(bundle.Encode(wallet.Address())))
-	fmt.Println("==> signature", common.Bytes2Hex(intentConfigSig))
-	fmt.Println("==> signedExecData", common.Bytes2Hex(signedExecdata))
+	// fmt.Println("==> signedPayloadHash", bundle.Digest().Hash.Hex())
+	// fmt.Println("==> payload", common.Bytes2Hex(bundle.Encode(wallet.Address())))
+	// fmt.Println("==> signature", common.Bytes2Hex(intentConfigSig))
+	// fmt.Println("==> signedExecData", common.Bytes2Hex(signedExecdata))
 
 	guestBundle := []v3.Call{
 		{
@@ -702,18 +671,18 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.NoError(t, err)
 
 	receipt, err := waitReceipt(context.Background())
-	spew.Dump(receipt)
+	// spew.Dump(receipt)
 	assert.NoError(t, err)
 	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
-	fmt.Println("==> metaTxnId", opHashBundle.Digest().String())
+	// fmt.Println("==> metaTxnId", opHashBundle.Digest().String())
 
-	for _, logs := range receipt.Logs {
-		for _, logTopics := range logs.Topics {
-			fmt.Println("==> logs.Topic", logTopics)
-		}
-		fmt.Println("==> logs.Data", common.Bytes2Hex(logs.Data))
-	}
+	// for _, logs := range receipt.Logs {
+	// 	for _, logTopics := range logs.Topics {
+	// 		fmt.Println("==> logs.Topic", logTopics)
+	// 	}
+	// 	fmt.Println("==> logs.Data", common.Bytes2Hex(logs.Data))
+	// }
 
 	// Check the value
 	ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
