@@ -366,8 +366,6 @@ var eip712Domain = []ethcoder.TypedDataArgument{
 }
 
 func (p basePayload) domain() ethcoder.TypedDataDomain {
-	fmt.Println("==> p.chainID", p.chainID)
-	fmt.Println("==> p.address", p.address)
 	return ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
@@ -603,7 +601,6 @@ func (p CallsPayload) Digest() PayloadDigest {
 
 	digest, err := data.EncodeDigest()
 	if err != nil {
-		fmt.Println("==> err", err)
 		panic(err)
 	}
 
