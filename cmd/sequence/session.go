@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 )
 
@@ -16,12 +18,13 @@ func handleEmptyTopology(p *EmptyTopologyParams) (string, error) {
 }
 
 func handleEncodeConfiguration(p *EncodeConfigurationParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionConfiguration)
+	var topology v3.SessionsTopology
+	err := json.Unmarshal([]byte(p.SessionConfiguration), &topology)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode session configuration: %w", err)
 	}
 
-	configTree := v3.SessionsTopologyToConfigurationTree(topology)
+	configTree := v3.SessionsTopologyToConfigurationTree(&topology)
 	jsonBytes, err := json.Marshal(configTree)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal configuration tree: %w", err)
@@ -31,45 +34,77 @@ func handleEncodeConfiguration(p *EncodeConfigurationParams) (string, error) {
 }
 
 func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionConfiguration)
+	var topologyStr string
+	if p.SessionConfiguration != "" {
+		topologyStr = p.SessionConfiguration
+	} else if len(p.SessionTopology) > 0 {
+		topologyStr = string(p.SessionTopology)
+	} else {
+		return "", fmt.Errorf("missing session topology configuration")
+	}
+
+	var topology v3.SessionsTopology
+	err := json.Unmarshal([]byte(topologyStr), &topology)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode session configuration: %w", err)
 	}
 
+	log.Println("topology")
+	spew.Dump(topology)
+
 	callSigs := make([]v3.SessionCallSignature, len(p.CallSignatures))
-	for i, sig := range p.CallSignatures {
-		callSig, err := v3.SessionCallSignatureFromJSON(sig)
+	for i, sigStr := range p.CallSignatures {
+		var callSig v3.SessionCallSignature
+		err := json.Unmarshal([]byte(sigStr), &callSig)
 		if err != nil {
 			return "", fmt.Errorf("failed to decode call signature %d: %w", i, err)
 		}
-		callSigs[i] = *callSig
+		callSigs[i] = callSig
 	}
+
+	log.Println("callSigs")
+	spew.Dump(callSigs)
 
 	explicitAddrs := make([]common.Address, len(p.ExplicitSigners))
 	for i, signer := range p.ExplicitSigners {
 		explicitAddrs[i] = common.HexToAddress(signer)
 	}
 
+	log.Println("explicitAddrs")
+	spew.Dump(explicitAddrs)
+
 	implicitAddrs := make([]common.Address, len(p.ImplicitSigners))
 	for i, signer := range p.ImplicitSigners {
 		implicitAddrs[i] = common.HexToAddress(signer)
 	}
 
-	encoded, err := v3.EncodeSessionCallSignatures(callSigs, topology, explicitAddrs, implicitAddrs)
+	log.Println("implicitAddrs")
+	spew.Dump(implicitAddrs)
+
+	encoded, err := v3.EncodeSessionCallSignatures(
+		callSigs,
+		&topology,
+		explicitAddrs,
+		implicitAddrs,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session call signatures: %w", err)
 	}
 
-	return common.Bytes2Hex(encoded), nil
+	// Add debug output to see the exact hex representation
+	log.Printf("Encoded bytes (hex): %x", encoded)
+
+	return string(encoded), nil
 }
 
 func handleImageHash(p *ImageHashParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionConfiguration)
+	var topology v3.SessionsTopology
+	err := json.Unmarshal([]byte(p.SessionConfiguration), &topology)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode session configuration: %w", err)
 	}
 
-	configTree := v3.SessionsTopologyToConfigurationTree(topology)
+	configTree := v3.SessionsTopologyToConfigurationTree(&topology)
 	hash := v3.HashConfigurationTree(configTree)
 	return common.Bytes2Hex(hash[:]), nil
 }
