@@ -64,7 +64,7 @@ func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.Wa
 		return sequence.Transactions{}, fmt.Errorf("unable to derive address: %w", err)
 	}
 
-	data, err := sequence.SignedTransactions{CallsPayload: v3.ConstructCallsPayload(to, chainID, transactions.Calls, transactions.Space, transactions.Nonce)}.Data()
+	data, err := sequence.SignedTransactions{CallsPayload: transactions.Payload(to, chainID)}.Data()
 	if err != nil {
 		return sequence.Transactions{}, fmt.Errorf("unable to encode calldata: %w", err)
 	}

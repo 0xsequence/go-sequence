@@ -19,6 +19,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -110,7 +111,7 @@ func DummyPrivateKey(seed uint64) string {
 }
 
 func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
-	stx := &sequence.Transaction{
+	stx := v3.Call{
 		// DelegateCall:  false,
 		// RevertOnError: false,
 		// GasLimit: big.NewInt(800000),
@@ -122,14 +123,13 @@ func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx v3.Call) error {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
 	assert.NoError(t, err)
 
-	metaTxnID, _, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+	_, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
 
 	receipt, err := waitReceipt(context.Background())
 	assert.NoError(t, err)
@@ -143,25 +143,24 @@ func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequen
 }
 
 func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {
-	var stxs []*sequence.Transaction
-	for i := 0; i < len(data); i++ {
-		stxs = append(stxs, &sequence.Transaction{
+	var calls []v3.Call
+	for _, data := range data {
+		calls = append(calls, v3.Call{
 			// DelegateCall:  false,
 			// RevertOnError: false,
 			// GasLimit: big.NewInt(800000),
 			// Value:         big.NewInt(0),
 			To:   to,
-			Data: data[i],
+			Data: data,
 		})
 	}
 
 	// Now, we must sign the meta txn
-	signedTx, err := wallet.SignTransactions(context.Background(), stxs)
+	signedTx, err := wallet.SignTransactions(context.Background(), sequence.Transactions{Calls: calls})
 	assert.NoError(t, err)
 
-	metaTxnID, tx, waitReceipt, err := wallet.SendTransactions(context.Background(), signedTx)
+	tx, waitReceipt, err := wallet.SendTransactions(context.Background(), signedTx)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
 	assert.NotNil(t, tx)
 
 	receipt, err := waitReceipt(context.Background())

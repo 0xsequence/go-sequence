@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -270,37 +271,18 @@ func (p *IntentDataSendTransaction) ExpectedValuesFor(txRaw *json.RawMessage) (*
 	}
 }
 
-func (p *IntentDataSendTransaction) Nonce() (*big.Int, error) {
+func (p *IntentDataSendTransaction) Space() *big.Int {
 	// Hash the identifier, it will be used as the nonce
 	// space. The nonce number is always 0.
 	hashed := ethcoder.Keccak256([]byte(p.Identifier))
 
 	// The space contains only 160 bits
-	return sequence.EncodeNonce(big.NewInt(0).SetBytes(hashed[:20]), common.Big0)
+	return new(big.Int).SetBytes(hashed[:20])
 }
 
-func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash, txns sequence.Transactions, nonce *big.Int) (bool, error) {
-	// Nonce must be the expected one
-	// (defined by the identifier)
-	enonce, err := p.Nonce()
-	if err != nil {
-		return false, fmt.Errorf("invalid nonce: %w", err)
-	}
-
-	if enonce.Cmp(nonce) != 0 {
-		return false, fmt.Errorf("invalid nonce")
-	}
-
-	// Compare the digest with the provided transactions
-	// otherwise we can't be sure that the subdigest belongs to the transactions
-	bundle := sequence.Transaction{
-		Transactions: txns,
-		Nonce:        nonce,
-	}
-
-	calcDigest, err := bundle.Digest()
-	if err != nil {
-		return false, fmt.Errorf("invalid bundle digest: %w", err)
+func (p *IntentDataSendTransaction) IsValidInterpretation(digest common.Hash, txns []v3.Call, space *big.Int) (bool, error) {
+	if space.Cmp(p.Space()) != 0 {
+		return false, fmt.Errorf("incorrect nonce")
 	}
 
 	chainID, err := p.chainID()
@@ -308,9 +290,9 @@ func (p *IntentDataSendTransaction) IsValidInterpretation(subdigest common.Hash,
 		return false, err
 	}
 
-	calcSubdigest, err := sequence.SubDigest(chainID, p.wallet(), calcDigest)
-	if err != nil || !bytes.Equal(calcSubdigest, subdigest[:]) {
-		return false, fmt.Errorf("invalid subdigest: %w", err)
+	payload := v3.ConstructCallsPayload(p.wallet(), chainID, txns, space, nil)
+	if digest != payload.Digest().Hash {
+		return false, fmt.Errorf("incorrect digest")
 	}
 
 	// Now check that every transaction maps 1:1 to the transactions in the intent
