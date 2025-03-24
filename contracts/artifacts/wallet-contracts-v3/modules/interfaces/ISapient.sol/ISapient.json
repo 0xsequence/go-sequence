@@ -100,7 +100,7 @@
           "type": "bytes"
         }
       ],
-      "name": "isValidSapientSignature",
+      "name": "recoverSapientSignature",
       "outputs": [
         {
           "internalType": "bytes32",

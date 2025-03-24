@@ -227,6 +227,22 @@
     {
       "inputs": [
         {
+          "internalType": "uint256",
+          "name": "_threshold",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_weight",
+          "type": "uint256"
+        }
+      ],
+      "name": "InvalidSignatureWeight",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
           "name": "_opHash",
           "type": "bytes32"
@@ -335,114 +351,6 @@
       ],
       "name": "StaticSignatureSet",
       "type": "event"
-    },
-    {
-      "inputs": [
-        {
-          "components": [
-            {
-              "internalType": "uint8",
-              "name": "kind",
-              "type": "uint8"
-            },
-            {
-              "internalType": "bool",
-              "name": "noChainId",
-              "type": "bool"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "to",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "value",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "data",
-                  "type": "bytes"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "gasLimit",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "delegateCall",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "onlyFallback",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "behaviorOnError",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct Payload.Call[]",
-              "name": "calls",
-              "type": "tuple[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "space",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "nonce",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "message",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "imageHash",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "digest",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address[]",
-              "name": "parentWallets",
-              "type": "address[]"
-            }
-          ],
-          "internalType": "struct Payload.Decoded",
-          "name": "_payload",
-          "type": "tuple"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_signature",
-          "type": "bytes"
-        }
-      ],
-      "name": "isValidSapientSignature",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
     },
     {
       "inputs": [
@@ -595,6 +503,114 @@
         {
           "internalType": "bytes32",
           "name": "opHash",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "kind",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "noChainId",
+              "type": "bool"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "to",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "data",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "gasLimit",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "delegateCall",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "onlyFallback",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "behaviorOnError",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct Payload.Call[]",
+              "name": "calls",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "space",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "message",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "imageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "digest",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[]",
+              "name": "parentWallets",
+              "type": "address[]"
+            }
+          ],
+          "internalType": "struct Payload.Decoded",
+          "name": "_payload",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "recoverSapientSignature",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
           "type": "bytes32"
         }
       ],

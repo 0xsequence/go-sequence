@@ -55,11 +55,6 @@
           "type": "tuple"
         },
         {
-          "internalType": "bytes32",
-          "name": "redirectUrlHash",
-          "type": "bytes32"
-        },
-        {
           "components": [
             {
               "internalType": "address",

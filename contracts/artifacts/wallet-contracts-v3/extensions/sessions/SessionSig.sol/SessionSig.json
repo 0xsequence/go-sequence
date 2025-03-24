@@ -2,9 +2,155 @@
   "_format": "hh-sol-artifact-1",
   "contractName": "SessionSig",
   "sourceName": "src/extensions/sessions/SessionSig.sol",
-  "abi": [],
-  "bytecode": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220be261a53fb922ff60cbb3d316d21f8838f6ea0ca6855b53fba57db5b330a4dbb64736f6c634300081b0033",
-  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220be261a53fb922ff60cbb3d316d21f8838f6ea0ca6855b53fba57db5b330a4dbb64736f6c634300081b0033",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasLimit",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "delegateCall",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "onlyFallback",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "behaviorOnError",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct Payload.Call",
+          "name": "call",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "kind",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "noChainId",
+              "type": "bool"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "to",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "data",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "gasLimit",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "delegateCall",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "bool",
+                  "name": "onlyFallback",
+                  "type": "bool"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "behaviorOnError",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct Payload.Call[]",
+              "name": "calls",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "space",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "message",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "imageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "digest",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[]",
+              "name": "parentWallets",
+              "type": "address[]"
+            }
+          ],
+          "internalType": "struct Payload.Decoded",
+          "name": "payload",
+          "type": "tuple"
+        }
+      ],
+      "name": "hashCallWithReplayProtection",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x610446610039600b82828239805160001a607314602c57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600436106100355760003560e01c806391195a2a1461003a575b600080fd5b61004d6100483660046101a2565b61005f565b60405190815260200160405180910390f35b6000610071604083016020840161022d565b61007b574661007e565b60005b6060830135608084013561009961009487610378565b6100d6565b6040805160208101959095528401929092526060830152608082015260a00160405160208183030381529060405280519060200120905092915050565b60007f0603985259a953da1f65a522f589c17bd1d0117ec1d3abb7c0788aef251ef43782600001518360200151846040015180519060200120856060015186608001518760a001518860c0015160405160200161018598979695949392919097885273ffffffffffffffffffffffffffffffffffffffff969096166020880152604087019490945260608601929092526080850152151560a0840152151560c083015260e08201526101000190565b604051602081830303815290604052805190602001209050919050565b600080604083850312156101b557600080fd5b823567ffffffffffffffff8111156101cc57600080fd5b830160e081860312156101de57600080fd5b9150602083013567ffffffffffffffff8111156101fa57600080fd5b8301610120818603121561020d57600080fd5b809150509250929050565b8035801515811461022857600080fd5b919050565b60006020828403121561023f57600080fd5b61024882610218565b9392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b60405160e0810167ffffffffffffffff811182821017156102a1576102a161024f565b60405290565b803573ffffffffffffffffffffffffffffffffffffffff8116811461022857600080fd5b600082601f8301126102dc57600080fd5b813567ffffffffffffffff8111156102f6576102f661024f565b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0908116603f0116810167ffffffffffffffff811182821017156103435761034361024f565b60405281815283820160200185101561035b57600080fd5b816020850160208301376000918101602001919091529392505050565b600060e0823603121561038a57600080fd5b61039261027e565b61039b836102a7565b815260208381013590820152604083013567ffffffffffffffff8111156103c157600080fd5b6103cd368286016102cb565b604083015250606083810135908201526103e960808401610218565b60808201526103fa60a08401610218565b60a082015260c09283013592810192909252509056fea2646970667358221220fa7438ff599200ccd8f3d627aaf4aa2e525c19515acc289f378540c10099a3d464736f6c634300081b0033",
+  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600436106100355760003560e01c806391195a2a1461003a575b600080fd5b61004d6100483660046101a2565b61005f565b60405190815260200160405180910390f35b6000610071604083016020840161022d565b61007b574661007e565b60005b6060830135608084013561009961009487610378565b6100d6565b6040805160208101959095528401929092526060830152608082015260a00160405160208183030381529060405280519060200120905092915050565b60007f0603985259a953da1f65a522f589c17bd1d0117ec1d3abb7c0788aef251ef43782600001518360200151846040015180519060200120856060015186608001518760a001518860c0015160405160200161018598979695949392919097885273ffffffffffffffffffffffffffffffffffffffff969096166020880152604087019490945260608601929092526080850152151560a0840152151560c083015260e08201526101000190565b604051602081830303815290604052805190602001209050919050565b600080604083850312156101b557600080fd5b823567ffffffffffffffff8111156101cc57600080fd5b830160e081860312156101de57600080fd5b9150602083013567ffffffffffffffff8111156101fa57600080fd5b8301610120818603121561020d57600080fd5b809150509250929050565b8035801515811461022857600080fd5b919050565b60006020828403121561023f57600080fd5b61024882610218565b9392505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b60405160e0810167ffffffffffffffff811182821017156102a1576102a161024f565b60405290565b803573ffffffffffffffffffffffffffffffffffffffff8116811461022857600080fd5b600082601f8301126102dc57600080fd5b813567ffffffffffffffff8111156102f6576102f661024f565b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0908116603f0116810167ffffffffffffffff811182821017156103435761034361024f565b60405281815283820160200185101561035b57600080fd5b816020850160208301376000918101602001919091529392505050565b600060e0823603121561038a57600080fd5b61039261027e565b61039b836102a7565b815260208381013590820152604083013567ffffffffffffffff8111156103c157600080fd5b6103cd368286016102cb565b604083015250606083810135908201526103e960808401610218565b60808201526103fa60a08401610218565b60a082015260c09283013592810192909252509056fea2646970667358221220fa7438ff599200ccd8f3d627aaf4aa2e525c19515acc289f378540c10099a3d464736f6c634300081b0033",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }
