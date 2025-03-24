@@ -18,7 +18,6 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -931,9 +930,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 
 		// Create normal txn of: callmockContract.testCall(55, 0x112255)
 		callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
-		calldata1, err := callmockContract.Encode("setRevertFlag", false)
-		assert.NoError(t, err)
-		calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
+		calldata, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
 		// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
@@ -945,11 +942,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 				Transactions: sequence.Transactions{
 					{
 						To:   callmockContract.Address,
-						Data: calldata1,
-					},
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
+						Data: calldata,
 					},
 				},
 			},
@@ -963,11 +956,6 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 
 		signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(wallet.Address()), signedWalletBundle.Signature)
 		assert.NoError(t, err)
-
-		fmt.Println("==> signedPayloadHash", payload.Digest().Hash.Hex())
-		fmt.Println("==> payload", common.Bytes2Hex(payload.Encode(wallet.Address())))
-		fmt.Println("==> signature", common.Bytes2Hex(signedWalletBundle.Signature))
-		fmt.Println("==> signedExecData", common.Bytes2Hex(signedExecdata))
 
 		guestBundle := []v3.Call{
 			{
@@ -999,24 +987,14 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.NoError(t, err)
 
 		receipt, err := waitReceipt(context.Background())
-		spew.Dump(receipt)
 		assert.NoError(t, err)
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
-
-		for _, logs := range receipt.Logs {
-			for _, logTopics := range logs.Topics {
-				fmt.Println("==> logs.Topic", logTopics)
-			}
-			fmt.Println("==> logs.Data", common.Bytes2Hex(logs.Data))
-		}
 
 		// Check the value
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)
 		assert.NoError(t, err)
 		assert.Len(t, ret, 1)
 		assert.Equal(t, "2255", ret[0])
-
-		fmt.Println("==> metaTxnId", payload.Digest().String())
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
 		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(payload.Digest().String()[2:]))

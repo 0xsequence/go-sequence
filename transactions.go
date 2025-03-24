@@ -219,9 +219,9 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
 		var behaviorOnError v3.BehaviorOnError
 		if tx.RevertOnError {
-			behaviorOnError = v3.BehaviorOnErrorIgnore
-		} else {
 			behaviorOnError = v3.BehaviorOnErrorRevert
+		} else {
+			behaviorOnError = v3.BehaviorOnErrorIgnore
 		}
 
 		// Handle nested transactions by recursively encoding them
@@ -242,7 +242,7 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 			To:              tx.To,
 			Value:           tx.Value,
 			Data:            data,
-			GasLimit:        big.NewInt(0),
+			GasLimit:        tx.GasLimit,
 			DelegateCall:    tx.DelegateCall,
 			OnlyFallback:    false,
 			BehaviorOnError: behaviorOnError,
