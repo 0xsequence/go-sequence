@@ -9,8 +9,10 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
+	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -436,22 +438,15 @@ func (w *Wallet[C]) GetSignerWeight() *big.Int {
 	return big.NewInt(0).SetUint64(uint64(w.config.SignersWeight(signers)))
 }
 
-func (w *Wallet[C]) GetNonce(space *big.Int, optBlockNum ...*big.Int) (*big.Int, error) {
-	if w.relayer == nil {
-		return nil, ErrRelayerNotSet
+func (w *Wallet[C]) Nonce(ctx context.Context, space *big.Int) (*big.Int, error) {
+	if w.provider == nil {
+		return nil, ErrProviderNotSet
 	}
-	if space == nil {
-		space = new(big.Int)
-	}
-	var blockNum *big.Int
-	if len(optBlockNum) > 0 {
-		blockNum = optBlockNum[0]
-	}
-	return w.relayer.GetNonce(context.Background(), w.config, w.context, space, blockNum)
+	return Nonce(ctx, w.address, space, w.provider)
 }
 
-func (w *Wallet[C]) GetTransactionCount(optBlockNum ...*big.Int) (*big.Int, error) {
-	return w.GetNonce(nil, optBlockNum...)
+func (w *Wallet[C]) GetTransactionCount(ctx context.Context) (*big.Int, error) {
+	return w.Nonce(ctx, nil)
 }
 
 func (w *Wallet[C]) SignMessage(ctx context.Context, message []byte) ([]byte, error) {
@@ -529,7 +524,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	} else {
 		if txns.Space != nil {
 			space = txns.Space
-			nonce, err = w.GetNonce(space)
+			nonce, err = w.Nonce(ctx, space)
 			if err != nil {
 				return nil, fmt.Errorf("unable to get nonce for space %v: %w", txns.Space, err)
 			}
@@ -556,16 +551,16 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	return nil, fmt.Errorf("unknown wallet config type")
 }
 
-func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (*types.Transaction, ethtxn.WaitReceipt, error) {
 	return w.SendTransactions(ctx, signedTxns, feeQuote...)
 }
 
-func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) SendTransactions(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (*types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
-		return "", nil, nil, ErrRelayerNotSet
+		return nil, nil, ErrRelayerNotSet
 	}
 
-	return w.relayer.Relay(ctx, signedTxns, feeQuote...)
+	return w.relayer.Relay(ctx, signedTxns, w.config, feeQuote...)
 }
 
 func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*RelayerFeeOption, *RelayerFeeQuote, error) {
@@ -584,7 +579,7 @@ func (w *Wallet[C]) FeeOptions(ctx context.Context, txs Transactions) ([]*Relaye
 		if txs.Space != nil {
 			var err error
 			space = txs.Space
-			nonce, err = w.GetNonce(space)
+			nonce, err = w.Nonce(ctx, space)
 			if err != nil {
 				return nil, nil, fmt.Errorf("unable to get nonce for space %v: %w", txs.Space, err)
 			}
@@ -624,18 +619,18 @@ func (w *Wallet[C]) IsDeployed() (bool, error) {
 	return IsWalletDeployed(w.provider, w.Address())
 }
 
-func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) Deploy(ctx context.Context) (*SignedTransactions, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
-		return "", nil, nil, ErrRelayerNotSet
+		return nil, nil, nil, ErrRelayerNotSet
 	}
 
 	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeployment(w.config, w.context)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if w.address != (common.Address{}) && w.address != walletAddress {
-		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
+		return nil, nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
 	}
 
 	var txn = v3.Call{
@@ -657,10 +652,11 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 
 	signerTxn, err := w.SignTransaction(ctx, txn)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return w.relayer.Relay(ctx, signerTxn)
+	transaction, waitReceipt, err := w.relayer.Relay(ctx, signerTxn, w.config)
+	return signerTxn, transaction, waitReceipt, err
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future
@@ -796,6 +792,38 @@ func IsWalletDeployed(provider *ethrpc.Provider, walletAddress common.Address) (
 		return true, nil
 	}
 	return false, nil
+}
+
+func Nonce(ctx context.Context, wallet common.Address, space *big.Int, provider *ethrpc.Provider) (*big.Int, error) {
+	if space == nil {
+		space = common.Big0
+	}
+
+	code, err := provider.CodeAt(ctx, wallet, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get code at %v: %w", wallet, err)
+	}
+	if len(code) == 0 {
+		return new(big.Int), nil
+	}
+
+	calldata, err := contracts.V3.WalletStage1Module.Encode("readNonce", space)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode calldata: %w", err)
+	}
+
+	result, err := provider.CallContract(ctx, ethereum.CallMsg{To: &wallet, Data: calldata}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read nonce: %w", err)
+	}
+
+	var nonce *big.Int
+	err = contracts.V3.WalletStage1Module.Decode(&nonce, "readNonce", result)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode nonce: %w", err)
+	}
+
+	return nonce, nil
 }
 
 // AuxData is the data that is signed by the wallet

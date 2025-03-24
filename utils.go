@@ -2,7 +2,6 @@ package sequence
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethtxn"
@@ -11,9 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
-	v1 "github.com/0xsequence/go-sequence/core/v1"
-	v2 "github.com/0xsequence/go-sequence/core/v2"
-	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, *types.Transaction, ethtxn.WaitReceipt, error) {
@@ -56,34 +52,18 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 	return walletAddress, tx, waitReceipt, nil
 }
 
-func EncodeWalletDeployment(walletConfig core.WalletConfig, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
+func EncodeWalletDeployment(walletConfig core.ImageHashable, walletContext WalletContext) (common.Address, common.Address, []byte, error) {
 	imageHash := walletConfig.ImageHash()
 	address, err := AddressFromImageHash(imageHash, walletContext)
 	if err != nil {
 		return common.Address{}, common.Address{}, nil, err
 	}
 
-	if _, ok := walletConfig.(*v1.WalletConfig); ok {
-		deployData, err := contracts.V1.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
-		if err != nil {
-			return common.Address{}, common.Address{}, nil, err
-		}
-		return address, walletContext.FactoryAddress, deployData, nil
-	} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-		deployData, err := contracts.V2.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
-		if err != nil {
-			return common.Address{}, common.Address{}, nil, err
-		}
-		return address, walletContext.FactoryAddress, deployData, nil
-	} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-		deployData, err := contracts.V3.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
-		if err != nil {
-			return common.Address{}, common.Address{}, nil, err
-		}
-		return address, walletContext.FactoryAddress, deployData, nil
+	deployData, err := contracts.V3.WalletFactory.ABI.Pack("deploy", walletContext.MainModuleAddress, imageHash.Hash)
+	if err != nil {
+		return common.Address{}, common.Address{}, nil, err
 	}
-
-	return common.Address{}, common.Address{}, nil, fmt.Errorf("unsupported wallet config version")
+	return address, walletContext.FactoryAddress, deployData, nil
 }
 
 func ParseHexOrDec(s string) (*big.Int, bool) {

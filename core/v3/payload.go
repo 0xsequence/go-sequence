@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
 const (
@@ -907,33 +908,50 @@ type DigestPayload struct {
 }
 
 func (p DigestPayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(p.parentWallets))
-	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
-	}
-
 	data := ethcoder.TypedData{
 		Domain:      p.domain(),
-		PrimaryType: "Digest",
+		PrimaryType: "Message",
 		Types: map[string][]ethcoder.TypedDataArgument{
 			"EIP712Domain": eip712Domain,
-			"Digest": {
-				{Name: "digest", Type: "bytes32"},
+			"Message": {
+				{Name: "message", Type: "bytes"},
 				{Name: "wallets", Type: "address[]"},
 			},
 		},
-		Message: map[string]any{
-			"digest":  p.digest,
-			"wallets": wallets,
-		},
 	}
 
-	digest, err := data.EncodeDigest()
+	domain, err := data.HashStruct("EIP712Domain", data.Domain.Map())
 	if err != nil {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	typeHash, err := data.Types.TypeHash(data.PrimaryType)
+	if err != nil {
+		panic(err)
+	}
+
+	state := crypto.NewKeccakState()
+	for _, wallet := range p.parentWallets {
+		mustWrite(state, wallet.Bytes())
+	}
+	var wallets common.Hash
+	_, err = state.Read(wallets.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	return PayloadDigest{
+		Hash: crypto.Keccak256Hash(
+			[]byte("\x19\x01"),
+			domain,
+			crypto.Keccak256(
+				typeHash,
+				p.digest.Bytes(),
+				wallets.Bytes(),
+			),
+		),
+		Preimage: p,
+	}
 }
 
 func (p DigestPayload) Encode(address common.Address) []byte {

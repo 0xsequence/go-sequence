@@ -572,17 +572,6 @@ func (c *TestChain) V3DummySequenceWallets(nWallets uint64, startingSeed uint64)
 	return wallets, nil
 }
 
-func (c *TestChain) RandomNonce() *big.Int {
-	space := big.NewInt(int64(time.Now().Nanosecond()))
-
-	encoded, err := sequence.EncodeNonce(space, big.NewInt(0))
-	if err != nil {
-		panic(err)
-	}
-
-	return encoded
-}
-
 // ... existing code ...
 func (c *TestChain) V1DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
@@ -590,7 +579,7 @@ func (c *TestChain) V1DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	if err != nil {
 		return nil, err
 	}
-	wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](owner, V1SequenceContext())
+	wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](sequence.EOA(owner), V1SequenceContext())
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +621,7 @@ func (c *TestChain) V2DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	if err != nil {
 		return nil, err
 	}
-	wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](owner, V2SequenceContext())
+	wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](sequence.EOA(owner), V2SequenceContext())
 	if err != nil {
 		return nil, err
 	}
@@ -674,7 +663,7 @@ func (c *TestChain) V3DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	if err != nil {
 		return nil, err
 	}
-	wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](owner, V3SequenceContext())
+	wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](sequence.EOA(owner), V3SequenceContext())
 	if err != nil {
 		return nil, err
 	}

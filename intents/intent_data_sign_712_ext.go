@@ -1,12 +1,12 @@
 package intents
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 func (p *IntentDataSignTypedData) chainID() (*big.Int, error) {
@@ -17,43 +17,45 @@ func (p *IntentDataSignTypedData) chainID() (*big.Int, error) {
 	return n, nil
 }
 
-func (p *IntentDataSignTypedData) message() ([]byte, error) {
+func (p *IntentDataSignTypedData) digest() (common.Hash, error) {
 	// typedData, ok := p.TypedData.(*ethcoder.TypedData)
 	// if !ok {
 	// 	return nil, fmt.Errorf("typedData field is not a valid typed data object")
 	// }
 
-	_, encodedMessage, err := p.TypedData.Encode()
+	digest, _, err := p.TypedData.Encode()
 	if err != nil {
-		return nil, err
+		return common.Hash{}, err
 	}
 
-	return encodedMessage, nil
+	return common.Hash(digest), nil
 }
 
 func (p *IntentDataSignTypedData) wallet() common.Address {
 	return common.HexToAddress(p.Wallet)
 }
 
-func (p *IntentDataSignTypedData) subdigest() ([]byte, error) {
+func (p *IntentDataSignTypedData) payload() (v3.Payload, error) {
 	chainID, err := p.chainID()
 	if err != nil {
 		return nil, err
 	}
-	msgData, err := p.message()
+
+	digest, err := p.digest()
 	if err != nil {
 		return nil, err
 	}
-	return sequence.SubDigest(chainID, p.wallet(), sequence.MessageDigest(msgData))
+
+	return v3.ConstructDigestPayload(p.wallet(), chainID, digest), nil
 }
 
-func (p *IntentDataSignTypedData) IsValidInterpretation(subdigest common.Hash) bool {
-	selfSubDigest, err := p.subdigest()
+func (p *IntentDataSignTypedData) IsValidInterpretation(digest common.Hash) bool {
+	payload, err := p.payload()
 	if err != nil {
 		return false
 	}
 
-	return bytes.Equal(selfSubDigest, subdigest[:])
+	return digest == payload.Digest().Hash
 }
 
 // func (p *IntentDataSignTypedData) UnmarshalJSON(data []byte) error {
