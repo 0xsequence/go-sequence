@@ -25,7 +25,3 @@ type Transactions struct {
 func (t Transactions) Payload(address common.Address, chainID *big.Int) v3.CallsPayload {
 	return v3.ConstructCallsPayload(address, chainID, t.Calls, t.Space, t.Nonce)
 }
-
-type Transaction struct {
-	v3.Call
-}
