@@ -33,7 +33,7 @@ func NewIntentOperation(chainId *big.Int, calls []v3.Call, space *big.Int, nonce
 }
 
 // `CreateIntentCallsPayload` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
-func CreateIntentCallsPayload(op *IntentOperation) (v3.CallsPayload, error) {
+func CreateIntentCallsPayload(op *IntentOperation, target ...common.Address) (v3.CallsPayload, error) {
 	// If the chainId is not provided, throw an error
 	if op.chainId == nil {
 		return v3.CallsPayload{}, fmt.Errorf("chainId is required")
@@ -49,8 +49,14 @@ func CreateIntentCallsPayload(op *IntentOperation) (v3.CallsPayload, error) {
 		op.nonce = big.NewInt(0)
 	}
 
+	// If the target is specified, get the first element
+	var addr common.Address
+	if target != nil {
+		addr = target[0]
+	}
+
 	// Construct the payload with the correct address, chain ID, and calls.
-	bundle := v3.ConstructCallsPayload(common.Address{}, op.chainId, op.calls, op.space, op.nonce)
+	bundle := v3.ConstructCallsPayload(addr, op.chainId, op.calls, op.space, op.nonce)
 
 	// Set consistent gas limit to 0 for all calls
 	for i := range bundle.Calls {
@@ -82,6 +88,7 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 		if err != nil {
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
+		spew.Dump(bundle)
 
 		digest := bundle.Digest()
 
