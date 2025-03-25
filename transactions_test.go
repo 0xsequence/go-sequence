@@ -34,7 +34,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -56,7 +56,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -78,7 +78,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -103,7 +103,7 @@ func TestTransactionVerbose(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		stx := &sequence.Transaction{
+		stx := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -128,15 +128,10 @@ func TestTransactionVerbose(t *testing.T) {
 
 		assert.Equal(t, wallet.Address(), walletAddress)
 
-		expectedMetaTxnID, _, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
-		assert.NoError(t, err)
-
 		// Send the transaction
-		metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+		tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, metaTxnID)
 		assert.NotNil(t, tx)
-		assert.Equal(t, expectedMetaTxnID, metaTxnID)
 
 		receipt, err := waitReceipt(context.Background())
 		assert.NoError(t, err)
@@ -162,7 +157,7 @@ func TestTransactionVerbose(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		stx := &sequence.Transaction{
+		stx := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -187,15 +182,10 @@ func TestTransactionVerbose(t *testing.T) {
 
 		assert.Equal(t, wallet.Address(), walletAddress)
 
-		expectedMetaTxnID, _, err := sequence.ComputeMetaTxnIDFromDigest(testChain.ChainID(), walletAddress, signedTx.Digest)
-		assert.NoError(t, err)
-
 		// Send the transaction
-		metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+		tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, metaTxnID)
 		assert.NotNil(t, tx)
-		assert.Equal(t, expectedMetaTxnID, metaTxnID)
 
 		receipt, err := waitReceipt(context.Background())
 		assert.NoError(t, err)
@@ -221,7 +211,7 @@ func TestTransactionVerbose(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		stx := &sequence.Transaction{
+		stx := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -246,15 +236,10 @@ func TestTransactionVerbose(t *testing.T) {
 
 		assert.Equal(t, wallet.Address(), walletAddress)
 
-		expectedMetaTxnID := sequence.MetaTxnID(hex.EncodeToString(signedTx.Digest.Bytes()))
-		assert.NoError(t, err)
-
 		// Send the transaction
-		metaTxnID, tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
+		tx, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, metaTxnID)
 		assert.NotNil(t, tx)
-		assert.Equal(t, expectedMetaTxnID, metaTxnID)
 
 		receipt, err := waitReceipt(context.Background())
 		assert.NoError(t, err)
@@ -281,7 +266,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -300,29 +285,33 @@ func TestTransactionBundling(t *testing.T) {
 
 		// These are wallet[0]'s intended transactions
 		bundle := sequence.Transactions{
-			{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			}, // balances: 90, 10, 0
-			{
-				To:   callmockContract.Address,
-				Data: calldata2,
-			}, // balances: 80, 10, 10
-			{
-				To: wallets[0].Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata1,
-					}, // balances: 70, 20, 10
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 60, 20, 20
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 50, 20, 30
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				}, // balances: 90, 10, 0
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				}, // balances: 80, 10, 10
+				{
+					To: wallets[0].Address(),
+					Data: sequence.Transactions{
+						Calls: []v3.Call{
+							{
+								To:   callmockContract.Address,
+								Data: calldata1,
+							}, // balances: 70, 20, 10
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 60, 20, 20
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 50, 20, 30
+						},
+					}.MustSelfExecute(wallets[0].Address()),
 				},
 			},
 		}
@@ -331,7 +320,7 @@ func TestTransactionBundling(t *testing.T) {
 		signedBundle, err := wallets[0].SignTransactions(context.Background(), bundle)
 		assert.NoError(t, err)
 
-		_, _, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
+		_, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
 		assert.NoError(t, err)
 
 		waitReceipt(context.Background())
@@ -367,7 +356,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -386,29 +375,33 @@ func TestTransactionBundling(t *testing.T) {
 
 		// These are wallet[0]'s intended transactions
 		bundle := sequence.Transactions{
-			{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			}, // balances: 90, 10, 0
-			{
-				To:   callmockContract.Address,
-				Data: calldata2,
-			}, // balances: 80, 10, 10
-			{
-				To: wallets[0].Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata1,
-					}, // balances: 70, 20, 10
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 60, 20, 20
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 50, 20, 30
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				}, // balances: 90, 10, 0
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				}, // balances: 80, 10, 10
+				{
+					To: wallets[0].Address(),
+					Data: sequence.Transactions{
+						Calls: []v3.Call{
+							{
+								To:   callmockContract.Address,
+								Data: calldata1,
+							}, // balances: 70, 20, 10
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 60, 20, 20
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 50, 20, 30
+						},
+					}.MustSelfExecute(wallets[0].Address()),
 				},
 			},
 		}
@@ -417,7 +410,7 @@ func TestTransactionBundling(t *testing.T) {
 		signedBundle, err := wallets[0].SignTransactions(context.Background(), bundle)
 		assert.NoError(t, err)
 
-		_, _, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
+		_, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
 		assert.NoError(t, err)
 
 		waitReceipt(context.Background())
@@ -453,7 +446,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -472,29 +465,33 @@ func TestTransactionBundling(t *testing.T) {
 
 		// These are wallet[0]'s intended transactions
 		bundle := sequence.Transactions{
-			{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			}, // balances: 90, 10, 0
-			{
-				To:   callmockContract.Address,
-				Data: calldata2,
-			}, // balances: 80, 10, 10
-			{
-				To: wallets[0].Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata1,
-					}, // balances: 70, 20, 10
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 60, 20, 20
-					{
-						To:   callmockContract.Address,
-						Data: calldata2,
-					}, // balances: 50, 20, 30
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				}, // balances: 90, 10, 0
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				}, // balances: 80, 10, 10
+				{
+					To: wallets[0].Address(),
+					Data: sequence.Transactions{
+						Calls: []v3.Call{
+							{
+								To:   callmockContract.Address,
+								Data: calldata1,
+							}, // balances: 70, 20, 10
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 60, 20, 20
+							{
+								To:   callmockContract.Address,
+								Data: calldata2,
+							}, // balances: 50, 20, 30
+						},
+					}.MustSelfExecute(wallets[0].Address()),
 				},
 			},
 		}
@@ -503,7 +500,7 @@ func TestTransactionBundling(t *testing.T) {
 		signedBundle, err := wallets[0].SignTransactions(context.Background(), bundle)
 		assert.NoError(t, err)
 
-		_, _, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
+		_, waitReceipt, err := wallets[0].SendTransaction(context.Background(), signedBundle)
 		assert.NoError(t, err)
 
 		waitReceipt(context.Background())
@@ -535,7 +532,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		txns := sequence.Transaction{
+		txns := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -593,7 +590,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		txns := sequence.Transaction{
+		txns := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -651,7 +648,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(1239), ethcoder.MustHexDecode("0x332255"))
 		assert.NoError(t, err)
 
-		txns := sequence.Transaction{
+		txns := v3.Call{
 			To:   callmockContract.Address,
 			Data: calldata,
 		}
@@ -723,13 +720,17 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		// Then we send it to the GuestModule
 
 		walletBundle := sequence.Transactions{
-			{
-				To: wallet.Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata,
-					},
+			Calls: []v3.Call{
+				{
+					To: wallet.Address(),
+					Data: sequence.Transactions{
+						Calls: []v3.Call{
+							{
+								To:   callmockContract.Address,
+								Data: calldata,
+							},
+						},
+					}.MustSelfExecute(wallet.Address()),
 				},
 			},
 		}
@@ -741,13 +742,15 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.NoError(t, err)
 
 		guestBundle := sequence.Transactions{
-			{
-				To:   walletFactoryAddress,
-				Data: walletDeployData,
-			},
-			{
-				To:   wallet.Address(),
-				Data: signedWalletData,
+			Calls: []v3.Call{
+				{
+					To:   walletFactoryAddress,
+					Data: walletDeployData,
+				},
+				{
+					To:   wallet.Address(),
+					Data: signedWalletData,
+				},
 			},
 		}
 
@@ -793,10 +796,10 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		_, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 		// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID)
 		assert.NoError(t, err)
-		assert.True(t, result.Status == sequence.MetaTxnExecuted)
+		assert.True(t, status == sequence.MetaTxnExecuted)
 
 		// Wallet should be deployed now
 		isDeployed, err = wallet.IsDeployed()
@@ -829,15 +832,17 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		// Bundle of transactions: 1.) deploy new wallet 2.) send txn to the wallet
 		// Then we send it to the GuestModule
 
-		walletBundle := sequence.Transactions{
+		walletBundle := []v3.Call{
 			{
 				To: wallet.Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata,
+				Data: sequence.Transactions{
+					Calls: []v3.Call{
+						{
+							To:   callmockContract.Address,
+							Data: calldata,
+						},
 					},
-				},
+				}.MustSelfExecute(wallet.Address()),
 			},
 		}
 
@@ -848,13 +853,15 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.NoError(t, err)
 
 		guestBundle := sequence.Transactions{
-			{
-				To:   walletFactoryAddress,
-				Data: walletDeployData,
-			},
-			{
-				To:   wallet.Address(),
-				Data: signedWalletData,
+			Calls: []v3.Call{
+				{
+					To:   walletFactoryAddress,
+					Data: walletDeployData,
+				},
+				{
+					To:   wallet.Address(),
+					Data: signedWalletData,
+				},
 			},
 		}
 
@@ -900,10 +907,10 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		_, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 		// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID)
 		assert.NoError(t, err)
-		assert.True(t, result.Status == sequence.MetaTxnExecuted)
+		assert.True(t, status == sequence.MetaTxnExecuted)
 
 		// Wallet should be deployed now
 		isDeployed, err = wallet.IsDeployed()
@@ -937,13 +944,17 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		// Then we send it to the GuestModule
 
 		walletBundle := sequence.Transactions{
-			{
-				To: wallet.Address(),
-				Transactions: sequence.Transactions{
-					{
-						To:   callmockContract.Address,
-						Data: calldata,
-					},
+			Calls: []v3.Call{
+				{
+					To: wallet.Address(),
+					Data: sequence.Transactions{
+						Calls: []v3.Call{
+							{
+								To:   callmockContract.Address,
+								Data: calldata,
+							},
+						},
+					}.MustSelfExecute(wallet.Address()),
 				},
 			},
 		}
@@ -951,9 +962,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		signedWalletBundle, err := wallet.SignTransactions(context.Background(), walletBundle)
 		assert.NoError(t, err)
 
-		payload, err := walletBundle.Payload(wallet.Address(), testChain.ChainID(), nil, nil)
-		assert.NoError(t, err)
-
+		payload := walletBundle.Payload(wallet.Address(), testChain.ChainID())
 		signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(wallet.Address()), signedWalletBundle.Signature)
 		assert.NoError(t, err)
 
@@ -997,9 +1006,9 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(payload.Digest().String()[2:]))
+		_, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, payload)
 		assert.NoError(t, err)
-		assert.True(t, result.Status == sequence.MetaTxnExecuted)
+		assert.True(t, status == sequence.MetaTxnExecuted)
 
 		// Wallet should be deployed now
 		isDeployed, err = wallet.IsDeployed()

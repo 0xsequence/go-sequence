@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/0xsequence/go-sequence"
@@ -119,60 +120,51 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	sendTransactionData := intentTyped.Data
 
 	// Generate transactions as sequence.Wallet would
-	nonce, err := sendTransactionData.Nonce()
-	require.Nil(t, err)
+	space := sendTransactionData.Space()
 
 	chainID := big.NewInt(10)
 
-	transactions := make(sequence.Transactions, 0)
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
-		Value:         big.NewInt(39381),
-		Data:          common.FromHex("0x3251ba32"),
-	})
+	calls := []v3.Call{
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
+			Value:           big.NewInt(39381),
+			Data:            common.FromHex("0x3251ba32"),
+		},
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0xa9059cbb0000000000000000000000007b1bd3474d789e18e2e329e2c53f819b6e687b4a00000000000000000000000000000000000000000000000000000000000003e8"),
+		},
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0xb88d4fde000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000017ffa2d95b58228e1ecb0c6ac25a6efd20ba08e40000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000031122330000000000000000000000000000000000000000000000000000000000"),
+		},
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0x631998e91476da5b870d741192fc5cbc55f5a52e"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x2eb2c2d6000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000091e8ac543c5fedf9f3ef8b9da1500db84305681f00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000032233440000000000000000000000000000000000000000000000000000000000"),
+		},
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(0),
+			To:              common.HexToAddress("0x140d72763D1ce39Ad4E2e73EC6e8FC53E5b73B64"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x6365f1646bd55a2877890bd58871eefe886770a7734077a74981910a75d7b1f044b5bf280000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000008541d65829f98f7d71a4655ccd7b2bb8494673bf000000000000000000000000000000000000000000000000000000000000008446c421fa000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000d4e6f76203173742c20323032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+	}
 
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0xa9059cbb0000000000000000000000007b1bd3474d789e18e2e329e2c53f819b6e687b4a00000000000000000000000000000000000000000000000000000000000003e8"),
-	})
-
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0xb88d4fde000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000017ffa2d95b58228e1ecb0c6ac25a6efd20ba08e40000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000031122330000000000000000000000000000000000000000000000000000000000"),
-	})
-
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x631998e91476da5b870d741192fc5cbc55f5a52e"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0x2eb2c2d6000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000091e8ac543c5fedf9f3ef8b9da1500db84305681f00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000032233440000000000000000000000000000000000000000000000000000000000"),
-	})
-
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(0),
-		To:            common.HexToAddress("0x140d72763D1ce39Ad4E2e73EC6e8FC53E5b73B64"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0x6365f1646bd55a2877890bd58871eefe886770a7734077a74981910a75d7b1f044b5bf280000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000008541d65829f98f7d71a4655ccd7b2bb8494673bf000000000000000000000000000000000000000000000000000000000000008446c421fa000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000d4e6f76203173742c20323032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-	})
-
-	bundle := sequence.Transaction{
-		Transactions: transactions,
-		Nonce:        nonce,
+	bundle := sequence.Transactions{
+		Calls: calls,
+		Space: space,
 	}
 
 	digest, err := bundle.Digest()
@@ -185,62 +177,62 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	isValid, err := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	isValid, err := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 	require.NoError(t, err)
 	require.True(t, isValid)
 
 	// changing any transaction value should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].Value
-		transactions[i].Value = big.NewInt(123)
-		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].Value
+		calls[i].Value = big.NewInt(123)
+		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.Error(t, err)
 		require.False(t, isValid)
-		transactions[i].Value = prev
-		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].Value = prev
+		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.NoError(t, err)
 		require.True(t, isValid)
 	}
 
 	// changing any transaction data should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].Data
-		transactions[i].Data = common.Hex2Bytes("0x1234")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].Data
+		calls[i].Data = common.Hex2Bytes("0x1234")
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].Data = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].Data = prev
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// changing any to address should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].To
-		transactions[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].To
+		calls[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].To = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].To = prev
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
-	for i := range transactions {
-		transactions[i].DelegateCall = true
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		calls[i].DelegateCall = true
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].DelegateCall = false
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].DelegateCall = false
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
-	for i := range transactions {
-		transactions[i].RevertOnError = false
+	for i := range calls {
+		calls[i].RevertOnError = false
 
-		nxtBundle := sequence.Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
+		nxtBundle := sequence.Transactions{
+			Calls: calls,
+			Space: space,
 		}
 		nxtdigest, err := nxtBundle.Digest()
 		require.Nil(t, err)
@@ -251,19 +243,19 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
 		require.True(t, ok)
-		transactions[i].RevertOnError = true
+		calls[i].RevertOnError = true
 	}
 
 	// changing any gas limit should NOT invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].GasLimit
-		transactions[i].GasLimit = big.NewInt(123)
+	for i := range calls {
+		prev := calls[i].GasLimit
+		calls[i].GasLimit = big.NewInt(123)
 
 		nxtBundle := sequence.Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
+			Transactions: calls,
+			Space:        space,
 		}
 		nxtdigest, err := nxtBundle.Digest()
 		require.Nil(t, err)
@@ -274,16 +266,16 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
 		require.True(t, ok)
 
-		transactions[i].GasLimit = prev
+		calls[i].GasLimit = prev
 	}
 
-	// changing the nonce should invalidate the interpretation
-	nxtBundle := sequence.Transaction{
-		Transactions: transactions,
-		Nonce:        big.NewInt(123),
+	// changing the space should invalidate the interpretation
+	nxtBundle := sequence.Transactions{
+		Calls: calls,
+		Space: big.NewInt(123),
 	}
 	nxtdigest, err := nxtBundle.Digest()
 	require.Nil(t, err)
@@ -293,24 +285,23 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		nxtdigest,
 	)
 	require.Nil(t, err)
-	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123))
+	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, big.NewInt(123))
 	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce)
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls[1:], space)
 	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
-		Value:         big.NewInt(39381),
-		Data:          common.FromHex("0x3251ba32"),
+	calls = append(calls, v3.Call{
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+		GasLimit:        big.NewInt(21000),
+		To:              common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
+		Value:           big.NewInt(39381),
+		Data:            common.FromHex("0x3251ba32"),
 	})
 
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 	require.False(t, ok)
 }
 
@@ -424,60 +415,55 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	sendTransactionData := intentTyped.Data
 
 	// Generate transactions as sequence.Wallet would
-	nonce, err := sendTransactionData.Nonce()
-	require.Nil(t, err)
+	space := sendTransactionData.Space()
 
 	chainID := big.NewInt(10)
 
-	transactions := make(sequence.Transactions, 0)
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
-		Value:         big.NewInt(39381),
-		Data:          common.FromHex("0x3251ba32"),
-	})
+	calls := []v3.Call{
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
+			Value:           big.NewInt(39381),
+			Data:            common.FromHex("0x3251ba32"),
+		},
 
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0xa9059cbb0000000000000000000000007b1bd3474d789e18e2e329e2c53f819b6e687b4a00000000000000000000000000000000000000000000000000000000000003e8"),
-	})
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0xa9059cbb0000000000000000000000007b1bd3474d789e18e2e329e2c53f819b6e687b4a00000000000000000000000000000000000000000000000000000000000003e8"),
+		},
 
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0xb88d4fde000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000017ffa2d95b58228e1ecb0c6ac25a6efd20ba08e40000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000031122330000000000000000000000000000000000000000000000000000000000"),
-	})
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0xF87E31492Faf9A91B02Ee0dEAAd50d51d56D5d4d"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0xb88d4fde000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000017ffa2d95b58228e1ecb0c6ac25a6efd20ba08e40000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000031122330000000000000000000000000000000000000000000000000000000000"),
+		},
 
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x631998e91476da5b870d741192fc5cbc55f5a52e"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0x2eb2c2d6000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000091e8ac543c5fedf9f3ef8b9da1500db84305681f00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000032233440000000000000000000000000000000000000000000000000000000000"),
-	})
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(21000),
+			To:              common.HexToAddress("0x631998e91476da5b870d741192fc5cbc55f5a52e"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x2eb2c2d6000000000000000000000000d67fc48b298b09ed3d03403d930769c527186c4e00000000000000000000000091e8ac543c5fedf9f3ef8b9da1500db84305681f00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000032233440000000000000000000000000000000000000000000000000000000000"),
+		},
 
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(0),
-		To:            common.HexToAddress("0x140d72763D1ce39Ad4E2e73EC6e8FC53E5b73B64"),
-		Value:         big.NewInt(0),
-		Data:          common.FromHex("0x6365f1646bd55a2877890bd58871eefe886770a7734077a74981910a75d7b1f044b5bf280000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000008541d65829f98f7d71a4655ccd7b2bb8494673bf000000000000000000000000000000000000000000000000000000000000008446c421fa000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000d4e6f76203173742c20323032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-	})
+		{
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			GasLimit:        big.NewInt(0),
+			To:              common.HexToAddress("0x140d72763D1ce39Ad4E2e73EC6e8FC53E5b73B64"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x6365f1646bd55a2877890bd58871eefe886770a7734077a74981910a75d7b1f044b5bf280000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000008541d65829f98f7d71a4655ccd7b2bb8494673bf000000000000000000000000000000000000000000000000000000000000008446c421fa000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000d4e6f76203173742c20323032300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+	}
 
-	bundle := sequence.Transaction{
-		Transactions: transactions,
-		Nonce:        nonce,
+	bundle := sequence.Transactions{
+		Calls: calls,
+		Space: space,
 	}
 
 	digest, err := bundle.Digest()
@@ -490,59 +476,59 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 	require.True(t, ok)
 
 	// changing any transaction value should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].Value
-		transactions[i].Value = big.NewInt(123)
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].Value
+		calls[i].Value = big.NewInt(123)
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].Value = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].Value = prev
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// changing any transaction data should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].Data
-		transactions[i].Data = common.Hex2Bytes("0x1234")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].Data
+		calls[i].Data = common.Hex2Bytes("0x1234")
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].Data = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].Data = prev
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// changing any to address should invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].To
-		transactions[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		prev := calls[i].To
+		calls[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].To = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].To = prev
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
-	for i := range transactions {
-		transactions[i].DelegateCall = true
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	for i := range calls {
+		calls[i].DelegateCall = true
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.False(t, ok)
-		transactions[i].DelegateCall = false
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+		calls[i].DelegateCall = false
+		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
-	for i := range transactions {
-		transactions[i].RevertOnError = false
+	for i := range calls {
+		calls[i].RevertOnError = false
 
-		nxtBundle := sequence.Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
+		nxtBundle := sequence.Transactions{
+			Calls: calls,
+			Space: space,
 		}
 		nxtdigest, err := nxtBundle.Digest()
 		require.Nil(t, err)
@@ -553,19 +539,19 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
 		require.True(t, ok)
-		transactions[i].RevertOnError = true
+		calls[i].RevertOnError = true
 	}
 
 	// changing any gas limit should NOT invalidate the interpretation
-	for i := range transactions {
-		prev := transactions[i].GasLimit
-		transactions[i].GasLimit = big.NewInt(123)
+	for i := range calls {
+		prev := calls[i].GasLimit
+		calls[i].GasLimit = big.NewInt(123)
 
-		nxtBundle := sequence.Transaction{
-			Transactions: transactions,
-			Nonce:        nonce,
+		nxtBundle := sequence.Transactions{
+			Calls: calls,
+			Space: space,
 		}
 		nxtdigest, err := nxtBundle.Digest()
 		require.Nil(t, err)
@@ -576,16 +562,16 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, nonce)
+		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
 		require.True(t, ok)
 
-		transactions[i].GasLimit = prev
+		calls[i].GasLimit = prev
 	}
 
-	// changing the nonce should invalidate the interpretation
-	nxtBundle := sequence.Transaction{
-		Transactions: transactions,
-		Nonce:        big.NewInt(123),
+	// changing the space should invalidate the interpretation
+	nxtBundle := sequence.Transactions{
+		Calls: calls,
+		Space: big.NewInt(123),
 	}
 	nxtdigest, err := nxtBundle.Digest()
 	require.Nil(t, err)
@@ -595,23 +581,22 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 		nxtdigest,
 	)
 	require.Nil(t, err)
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), transactions, big.NewInt(123))
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, big.NewInt(123))
 	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions[1:], nonce)
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls[1:], space)
 	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
-	transactions = append(transactions, &sequence.Transaction{
-		DelegateCall:  false,
-		RevertOnError: true,
-		GasLimit:      big.NewInt(21000),
-		To:            common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
-		Value:         big.NewInt(39381),
-		Data:          common.FromHex("0x3251ba32"),
+	calls = append(calls, v3.Call{
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+		GasLimit:        big.NewInt(21000),
+		To:              common.HexToAddress("0x479F6a5b0C1728947318714963a583C56A78366A"),
+		Value:           big.NewInt(39381),
+		Data:            common.FromHex("0x3251ba32"),
 	})
 
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), transactions, nonce)
+	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
 	require.False(t, ok)
 }

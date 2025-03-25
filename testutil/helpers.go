@@ -110,7 +110,7 @@ func DummyPrivateKey(seed uint64) string {
 	return fmt.Sprintf("%064x", seed)
 }
 
-func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
+func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) (*sequence.SignedTransactions, error) {
 	stx := v3.Call{
 		// DelegateCall:  false,
 		// RevertOnError: false,
@@ -123,7 +123,7 @@ func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx v3.Call, space ...*big.Int) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx v3.Call, space ...*big.Int) (*sequence.SignedTransactions, error) {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx, space...)
 	assert.NoError(t, err)
@@ -139,7 +139,7 @@ func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequen
 	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above
 	// correctly logged..
 
-	return err
+	return signedTx, err
 }
 
 func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {

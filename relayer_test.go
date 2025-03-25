@@ -25,27 +25,19 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	stx := v3.Call{
-		To:           callmockContract.Address,
-		Data:         calldata,
-		Value:        big.NewInt(0),
-		GasLimit:     big.NewInt(190000),
-		DelegateCall: false,
+		To:       callmockContract.Address,
+		Data:     calldata,
+		GasLimit: big.NewInt(190000),
 	}
 
-	err = testutil.SignAndSendRawTransaction(t, wallet, stx, nil)
+	transactions, err := testutil.SignAndSendRawTransaction(t, wallet, stx, nil)
 	assert.NoError(t, err)
-
-	// Get transactions digest
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	receipt, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }
 
 func TestGetReceiptOfErrorTransaction(t *testing.T) {
@@ -59,40 +51,27 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 	calldata, err := callmockContract.Encode("setRevertFlag", true)
 	assert.NoError(t, err)
 
-	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+	_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	// Call callmock, this should revert and fail the transaction
 	calldata, err = callmockContract.Encode("testCall", big.NewInt(55), ethcoder.MustHexDecode("0x112255"))
 	assert.NoError(t, err)
 
-	nonce, err := wallet.GetNonce()
-	assert.NoError(t, err)
-
-	stx := &sequence.Transaction{
-		To:            callmockContract.Address,
-		Data:          calldata,
-		Value:         big.NewInt(0),
-		GasLimit:      big.NewInt(190000),
-		DelegateCall:  false,
-		RevertOnError: false,
-		Nonce:         nonce,
+	stx := v3.Call{
+		To:       callmockContract.Address,
+		Data:     calldata,
+		GasLimit: big.NewInt(190000),
 	}
 
-	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+	transactions, err := testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
-
-	// Get transactions digest
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, 0)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
 
 	// Find receipt
-	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	receipt, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnFailed, result.Status)
+	assert.Equal(t, sequence.MetaTxnFailed, status)
 }
 
 func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
@@ -112,73 +91,58 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 
 	calldata, err := callmockContract.Encode("setRevertFlag", true)
 	assert.NoError(t, err)
 
-	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+	_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		stx := &sequence.Transaction{
-			To:            callmockContract.Address,
-			Data:          calldata,
-			GasLimit:      big.NewInt(190000),
-			RevertOnError: false,
+		stx := v3.Call{
+			To:       callmockContract.Address,
+			Data:     calldata,
+			GasLimit: big.NewInt(190000),
 		}
-		err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+		_, err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 		assert.NoError(t, err)
 	}
 
 	calldata, err = callmockContract.Encode("testCall", big.NewInt(55), ethcoder.MustHexDecode("0x112255"))
 	assert.NoError(t, err)
 
-	nonce, err := wallet.GetNonce()
-	assert.NoError(t, err)
-
-	stx := &sequence.Transaction{
-		To:            callmockContract.Address,
-		Data:          calldata,
-		Value:         big.NewInt(0),
-		GasLimit:      big.NewInt(190000),
-		DelegateCall:  false,
-		RevertOnError: false,
-		Nonce:         nonce,
+	stx := v3.Call{
+		To:       callmockContract.Address,
+		Data:     calldata,
+		GasLimit: big.NewInt(190000),
 	}
 
-	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+	transactions, err := testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		stx := &sequence.Transaction{
-			To:            callmockContract.Address,
-			Data:          calldata,
-			GasLimit:      big.NewInt(190000),
-			RevertOnError: false,
+		stx := v3.Call{
+			To:       callmockContract.Address,
+			Data:     calldata,
+			GasLimit: big.NewInt(190000),
 		}
-		err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+		_, err = testutil.SignAndSendRawTransaction(t, wallet, stx)
 		assert.NoError(t, err)
 	}
 
-	// Get transactions digest
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
-
 	// Find receipt
-	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	receipt, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status()) // native txn was successful
-	assert.Equal(t, sequence.MetaTxnFailed, result.Status)           // meta txn failed
+	assert.Equal(t, sequence.MetaTxnFailed, status)                  // meta txn failed
 }
 
 func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
@@ -197,45 +161,32 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(55), ethcoder.MustHexDecode("0x112255"))
 	assert.NoError(t, err)
 
-	nonce, err := wallet.GetNonce()
-	assert.NoError(t, err)
-
-	stx := &sequence.Transaction{
-		To:            callmockContract.Address,
-		Data:          calldata,
-		Value:         big.NewInt(0),
-		GasLimit:      big.NewInt(190000),
-		DelegateCall:  false,
-		RevertOnError: false,
-		Nonce:         nonce,
+	stx := v3.Call{
+		To:       callmockContract.Address,
+		Data:     calldata,
+		GasLimit: big.NewInt(190000),
 	}
 
-	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+	transactions, err := testutil.SignAndSendRawTransaction(t, wallet, stx)
 	assert.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
 		calldata, err = callmockContract.Encode("testCall", big.NewInt(int64(i)), ethcoder.MustHexDecode("0x112255"))
 		assert.NoError(t, err)
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 	}
 
-	// Get transactions digest
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(testChain.ChainID(), wallet.Address(), stx.Bundle(), nonce, sequence.MetaTxnWalletExec)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
-
 	// Find receipt
-	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	receipt, status, _, _, err := sequence.FetchReceipt(context.Background(), testChain.ReceiptsListener, transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
-	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)
+	assert.Equal(t, sequence.MetaTxnExecuted, status)
 }
