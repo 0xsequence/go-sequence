@@ -666,56 +666,6 @@ func (w *Wallet[C]) Deploy(ctx context.Context, space ...*big.Int) (*SignedTrans
 
 // func (w *Wallet) PublishConfig() // TODO in future
 
-func (w *Wallet[C]) IsValidSignature(payload v3.PayloadDigestable, signature []byte) (bool, error) {
-	if w.provider == nil {
-		return false, ErrProviderNotSet
-	}
-
-	digest := core.Digest{Hash: payload.Digest().Hash}
-
-	// todo: this is a hack to get around the fact that the signature verification is not available in WalletConfig
-	var generalWalletConfig core.WalletConfig = w.config
-	if _, ok := generalWalletConfig.(*v3.WalletConfig); ok {
-		sig, err := v3.Core.DecodeSignature(signature)
-		if err != nil {
-			return false, err
-		}
-
-		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
-		if err != nil {
-			return false, err
-		} else {
-			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
-		}
-	} else if _, ok := generalWalletConfig.(*v2.WalletConfig); ok {
-		sig, err := v2.Core.DecodeSignature(signature)
-		if err != nil {
-			return false, err
-		}
-
-		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
-		if err != nil {
-			return false, err
-		} else {
-			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
-		}
-	} else if _, ok := generalWalletConfig.(*v1.WalletConfig); ok {
-		sig, err := v1.Core.DecodeSignature(signature)
-		if err != nil {
-			return false, err
-		}
-
-		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
-		if err != nil {
-			return false, err
-		} else {
-			return weight.Cmp(new(big.Int).SetUint64(uint64(config.Threshold()))) >= 0, nil
-		}
-	} else {
-		return false, fmt.Errorf("unknown wallet config type")
-	}
-}
-
 func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunction, chainID *big.Int) ([]byte, core.Signature[C], error) {
 	var coreWalletConfig core.WalletConfig = w.config
 

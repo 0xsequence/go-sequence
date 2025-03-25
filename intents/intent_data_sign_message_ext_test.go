@@ -2,16 +2,15 @@ package intents
 
 import (
 	"encoding/json"
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/0xsequence/go-sequence"
 )
 
 func TestRecoverMessageIntent(t *testing.T) {
@@ -57,12 +56,10 @@ func TestRecoverMessageIntent(t *testing.T) {
 	assert.Equal(t, 1, len(signers))
 	assert.Equal(t, "0x"+common.Bytes2Hex(append([]byte{0x00}, wallet.Address().Bytes()...)), signers[0])
 
-	subdigest, err := sequence.SubDigest(
-		big.NewInt(1),
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		sequence.MessageDigest(sequence.MessageToEIP191(common.Hex2Bytes("deadbeef"))),
-	)
+	address := common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e")
+	message := hexutil.MustDecode("0xdeadbeef")
+	payload := v3.ConstructMessagePayload(address, common.Big1, message)
 
 	assert.Nil(t, err)
-	assert.True(t, intentTyped.Data.IsValidInterpretation(common.BytesToHash(subdigest)))
+	assert.True(t, intentTyped.Data.IsValidInterpretation(payload.Digest().Hash))
 }

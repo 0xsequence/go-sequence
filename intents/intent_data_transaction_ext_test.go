@@ -162,22 +162,10 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		},
 	}
 
-	bundle := sequence.Transactions{
-		Calls: calls,
-		Space: space,
-	}
-
-	digest, err := bundle.Digest()
-	require.Nil(t, err)
-
-	subdigest, err := sequence.SubDigest(
-		chainID,
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		digest,
-	)
-	require.Nil(t, err)
-
-	isValid, err := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+	bundle := sequence.Transactions{Calls: calls, Space: space}
+	payload := bundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+	digest := payload.Digest().Hash
+	isValid, err := sendTransactionData.IsValidInterpretation(digest, calls, space)
 	require.NoError(t, err)
 	require.True(t, isValid)
 
@@ -185,11 +173,11 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	for i := range calls {
 		prev := calls[i].Value
 		calls[i].Value = big.NewInt(123)
-		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		isValid, err = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.Error(t, err)
 		require.False(t, isValid)
 		calls[i].Value = prev
-		isValid, err = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		isValid, err = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.NoError(t, err)
 		require.True(t, isValid)
 	}
@@ -198,10 +186,10 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	for i := range calls {
 		prev := calls[i].Data
 		calls[i].Data = common.Hex2Bytes("0x1234")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].Data = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
@@ -209,87 +197,52 @@ func TestRecoverTransactionIntent(t *testing.T) {
 	for i := range calls {
 		prev := calls[i].To
 		calls[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].To = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
 	for i := range calls {
 		calls[i].DelegateCall = true
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].DelegateCall = false
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
 	for i := range calls {
-		calls[i].RevertOnError = false
-
-		nxtBundle := sequence.Transactions{
-			Calls: calls,
-			Space: space,
-		}
-		nxtdigest, err := nxtBundle.Digest()
-		require.Nil(t, err)
-		nxtsubdigest, err := sequence.SubDigest(
-			chainID,
-			common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-			nxtdigest,
-		)
-		require.Nil(t, err)
-
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
+		calls[i].BehaviorOnError = v3.BehaviorOnErrorIgnore
+		nxtBundle := sequence.Transactions{Calls: calls, Space: space}
+		payload := nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+		ok, _ := sendTransactionData.IsValidInterpretation(payload.Digest().Hash, calls, space)
 		require.True(t, ok)
-		calls[i].RevertOnError = true
+		calls[i].BehaviorOnError = v3.BehaviorOnErrorRevert
 	}
 
 	// changing any gas limit should NOT invalidate the interpretation
 	for i := range calls {
 		prev := calls[i].GasLimit
 		calls[i].GasLimit = big.NewInt(123)
-
-		nxtBundle := sequence.Transaction{
-			Transactions: calls,
-			Space:        space,
-		}
-		nxtdigest, err := nxtBundle.Digest()
-		require.Nil(t, err)
-		nxtsubdigest, err := sequence.SubDigest(
-			chainID,
-			common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-			nxtdigest,
-		)
-		require.Nil(t, err)
-
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
+		nxtBundle := sequence.Transactions{Calls: calls, Space: space}
+		payload := nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+		ok, _ := sendTransactionData.IsValidInterpretation(payload.Digest().Hash, calls, space)
 		require.True(t, ok)
-
 		calls[i].GasLimit = prev
 	}
 
 	// changing the space should invalidate the interpretation
-	nxtBundle := sequence.Transactions{
-		Calls: calls,
-		Space: big.NewInt(123),
-	}
-	nxtdigest, err := nxtBundle.Digest()
-	require.Nil(t, err)
-	nxtsubdigest, err := sequence.SubDigest(
-		chainID,
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		nxtdigest,
-	)
-	require.Nil(t, err)
-	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, big.NewInt(123))
+	nxtBundle := sequence.Transactions{Calls: calls, Space: big.NewInt(123)}
+	payload = nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+	ok, _ := sendTransactionData.IsValidInterpretation(payload.Digest().Hash, calls, big.NewInt(123))
 	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls[1:], space)
+	ok, _ = sendTransactionData.IsValidInterpretation(digest, calls[1:], space)
 	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
@@ -301,7 +254,7 @@ func TestRecoverTransactionIntent(t *testing.T) {
 		Data:            common.FromHex("0x3251ba32"),
 	})
 
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+	ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 	require.False(t, ok)
 }
 
@@ -461,32 +414,20 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 		},
 	}
 
-	bundle := sequence.Transactions{
-		Calls: calls,
-		Space: space,
-	}
-
-	digest, err := bundle.Digest()
-	require.Nil(t, err)
-
-	subdigest, err := sequence.SubDigest(
-		chainID,
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		digest,
-	)
-	require.Nil(t, err)
-
-	ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+	bundle := sequence.Transactions{Calls: calls, Space: space}
+	payload := bundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+	digest := payload.Digest().Hash
+	ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 	require.True(t, ok)
 
 	// changing any transaction value should invalidate the interpretation
 	for i := range calls {
 		prev := calls[i].Value
 		calls[i].Value = big.NewInt(123)
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].Value = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
@@ -494,10 +435,10 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	for i := range calls {
 		prev := calls[i].Data
 		calls[i].Data = common.Hex2Bytes("0x1234")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].Data = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
@@ -505,87 +446,53 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 	for i := range calls {
 		prev := calls[i].To
 		calls[i].To = common.HexToAddress("0xd1333D70A344c26041a869077381209462e586F8")
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].To = prev
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
 	// setting any delegate call should invalidate the interpretation
 	for i := range calls {
 		calls[i].DelegateCall = true
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ := sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.False(t, ok)
 		calls[i].DelegateCall = false
-		ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+		ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 		require.True(t, ok)
 	}
 
 	// changing revert on error should NOT invalidate the interpretation
 	for i := range calls {
-		calls[i].RevertOnError = false
-
-		nxtBundle := sequence.Transactions{
-			Calls: calls,
-			Space: space,
-		}
-		nxtdigest, err := nxtBundle.Digest()
-		require.Nil(t, err)
-		nxtsubdigest, err := sequence.SubDigest(
-			chainID,
-			common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-			nxtdigest,
-		)
-		require.Nil(t, err)
-
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
+		calls[i].BehaviorOnError = v3.BehaviorOnErrorIgnore
+		nxtBundle := sequence.Transactions{Calls: calls, Space: space}
+		payload := nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+		ok, _ := sendTransactionData.IsValidInterpretation(payload.Digest().Hash, calls, space)
 		require.True(t, ok)
-		calls[i].RevertOnError = true
+		calls[i].BehaviorOnError = v3.BehaviorOnErrorRevert
 	}
 
 	// changing any gas limit should NOT invalidate the interpretation
 	for i := range calls {
 		prev := calls[i].GasLimit
 		calls[i].GasLimit = big.NewInt(123)
-
-		nxtBundle := sequence.Transactions{
-			Calls: calls,
-			Space: space,
-		}
-		nxtdigest, err := nxtBundle.Digest()
-		require.Nil(t, err)
-		nxtsubdigest, err := sequence.SubDigest(
-			chainID,
-			common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-			nxtdigest,
-		)
-		require.Nil(t, err)
-
-		ok, _ := sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, space)
+		nxtBundle := sequence.Transactions{Calls: calls, Space: space}
+		payload := nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+		ok, _ := sendTransactionData.IsValidInterpretation(payload.Digest().Hash, calls, space)
 		require.True(t, ok)
-
 		calls[i].GasLimit = prev
 	}
 
 	// changing the space should invalidate the interpretation
-	nxtBundle := sequence.Transactions{
-		Calls: calls,
-		Space: big.NewInt(123),
-	}
-	nxtdigest, err := nxtBundle.Digest()
-	require.Nil(t, err)
-	nxtsubdigest, err := sequence.SubDigest(
-		chainID,
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		nxtdigest,
-	)
-	require.Nil(t, err)
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(nxtsubdigest), calls, big.NewInt(123))
+	nxtBundle := sequence.Transactions{Calls: calls, Space: big.NewInt(123)}
+	payload = nxtBundle.Payload(common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"), chainID)
+	digest = payload.Digest().Hash
+	ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, big.NewInt(123))
 	require.False(t, ok)
 
 	// removing a transaction should invalidate the interpretation
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls[1:], space)
+	ok, _ = sendTransactionData.IsValidInterpretation(digest, calls[1:], space)
 	require.False(t, ok)
 
 	// adding an extra transaction should invalidate the interpretation
@@ -597,6 +504,6 @@ func TestDelayedEncodeRecoverTransactionIntent(t *testing.T) {
 		Data:            common.FromHex("0x3251ba32"),
 	})
 
-	ok, _ = sendTransactionData.IsValidInterpretation(common.BytesToHash(subdigest), calls, space)
+	ok, _ = sendTransactionData.IsValidInterpretation(digest, calls, space)
 	require.False(t, ok)
 }

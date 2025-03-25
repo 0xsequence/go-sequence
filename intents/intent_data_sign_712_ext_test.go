@@ -2,13 +2,12 @@ package intents
 
 import (
 	"encoding/json"
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/go-sequence"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,13 +85,10 @@ func TestRecoverTypedDataIntent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, messageDigest)
 
-	subdigest, err := sequence.SubDigest(
-		big.NewInt(1),
-		common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e"),
-		common.BytesToHash(messageDigest),
-	)
+	address := common.HexToAddress("0xD67FC48b298B09Ed3D03403d930769C527186c4e")
+	payload := v3.ConstructDigestPayload(address, common.Big1, common.Hash(messageDigest))
 
 	assert.Nil(t, err)
-	assert.True(t, intentTyped.Data.IsValidInterpretation(common.BytesToHash(subdigest)))
+	assert.True(t, intentTyped.Data.IsValidInterpretation(payload.Digest().Hash))
 
 }
