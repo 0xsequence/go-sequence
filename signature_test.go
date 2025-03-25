@@ -1,6 +1,7 @@
 package sequence_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -43,7 +44,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := sequence.NewWalletSingleOwner(sequence.EOA(eoa))
 	assert.NoError(t, err)
 
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
@@ -54,7 +55,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 
 	_, eip191Message := accounts.TextAndHash([]byte(message))
 
-	signature, err := wallet.SignMessage([]byte(eip191Message))
+	signature, err := wallet.SignMessage(context.Background(), []byte(eip191Message))
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
@@ -68,7 +69,7 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 func TestIsValidSignatureEIP712Sequence(t *testing.T) {
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := sequence.NewWalletSingleOwner(sequence.EOA(eoa))
 	assert.NoError(t, err)
 
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
@@ -133,7 +134,7 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
-	wallet, err := sequence.NewWalletSingleOwner(eoa)
+	wallet, err := sequence.NewWalletSingleOwner(sequence.EOA(eoa))
 	require.NoError(t, err)
 
 	walletChild, err := sequence.NewWalletSingleOwner(wallet)
@@ -150,7 +151,7 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 
 	_, eip191Message := accounts.TextAndHash([]byte(message))
 
-	signature, err := walletChild.SignMessage([]byte(eip191Message))
+	signature, err := walletChild.SignMessage(context.Background(), []byte(eip191Message))
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})

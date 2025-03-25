@@ -21,7 +21,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](eoa, testutil.V1SequenceContext())
+		wallet, err := sequence.GenericNewWalletSingleOwner[*v1.WalletConfig](sequence.EOA(eoa), testutil.V1SequenceContext())
 		assert.NoError(t, err)
 
 		wallet.SetProvider(testChain.Provider)
@@ -58,7 +58,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](eoa, testutil.V2SequenceContext())
+		wallet, err := sequence.GenericNewWalletSingleOwner[*v2.WalletConfig](sequence.EOA(eoa), testutil.V2SequenceContext())
 		assert.NoError(t, err)
 
 		wallet.SetProvider(testChain.Provider)
@@ -95,7 +95,7 @@ func TestDeploySequenceWallet(t *testing.T) {
 		eoa, err := ethwallet.NewWalletFromRandomEntropy()
 		assert.NoError(t, err)
 
-		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa, testutil.V3SequenceContext())
+		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](sequence.EOA(eoa), testutil.V3SequenceContext())
 		assert.NoError(t, err)
 
 		wallet.SetProvider(testChain.Provider)

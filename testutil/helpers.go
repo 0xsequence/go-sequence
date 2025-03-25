@@ -123,9 +123,9 @@ func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], 
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx v3.Call) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx v3.Call, space ...*big.Int) error {
 	// Now, we must sign the meta txn
-	signedTx, err := wallet.SignTransaction(context.Background(), stx)
+	signedTx, err := wallet.SignTransaction(context.Background(), stx, space...)
 	assert.NoError(t, err)
 
 	_, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)

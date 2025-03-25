@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,20 +24,15 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(55), ethcoder.MustHexDecode("0x112255"))
 	assert.NoError(t, err)
 
-	nonce, err := wallet.GetNonce()
-	assert.NoError(t, err)
-
-	stx := &sequence.Transaction{
-		To:            callmockContract.Address,
-		Data:          calldata,
-		Value:         big.NewInt(0),
-		GasLimit:      big.NewInt(190000),
-		DelegateCall:  false,
-		RevertOnError: false,
-		Nonce:         nonce,
+	stx := v3.Call{
+		To:           callmockContract.Address,
+		Data:         calldata,
+		Value:        big.NewInt(0),
+		GasLimit:     big.NewInt(190000),
+		DelegateCall: false,
 	}
 
-	err = testutil.SignAndSendRawTransaction(t, wallet, stx)
+	err = testutil.SignAndSendRawTransaction(t, wallet, stx, nil)
 	assert.NoError(t, err)
 
 	// Get transactions digest

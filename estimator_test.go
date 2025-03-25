@@ -67,9 +67,11 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -78,12 +80,12 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -112,9 +114,11 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -123,12 +127,12 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -157,9 +161,11 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -168,12 +174,12 @@ func TestEstimateSimpleSequenceTransactionAndSend(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -216,9 +222,11 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -234,12 +242,12 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -280,9 +288,11 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -298,12 +308,12 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -344,9 +354,11 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -362,12 +374,12 @@ func TestEstimateSimpleSequenceTransactionNonDeployedWallet(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -412,9 +424,11 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -423,12 +437,12 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -471,9 +485,11 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -482,12 +498,12 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -530,9 +546,11 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -541,12 +559,12 @@ func TestEstimateSimpleSequenceTransactionWithStubConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -577,33 +595,37 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		assert.NoError(t, err)
 
 		badTxs := sequence.Transactions{
-			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
-				Nonce: big.NewInt(999),
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
+			Nonce: big.NewInt(999),
 		}
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
 
-		txs[0].GasLimit = badTxs[0].GasLimit
+		txs.Calls[0].GasLimit = badTxs.Calls[0].GasLimit
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, badTxs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, badTxs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -632,33 +654,37 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		assert.NoError(t, err)
 
 		badTxs := sequence.Transactions{
-			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
-				Nonce: big.NewInt(999),
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
+			Nonce: big.NewInt(999),
 		}
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
 
-		txs[0].GasLimit = badTxs[0].GasLimit
+		txs.Calls[0].GasLimit = badTxs.Calls[0].GasLimit
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, badTxs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, badTxs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -687,33 +713,37 @@ func TestEstimateSimpleSequenceTransactionWithBadNonce(t *testing.T) {
 		assert.NoError(t, err)
 
 		badTxs := sequence.Transactions{
-			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
-				Nonce: big.NewInt(999),
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
+			Nonce: big.NewInt(999),
 		}
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
 		estimator := sequence.NewEstimator()
 		estimated, err := estimator.Estimate(context.Background(), testChain.Provider, wallet.Address(), wallet.GetWalletConfig(), wallet.GetWalletContext(), badTxs)
 
-		txs[0].GasLimit = badTxs[0].GasLimit
+		txs.Calls[0].GasLimit = badTxs.Calls[0].GasLimit
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, badTxs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, badTxs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -751,13 +781,15 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			},
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata2,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				},
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				},
 			},
 		}
 
@@ -766,13 +798,13 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
-		assert.Equal(t, 1, txs[1].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[1].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -808,13 +840,15 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			},
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata2,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				},
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				},
 			},
 		}
 
@@ -823,13 +857,13 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
-		assert.Equal(t, 1, txs[1].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[1].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -865,13 +899,15 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata1,
-			},
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata2,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata1,
+				},
+				{
+					To:   callmockContract.Address,
+					Data: calldata2,
+				},
 			},
 		}
 
@@ -880,13 +916,13 @@ func TestEstimateBatchSequenceTransaction(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
-		assert.Equal(t, 1, txs[1].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[1].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -922,9 +958,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 			},
 		}
 
-		wallet, err := sequence.GenericNewWallet[*v1.WalletConfig](sequence.WalletOptions[*v1.WalletConfig]{
-			Config: walletConfig,
-		}, eoa1, eoa3)
+		wallet, err := sequence.GenericNewWallet[*v1.WalletConfig](
+			sequence.WalletOptions[*v1.WalletConfig]{Config: walletConfig},
+			sequence.EOA(eoa1),
+			sequence.EOA(eoa3),
+		)
 		assert.NoError(t, err)
 
 		// Set provider on sequence wallet
@@ -962,9 +1000,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -973,12 +1013,12 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -1017,9 +1057,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 			),
 		}
 
-		wallet, err := sequence.GenericNewWallet[*v2.WalletConfig](sequence.WalletOptions[*v2.WalletConfig]{
-			Config: walletConfig,
-		}, eoa1, eoa3)
+		wallet, err := sequence.GenericNewWallet[*v2.WalletConfig](
+			sequence.WalletOptions[*v2.WalletConfig]{Config: walletConfig},
+			sequence.EOA(eoa1),
+			sequence.EOA(eoa3),
+		)
 		assert.NoError(t, err)
 
 		// Set provider on sequence wallet
@@ -1057,9 +1099,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -1068,12 +1112,12 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -1107,9 +1151,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 			),
 		}
 
-		wallet, err := sequence.GenericNewWallet[*v3.WalletConfig](sequence.WalletOptions[*v3.WalletConfig]{
-			Config: walletConfig,
-		}, eoa1, eoa3)
+		wallet, err := sequence.GenericNewWallet[*v3.WalletConfig](
+			sequence.WalletOptions[*v3.WalletConfig]{Config: walletConfig},
+			sequence.EOA(eoa1),
+			sequence.EOA(eoa3),
+		)
 		assert.NoError(t, err)
 
 		// Set provider on sequence wallet
@@ -1147,9 +1193,11 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -1158,12 +1206,12 @@ func TestEstimateSequenceMultipleSigners(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotZero(t, estimated)
-		assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+		assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 
 		signed, err := wallet.SignTransactions(context.Background(), txs)
 		assert.NoError(t, err)
 
-		_, _, wait, err := wallet.SendTransactions(context.Background(), signed)
+		_, wait, err := wallet.SendTransactions(context.Background(), signed)
 		assert.NoError(t, err)
 
 		receipt, err := wait(context.Background())
@@ -1750,12 +1798,16 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
 		assert.NoError(t, err)
 
+		var space [20]byte
+		rand.Read(space[:])
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
-				Nonce: testChain.RandomNonce(),
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
+			Space: new(big.Int).SetBytes(space[:]),
 		}
 
 		// run the estimator several times (results should be cached and reused so this loop should be pretty fast)
@@ -1765,7 +1817,7 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotZero(t, estimated)
-			assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+			assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 		}
 	})
 
@@ -1799,12 +1851,16 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		calldata, err := callmockContract.Encode("testCall", big.NewInt(3), ethcoder.MustHexDecode("0x11223344"))
 		assert.NoError(t, err)
 
+		var space [20]byte
+		rand.Read(space[:])
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:    callmockContract.Address,
-				Data:  calldata,
-				Nonce: testChain.RandomNonce(),
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
+			Space: new(big.Int).SetBytes(space[:]),
 		}
 
 		// run the estimator several times (results should be cached and reused so this loop should be pretty fast)
@@ -1814,7 +1870,7 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotZero(t, estimated)
-			assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+			assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 		}
 	})
 
@@ -1849,9 +1905,11 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 		assert.NoError(t, err)
 
 		txs := sequence.Transactions{
-			&sequence.Transaction{
-				To:   callmockContract.Address,
-				Data: calldata,
+			Calls: []v3.Call{
+				{
+					To:   callmockContract.Address,
+					Data: calldata,
+				},
 			},
 		}
 
@@ -1862,7 +1920,7 @@ func TestEstimateIssue5367MultipleSignersTime(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotZero(t, estimated)
-			assert.Equal(t, 1, txs[0].GasLimit.Cmp(big.NewInt(0)))
+			assert.Equal(t, 1, txs.Calls[0].GasLimit.Cmp(big.NewInt(0)))
 		}
 	})
 }

@@ -19,7 +19,7 @@ func TestEthAuthEIP6492(t *testing.T) {
 	signer, err := ethwallet.NewWalletFromRandomEntropy()
 	assert.NoError(t, err)
 
-	wallet, err := sequence.NewWalletSingleOwner(signer)
+	wallet, err := sequence.NewWalletSingleOwner(sequence.EOA(signer))
 	assert.NoError(t, err)
 
 	log := logger.NewLogger(logger.LogLevel_INFO)
@@ -39,7 +39,7 @@ func TestEthAuthEIP6492(t *testing.T) {
 	assert.NoError(t, err)
 	copy(digest[:], digest_)
 
-	signature, err := wallet.SignDigest(context.Background(), digest, testChain.ChainID())
+	signature, err := wallet.SignDigest(context.Background(), digest)
 	assert.NoError(t, err)
 
 	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())

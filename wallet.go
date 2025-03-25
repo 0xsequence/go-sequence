@@ -404,8 +404,8 @@ func (w *Wallet[C]) Address() common.Address {
 	return w.address
 }
 
-func (w *Wallet[C]) ImageHash() (common.Hash, error) {
-	return w.config.ImageHash().Hash, nil
+func (w *Wallet[C]) ImageHash() (core.ImageHash, error) {
+	return w.config.ImageHash(), nil
 }
 
 func (w *Wallet[C]) GetSignerAddresses() []common.Address {
@@ -487,8 +487,11 @@ func (w *Wallet[C]) Sign(ctx context.Context, payload v3.Payload) (core.SignerSi
 	return core.SignerSignatureTypeEIP1271, signature, err
 }
 
-func (w *Wallet[C]) SignTransaction(ctx context.Context, txn v3.Call) (*SignedTransactions, error) {
-	return w.SignTransactions(ctx, Transactions{Calls: []v3.Call{txn}})
+func (w *Wallet[C]) SignTransaction(ctx context.Context, txn v3.Call, space ...*big.Int) (*SignedTransactions, error) {
+	if len(space) == 0 {
+		space = append(space, nil)
+	}
+	return w.SignTransactions(ctx, Transactions{Calls: []v3.Call{txn}, Space: space[0]})
 }
 
 func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*SignedTransactions, error) {
@@ -619,7 +622,7 @@ func (w *Wallet[C]) IsDeployed() (bool, error) {
 	return IsWalletDeployed(w.provider, w.Address())
 }
 
-func (w *Wallet[C]) Deploy(ctx context.Context) (*SignedTransactions, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) Deploy(ctx context.Context, space ...*big.Int) (*SignedTransactions, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return nil, nil, nil, ErrRelayerNotSet
 	}
@@ -650,7 +653,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (*SignedTransactions, *types.Tra
 		txn.GasLimit = big.NewInt(3_000_000)
 	}
 
-	signerTxn, err := w.SignTransaction(ctx, txn)
+	signerTxn, err := w.SignTransaction(ctx, txn, space...)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -663,10 +666,12 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (*SignedTransactions, *types.Tra
 
 // func (w *Wallet) PublishConfig() // TODO in future
 
-func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool, error) {
+func (w *Wallet[C]) IsValidSignature(payload v3.PayloadDigestable, signature []byte) (bool, error) {
 	if w.provider == nil {
 		return false, ErrProviderNotSet
 	}
+
+	digest := core.Digest{Hash: payload.Digest().Hash}
 
 	// todo: this is a hack to get around the fact that the signature verification is not available in WalletConfig
 	var generalWalletConfig core.WalletConfig = w.config
@@ -676,7 +681,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -688,7 +693,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -700,7 +705,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), digest, w.address, w.chainID, w.provider)
 		if err != nil {
 			return false, err
 		} else {
