@@ -135,7 +135,7 @@ func GenericValidateSequenceAccountProofWith[C core.WalletConfig](walletContexts
 		numAttempts := 4
 
 		for i := 1; i <= numAttempts; i++ {
-			valid, _ = IsValidSignature(sig, v3.ConstructDigestPayload(common.HexToAddress(proof.Address), chainID, common.Hash(messageDigest)), provider)
+			valid, _ = IsValidSignature(ctx, sig, v3.ConstructDigestPayload(common.HexToAddress(proof.Address), chainID, common.Hash(messageDigest)), provider)
 			if valid {
 				break
 			}

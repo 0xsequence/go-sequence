@@ -96,7 +96,7 @@ func V3SequenceContext() WalletContext {
 }
 
 func SequenceContext() WalletContext {
-	return V2SequenceContext()
+	return V3SequenceContext()
 }
 
 func SequenceContexts() WalletContexts {

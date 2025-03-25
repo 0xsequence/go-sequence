@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-ethauth"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/erc6492"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/goware/logger"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestEthAuthEIP6492(t *testing.T) {
 	signature, err := wallet.SignDigest(context.Background(), digest)
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
+	signature, err = erc6492.Signature(signature, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
 	proof.Signature = hexutil.Encode(signature)

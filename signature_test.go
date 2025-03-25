@@ -2,7 +2,6 @@ package sequence_test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -11,7 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
-	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/erc6492"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +33,7 @@ func TestIsValidMessageSignatureEOA(t *testing.T) {
 	provider, err := ethrpc.NewProvider(rpcURLEthereum)
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(eoa.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := sequence.IsValidMessageSignature(context.Background(), signature, eoa.Address(), []byte(message), provider)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -58,10 +57,10 @@ func TestIsValidMessageSignatureSequence(t *testing.T) {
 	signature, err := wallet.SignMessage(context.Background(), []byte(eip191Message))
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492Signature(signature, wallet.GetWalletConfig())
+	signature, err = erc6492.Signature(signature, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(wallet.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := sequence.IsValidMessageSignature(context.Background(), signature, wallet.Address(), []byte(message), provider)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
@@ -121,15 +120,15 @@ func TestIsValidSignatureEIP712Sequence(t *testing.T) {
 	require.NotNil(t, sig)
 	require.NotNil(t, encodedTypedData)
 
-	signature, err := sequence.EIP6492Signature(sig, wallet.GetWalletConfig())
+	signature, err := erc6492.Signature(sig, wallet.GetWalletConfig())
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidTypedDataSignature(wallet.Address(), encodedTypedData, signature, big.NewInt(1), provider, nil)
+	isValid, err := sequence.IsValidTypedDataSignature(context.Background(), signature, wallet.Address(), typedData, provider)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
 
-func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployments(t *testing.T) {
+func TestIsValidMessageSignatureSequence_EIP6492SignatureWithMultipleDeployments(t *testing.T) {
 	message := "hello world!"
 
 	eoa, err := ethwallet.NewWalletFromRandomEntropy()
@@ -154,10 +153,10 @@ func TestIsValideMessageSignatureSequence_EIP6492SignatureWithMultipleDeployment
 	signature, err := walletChild.SignMessage(context.Background(), []byte(eip191Message))
 	assert.NoError(t, err)
 
-	signature, err = sequence.EIP6492SignatureWithMultipleDeployments(signature, []core.WalletConfig{wallet.GetWalletConfig(), walletChild.GetWalletConfig()})
+	signature, err = erc6492.MultiWalletSignature(signature, wallet.GetWalletConfig(), walletChild.GetWalletConfig())
 	assert.NoError(t, err)
 
-	isValid, err := sequence.IsValidMessageSignature(walletChild.Address(), []byte(message), signature, big.NewInt(1), provider, nil)
+	isValid, err := sequence.IsValidMessageSignature(context.Background(), signature, walletChild.Address(), []byte(message), provider)
 	assert.NoError(t, err)
 	assert.True(t, isValid)
 }
