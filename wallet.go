@@ -857,12 +857,3 @@ func AuxDataFromContext(ctx context.Context) (*AuxData, error) {
 	}
 	return auxData, nil
 }
-
-var (
-	// ImageHashUpdatedEventSig is emitted anytime wallet config is updated.
-	ImageHashUpdatedEventSig = MustEncodeSig("ImageHashUpdated(bytes32)")
-
-	// ImplementationUpdatedEventSig is emitted anytime a wallet's mainModule is changed,
-	// this is a rare occurence.
-	ImplementationUpdatedEventSig = MustEncodeSig("ImplementationUpdated(address)")
-)
