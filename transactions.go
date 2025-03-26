@@ -524,20 +524,86 @@ func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
 	var signature []byte
 	var err error
 
+	// Check for V1 methods
 	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
 	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
 
+	// Check for V3 methods
+	v3ExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["execute"]
+	v3SelfExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["selfExecute"]
+
 	if bytes.Equal(data[:4], executeMethod.ID) {
+		// V1 execute method
 		var values []interface{}
 		values, err = executeMethod.Inputs.Unpack(data[4:])
 		if err == nil {
 			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
 		}
 	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
+		// V1 selfExecute method
 		var values []interface{}
 		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
 		if err == nil {
 			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
+		}
+	} else if bytes.Equal(data[:4], v3ExecuteMethod.ID) {
+		// V3 execute method takes (bytes calldata _payload, bytes calldata _signature)
+		var values []interface{}
+		values, err = v3ExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			var payload, sig []byte
+			err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &sig}, values)
+			if err == nil {
+				// Decode the V3 payload
+				decoded, err := v3.DecodeRawPayload(common.Address{}, nil, payload)
+				if err == nil {
+					if callsPayload, ok := decoded.(v3.CallsPayload); ok {
+						// Convert V3 calls to Transactions
+						transactions = make([]Transaction, len(callsPayload.Calls))
+						for i, call := range callsPayload.Calls {
+							transactions[i] = Transaction{
+								To:            call.To,
+								Value:         call.Value,
+								Data:          call.Data,
+								GasLimit:      call.GasLimit,
+								DelegateCall:  call.DelegateCall,
+								RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+							}
+						}
+						nonce = callsPayload.Nonce
+						signature = sig
+					}
+				}
+			}
+		}
+	} else if bytes.Equal(data[:4], v3SelfExecuteMethod.ID) {
+		// V3 selfExecute method takes (bytes calldata _payload)
+		var values []interface{}
+		values, err = v3SelfExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			var payload []byte
+			err = v3SelfExecuteMethod.Inputs.Copy(&[]interface{}{&payload}, values)
+			if err == nil {
+				// Decode the V3 payload
+				decoded, err := v3.DecodeRawPayload(common.Address{}, nil, payload)
+				if err == nil {
+					if callsPayload, ok := decoded.(v3.CallsPayload); ok {
+						// Convert V3 calls to Transactions
+						transactions = make([]Transaction, len(callsPayload.Calls))
+						for i, call := range callsPayload.Calls {
+							transactions[i] = Transaction{
+								To:            call.To,
+								Value:         call.Value,
+								Data:          call.Data,
+								GasLimit:      call.GasLimit,
+								DelegateCall:  call.DelegateCall,
+								RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+							}
+						}
+						nonce = callsPayload.Nonce
+					}
+				}
+			}
 		}
 	} else {
 		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
@@ -546,6 +612,7 @@ func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
 		return nil, nil, nil, err
 	}
 
+	// Recursively decode nested transactions
 	for i := 0; i < len(transactions); i++ {
 		decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data)
 		if err == nil {
