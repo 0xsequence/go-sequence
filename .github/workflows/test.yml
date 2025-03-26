@@ -76,6 +76,8 @@ jobs:
         run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}"
       - name: Trigger Private Workflow
         uses: actions/github-script@v6
+        # TODO: remove this once the private workflow is fixed
+        continue-on-error: true
         with:
           script: |
             const { owner, repo } = context;
