@@ -2,6 +2,7 @@ package v3
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -132,6 +133,8 @@ func TestSessionPermissionsFromJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to unmarshal SessionPermissions: %v", err)
 	}
+
+	fmt.Printf("SessionPermissions: %+v\n", session)
 
 	invalidJSON := `{
 		"signer": "0x9ed233eCAE5E093CAff8Ff8E147DdAfc704EC619",

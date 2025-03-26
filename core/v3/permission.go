@@ -324,76 +324,118 @@ func (sp *SessionPermissions) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		return fmt.Errorf("failed to unmarshal session permissions JSON: %w", err)
 	}
-	*sp = sessionPermissionsFromParsed(parsed)
-	return nil
+	var err error
+	*sp, err = sessionPermissionsFromParsed(parsed)
+	return err
 }
 
 // sessionPermissionsFromParsed converts a parsed JSON object (map) into SessionPermissions.
-func sessionPermissionsFromParsed(parsed interface{}) SessionPermissions {
+func sessionPermissionsFromParsed(parsed interface{}) (SessionPermissions, error) {
 	m, ok := parsed.(map[string]interface{})
 	if !ok {
-		panic("invalid type for session permissions")
+		return SessionPermissions{}, fmt.Errorf("invalid type for session permissions")
 	}
-	return SessionPermissions{
-		Signer:     common.HexToAddress(m["signer"].(string)),
-		ValueLimit: valueToBigInt(m["valueLimit"]),
-		Deadline:   valueToBigInt(m["deadline"]),
-		Permissions: func() []Permission {
-			raw := m["permissions"].([]interface{})
-			perms := make([]Permission, len(raw))
-			for i, v := range raw {
-				perms[i] = permissionFromParsed(v)
-			}
-			return perms
-		}(),
-	}
-}
 
-// PermissionFromJSON parses a JSON string into a Permission.
-func (p *Permission) UnmarshalJSON(data []byte) error {
-	var parsed interface{}
-	if err := json.Unmarshal(data, &parsed); err != nil {
-		return fmt.Errorf("failed to unmarshal permission JSON: %w", err)
+	permissionsRaw, ok := m["permissions"]
+	if !ok {
+		return SessionPermissions{}, fmt.Errorf("missing permissions field")
 	}
-	*p = permissionFromParsed(parsed)
-	return nil
+
+	permissionsSlice, ok := permissionsRaw.([]interface{})
+	if !ok {
+		return SessionPermissions{}, fmt.Errorf("invalid type for session permissions")
+	}
+
+	perms := make([]Permission, len(permissionsSlice))
+	for i, v := range permissionsSlice {
+		perm, err := permissionFromParsed(v)
+		if err != nil {
+			return SessionPermissions{}, fmt.Errorf("invalid permission at index %d: %w", i, err)
+		}
+		perms[i] = perm
+	}
+
+	return SessionPermissions{
+		Signer:      common.HexToAddress(m["signer"].(string)),
+		ValueLimit:  valueToBigInt(m["valueLimit"]),
+		Deadline:    valueToBigInt(m["deadline"]),
+		Permissions: perms,
+	}, nil
 }
 
 // permissionFromParsed converts a parsed JSON object (map) into a Permission.
-func permissionFromParsed(parsed interface{}) Permission {
+func permissionFromParsed(parsed interface{}) (Permission, error) {
 	m, ok := parsed.(map[string]interface{})
 	if !ok {
-		panic("invalid type for permission")
+		return Permission{}, fmt.Errorf("invalid type for permission")
 	}
+
+	rulesRaw, ok := m["rules"]
+	if !ok {
+		return Permission{}, fmt.Errorf("missing rules field")
+	}
+
+	rulesSlice, ok := rulesRaw.([]interface{})
+	if !ok {
+		return Permission{}, fmt.Errorf("invalid type for rules")
+	}
+
+	rules := make([]ParameterRule, len(rulesSlice))
+	for i, v := range rulesSlice {
+		rule, err := parameterRuleFromParsed(v)
+		if err != nil {
+			return Permission{}, fmt.Errorf("invalid rule at index %d: %w", i, err)
+		}
+		rules[i] = rule
+	}
+
 	return Permission{
 		Target: common.HexToAddress(m["target"].(string)),
-		Rules: func() []ParameterRule {
-			raw := m["rules"].([]interface{})
-			rules := make([]ParameterRule, len(raw))
-			for i, v := range raw {
-				rules[i] = parameterRuleFromParsed(v)
-			}
-			return rules
-		}(),
-	}
+		Rules:  rules,
+	}, nil
 }
 
 // parameterRuleFromParsed converts a parsed JSON object into a ParameterRule.
-func parameterRuleFromParsed(parsed interface{}) ParameterRule {
+func parameterRuleFromParsed(parsed interface{}) (ParameterRule, error) {
 	m, ok := parsed.(map[string]interface{})
 	if !ok {
-		panic("invalid type for parameter rule")
+		return ParameterRule{}, fmt.Errorf("invalid type for parameter rule")
 	}
-	valueStr := strings.TrimPrefix(m["value"].(string), "0x")
-	maskStr := strings.TrimPrefix(m["mask"].(string), "0x")
+
+	valueStr, ok := m["value"].(string)
+	if !ok {
+		return ParameterRule{}, fmt.Errorf("invalid type for value")
+	}
+	valueStr = strings.TrimPrefix(valueStr, "0x")
+
+	maskStr, ok := m["mask"].(string)
+	if !ok {
+		return ParameterRule{}, fmt.Errorf("invalid type for mask")
+	}
+	maskStr = strings.TrimPrefix(maskStr, "0x")
+
+	operation, ok := m["operation"].(float64)
+	if !ok {
+		return ParameterRule{}, fmt.Errorf("invalid type for operation")
+	}
+
+	cumulative, ok := m["cumulative"].(bool)
+	if !ok {
+		return ParameterRule{}, fmt.Errorf("invalid type for cumulative")
+	}
+
+	offset, ok := m["offset"].(string)
+	if !ok {
+		return ParameterRule{}, fmt.Errorf("invalid type for offset")
+	}
 
 	return ParameterRule{
-		Cumulative: m["cumulative"].(bool),
-		Operation:  ParameterOperation(uint8(m["operation"].(float64))),
+		Cumulative: cumulative,
+		Operation:  ParameterOperation(uint8(operation)),
 		Value:      mustDecodeHex(valueStr),
-		Offset:     valueToBigInt(m["offset"]),
+		Offset:     valueToBigInt(offset),
 		Mask:       mustDecodeHex(maskStr),
-	}
+	}, nil
 }
 
 // mustDecodeHex decodes a hex string and panics if it fails.
