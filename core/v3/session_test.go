@@ -17,7 +17,7 @@ func TestMarshalJSON(t *testing.T) {
 		return
 	}
 
-	expected := `[{"blacklist":[]},[{"globalSigner":"0x74214e263d5669885065f215Fa21BC940588f7C1"}]]`
+	expected := `[{"type":"identity-signer","identitySigner":"0x74214e263d5669885065f215fa21bc940588f7c1"},{"type":"implicit-blacklist","blacklist":[]}]`
 	if json != expected {
 		t.Errorf("Unexpected JSON output: %s", json)
 	}
