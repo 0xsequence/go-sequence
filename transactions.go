@@ -402,8 +402,8 @@ var (
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
 	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
 
-	// 0xec670aed5ee1e72eb3eb601271be4b3f312e71f17eebdf10c1a0ab5a3af30ffd
-	V3CallSuccess = MustEncodeSig("CallSuccess(bytes32,uint256)")
+	// 0x5a589b1d8062f33451d29cae3dabd9b2e36c62aee644178c600977ca8dda661a
+	V3CallSucceeded = MustEncodeSig("CallSucceeded(bytes32,uint256)")
 	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
 	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
 	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b

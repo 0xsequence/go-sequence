@@ -158,7 +158,7 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 }
 
 func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallSuccess {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSucceeded {
 		return false
 	}
 	transaction, _, err := V3DecodeCallSuccessEvent(log)
