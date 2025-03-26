@@ -1,8 +1,9 @@
-package v3
+package v3_test
 
 import (
 	"testing"
 
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/BurntSushi/toml"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestWalletConfigTOML(t *testing.T) {
 	_, err := toml.Decode(configTOML, &config)
 	assert.NoError(t, err)
 
-	config_, err := Core.DecodeWalletConfig(config)
+	config_, err := v3.Core.DecodeWalletConfig(config)
 	assert.NoError(t, err)
 
 	spew.Dump(config_)
