@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
 const (
@@ -903,33 +904,53 @@ type DigestPayload struct {
 }
 
 func (p DigestPayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(p.parentWallets))
+	domain, _ := ethcoder.ABIPackArguments(
+		[]string{
+			"bytes32",
+			"bytes32",
+			"bytes32",
+			"uint256",
+			"address",
+		},
+		[]any{
+			crypto.Keccak256Hash([]byte("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")),
+			crypto.Keccak256Hash([]byte("Sequence Wallet")),
+			crypto.Keccak256Hash([]byte("3")),
+			p.chainID,
+			p.address,
+		},
+	)
+
+	state := crypto.NewKeccakState()
 	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
+		var word common.Hash
+		word.SetBytes(wallet.Bytes())
+		mustWrite(state, word.Bytes())
 	}
-
-	data := ethcoder.TypedData{
-		Domain:      p.domain(),
-		PrimaryType: "Digest",
-		Types: map[string][]ethcoder.TypedDataArgument{
-			"EIP712Domain": eip712Domain,
-			"Digest": {
-				{Name: "digest", Type: "bytes32"},
-				{Name: "wallets", Type: "address[]"},
-			},
-		},
-		Message: map[string]any{
-			"digest":  p.digest,
-			"wallets": wallets,
-		},
-	}
-
-	digest, err := data.EncodeDigest()
+	var wallets common.Hash
+	_, err := state.Read(wallets[:])
 	if err != nil {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	message, _ := ethcoder.ABIPackArguments(
+		[]string{
+			"bytes32",
+			"bytes32",
+			"bytes32",
+		},
+		[]any{
+			crypto.Keccak256Hash([]byte("Message(bytes message,address[] wallets)")),
+			p.digest,
+			wallets,
+		},
+	)
+
+	return PayloadDigest{Hash: crypto.Keccak256Hash(
+		[]byte("\x19\x01"),
+		crypto.Keccak256(domain),
+		crypto.Keccak256(message),
+	), Preimage: p}
 }
 
 func (p DigestPayload) Encode(address common.Address) []byte {
