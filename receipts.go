@@ -371,6 +371,9 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			if err != nil {
 				failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
 			}
+			if err != nil {
+				failedHash, _, err = V3DecodeCallSkippedEvent(log)
+			}
 
 			isTxFailed := err == nil && failedHash == hash
 
