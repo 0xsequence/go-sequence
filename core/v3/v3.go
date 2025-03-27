@@ -2757,6 +2757,20 @@ func readUint24(data *[]byte) (uint32, error) {
 	return value, nil
 }
 
+func writeUint8(writer io.Writer, value uint8) error {
+	_, err := writer.Write([]byte{value})
+	return err
+}
+
+func writeUint16(writer io.Writer, value uint16) error {
+	buf := []byte{
+		byte(value >> 8),
+		byte(value),
+	}
+	_, err := writer.Write(buf)
+	return err
+}
+
 func writeUint24(writer io.Writer, value uint32) error {
 	buf := []byte{
 		byte(value >> 16),

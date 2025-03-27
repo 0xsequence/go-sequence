@@ -142,12 +142,12 @@ func handlePayloadToPacked(params json.RawMessage) (interface{}, error) {
 	return handleToPacked(&p)
 }
 
-func handlePayloadToJson(params json.RawMessage) (interface{}, error) {
-	var p PayloadToJsonParams
+func handlePayloadToJSON(params json.RawMessage) (interface{}, error) {
+	var p PayloadToJSONParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-	return handleToJson(&p)
+	return handleToJSON(&p)
 }
 
 func handlePayloadHash(params json.RawMessage) (interface{}, error) {
@@ -155,24 +155,7 @@ func handlePayloadHash(params json.RawMessage) (interface{}, error) {
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-	log.Printf("Calling handleHash with params: %+v", p)
 	return handleHash(&p)
-}
-
-func handlePermissionToPackedSession(params json.RawMessage) (interface{}, error) {
-	var p PermissionToPackedSessionParams
-	if err := json.Unmarshal(params, &p); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
-	}
-	return "", fmt.Errorf("not implemented")
-}
-
-func handlePermissionToPacked(params json.RawMessage) (interface{}, error) {
-	var p PermissionToPackedParams
-	if err := json.Unmarshal(params, &p); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
-	}
-	return "", fmt.Errorf("not implemented")
 }
 
 func handleSessionEmptyTopology(params json.RawMessage) (interface{}, error) {
@@ -183,12 +166,12 @@ func handleSessionEmptyTopology(params json.RawMessage) (interface{}, error) {
 	return handleEmptyTopology(&p)
 }
 
-func handleSessionEncodeConfiguration(params json.RawMessage) (interface{}, error) {
-	var p EncodeConfigurationParams
+func handleSessionEncodeTopology(params json.RawMessage) (interface{}, error) {
+	var p EncodeTopologyParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
-	return handleEncodeConfiguration(&p)
+	return handleEncodeTopology(&p)
 }
 
 func handleSessionEncodeCallSignatures(params json.RawMessage) (interface{}, error) {
@@ -221,15 +204,6 @@ func handleExplicitSessionRemove(params json.RawMessage) (interface{}, error) {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 	return handleRemoveExplicitSession(&p)
-}
-
-func handleExplicitSessionEncodeCallSignature(params json.RawMessage) (interface{}, error) {
-	var p EncodeCallSignatureParams
-	if err := json.Unmarshal(params, &p); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
-	}
-	log.Printf("Calling handleEncodeCallSignature with params: %+v", p)
-	return handleEncodeCallSignature(&p)
 }
 
 func handleImplicitSessionAddBlacklist(params json.RawMessage) (interface{}, error) {
@@ -319,17 +293,13 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 	case "payload_toPacked":
 		result, err = handlePayloadToPacked(req.Params)
 	case "payload_toJson":
-		result, err = handlePayloadToJson(req.Params)
+		result, err = handlePayloadToJSON(req.Params)
 	case "payload_hashFor":
 		result, err = handlePayloadHash(req.Params)
-	case "permission_toPackedSession":
-		result, err = handlePermissionToPackedSession(req.Params)
-	case "permission_toPacked":
-		result, err = handlePermissionToPacked(req.Params)
 	case "session_empty":
 		result, err = handleSessionEmptyTopology(req.Params)
-	case "session_encodeConfiguration":
-		result, err = handleSessionEncodeConfiguration(req.Params)
+	case "session_encodeTopology":
+		result, err = handleSessionEncodeTopology(req.Params)
 	case "session_encodeCallSignatures":
 		result, err = handleSessionEncodeCallSignatures(req.Params)
 	case "session_imageHash":
@@ -338,8 +308,6 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request, debug bool, silent
 		result, err = handleExplicitSessionAdd(req.Params)
 	case "session_explicit_remove":
 		result, err = handleExplicitSessionRemove(req.Params)
-	case "session_explicit_encodeCallSignature":
-		result, err = handleExplicitSessionEncodeCallSignature(req.Params)
 	case "session_implicit_addBlacklistAddress":
 		result, err = handleImplicitSessionAddBlacklist(req.Params)
 	case "session_implicit_removeBlacklistAddress":

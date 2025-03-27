@@ -7,9 +7,13 @@ import (
 	"github.com/0xsequence/ethkit/ethcontract"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
+	seqmarketplace "github.com/0xsequence/go-sequence/contracts/gen/seq_marketplace"
+	seqsale1155 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc1155"
+	seqsale721 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc721"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	v1Factory "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
 	v1Estimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
@@ -31,8 +35,7 @@ import (
 	v3Stage2 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage2"
 )
 
-var (
-	GasEstimator,
+var GasEstimator,
 	IERC1271,
 	ERC20Mock,
 	IERC20,
@@ -45,8 +48,10 @@ var (
 	NiftyswapExchange20,
 	NiftyswapFactory,
 	WrapAndNiftyswap,
+	SeqMarketplace,
+	SeqSale721,
+	SeqSale1155,
 	_ ethartifact.Artifact
-)
 
 var V1 struct {
 	WalletFactory              ethartifact.Artifact
@@ -125,6 +130,10 @@ func init() {
 	NiftyswapExchange20 = artifact("NIFTYSWAP_EXCHANGE_20", niftyswap.NiftyswapExchange20ABI, niftyswap.NiftyswapExchange20Bin)
 	NiftyswapFactory = artifact("NIFTYSWAP_FACTORY", niftyswap.NiftyswapFactoryABI, niftyswap.NiftyswapFactoryBin)
 	WrapAndNiftyswap = artifact("WRAP_AND_NIFTYSWAP", niftyswap.WrapAndNiftyswapABI, niftyswap.WrapAndNiftyswapBin)
+
+	SeqMarketplace = artifact("SEQ_MARKETPLACE", seqmarketplace.SequenceMarketplaceABI, seqmarketplace.SequenceMarketplaceMetaData.Bin)
+	SeqSale721 = artifact("SEQ_SALE_ERC721", seqsale721.SaleABI, seqsale721.SaleMetaData.Bin)
+	SeqSale1155 = artifact("SEQ_SALE_ERC1155", seqsale1155.SaleABI, seqsale1155.SaleMetaData.Bin)
 
 	ERC20Mock = ethartifact.MustParseArtifactJSON(artifact_erc20mock)
 }

@@ -38,7 +38,7 @@ func handleToPacked(p *PayloadToPackedParams) (string, error) {
 	return hexutil.Encode(packed), nil
 }
 
-func handleToJson(p *PayloadToJsonParams) (string, error) {
+func handleToJSON(p *PayloadToJSONParams) (string, error) {
 	// Decode the ABI-encoded payload
 	decoded, err := v3.DecodeABIPayload(p.Payload)
 	if err != nil {
@@ -123,7 +123,7 @@ func newPayloadCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := handleToJson(&PayloadToJsonParams{Payload: payload})
+			result, err := handleToJSON(&PayloadToJSONParams{Payload: payload})
 			if err != nil {
 				return err
 			}

@@ -2,17 +2,19 @@ package prototyp
 
 import (
 	"database/sql/driver"
+	"encoding"
+	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
 // BigInt is a type alias for big.Int used for JSON/Database marshalling.
 //
-// For JSON values we encoded BigInt's as strings.
+// For JSON values we encode BigInt's as strings.
 //
-// For Database values we encoded BigInt's as NUMERIC(78).
+// For Database values we encode BigInt's as NUMERIC(78).
 type BigInt big.Int
 
 func NewBigInt(n int64) BigInt {
@@ -47,13 +49,14 @@ func NewBigIntFromString(s string, base int) BigInt {
 		return BigInt{}
 	}
 
+	var bi BigInt
 	b, ok := b.SetString(s, base)
-	if !ok {
-		n, _ := ParseNumberString(s, base)
-		b = big.NewInt(n)
+	if ok {
+		bi = BigInt(*b)
+	} else {
+		bi, _ = ParseBigIntString(s, base)
 	}
-
-	return BigInt(*b)
+	return bi
 }
 
 func ToBigInt(b *big.Int) BigInt {
@@ -102,6 +105,10 @@ func (b BigInt) String() string {
 	return b.Int().String()
 }
 
+func (b BigInt) Bytes() []byte {
+	return b.Int().Bytes()
+}
+
 func (b BigInt) Int() *big.Int {
 	v := big.Int(b)
 	return &v
@@ -145,6 +152,16 @@ func (b BigInt) Lte(n *big.Int) bool {
 	return b.Int().Cmp(n) == 0 || b.Int().Cmp(n) == -1
 }
 
+var (
+	_bi                            = BigInt{}
+	_   encoding.BinaryMarshaler   = _bi
+	_   encoding.BinaryUnmarshaler = &_bi
+	_   encoding.TextMarshaler     = _bi
+	_   encoding.TextUnmarshaler   = &_bi
+	_   json.Marshaler             = _bi
+	_   json.Unmarshaler           = &_bi
+)
+
 // MarshalText implements encoding.TextMarshaler.
 func (b BigInt) MarshalText() ([]byte, error) {
 	v := fmt.Sprintf("\"%s\"", b.String())
@@ -176,6 +193,47 @@ func (b *BigInt) UnmarshalJSON(text []byte) error {
 		return nil
 	}
 	return b.UnmarshalText(text)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler. The first byte is the sign byte
+// to represent positive or negative numbers.
+func (b BigInt) MarshalBinary() ([]byte, error) {
+	bytes := b.Int().Bytes()
+	out := make([]byte, len(bytes)+1)
+	copy(out[1:], bytes)
+	if b.Int().Sign() < 0 {
+		// Prepend a sign byte (0xFF for negative)
+		out[0] = 0xFF
+	} else {
+		// For zero or positive numbers, prepend 0x00
+		out[0] = 0x00
+	}
+	return out, nil
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler. The first byte is the sign byte
+// to represent positive or negative numbers.
+func (b *BigInt) UnmarshalBinary(buff []byte) error {
+	if len(buff) == 0 {
+		*b = BigInt(*big.NewInt(0))
+		return nil
+	}
+
+	// Extract the sign byte
+	signByte := buff[0]
+
+	i := new(big.Int)
+	if len(buff) > 1 {
+		i.SetBytes(buff[1:])
+	}
+
+	// Apply sign if negative
+	if signByte == 0xFF {
+		i.Neg(i)
+	}
+
+	*b = BigInt(*i)
+	return nil
 }
 
 func (b BigInt) Value() (driver.Value, error) {
@@ -217,35 +275,13 @@ func (b *BigInt) Scan(src interface{}) error {
 	}
 
 	*b = BigInt(*i)
-
 	return nil
 }
 
-func (b *BigInt) ExtensionType() int8 {
-	return 12
-}
-
-func (b *BigInt) Len() int {
-	nb, _ := b.MarshalText()
-	return len(nb)
-}
-
-func (b *BigInt) MarshalBinaryTo(buff []byte) error {
-	nb, _ := b.MarshalText()
-	copy(buff, nb)
-	return nil
-}
-
-func (b *BigInt) MarshalBinary() (data []byte, err error) {
-	return b.MarshalText()
-}
-
-func (b *BigInt) UnmarshalBinary(buff []byte) error {
-	return b.UnmarshalText(buff)
-}
-
-func ParseNumberString(s string, base int) (int64, bool) {
+func ParseBigIntString(s string, base int) (BigInt, bool) {
+	neg := strings.HasPrefix(s, "-")
 	var ns strings.Builder
+
 	switch base {
 	case 2:
 		for _, char := range s {
@@ -289,16 +325,36 @@ func ParseNumberString(s string, base int) (int64, bool) {
 		s = ns.String()
 		s = strings.TrimPrefix(s, "0X")
 		s = strings.TrimPrefix(s, "0x")
+
 	default:
+		return BigInt{}, false
+	}
+
+	if neg {
+		s = "-" + s
+	}
+
+	b := big.NewInt(0)
+	b, ok := b.SetString(s, base)
+	if !ok {
+		return BigInt{}, false
+	}
+
+	return BigInt(*b), true
+}
+
+func ParseNumberString(s string, base int) (int64, bool) {
+	bi, ok := ParseBigIntString(s, base)
+	if !ok {
 		return 0, false
 	}
 
-	n, err := strconv.ParseInt(s, base, 64)
-	if err != nil {
+	// Check if it fits within int64 range, if it doesn't fit in int64, return false
+	if bi.Lt(big.NewInt(math.MinInt64)) || bi.Gt(big.NewInt(math.MaxInt64)) {
 		return 0, false
 	}
 
-	return n, true
+	return bi.Int64(), true
 }
 
 func IsValidNumberString(s string) bool {

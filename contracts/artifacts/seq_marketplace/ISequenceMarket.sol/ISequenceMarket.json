@@ -1,0 +1,1926 @@
+{
+    "abi": [
+        {
+            "type": "function",
+            "name": "acceptRequest",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "recipient",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "additionalFees",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "additionalFeeRecipients",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "payable"
+        },
+        {
+            "type": "function",
+            "name": "acceptRequestBatch",
+            "inputs": [
+                {
+                    "name": "requestIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "quantities",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "recipients",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                },
+                {
+                    "name": "additionalFees",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "additionalFeeRecipients",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "cancelRequest",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "cancelRequestBatch",
+            "inputs": [
+                {
+                    "name": "requestIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "createRequest",
+            "inputs": [
+                {
+                    "name": "request",
+                    "type": "tuple",
+                    "internalType": "struct ISequenceMarketStorage.RequestParams",
+                    "components": [
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "createRequestBatch",
+            "inputs": [
+                {
+                    "name": "requests",
+                    "type": "tuple[]",
+                    "internalType": "struct ISequenceMarketStorage.RequestParams[]",
+                    "components": [
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "requestIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "getRequest",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "request",
+                    "type": "tuple",
+                    "internalType": "struct ISequenceMarketStorage.Request",
+                    "components": [
+                        {
+                            "name": "creator",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getRequestBatch",
+            "inputs": [
+                {
+                    "name": "requestIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "requests",
+                    "type": "tuple[]",
+                    "internalType": "struct ISequenceMarketStorage.Request[]",
+                    "components": [
+                        {
+                            "name": "creator",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getRoyaltyInfo",
+            "inputs": [
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "cost",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "recipient",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "royalty",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "invalidateRequests",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "invalidateRequests",
+            "inputs": [
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "isRequestValid",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "valid",
+                    "type": "bool",
+                    "internalType": "bool"
+                },
+                {
+                    "name": "request",
+                    "type": "tuple",
+                    "internalType": "struct ISequenceMarketStorage.Request",
+                    "components": [
+                        {
+                            "name": "creator",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "isRequestValidBatch",
+            "inputs": [
+                {
+                    "name": "requestIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "quantities",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "valid",
+                    "type": "bool[]",
+                    "internalType": "bool[]"
+                },
+                {
+                    "name": "requests",
+                    "type": "tuple[]",
+                    "internalType": "struct ISequenceMarketStorage.Request[]",
+                    "components": [
+                        {
+                            "name": "creator",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "isListing",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isERC1155",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "tokenContract",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "quantity",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expiry",
+                            "type": "uint96",
+                            "internalType": "uint96"
+                        },
+                        {
+                            "name": "currency",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "event",
+            "name": "CustomRoyaltyChanged",
+            "inputs": [
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "recipient",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                },
+                {
+                    "name": "fee",
+                    "type": "uint96",
+                    "indexed": false,
+                    "internalType": "uint96"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RequestAccepted",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "buyer",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "recipient",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "quantityRemaining",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RequestCancelled",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RequestCreated",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenId",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "isListing",
+                    "type": "bool",
+                    "indexed": false,
+                    "internalType": "bool"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "currency",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                },
+                {
+                    "name": "pricePerToken",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "expiry",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RequestsInvalidated",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "invalidatedBefore",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RequestsInvalidated",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "invalidatedBefore",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "error",
+            "name": "InvalidAdditionalFees",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidBatchRequest",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidCurrency",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidCurrencyApproval",
+            "inputs": [
+                {
+                    "name": "currency",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "owner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "InvalidExpiry",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidPrice",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidQuantity",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidRequestId",
+            "inputs": [
+                {
+                    "name": "requestId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "InvalidRoyalty",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "InvalidTokenApproval",
+            "inputs": [
+                {
+                    "name": "tokenContract",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "quantity",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "owner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "Invalidated",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "UnsupportedContractInterface",
+            "inputs": [
+                {
+                    "name": "contractAddress",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "interfaceId",
+                    "type": "bytes4",
+                    "internalType": "bytes4"
+                }
+            ]
+        }
+    ],
+    "bytecode": "0x",
+    "deployedBytecode": "0x",
+    "methodIdentifiers": {
+        "acceptRequest(uint256,uint256,address,uint256[],address[])": "e6bd720e",
+        "acceptRequestBatch(uint256[],uint256[],address[],uint256[],address[])": "a93c5317",
+        "cancelRequest(uint256)": "3015394c",
+        "cancelRequestBatch(uint256[])": "f1f5176c",
+        "createRequest((bool,bool,address,uint256,uint256,uint96,address,uint256))": "dd0de6ec",
+        "createRequestBatch((bool,bool,address,uint256,uint256,uint96,address,uint256)[])": "b056d4ae",
+        "getRequest(uint256)": "c58343ef",
+        "getRequestBatch(uint256[])": "956463e5",
+        "getRoyaltyInfo(address,uint256,uint256)": "36de9742",
+        "invalidateRequests()": "3ed97342",
+        "invalidateRequests(address)": "ffaf1d8d",
+        "isRequestValid(uint256,uint256)": "24dc6bd0",
+        "isRequestValidBatch(uint256[],uint256[])": "449768ad"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"InvalidAdditionalFees\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidBatchRequest\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidCurrency\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"InvalidCurrencyApproval\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidExpiry\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidPrice\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidQuantity\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"InvalidRequestId\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidRoyalty\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"InvalidTokenApproval\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Invalidated\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"UnsupportedContractInterface\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint96\",\"name\":\"fee\",\"type\":\"uint96\"}],\"name\":\"CustomRoyaltyChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"buyer\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"quantityRemaining\",\"type\":\"uint256\"}],\"name\":\"RequestAccepted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"}],\"name\":\"RequestCancelled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"expiry\",\"type\":\"uint256\"}],\"name\":\"RequestCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"invalidatedBefore\",\"type\":\"uint256\"}],\"name\":\"RequestsInvalidated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"invalidatedBefore\",\"type\":\"uint256\"}],\"name\":\"RequestsInvalidated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"additionalFees\",\"type\":\"uint256[]\"},{\"internalType\":\"address[]\",\"name\":\"additionalFeeRecipients\",\"type\":\"address[]\"}],\"name\":\"acceptRequest\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"requestIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"quantities\",\"type\":\"uint256[]\"},{\"internalType\":\"address[]\",\"name\":\"recipients\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"additionalFees\",\"type\":\"uint256[]\"},{\"internalType\":\"address[]\",\"name\":\"additionalFeeRecipients\",\"type\":\"address[]\"}],\"name\":\"acceptRequestBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"cancelRequest\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"requestIds\",\"type\":\"uint256[]\"}],\"name\":\"cancelRequestBatch\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.RequestParams\",\"name\":\"request\",\"type\":\"tuple\"}],\"name\":\"createRequest\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.RequestParams[]\",\"name\":\"requests\",\"type\":\"tuple[]\"}],\"name\":\"createRequestBatch\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"requestIds\",\"type\":\"uint256[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"getRequest\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.Request\",\"name\":\"request\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"requestIds\",\"type\":\"uint256[]\"}],\"name\":\"getRequestBatch\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.Request[]\",\"name\":\"requests\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"}],\"name\":\"getRoyaltyInfo\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"royalty\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"invalidateRequests\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"}],\"name\":\"invalidateRequests\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"}],\"name\":\"isRequestValid\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"valid\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.Request\",\"name\":\"request\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"requestIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"quantities\",\"type\":\"uint256[]\"}],\"name\":\"isRequestValidBatch\",\"outputs\":[{\"internalType\":\"bool[]\",\"name\":\"valid\",\"type\":\"bool[]\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isListing\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isERC1155\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"tokenContract\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"quantity\",\"type\":\"uint256\"},{\"internalType\":\"uint96\",\"name\":\"expiry\",\"type\":\"uint96\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pricePerToken\",\"type\":\"uint256\"}],\"internalType\":\"struct ISequenceMarketStorage.Request[]\",\"name\":\"requests\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"acceptRequest(uint256,uint256,address,uint256[],address[])\":{\"params\":{\"additionalFeeRecipients\":\"The addresses to send the additional fees to.\",\"additionalFees\":\"The additional fees to pay.\",\"quantity\":\"The quantity of tokens to accept.\",\"recipient\":\"The recipient of the accepted tokens.\",\"requestId\":\"The ID of the request.\"}},\"acceptRequestBatch(uint256[],uint256[],address[],uint256[],address[])\":{\"details\":\"Additional fees are applied to each request.\",\"params\":{\"additionalFeeRecipients\":\"The addresses to send the additional fees to.\",\"additionalFees\":\"The additional fees to pay.\",\"quantities\":\"The quantities of tokens to accept.\",\"recipients\":\"The recipients of the accepted tokens.\",\"requestIds\":\"The IDs of the requests.\"}},\"cancelRequest(uint256)\":{\"params\":{\"requestId\":\"The ID of the request.\"}},\"cancelRequestBatch(uint256[])\":{\"params\":{\"requestIds\":\"The IDs of the requests.\"}},\"createRequest((bool,bool,address,uint256,uint256,uint96,address,uint256))\":{\"params\":{\"request\":\"The request's details.\"},\"returns\":{\"requestId\":\"The ID of the request.\"}},\"createRequestBatch((bool,bool,address,uint256,uint256,uint96,address,uint256)[])\":{\"params\":{\"requests\":\"The requests' details.\"},\"returns\":{\"requestIds\":\"The IDs of the requests.\"}},\"getRequest(uint256)\":{\"params\":{\"requestId\":\"The ID of the request.\"},\"returns\":{\"request\":\"The request.\"}},\"getRequestBatch(uint256[])\":{\"params\":{\"requestIds\":\"The IDs of the requests.\"},\"returns\":{\"requests\":\"The requests.\"}},\"getRoyaltyInfo(address,uint256,uint256)\":{\"params\":{\"cost\":\"Amount of currency sent/received for the trade.\",\"tokenContract\":\"Address of the token being traded.\",\"tokenId\":\"The ID of the token.\"},\"returns\":{\"recipient\":\"Address to send royalties to.\",\"royalty\":\"Amount of currency to be paid as royalties.\"}},\"isRequestValid(uint256,uint256)\":{\"params\":{\"quantity\":\"The amount of tokens to exchange. 0 is assumed to be the request's available quantity.\",\"requestId\":\"The ID of the request.\"},\"returns\":{\"request\":\"The request.\",\"valid\":\"The validity of the request.\"}},\"isRequestValidBatch(uint256[],uint256[])\":{\"params\":{\"quantities\":\"The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.\",\"requestIds\":\"The IDs of the requests.\"},\"returns\":{\"requests\":\"The requests.\",\"valid\":\"The validities of the requests.\"}}},\"version\":1},\"userdoc\":{\"errors\":{\"InvalidAdditionalFees()\":[{\"notice\":\"Thrown when the additional fees are invalid.\"}],\"InvalidBatchRequest()\":[{\"notice\":\"Thrown when the parameters of a batch accept request are invalid.\"}],\"InvalidCurrency()\":[{\"notice\":\"Thrown when the currency address is invalid.\"}],\"InvalidCurrencyApproval(address,uint256,address)\":[{\"notice\":\"Thrown when the currency approval is invalid.\"}],\"InvalidExpiry()\":[{\"notice\":\"Thrown when expiry is invalid.\"}],\"InvalidPrice()\":[{\"notice\":\"Thrown when price is invalid.\"}],\"InvalidQuantity()\":[{\"notice\":\"Thrown when quantity is invalid.\"}],\"InvalidRequestId(uint256)\":[{\"notice\":\"Thrown when request id is invalid.\"}],\"InvalidRoyalty()\":[{\"notice\":\"Thrown when royalty is invalid.\"}],\"InvalidTokenApproval(address,uint256,uint256,address)\":[{\"notice\":\"Thrown when the token approval is invalid.\"}],\"Invalidated()\":[{\"notice\":\"Thrown when request has been explicitly invalidated.\"}],\"UnsupportedContractInterface(address,bytes4)\":[{\"notice\":\"Thrown when the contract address does not support the required interface.\"}]},\"events\":{\"CustomRoyaltyChanged(address,address,uint96)\":{\"notice\":\"Emitted when custom royalty settings are changed.\"},\"RequestAccepted(uint256,address,address,address,uint256,uint256)\":{\"notice\":\"Emitted when a request is accepted.\"},\"RequestCancelled(uint256,address)\":{\"notice\":\"Emitted when a request is cancelled.\"},\"RequestCreated(uint256,address,address,uint256,bool,uint256,address,uint256,uint256)\":{\"notice\":\"Emitted when a request is created.\"},\"RequestsInvalidated(address,address,uint256)\":{\"notice\":\"Emitted when a user bulk invalidates requests.\"},\"RequestsInvalidated(address,uint256)\":{\"notice\":\"Emitted when a user bulk invalidates requests.\"}},\"kind\":\"user\",\"methods\":{\"acceptRequest(uint256,uint256,address,uint256[],address[])\":{\"notice\":\"Accepts a request.\"},\"acceptRequestBatch(uint256[],uint256[],address[],uint256[],address[])\":{\"notice\":\"Accepts requests.\"},\"cancelRequest(uint256)\":{\"notice\":\"Cancels a request.\"},\"cancelRequestBatch(uint256[])\":{\"notice\":\"Cancels requests.\"},\"createRequest((bool,bool,address,uint256,uint256,uint96,address,uint256))\":{\"notice\":\"Creates a request.A listing is when the maker is selling tokens for currency.An offer is when the maker is buying tokens with currency.\"},\"createRequestBatch((bool,bool,address,uint256,uint256,uint96,address,uint256)[])\":{\"notice\":\"Creates requests.\"},\"getRequest(uint256)\":{\"notice\":\"Gets a request.\"},\"getRequestBatch(uint256[])\":{\"notice\":\"Gets requests.\"},\"getRoyaltyInfo(address,uint256,uint256)\":{\"notice\":\"Returns the royalty details for the given token and cost.\"},\"invalidateRequests()\":{\"notice\":\"Invalidates all current requests for the msg.sender.\"},\"invalidateRequests(address)\":{\"notice\":\"Invalidates all current requests for a given `tokenContract` for the msg.sender.\"},\"isRequestValid(uint256,uint256)\":{\"notice\":\"Checks if a request is valid.A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.\"},\"isRequestValidBatch(uint256[],uint256[])\":{\"notice\":\"Checks if requests are valid.A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/interfaces/ISequenceMarket.sol\":\"ISequenceMarket\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":0xsequence/=lib/0xsequence/\",\":@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/\",\":@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/\",\":@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/\",\":@openzeppelin/contracts/=lib/openzeppelin/contracts/\",\":@uniswap/lib/=lib/uniswap-lib/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin/=lib/openzeppelin/\",\":uniswap-lib/=lib/uniswap-lib/contracts/\"],\"viaIR\":true},\"sources\":{\"contracts/interfaces/ISequenceMarket.sol\":{\"keccak256\":\"0xfe58559dd9ea4a0e4765b98cd76a5ad0044e08d70b71fbf004d0decfc5635e14\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://1d9646da78e2a0892446baaf9c0270b71d1e22ddb54663a17129e4fb677c7845\",\"dweb:/ipfs/QmZza8uFsLvD1qh37hD4py1yMFYUdAbF1nXu6zXmETqU1T\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.19+commit.7dd6d404"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidAdditionalFees"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidBatchRequest"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidCurrency"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "currency",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "owner",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "InvalidCurrencyApproval"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidExpiry"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidPrice"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidQuantity"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "InvalidRequestId"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidRoyalty"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "tokenId",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "owner",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "InvalidTokenApproval"
+                },
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "Invalidated"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "contractAddress",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "bytes4",
+                            "name": "interfaceId",
+                            "type": "bytes4"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "UnsupportedContractInterface"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint96",
+                            "name": "fee",
+                            "type": "uint96",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "CustomRoyaltyChanged",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "buyer",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantityRemaining",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RequestAccepted",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RequestCancelled",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "creator",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "tokenId",
+                            "type": "uint256",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "bool",
+                            "name": "isListing",
+                            "type": "bool",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "currency",
+                            "type": "address",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "pricePerToken",
+                            "type": "uint256",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "expiry",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RequestCreated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "creator",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "invalidatedBefore",
+                            "type": "uint256",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RequestsInvalidated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "creator",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "invalidatedBefore",
+                            "type": "uint256",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RequestsInvalidated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "additionalFees",
+                            "type": "uint256[]"
+                        },
+                        {
+                            "internalType": "address[]",
+                            "name": "additionalFeeRecipients",
+                            "type": "address[]"
+                        }
+                    ],
+                    "stateMutability": "payable",
+                    "type": "function",
+                    "name": "acceptRequest"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "requestIds",
+                            "type": "uint256[]"
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "quantities",
+                            "type": "uint256[]"
+                        },
+                        {
+                            "internalType": "address[]",
+                            "name": "recipients",
+                            "type": "address[]"
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "additionalFees",
+                            "type": "uint256[]"
+                        },
+                        {
+                            "internalType": "address[]",
+                            "name": "additionalFeeRecipients",
+                            "type": "address[]"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "acceptRequestBatch"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "cancelRequest"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "requestIds",
+                            "type": "uint256[]"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "cancelRequestBatch"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "struct ISequenceMarketStorage.RequestParams",
+                            "name": "request",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "createRequest",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "struct ISequenceMarketStorage.RequestParams[]",
+                            "name": "requests",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "createRequestBatch",
+                    "outputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "requestIds",
+                            "type": "uint256[]"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getRequest",
+                    "outputs": [
+                        {
+                            "internalType": "struct ISequenceMarketStorage.Request",
+                            "name": "request",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "creator",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "requestIds",
+                            "type": "uint256[]"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getRequestBatch",
+                    "outputs": [
+                        {
+                            "internalType": "struct ISequenceMarketStorage.Request[]",
+                            "name": "requests",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "creator",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "tokenId",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "cost",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getRoyaltyInfo",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "recipient",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "royalty",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "invalidateRequests"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "tokenContract",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "invalidateRequests"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "requestId",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "quantity",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "isRequestValid",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "valid",
+                            "type": "bool"
+                        },
+                        {
+                            "internalType": "struct ISequenceMarketStorage.Request",
+                            "name": "request",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "creator",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "requestIds",
+                            "type": "uint256[]"
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "quantities",
+                            "type": "uint256[]"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "isRequestValidBatch",
+                    "outputs": [
+                        {
+                            "internalType": "bool[]",
+                            "name": "valid",
+                            "type": "bool[]"
+                        },
+                        {
+                            "internalType": "struct ISequenceMarketStorage.Request[]",
+                            "name": "requests",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "creator",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isListing",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "bool",
+                                    "name": "isERC1155",
+                                    "type": "bool"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "tokenContract",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "tokenId",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "quantity",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint96",
+                                    "name": "expiry",
+                                    "type": "uint96"
+                                },
+                                {
+                                    "internalType": "address",
+                                    "name": "currency",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "pricePerToken",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {
+                    "acceptRequest(uint256,uint256,address,uint256[],address[])": {
+                        "params": {
+                            "additionalFeeRecipients": "The addresses to send the additional fees to.",
+                            "additionalFees": "The additional fees to pay.",
+                            "quantity": "The quantity of tokens to accept.",
+                            "recipient": "The recipient of the accepted tokens.",
+                            "requestId": "The ID of the request."
+                        }
+                    },
+                    "acceptRequestBatch(uint256[],uint256[],address[],uint256[],address[])": {
+                        "details": "Additional fees are applied to each request.",
+                        "params": {
+                            "additionalFeeRecipients": "The addresses to send the additional fees to.",
+                            "additionalFees": "The additional fees to pay.",
+                            "quantities": "The quantities of tokens to accept.",
+                            "recipients": "The recipients of the accepted tokens.",
+                            "requestIds": "The IDs of the requests."
+                        }
+                    },
+                    "cancelRequest(uint256)": {
+                        "params": {
+                            "requestId": "The ID of the request."
+                        }
+                    },
+                    "cancelRequestBatch(uint256[])": {
+                        "params": {
+                            "requestIds": "The IDs of the requests."
+                        }
+                    },
+                    "createRequest((bool,bool,address,uint256,uint256,uint96,address,uint256))": {
+                        "params": {
+                            "request": "The request's details."
+                        },
+                        "returns": {
+                            "requestId": "The ID of the request."
+                        }
+                    },
+                    "createRequestBatch((bool,bool,address,uint256,uint256,uint96,address,uint256)[])": {
+                        "params": {
+                            "requests": "The requests' details."
+                        },
+                        "returns": {
+                            "requestIds": "The IDs of the requests."
+                        }
+                    },
+                    "getRequest(uint256)": {
+                        "params": {
+                            "requestId": "The ID of the request."
+                        },
+                        "returns": {
+                            "request": "The request."
+                        }
+                    },
+                    "getRequestBatch(uint256[])": {
+                        "params": {
+                            "requestIds": "The IDs of the requests."
+                        },
+                        "returns": {
+                            "requests": "The requests."
+                        }
+                    },
+                    "getRoyaltyInfo(address,uint256,uint256)": {
+                        "params": {
+                            "cost": "Amount of currency sent/received for the trade.",
+                            "tokenContract": "Address of the token being traded.",
+                            "tokenId": "The ID of the token."
+                        },
+                        "returns": {
+                            "recipient": "Address to send royalties to.",
+                            "royalty": "Amount of currency to be paid as royalties."
+                        }
+                    },
+                    "isRequestValid(uint256,uint256)": {
+                        "params": {
+                            "quantity": "The amount of tokens to exchange. 0 is assumed to be the request's available quantity.",
+                            "requestId": "The ID of the request."
+                        },
+                        "returns": {
+                            "request": "The request.",
+                            "valid": "The validity of the request."
+                        }
+                    },
+                    "isRequestValidBatch(uint256[],uint256[])": {
+                        "params": {
+                            "quantities": "The amount of tokens to exchange per request. 0 is assumed to be the request's available quantity.",
+                            "requestIds": "The IDs of the requests."
+                        },
+                        "returns": {
+                            "requests": "The requests.",
+                            "valid": "The validities of the requests."
+                        }
+                    }
+                },
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {
+                    "acceptRequest(uint256,uint256,address,uint256[],address[])": {
+                        "notice": "Accepts a request."
+                    },
+                    "acceptRequestBatch(uint256[],uint256[],address[],uint256[],address[])": {
+                        "notice": "Accepts requests."
+                    },
+                    "cancelRequest(uint256)": {
+                        "notice": "Cancels a request."
+                    },
+                    "cancelRequestBatch(uint256[])": {
+                        "notice": "Cancels requests."
+                    },
+                    "createRequest((bool,bool,address,uint256,uint256,uint96,address,uint256))": {
+                        "notice": "Creates a request.A listing is when the maker is selling tokens for currency.An offer is when the maker is buying tokens with currency."
+                    },
+                    "createRequestBatch((bool,bool,address,uint256,uint256,uint96,address,uint256)[])": {
+                        "notice": "Creates requests."
+                    },
+                    "getRequest(uint256)": {
+                        "notice": "Gets a request."
+                    },
+                    "getRequestBatch(uint256[])": {
+                        "notice": "Gets requests."
+                    },
+                    "getRoyaltyInfo(address,uint256,uint256)": {
+                        "notice": "Returns the royalty details for the given token and cost."
+                    },
+                    "invalidateRequests()": {
+                        "notice": "Invalidates all current requests for the msg.sender."
+                    },
+                    "invalidateRequests(address)": {
+                        "notice": "Invalidates all current requests for a given `tokenContract` for the msg.sender."
+                    },
+                    "isRequestValid(uint256,uint256)": {
+                        "notice": "Checks if a request is valid.A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable."
+                    },
+                    "isRequestValidBatch(uint256[],uint256[])": {
+                        "notice": "Checks if requests are valid.A request is valid if it is active, has not expired and give amount of tokens (currency for offers, tokens for listings) are transferrable."
+                    }
+                },
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "0xsequence/=lib/0xsequence/",
+                "@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/",
+                "@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/",
+                "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+                "@openzeppelin/contracts/=lib/openzeppelin/contracts/",
+                "@uniswap/lib/=lib/uniswap-lib/",
+                "ds-test/=lib/forge-std/lib/ds-test/src/",
+                "erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/",
+                "forge-std/=lib/forge-std/src/",
+                "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+                "openzeppelin/=lib/openzeppelin/",
+                "uniswap-lib/=lib/uniswap-lib/contracts/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 200
+            },
+            "metadata": {
+                "bytecodeHash": "ipfs"
+            },
+            "compilationTarget": {
+                "contracts/interfaces/ISequenceMarket.sol": "ISequenceMarket"
+            },
+            "evmVersion": "paris",
+            "libraries": {},
+            "viaIR": true
+        },
+        "sources": {
+            "contracts/interfaces/ISequenceMarket.sol": {
+                "keccak256": "0xfe58559dd9ea4a0e4765b98cd76a5ad0044e08d70b71fbf004d0decfc5635e14",
+                "urls": [
+                    "bzz-raw://1d9646da78e2a0892446baaf9c0270b71d1e22ddb54663a17129e4fb677c7845",
+                    "dweb:/ipfs/QmZza8uFsLvD1qh37hD4py1yMFYUdAbF1nXu6zXmETqU1T"
+                ],
+                "license": "Apache-2.0"
+            }
+        },
+        "version": 1
+    },
+    "id": 4
+}

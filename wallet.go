@@ -78,15 +78,15 @@ func GenericNewWallet[C core.WalletConfig](walletOptions WalletOptions[C], signe
 }
 
 func V1NewWallet(walletOptions WalletOptions[*v1.WalletConfig], signers ...Signer) (*Wallet[*v1.WalletConfig], error) {
-	return GenericNewWallet[*v1.WalletConfig](walletOptions, signers...)
+	return GenericNewWallet(walletOptions, signers...)
 }
 
 func V2NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
-	return GenericNewWallet[*v2.WalletConfig](walletOptions, signers...)
+	return GenericNewWallet(walletOptions, signers...)
 }
 
 func V3NewWallet(walletOptions WalletOptions[*v3.WalletConfig], signers ...Signer) (*Wallet[*v3.WalletConfig], error) {
-	return GenericNewWallet[*v3.WalletConfig](walletOptions, signers...)
+	return GenericNewWallet(walletOptions, signers...)
 }
 
 func NewWallet(walletOptions WalletOptions[*v2.WalletConfig], signers ...Signer) (*Wallet[*v2.WalletConfig], error) {
@@ -116,7 +116,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 		}
 
 		// new sequence v1 wallet
-		return GenericNewWallet[C](WalletOptions[C]{
+		return GenericNewWallet(WalletOptions[C]{
 			Config:  config.(C),
 			Context: &seqContext,
 		}, owner)
@@ -130,7 +130,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 		}
 
 		// new sequence v2 wallet
-		return GenericNewWallet[C](WalletOptions[C]{
+		return GenericNewWallet(WalletOptions[C]{
 			Config:  config.(C),
 			Context: &seqContext,
 		}, owner)
@@ -144,7 +144,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 		}
 
 		// new sequence v3 wallet
-		return GenericNewWallet[C](WalletOptions[C]{
+		return GenericNewWallet(WalletOptions[C]{
 			Config:  config.(C),
 			Context: &seqContext,
 		}, owner)
@@ -1051,9 +1051,9 @@ type AuxData struct {
 }
 
 func (a *AuxData) Pack() ([]byte, error) {
-	return ethcoder.AbiCoder(
+	return ethcoder.ABIPackArguments(
 		[]string{"address", "uint256", "bytes", "bytes"},
-		[]interface{}{a.Address, a.ChainID, &a.Msg, &a.Sig},
+		[]any{a.Address, a.ChainID, &a.Msg, &a.Sig},
 	)
 }
 

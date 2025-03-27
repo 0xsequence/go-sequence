@@ -95,7 +95,7 @@ func TryDecodeCalldata(
 	provider *ethrpc.Provider,
 	transaction *types.Transaction,
 ) (common.Address, Transactions, *big.Int, []byte, error) {
-	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data(), common.Address{}, nil)
 	if err == nil {
 		return *transaction.To(), decodedTransactions, decodedNonce, decodedSignature, nil
 	}
@@ -107,7 +107,7 @@ func TryDecodeCalldata(
 		return common.Address{}, nil, nil, nil, err
 	}
 
-	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed)
+	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed, common.Address{}, nil)
 	if err != nil {
 		return common.Address{}, nil, nil, nil, err
 	}
@@ -158,7 +158,7 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 }
 
 func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallSuccess {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSucceeded {
 		return false
 	}
 	transaction, _, err := V3DecodeCallSuccessEvent(log)

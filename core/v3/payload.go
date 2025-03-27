@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
 const (
@@ -374,7 +375,7 @@ func (p basePayload) domain() ethcoder.TypedDataDomain {
 	}
 }
 
-func ConstructCallsPayload(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
+func NewCallsPayload(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -695,10 +696,10 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 		calls = append(calls, call)
 	}
 
-	return ConstructCallsPayload(address, chainID, calls, space, nonce), nil
+	return NewCallsPayload(address, chainID, calls, space, nonce), nil
 }
 
-func ConstructMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
+func NewMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -788,10 +789,10 @@ func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Paylo
 		return nil, fmt.Errorf("message data too short")
 	}
 	message := data[:msgLen]
-	return ConstructMessagePayload(address, chainID, message), nil
+	return NewMessagePayload(address, chainID, message), nil
 }
 
-func ConstructConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
+func NewConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -871,10 +872,10 @@ func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (
 	data = data[1:]
 	var hash common.Hash
 	copy(hash[:], data[:32])
-	return ConstructConfigUpdatePayload(address, chainID, hash), nil
+	return NewConfigUpdatePayload(address, chainID, hash), nil
 }
 
-func ConstructDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
+func NewDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -903,33 +904,53 @@ type DigestPayload struct {
 }
 
 func (p DigestPayload) Digest() PayloadDigest {
-	wallets := make([]any, 0, len(p.parentWallets))
+	domain, _ := ethcoder.ABIPackArguments(
+		[]string{
+			"bytes32",
+			"bytes32",
+			"bytes32",
+			"uint256",
+			"address",
+		},
+		[]any{
+			crypto.Keccak256Hash([]byte("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")),
+			crypto.Keccak256Hash([]byte("Sequence Wallet")),
+			crypto.Keccak256Hash([]byte("3")),
+			p.chainID,
+			p.address,
+		},
+	)
+
+	state := crypto.NewKeccakState()
 	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
+		var word common.Hash
+		word.SetBytes(wallet.Bytes())
+		mustWrite(state, word.Bytes())
 	}
-
-	data := ethcoder.TypedData{
-		Domain:      p.domain(),
-		PrimaryType: "Digest",
-		Types: map[string][]ethcoder.TypedDataArgument{
-			"EIP712Domain": eip712Domain,
-			"Digest": {
-				{Name: "digest", Type: "bytes32"},
-				{Name: "wallets", Type: "address[]"},
-			},
-		},
-		Message: map[string]any{
-			"digest":  p.digest,
-			"wallets": wallets,
-		},
-	}
-
-	digest, err := data.EncodeDigest()
+	var wallets common.Hash
+	_, err := state.Read(wallets[:])
 	if err != nil {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	message, _ := ethcoder.ABIPackArguments(
+		[]string{
+			"bytes32",
+			"bytes32",
+			"bytes32",
+		},
+		[]any{
+			crypto.Keccak256Hash([]byte("Message(bytes message,address[] wallets)")),
+			p.digest,
+			wallets,
+		},
+	)
+
+	return PayloadDigest{Hash: crypto.Keccak256Hash(
+		[]byte("\x19\x01"),
+		crypto.Keccak256(domain),
+		crypto.Keccak256(message),
+	), Preimage: p}
 }
 
 func (p DigestPayload) Encode(address common.Address) []byte {
@@ -971,13 +992,13 @@ func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (Pa
 
 	switch decoded.Kind {
 	case KindTransactions:
-		return ConstructCallsPayload(address, chainID, decoded.Calls, decoded.Space, decoded.Nonce, []common.Address(decoded.ParentWallets)), nil
+		return NewCallsPayload(address, chainID, decoded.Calls, decoded.Space, decoded.Nonce, []common.Address(decoded.ParentWallets)), nil
 	case KindMessage:
-		return ConstructMessagePayload(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
+		return NewMessagePayload(address, chainID, decoded.Message, []common.Address(decoded.ParentWallets)), nil
 	case KindConfigUpdate:
-		return ConstructConfigUpdatePayload(address, chainID, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
+		return NewConfigUpdatePayload(address, chainID, decoded.ImageHash, []common.Address(decoded.ParentWallets)), nil
 	case KindDigest:
-		return ConstructDigestPayload(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
+		return NewDigestPayload(address, chainID, decoded.Digest, []common.Address(decoded.ParentWallets)), nil
 	default:
 		return nil, fmt.Errorf("unknown payload kind: %d", decoded.Kind)
 	}

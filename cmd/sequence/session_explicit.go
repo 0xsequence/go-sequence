@@ -1,154 +1,38 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
-	"strconv"
-	"strings"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
 
 func handleAddExplicitSession(p *AddSessionParams) (string, error) {
-	session, err := v3.SessionPermissionsFromJSON(string(p.ExplicitSession))
-	if err != nil {
+	var session v3.SessionPermissions
+	if err := json.Unmarshal(p.ExplicitSession, &session); err != nil {
 		return "", fmt.Errorf("failed to decode explicit session: %w", err)
 	}
 
-	topology, err := v3.SessionsTopologyFromJSON(string(p.SessionTopology))
+	updated, err := v3.AddExplicitSession(p.SessionTopology, session)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode session topology: %w", err)
-	}
-
-	if !v3.IsSessionsTopology(topology) {
-		return "", fmt.Errorf("session topology must be a valid session topology")
-	}
-
-	// Create the final JSON structure manually to ensure correct format
-	blacklistObj := map[string][]common.Address{
-		"blacklist": topology.Blacklist,
-	}
-
-	// Create the session node with the correct format and field order
-	type sessionNodeType struct {
-		Signer      string          `json:"signer"`
-		ValueLimit  string          `json:"valueLimit"`
-		Deadline    string          `json:"deadline"`
-		Permissions []v3.Permission `json:"permissions"`
-	}
-
-	sessionNode := sessionNodeType{
-		Signer:      session.Signer.Hex(),
-		ValueLimit:  session.ValueLimit.String(),
-		Deadline:    session.Deadline.String(),
-		Permissions: session.Permissions,
-	}
-
-	// Create the second element as an array
-	secondElement := []interface{}{
-		map[string]string{
-			"globalSigner": topology.GlobalSigner.Hex(),
-		},
-		sessionNode,
-	}
-
-	// Add any existing sessions from the input topology
-	for _, s := range topology.Sessions {
-		node := sessionNodeType{
-			Signer:      s.Signer.Hex(),
-			ValueLimit:  s.Permissions.ValueLimit.String(),
-			Deadline:    s.Permissions.Deadline.String(),
-			Permissions: s.Permissions.Permissions,
-		}
-		secondElement = append(secondElement, node)
-	}
-
-	// Create the final array
-	finalResult := []interface{}{
-		blacklistObj,
-		secondElement,
-	}
-
-	// Marshal to JSON
-	bytes, err := json.Marshal(finalResult)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return string(bytes), nil
-}
-
-func handleRemoveExplicitSession(p *RemoveSessionParams) (string, error) {
-	topology, err := v3.SessionsTopologyFromJSON(p.SessionTopology)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode session topology: %w", err)
-	}
-
-	if !v3.IsSessionsTopology(topology) {
-		return "", fmt.Errorf("session topology must be a valid session topology")
-	}
-
-	if p.ExplicitSessionAddress == "" || p.ExplicitSessionAddress[:2] != "0x" {
-		return "", fmt.Errorf("explicit session address must be a valid address")
-	}
-
-	updated := v3.RemoveExplicitSession(topology, p.ExplicitSessionAddress)
-	if updated == nil {
-		return "", fmt.Errorf("session topology is empty")
+		return "", fmt.Errorf("failed to add explicit session: %w", err)
 	}
 
 	return v3.SessionsTopologyToJSON(updated)
 }
 
-func handleEncodeCallSignature(p *EncodeCallSignatureParams) (string, error) {
-	log.Printf("Encoding call signature with params: %+v", p)
-	var sig v3.SessionCallSignature
-
-	// Check if signature is in r:s:v format
-	if strings.Contains(p.Signature, ":") {
-		log.Printf("Processing signature in r:s:v format")
-		// Split the signature into r, s, v components
-		parts := strings.Split(p.Signature, ":")
-		if len(parts) != 3 {
-			return "", fmt.Errorf("invalid signature format, expected r:s:v")
-		}
-
-		r := common.FromHex(parts[0])
-		s := common.FromHex(parts[1])
-		v, err := strconv.Atoi(parts[2])
-		if err != nil {
-			return "", fmt.Errorf("invalid v value: %w", err)
-		}
-
-		sig.Signature = append(append(r, s...), byte(v))
-		log.Printf("Created signature from r:s:v format: %x", sig.Signature)
-	} else {
-		log.Printf("Processing signature in hex format")
-		// Handle hex-encoded signature
-		if !strings.HasPrefix(p.Signature, "0x") {
-			p.Signature = "0x" + p.Signature
-		}
-		sigBytes := common.FromHex(p.Signature)
-		if len(sigBytes) != 65 {
-			return "", fmt.Errorf("invalid signature length, expected 65 bytes, got %d", len(sigBytes))
-		}
-		sig.Signature = sigBytes
-		log.Printf("Created signature from hex format: %x", sig.Signature)
+func handleRemoveExplicitSession(p *RemoveSessionParams) (string, error) {
+	if p.ExplicitSessionAddress == "" || p.ExplicitSessionAddress[:2] != "0x" {
+		return "", fmt.Errorf("explicit session address must be a valid address")
 	}
 
-	// Encode the signature
-	encoded, err := v3.EncodeSessionCallSignature(&sig, p.PermissionIndex)
+	updated, err := v3.RemoveExplicitSession(p.SessionTopology, p.ExplicitSessionAddress)
 	if err != nil {
-		return "", fmt.Errorf("failed to encode call signature: %w", err)
+		return "", fmt.Errorf("failed to remove explicit session: %w", err)
 	}
 
-	result := "0x" + hex.EncodeToString(encoded)
-	log.Printf("Encoded result: %s", result)
-	return result, nil
+	return v3.SessionsTopologyToJSON(updated)
 }
 
 // newSessionExplicitCmd defines the command-line interface.
@@ -166,13 +50,18 @@ func newSessionExplicitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sessionTopology, err := fromPosOrStdin(args, 1)
+			sessionTopologyString, err := fromPosOrStdin(args, 1)
 			if err != nil {
 				return err
 			}
+			sessionTopology, err := v3.SessionsTopologyFromJSON(sessionTopologyString)
+			if err != nil {
+				return fmt.Errorf("failed to decode session topology: %w", err)
+			}
+
 			result, err := handleAddExplicitSession(&AddSessionParams{
 				ExplicitSession: json.RawMessage(explicitSession),
-				SessionTopology: json.RawMessage(sessionTopology),
+				SessionTopology: sessionTopology,
 			})
 			if err != nil {
 				return err
@@ -190,14 +79,18 @@ func newSessionExplicitCmd() *cobra.Command {
 				return fmt.Errorf("explicit session address is required")
 			}
 
-			topology, err := fromPosOrStdin(args, 1)
+			sessionTopologyString, err := fromPosOrStdin(args, 1)
 			if err != nil {
 				return err
+			}
+			sessionTopology, err := v3.SessionsTopologyFromJSON(sessionTopologyString)
+			if err != nil {
+				return fmt.Errorf("failed to decode session topology: %w", err)
 			}
 
 			result, err := handleRemoveExplicitSession(&RemoveSessionParams{
 				ExplicitSessionAddress: args[0],
-				SessionTopology:        topology,
+				SessionTopology:        sessionTopology,
 			})
 			if err != nil {
 				return err
@@ -207,31 +100,6 @@ func newSessionExplicitCmd() *cobra.Command {
 		},
 	}
 
-	encodeCallSignatureCmd := &cobra.Command{
-		Use:   "encodeCallSignature [signature] [permission-index]",
-		Short: "Encode a session call signature",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) < 2 {
-				return fmt.Errorf("signature and permission index are required")
-			}
-
-			permissionIndex, err := strconv.Atoi(args[1])
-			if err != nil {
-				return fmt.Errorf("invalid permission index: %w", err)
-			}
-
-			result, err := handleEncodeCallSignature(&EncodeCallSignatureParams{
-				Signature:       args[0],
-				PermissionIndex: permissionIndex,
-			})
-			if err != nil {
-				return err
-			}
-			fmt.Println(result)
-			return nil
-		},
-	}
-
-	cmd.AddCommand(addCmd, removeCmd, encodeCallSignatureCmd)
+	cmd.AddCommand(addCmd, removeCmd)
 	return cmd
 }

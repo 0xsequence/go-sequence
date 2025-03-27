@@ -1,23 +1,25 @@
-package v3
+package v3_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 func TestMarshalJSON(t *testing.T) {
 	globalSigner := common.HexToAddress("0x74214e263d5669885065f215Fa21BC940588f7C1")
-	topology := EmptySessionsTopology(globalSigner)
-	json, err := SessionsTopologyToJSON(topology)
+	topology := v3.EmptySessionsTopology(globalSigner)
+	json, err := v3.SessionsTopologyToJSON(topology)
 	if err != nil {
 		t.Errorf("Failed to marshal SessionsTopology: %v", err)
 		return
 	}
 
-	expected := `[{"blacklist":[]},[{"globalSigner":"0x74214e263d5669885065f215Fa21BC940588f7C1"}]]`
+	expected := `[{"type":"identity-signer","identitySigner":"0x74214e263d5669885065f215fa21bc940588f7c1"},{"type":"implicit-blacklist","blacklist":[]}]`
 	if json != expected {
 		t.Errorf("Unexpected JSON output: %s", json)
 	}
@@ -30,24 +32,24 @@ func TestSessionExplicitAdd(t *testing.T) {
 	valueLimit := big.NewInt(100)
 	deadline := big.NewInt(1678886400)
 
-	rule := ParameterRule{
+	rule := v3.ParameterRule{
 		Cumulative: true,
-		Operation:  EQUAL,
+		Operation:  v3.EQUAL,
 		Value:      []byte{0x01},
 		Offset:     big.NewInt(0),
 		Mask:       []byte{0xff},
 	}
 
-	permission := Permission{
+	permission := v3.Permission{
 		Target: target,
-		Rules:  []ParameterRule{rule},
+		Rules:  []v3.ParameterRule{rule},
 	}
 
-	permissions := SessionPermissions{
+	permissions := v3.SessionPermissions{
 		Signer:      signer,
 		ValueLimit:  valueLimit,
 		Deadline:    deadline,
-		Permissions: []Permission{permission},
+		Permissions: []v3.Permission{permission},
 	}
 
 	// Marshal to JSON
@@ -57,7 +59,7 @@ func TestSessionExplicitAdd(t *testing.T) {
 	}
 
 	// Unmarshal from JSON
-	var unmarshaledPermissions SessionPermissions
+	var unmarshaledPermissions v3.SessionPermissions
 	err = json.Unmarshal(permissionsJSON, &unmarshaledPermissions)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal SessionPermissions: %v", err)
@@ -127,10 +129,13 @@ func TestSessionPermissionsFromJSON(t *testing.T) {
 		]
 	}`
 
-	_, err := SessionPermissionsFromJSON(validJSON)
+	var session v3.SessionPermissions
+	err := json.Unmarshal([]byte(validJSON), &session)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal SessionPermissions: %v", err)
 	}
+
+	fmt.Printf("SessionPermissions: %+v\n", session)
 
 	invalidJSON := `{
 		"signer": "0x9ed233eCAE5E093CAff8Ff8E147DdAfc704EC619",
@@ -139,7 +144,7 @@ func TestSessionPermissionsFromJSON(t *testing.T) {
 		"permissions": "invalid data"
 	}`
 
-	_, err = SessionPermissionsFromJSON(invalidJSON)
+	err = json.Unmarshal([]byte(invalidJSON), &session)
 	if err == nil {
 		t.Fatalf("Expected error, but got nil")
 	}

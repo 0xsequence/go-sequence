@@ -16,7 +16,7 @@
           "type": "bytes"
         }
       ],
-      "name": "isValidSapientSignatureCompact",
+      "name": "recoverSapientSignatureCompact",
       "outputs": [
         {
           "internalType": "bytes32",

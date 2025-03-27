@@ -21,6 +21,7 @@ package tools
 // technique see https://gist.github.com/tschaub/66f5feb20ae1b5166e9fe928c5cba5e4
 
 import (
-	_ "github.com/0xsequence/ethkit/cmd/ethkit"
-	_ "github.com/webrpc/webrpc/cmd/webrpc-gen"
+	_ "github.com/0xsequence/ethkit"
+	_ "github.com/webrpc/webrpc"
+	_ "go.uber.org/mock/gomock"
 )
