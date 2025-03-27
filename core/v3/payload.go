@@ -509,7 +509,7 @@ func decodeCall(data []byte, address common.Address) (Call, []byte, error) {
 		if len(data) < 20 {
 			return Call{}, nil, fmt.Errorf("no to")
 		}
-		call.To, data = common.BytesToAddress(data), data[20:]
+		call.To, data = common.BytesToAddress(data[:20]), data[20:]
 	}
 
 	if flags&0x02 != 0 {
