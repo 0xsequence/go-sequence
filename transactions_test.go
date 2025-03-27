@@ -1048,11 +1048,11 @@ func TestTxnDecodeExecdata(t *testing.T) {
 	txns, nonce, _, err := sequence.DecodeExecdata(common.FromHex(input), common.HexToAddress("0x60349b199C2fEF7C3e1b53785dE5189493839b75"), big.NewInt(1337))
 	assert.NoError(t, err)
 
-	assert.Equal(t, txns[0].To, common.HexToAddress("0x8f93229DC06f131943F44F82CFbbD53FCC26C5C9"))
-	assert.Equal(t, txns[0].Value, big.NewInt(0))
-	assert.Equal(t, txns[0].GasLimit, big.NewInt(0))
-	assert.Equal(t, txns[0].DelegateCall, false)
-	assert.Equal(t, txns[0].RevertOnError, false)
+	assert.Equal(t, common.HexToAddress("0x8f93229DC06f131943F44F82CFbbD53FCC26C5C9"), txns[0].To)
+	assert.Equal(t, 0, txns[0].Value.Cmp(common.Big0))
+	assert.Equal(t, 0, txns[0].GasLimit.Cmp(big.NewInt(68764)))
+	assert.Equal(t, false, txns[0].DelegateCall)
+	assert.Equal(t, false, txns[0].RevertOnError)
 
 	assert.Equal(t, nonce, big.NewInt(21))
 }

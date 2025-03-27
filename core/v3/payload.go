@@ -495,7 +495,10 @@ func (c Call) encode(address common.Address) []byte {
 }
 
 func decodeCall(data []byte, address common.Address) (Call, []byte, error) {
-	var call Call
+	call := Call{
+		Value: new(big.Int),
+		GasLimit: new(big.Int),
+	}
 
 	if len(data) < 1 {
 		return Call{}, nil, fmt.Errorf("no flags")
