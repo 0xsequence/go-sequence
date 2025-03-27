@@ -56,7 +56,7 @@ func CreateIntentCallsPayload(op *IntentOperation, target ...common.Address) (v3
 	}
 
 	// Construct the payload with the correct address, chain ID, and calls.
-	bundle := v3.ConstructCallsPayload(addr, op.chainId, op.calls, op.space, op.nonce)
+	bundle := v3.NewCallsPayload(addr, op.chainId, op.calls, op.space, op.nonce)
 
 	// Set consistent gas limit to 0 for all calls
 	for i := range bundle.Calls {
