@@ -489,6 +489,10 @@ type SignedTransactions struct {
 	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
 }
 
+func (t *SignedTransactions) Payload() (v3.CallsPayload, error) {
+	return t.Transactions.Payload(t.WalletAddress, t.ChainID, t.Space, t.Nonce)
+}
+
 func (t *SignedTransactions) Execdata() ([]byte, error) {
 	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
