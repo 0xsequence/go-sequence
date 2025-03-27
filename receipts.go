@@ -95,7 +95,7 @@ func TryDecodeCalldata(
 	provider *ethrpc.Provider,
 	transaction *types.Transaction,
 ) (common.Address, Transactions, *big.Int, []byte, error) {
-	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data(), common.Address{}, nil)
 	if err == nil {
 		return *transaction.To(), decodedTransactions, decodedNonce, decodedSignature, nil
 	}
@@ -107,7 +107,7 @@ func TryDecodeCalldata(
 		return common.Address{}, nil, nil, nil, err
 	}
 
-	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed)
+	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed, common.Address{}, nil)
 	if err != nil {
 		return common.Address{}, nil, nil, nil, err
 	}

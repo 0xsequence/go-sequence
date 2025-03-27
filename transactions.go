@@ -244,7 +244,6 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 			Data:            data,
 			GasLimit:        tx.GasLimit,
 			DelegateCall:    tx.DelegateCall,
-			OnlyFallback:    false,
 			BehaviorOnError: behaviorOnError,
 		}
 	}
@@ -261,26 +260,125 @@ func (t Transactions) EncodeRaw() ([]byte, error) {
 	return encoder.Pack(encoded)
 }
 
-func DecodeRawTransactions(data []byte) (Transactions, error) {
-	decoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
-	values, err := decoder.Unpack(data)
-	if err != nil {
-		return nil, err
+func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int) (Transactions, *big.Int, []byte, error) {
+	if len(data) < 4 {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 	}
+
 	var transactions []Transaction
-	if err = decoder.Copy(&transactions, values); err != nil {
-		return nil, err
-	}
-	for i := range transactions {
-		children, nonce, signature, err := DecodeExecdata(transactions[i].Data)
+	var nonce *big.Int
+	var signature []byte
+	var err error
+
+	// Check for V1 methods
+	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
+
+	// Check for V3 methods
+	v3ExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["execute"]
+	v3SelfExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["selfExecute"]
+
+	if bytes.Equal(data[:4], executeMethod.ID) {
+		// V1 execute method
+		var values []interface{}
+		values, err = executeMethod.Inputs.Unpack(data[4:])
 		if err == nil {
-			transactions[i].Data = nil
-			transactions[i].Transactions = children
-			transactions[i].Nonce = nonce
-			transactions[i].Signature = signature
+			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
+		}
+	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
+		// V1 selfExecute method
+		var values []interface{}
+		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
+		}
+	} else if bytes.Equal(data[:4], v3ExecuteMethod.ID) {
+		// V3 execute method takes (bytes calldata _payload, bytes calldata _signature)
+		var values []interface{}
+		values, err = v3ExecuteMethod.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		var payload, sig []byte
+		err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &sig}, values)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Decode the V3 payload
+		decoded, err := v3.DecodeCalls(walletAddress, chainID, payload)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Convert V3 payload to Transactions
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+		nonce = decoded.Nonce
+	} else if bytes.Equal(data[:4], v3SelfExecuteMethod.ID) {
+		// V3 selfExecute method takes (bytes calldata _payload)
+		var values []interface{}
+		values, err = v3SelfExecuteMethod.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		var payload []byte
+		err = v3SelfExecuteMethod.Inputs.Copy(&[]interface{}{&payload}, values)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Decode the V3 payload
+		decoded, err := v3.DecodeCalls(walletAddress, chainID, payload)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+		nonce = decoded.Nonce
+	} else {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
+	}
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Recursively decode nested transactions
+	for i := 0; i < len(transactions); i++ {
+		if len(transactions[i].Data) > 0 {
+			decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data, walletAddress, chainID)
+			if err == nil {
+				transactions[i].Data = nil
+				transactions[i].Transactions = decodedTransactions
+				transactions[i].Nonce = decodedNonce
+				transactions[i].Signature = decodedSignature
+			}
 		}
 	}
-	return NewTransactionsFromValues(transactions), nil
+
+	return NewTransactionsFromValues(transactions), nonce, signature, nil
 }
 
 // Append will append the passed txns to the `t` array (as separate Transaction elements).
@@ -495,7 +593,7 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig core.WalletConfig, w
 }
 
 func ReduceExecdataSignatures(chainID *big.Int, data []byte) ([]byte, error) {
-	transactions, nonce, signature, err := DecodeExecdata(data)
+	transactions, nonce, signature, err := DecodeExecdata(data, common.Address{}, chainID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode execdata: %w", err)
 	}
@@ -514,114 +612,24 @@ func ReduceExecdataSignatures(chainID *big.Int, data []byte) ([]byte, error) {
 	return transaction.Execdata()
 }
 
-func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
-	if len(data) < 4 {
-		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
-	}
-
-	var transactions []Transaction
-	var nonce *big.Int
-	var signature []byte
-	var err error
-
-	// Check for V1 methods
-	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
-	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
-
-	// Check for V3 methods
-	v3ExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["execute"]
-	v3SelfExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["selfExecute"]
-
-	if bytes.Equal(data[:4], executeMethod.ID) {
-		// V1 execute method
-		var values []interface{}
-		values, err = executeMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
-		}
-	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
-		// V1 selfExecute method
-		var values []interface{}
-		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
-		}
-	} else if bytes.Equal(data[:4], v3ExecuteMethod.ID) {
-		// V3 execute method takes (bytes calldata _payload, bytes calldata _signature)
-		var values []interface{}
-		values, err = v3ExecuteMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			var payload, sig []byte
-			err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &sig}, values)
-			if err == nil {
-				// Decode the V3 payload
-				decoded, err := v3.DecodeRawPayload(common.Address{}, nil, payload)
-				if err == nil {
-					if callsPayload, ok := decoded.(v3.CallsPayload); ok {
-						// Convert V3 calls to Transactions
-						transactions = make([]Transaction, len(callsPayload.Calls))
-						for i, call := range callsPayload.Calls {
-							transactions[i] = Transaction{
-								To:            call.To,
-								Value:         call.Value,
-								Data:          call.Data,
-								GasLimit:      call.GasLimit,
-								DelegateCall:  call.DelegateCall,
-								RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
-							}
-						}
-						nonce = callsPayload.Nonce
-						signature = sig
-					}
-				}
-			}
-		}
-	} else if bytes.Equal(data[:4], v3SelfExecuteMethod.ID) {
-		// V3 selfExecute method takes (bytes calldata _payload)
-		var values []interface{}
-		values, err = v3SelfExecuteMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			var payload []byte
-			err = v3SelfExecuteMethod.Inputs.Copy(&[]interface{}{&payload}, values)
-			if err == nil {
-				// Decode the V3 payload
-				decoded, err := v3.DecodeRawPayload(common.Address{}, nil, payload)
-				if err == nil {
-					if callsPayload, ok := decoded.(v3.CallsPayload); ok {
-						// Convert V3 calls to Transactions
-						transactions = make([]Transaction, len(callsPayload.Calls))
-						for i, call := range callsPayload.Calls {
-							transactions[i] = Transaction{
-								To:            call.To,
-								Value:         call.Value,
-								Data:          call.Data,
-								GasLimit:      call.GasLimit,
-								DelegateCall:  call.DelegateCall,
-								RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
-							}
-						}
-						nonce = callsPayload.Nonce
-					}
-				}
-			}
-		}
-	} else {
-		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
-	}
+func DecodeRawTransactions(data []byte) (Transactions, error) {
+	decoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
+	values, err := decoder.Unpack(data)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-
-	// Recursively decode nested transactions
-	for i := 0; i < len(transactions); i++ {
-		decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data)
+	var transactions []Transaction
+	if err = decoder.Copy(&transactions, values); err != nil {
+		return nil, err
+	}
+	for i := range transactions {
+		children, nonce, signature, err := DecodeExecdata(transactions[i].Data, common.Address{}, nil)
 		if err == nil {
 			transactions[i].Data = nil
-			transactions[i].Transactions = decodedTransactions
-			transactions[i].Nonce = decodedNonce
-			transactions[i].Signature = decodedSignature
+			transactions[i].Transactions = children
+			transactions[i].Nonce = nonce
+			transactions[i].Signature = signature
 		}
 	}
-
-	return NewTransactionsFromValues(transactions), nonce, signature, nil
+	return NewTransactionsFromValues(transactions), nil
 }
