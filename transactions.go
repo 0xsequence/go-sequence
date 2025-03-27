@@ -360,22 +360,22 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 	} else {
 		// V3 guest module allows sending just the packed calls payload without solidity abi encoding
 		decoded, err := v3.DecodeCalls(walletAddress, chainID, data)
-		if err == nil {
-			transactions = make([]Transaction, len(decoded.Calls))
-			for i, call := range decoded.Calls {
-				transactions[i] = Transaction{
-					To:            call.To,
-					Value:         call.Value,
-					Data:          call.Data,
-					GasLimit:      call.GasLimit,
-					DelegateCall:  call.DelegateCall,
-					RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
-				}
-			}
-			nonce = decoded.Nonce
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 		}
 
-		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+		nonce = decoded.Nonce
 	}
 
 	if err != nil {
