@@ -493,6 +493,14 @@ func (t *SignedTransactions) Payload() (v3.CallsPayload, error) {
 	return t.Transactions.Payload(t.WalletAddress, t.ChainID, t.Space, t.Nonce)
 }
 
+func (t *SignedTransactions) ExecuteV3() ([]byte, error) {
+	payload, err := t.Payload()
+	if err != nil {
+		return nil, err
+	}
+	return contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(t.WalletAddress), t.Signature)
+}
+
 func (t *SignedTransactions) Execdata() ([]byte, error) {
 	encodedTxns, err := t.Transactions.EncodedTransactions()
 	if err != nil {
