@@ -3,7 +3,6 @@ package sequence
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -740,8 +739,6 @@ func (w *Wallet[C]) GetSignedIntentTransactionsWithIntentOperations(ctx context.
 
 // GetSignedIntentPayload is the core implementation for creating intent signatures.
 func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperation) (*SignedTransactions, error) {
-	// Logging for debugging purposes
-	log.Println("Creating intent bundle from payload:", op)
 
 	// Compute the digest of the payload
 	bundle, err := CreateIntentCallsPayload(op)
@@ -751,17 +748,11 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperat
 
 	digest := bundle.Digest()
 
-	// Log the intent payload digest for debugging
-	log.Println("Intent payload digest:", digest.Hash.Hex())
-
 	// Sign the payload
 	sig, err := w.SignV3Payload(ctx, bundle)
 	if err != nil {
 		return nil, err
 	}
-
-	// Log the final signature for debugging
-	log.Println("Intent signature created:", common.Bytes2Hex(sig))
 
 	// Convert payload back to Transactions for compatibility with SignedTransactions
 	txns := make(Transactions, len(bundle.Calls))

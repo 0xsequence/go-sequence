@@ -2,13 +2,11 @@ package sequence
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // `IntentOperation` represents a single operation in an intent.
@@ -88,11 +86,8 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 		if err != nil {
 			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
 		}
-		spew.Dump(bundle)
 
 		digest := bundle.Digest()
-
-		log.Println("CreateIntentDigestTree digest:", digest.Hash)
 
 		// Create a subdigest leaf with the computed digest.
 		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
@@ -169,12 +164,6 @@ func GetIntentConfigurationSignature(mainSigner common.Address, ops []*IntentOpe
 	if err != nil {
 		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
 	}
-
-	spew.Dump(config.Tree)
-
-	log.Printf("sig: %s", sig)
-
-	spew.Dump(sig)
 
 	// Get the signature data
 	data, err := sig.Data()
