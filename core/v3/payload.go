@@ -496,7 +496,7 @@ func (c Call) encode(address common.Address) []byte {
 
 func decodeCall(data []byte, address common.Address) (Call, []byte, error) {
 	call := Call{
-		Value: new(big.Int),
+		Value:    new(big.Int),
 		GasLimit: new(big.Int),
 	}
 
@@ -527,7 +527,7 @@ func decodeCall(data []byte, address common.Address) (Call, []byte, error) {
 			return Call{}, nil, fmt.Errorf("no data size")
 		}
 		var dataSize int
-		dataSize, data = int(data[0])<<16 + int(data[1])<<8 + int(data[2]), data[3:]
+		dataSize, data = int(data[0])<<16+int(data[1])<<8+int(data[2]), data[3:]
 		if len(data) < dataSize {
 			return Call{}, nil, fmt.Errorf("no data")
 		}
