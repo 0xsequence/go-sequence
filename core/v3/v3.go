@@ -1908,6 +1908,36 @@ func (c *WalletConfig) ImageHash() core.ImageHash {
 	}
 }
 
+func (c *WalletConfig) BuildSubdigestSignature(noChainID bool) (core.Signature[*WalletConfig], error) {
+	signerSignatures := make(map[common.Address]signerSignature)
+	tree := c.Tree.buildSignatureTree(signerSignatures)
+
+	// Construct a NoChainIDSignature with the wallet config's parameters
+	if noChainID {
+		return &NoChainIDSignature{
+			Signature: &Signature{
+				NoChainId:        noChainID,
+				Threshold:        c.Threshold_,
+				Checkpoint:       c.Checkpoint_,
+				Tree:             tree,
+				Checkpointer:     common.Address{},
+				CheckpointerData: nil,
+			},
+		}, nil
+	}
+
+	return &RegularSignature{
+		Signature: &Signature{
+			NoChainId:        false,
+			Threshold:        c.Threshold_,
+			Checkpoint:       c.Checkpoint_,
+			Tree:             tree,
+			Checkpointer:     common.Address{},
+			CheckpointerData: nil,
+		},
+	}, nil
+}
+
 func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
 	isValid := len(validateSigningPower) == 0 || !validateSigningPower[0]
 	configSigners := c.Signers()

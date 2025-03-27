@@ -718,6 +718,70 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 	return nil, fmt.Errorf("unknown wallet config type")
 }
 
+// GetSignedIntentTransactionWithIntentOperation creates an intent signature for a v3.CallsPayload.
+func (w *Wallet[C]) GetSignedIntentTransactionWithIntentOperation(ctx context.Context, op *IntentOperation) (*SignedTransactions, error) {
+	return w.GetSignedIntentPayload(ctx, op)
+}
+
+// GetSignedIntentTransactionsWithIntentOperations creates an intent signature for multiple v3.CallsPayload objects.
+func (w *Wallet[C]) GetSignedIntentTransactionsWithIntentOperations(ctx context.Context, ops []*IntentOperation) (*SignedTransactions, error) {
+	if len(ops) == 0 {
+		return nil, fmt.Errorf("cannot sign an empty set of payloads")
+	}
+
+	// For now, we only support a single payload in the batch
+	if len(ops) > 1 {
+		return nil, fmt.Errorf("multiple payloads not supported yet, please use CreateIntentDigestTree for multiple payloads")
+	}
+
+	return w.GetSignedIntentPayload(ctx, ops[0])
+}
+
+// GetSignedIntentPayload is the core implementation for creating intent signatures.
+func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperation) (*SignedTransactions, error) {
+
+	// Compute the digest of the payload
+	bundle, err := CreateIntentCallsPayload(op)
+	if err != nil {
+		return nil, err
+	}
+
+	digest := bundle.Digest()
+
+	// Sign the payload
+	sig, err := w.SignV3Payload(ctx, bundle)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert payload back to Transactions for compatibility with SignedTransactions
+	txns := make(Transactions, len(bundle.Calls))
+	for i, call := range bundle.Calls {
+		txns[i] = &Transaction{
+			To:            call.To,
+			Value:         call.Value,
+			Data:          call.Data,
+			GasLimit:      call.GasLimit,
+			DelegateCall:  call.DelegateCall,
+			RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			Nonce:         bundle.Nonce,
+		}
+	}
+
+	// Return the signed transactions
+	return &SignedTransactions{
+		ChainID:       w.chainID,
+		WalletAddress: w.address,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  txns,
+		Space:         bundle.Space,
+		Nonce:         bundle.Nonce,
+		Digest:        digest.Hash,
+		Signature:     sig,
+	}, nil
+}
+
 func (w *Wallet[C]) SendTransaction(ctx context.Context, signedTxns *SignedTransactions, feeQuote ...*RelayerFeeQuote) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	return w.SendTransactions(ctx, signedTxns, feeQuote...)
 }

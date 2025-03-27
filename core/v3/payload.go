@@ -377,19 +377,19 @@ func (p basePayload) domain() ethcoder.TypedDataDomain {
 
 func NewCallsPayload(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
 	if chainID == nil {
-		chainID = new(big.Int)
+		chainID = big.NewInt(0)
 	}
 	if len(calls_) >= 0x10000 {
 		panic(fmt.Errorf("number of calls %v >= 2^16", len(calls_)))
 	}
 	if space == nil {
-		space = new(big.Int)
+		space = big.NewInt(0)
 	}
 	if space.Sign() < 0 || space.Cmp(new(big.Int).Lsh(common.Big1, 160)) >= 0 {
 		panic(fmt.Errorf("space %v is out of bounds [0, 2^160)", space))
 	}
 	if nonce == nil {
-		nonce = new(big.Int)
+		nonce = big.NewInt(0)
 	}
 	if nonce.Sign() < 0 || nonce.Cmp(new(big.Int).Lsh(common.Big1, 56)) >= 0 {
 		panic(fmt.Errorf("nonce %v is out of bounds [0, 2^56)", nonce))
@@ -427,7 +427,7 @@ type Call struct {
 func (c Call) asMap() map[string]any {
 	value := c.Value
 	if value == nil {
-		value = new(big.Int)
+		value = big.NewInt(0)
 	}
 
 	data := c.Data
@@ -437,7 +437,7 @@ func (c Call) asMap() map[string]any {
 
 	gasLimit := c.GasLimit
 	if gasLimit == nil {
-		gasLimit = new(big.Int)
+		gasLimit = big.NewInt(0)
 	}
 
 	return map[string]any{
@@ -645,8 +645,8 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 
 func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPayload, error) {
 	var space, nonce *big.Int
-	space = new(big.Int)
-	nonce = new(big.Int)
+	space = big.NewInt(0)
+	nonce = big.NewInt(0)
 
 	if len(data) < 1 {
 		return CallsPayload{}, fmt.Errorf("no flags")
@@ -701,7 +701,7 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 
 func NewMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
-		chainID = new(big.Int)
+		chainID = big.NewInt(0)
 	}
 	if message_ == nil {
 		message_ = []byte{}
@@ -794,7 +794,7 @@ func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Paylo
 
 func NewConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
-		chainID = new(big.Int)
+		chainID = big.NewInt(0)
 	}
 	if isNil(imageHash) {
 		panic(fmt.Errorf("no config"))
@@ -877,7 +877,7 @@ func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (
 
 func NewDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
 	if chainID == nil {
-		chainID = new(big.Int)
+		chainID = big.NewInt(0)
 	}
 	if parentWallets == nil {
 		parentWallets = append(parentWallets, nil)
