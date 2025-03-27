@@ -700,6 +700,10 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 		calls = append(calls, call)
 	}
 
+	if len(data) != 0 {
+		return CallsPayload{}, fmt.Errorf("%v trailing bytes in payload", len(data))
+	}
+
 	return NewCallsPayload(address, chainID, calls, space, nonce), nil
 }
 
