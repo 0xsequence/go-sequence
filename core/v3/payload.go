@@ -523,7 +523,8 @@ func decodeCall(data []byte, address common.Address) (Call, []byte, error) {
 		if len(data) < 3 {
 			return Call{}, nil, fmt.Errorf("no data size")
 		}
-		dataSize := int(data[0])<<16 + int(data[1])<<8 + int(data[2])
+		var dataSize int
+		dataSize, data = int(data[0])<<16 + int(data[1])<<8 + int(data[2]), data[3:]
 		if len(data) < dataSize {
 			return Call{}, nil, fmt.Errorf("no data")
 		}
