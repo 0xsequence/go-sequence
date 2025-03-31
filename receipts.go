@@ -11,6 +11,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 )
 
@@ -221,7 +222,7 @@ func V3DecodeCallFailedEvent(log *types.Log) (common.Hash, *big.Int, string, err
 	}
 	revert, err := abi.UnpackRevert(result)
 	if err != nil {
-		return common.Hash{}, nil, "", fmt.Errorf("unable to unpack revert: %w", err)
+		return transaction, index, hexutil.Encode(result), nil
 	}
 	return transaction, index, revert, nil
 }
@@ -236,7 +237,7 @@ func V3DecodeCallAbortedEvent(log *types.Log) (common.Hash, *big.Int, string, er
 	}
 	revert, err := abi.UnpackRevert(result)
 	if err != nil {
-		return common.Hash{}, nil, "", fmt.Errorf("unable to unpack revert: %w", err)
+		return transaction, index, hexutil.Encode(result), nil
 	}
 	return transaction, index, revert, nil
 }
