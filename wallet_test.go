@@ -206,7 +206,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 
 		wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](eoa)
 		assert.NoError(t, err)
-		assert.Equal(t, "0xa72D46fe566da8b042933A160415416722399Daa", wallet.Address().Hex())
+		assert.Equal(t, "0xD22977518fA36F50B7bD550cADE461ecCc5eAe7F", wallet.Address().Hex())
 
 		wallet.SetProvider(testChain.Provider)
 
@@ -215,7 +215,7 @@ func TestWalletSignMessageAndValidate(t *testing.T) {
 		sig, err := wallet.SignMessage(ethcoder.MustHexDecode(message))
 		assert.NoError(t, err)
 
-		expectedSig := "0x040001717fddd712ef3a88c89909ab5fe3dec9b363a3e762d8b6c2d5b6c558b8c9569d923eba1467224e6711dbc596a27e9a35c494bfe5d702f101e06b3fa7e7d633303a"
+		expectedSig := "0x04000171544ae045d42949fc1bcf9fc906e7f8328bdae41808678dbde69e3dde507e439fdc546725254d51d6b6b1ed519272e884eafacc62054d570658b6beeec7025361"
 		assert.Equal(t, expectedSig, ethcoder.HexEncode(sig))
 
 		isValidSig, err := wallet.IsValidSignature(sequence.MessageDigest(ethcoder.MustHexDecode(message)), sig)
