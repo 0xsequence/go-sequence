@@ -537,34 +537,40 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 			return 0, err
 		}
 
-		var execData []byte
+		var simulateData []byte
 		if _, ok := walletConfig.(*v1.WalletConfig); ok {
-			execData, err = contracts.V1.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			simulateData, err = contracts.V1.WalletGasEstimator.Encode("simulateExecute", encTxs)
 			if err != nil {
 				return 0, err
 			}
 
 			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
-				Data: execData,
+				Data: simulateData,
 			}, overrides, "")
+
 			if err != nil {
 				return 0, err
 			}
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
+			simulateData, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", encTxs)
 			if err != nil {
 				return 0, err
 			}
 
+			simOverrides := map[common.Address]*CallOverride{
+				address: {Code: walletGasEstimatorCodeV2},
+			}
+
 			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
-				Data: execData,
-			}, overrides, "")
+				Data: simulateData,
+			}, simOverrides, "")
+
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("EstimateCall failed during V2 simulation: %w", err)
 			}
 
 			estimates[i] = estimated
@@ -575,17 +581,18 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 
-			execData, err := contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
+			simulateData, err = contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
 			if err != nil {
 				return 0, err
 			}
 
 			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
-				Data: execData,
+				Data: simulateData,
 			}, overrides, "")
+
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("EstimateCall failed during V3 simulation: %w", err)
 			}
 
 			estimates[i] = estimated
