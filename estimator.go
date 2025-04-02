@@ -598,7 +598,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		marginalGas := big.NewInt(0).Sub(estimates[i+1], estimates[i])
 
 		if marginalGas.Cmp(minGasLimit) < 0 {
-			txs[i].GasLimit = new(big.Int).Set(minGasLimit)
+			txs[i].GasLimit = big.NewInt(0)
 		} else {
 			txs[i].GasLimit = marginalGas
 		}
