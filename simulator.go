@@ -7,6 +7,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletsimulator"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -51,18 +52,34 @@ func Simulate(ctx context.Context, wallet common.Address, transactions Transacti
 		return nil, fmt.Errorf("unable to encode calls: %w", err)
 	}
 
-	response, err := provider.Do(ctx, ethrpc.NewCall("eth_call", map[string]any{
-		"to":    wallet,
-		"input": data,
-	}, map[string]any{
-		wallet.String(): map[string]any{"code": contracts.V3.WalletSimulator.DeployedBin},
-	}))
+	params := struct {
+		To   common.Address `json:"to"`
+		Data string         `json:"input"`
+	}{
+		To:   wallet,
+		Data: hexutil.Encode(data),
+	}
+
+	overrides := map[string]any{
+		wallet.String(): map[string]any{
+			"code": hexutil.Encode(contracts.V3.WalletSimulator.DeployedBin),
+		},
+	}
+
+	var response string
+	call := ethrpc.NewCallBuilder[string]("eth_call", nil, params, "latest", overrides)
+	_, err = provider.Do(ctx, call.Into(&response))
 	if err != nil {
 		return nil, fmt.Errorf("unable to simulate: %w", err)
 	}
 
+	decoded, err := hexutil.Decode(response)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode response: %w", err)
+	}
+
 	var results []walletsimulator.SimulatorResult
-	if err := contracts.V3.WalletSimulator.Decode(&results, "eth_call", response); err != nil {
+	if err := contracts.V3.WalletSimulator.Decode(&results, "simulate", decoded); err != nil {
 		return nil, fmt.Errorf("unable to decode results: %w", err)
 	}
 
