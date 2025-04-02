@@ -554,22 +554,17 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 
 			estimates[i] = estimated
 		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-			simulateData, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", encTxs)
+			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
 			if err != nil {
 				return 0, err
 			}
 
-			simOverrides := map[common.Address]*CallOverride{
-				address: {Code: walletGasEstimatorCodeV2},
-			}
-
 			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
-				Data: simulateData,
-			}, simOverrides, "")
-
+				Data: execData,
+			}, overrides, "")
 			if err != nil {
-				return 0, fmt.Errorf("EstimateCall failed during V2 simulation: %w", err)
+				return 0, err
 			}
 
 			estimates[i] = estimated
@@ -603,7 +598,7 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		marginalGas := big.NewInt(0).Sub(estimates[i+1], estimates[i])
 
 		if marginalGas.Cmp(minGasLimit) < 0 {
-			txs[i].GasLimit = new(big.Int).Set(minGasLimit)
+			txs[i].GasLimit = big.NewInt(0)
 		} else {
 			txs[i].GasLimit = marginalGas
 		}
