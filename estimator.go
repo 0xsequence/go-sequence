@@ -592,9 +592,16 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	}
 
-	// Apply gas limits to all transactions
+	minGasLimit := big.NewInt(25000)
+
 	for i := range txs {
-		txs[i].GasLimit = big.NewInt(0).Sub(estimates[i+1], estimates[i])
+		marginalGas := big.NewInt(0).Sub(estimates[i+1], estimates[i])
+
+		if marginalGas.Cmp(minGasLimit) < 0 {
+			txs[i].GasLimit = new(big.Int).Set(minGasLimit)
+		} else {
+			txs[i].GasLimit = marginalGas
+		}
 	}
 
 	return estimates[len(estimates)-1].Uint64(), nil
