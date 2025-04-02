@@ -560,14 +560,10 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 				return 0, err
 			}
 
-			simOverrides := map[common.Address]*CallOverride{
-				address: {Code: walletGasEstimatorCodeV2},
-			}
-
 			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
 				To:   address,
 				Data: simulateData,
-			}, simOverrides, "")
+			}, overrides, "")
 
 			if err != nil {
 				return 0, fmt.Errorf("EstimateCall failed during V2 simulation: %w", err)
