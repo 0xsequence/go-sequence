@@ -17,9 +17,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/contracts"
-	walletgasestimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
-	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletestimator"
-	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletsimulator"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
@@ -67,9 +64,6 @@ type Estimator struct {
 	cache cachestore.Store[[]byte]
 }
 
-type SimulateResult walletgasestimator.MainModuleGasEstimationSimulateResult
-type SimulatorResult walletsimulator.SimulatorResult
-
 var defaultEstimator = &Estimator{
 	BaseCost:     21000,
 	DataOneCost:  16,
@@ -80,7 +74,6 @@ var gasEstimatorCode = hexutil.Encode(contracts.GasEstimator.DeployedBin)
 var walletGasEstimatorCode = hexutil.Encode(contracts.V1.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV2 = hexutil.Encode(contracts.V2.WalletGasEstimator.DeployedBin)
 var walletGasEstimatorCodeV3 = hexutil.Encode(contracts.V3.WalletEstimator.DeployedBin)
-var walletGasSimulatorCodeV3 = hexutil.Encode(contracts.V3.WalletSimulator.DeployedBin)
 
 func NewEstimator() *Estimator {
 	defaultCache, _ := memlru.NewWithSize[[]byte](defaultEstimatorCacheSize)
@@ -605,196 +598,4 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 	}
 
 	return estimates[len(estimates)-1].Uint64(), nil
-}
-
-func V1Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
-	if block == "" {
-		block = "latest"
-	}
-
-	encoded, err := transactions.EncodedTransactions()
-	if err != nil {
-		return nil, err
-	}
-
-	callData, err := contracts.V1.WalletGasEstimator.Encode("simulateExecute", encoded)
-	if err != nil {
-		return nil, err
-	}
-
-	type ethCallParams struct {
-		To   common.Address `json:"to"`
-		Data string         `json:"data"`
-	}
-
-	params := ethCallParams{
-		To:   wallet,
-		Data: hexutil.Encode(callData),
-	}
-
-	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasEstimatorCode},
-	}
-	for address, override := range overrides {
-		if address == wallet {
-			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
-		}
-
-		allOverrides[address] = override
-	}
-
-	var response string
-	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
-	if err != nil {
-		return nil, err
-	}
-
-	resultsData, err := hexutil.Decode(response)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []SimulateResult
-	err = contracts.V1.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
-	if err != nil {
-		return nil, err
-	}
-
-	return results, nil
-}
-
-func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulateResult, error) {
-	if block == "" {
-		block = "latest"
-	}
-
-	encoded, err := transactions.EncodedTransactions()
-	if err != nil {
-		return nil, err
-	}
-
-	callData, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", encoded)
-	if err != nil {
-		return nil, err
-	}
-
-	type ethCallParams struct {
-		To   common.Address `json:"to"`
-		Data string         `json:"data"`
-	}
-
-	params := ethCallParams{
-		To:   wallet,
-		Data: hexutil.Encode(callData),
-	}
-
-	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasEstimatorCodeV2},
-	}
-	for address, override := range overrides {
-		if address == wallet {
-			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
-		}
-
-		allOverrides[address] = override
-	}
-
-	var response string
-	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
-	if err != nil {
-		return nil, err
-	}
-
-	resultsData, err := hexutil.Decode(response)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []SimulateResult
-	err = contracts.V2.WalletGasEstimator.Decode(&results, "simulateExecute", resultsData)
-	if err != nil {
-		return nil, err
-	}
-
-	return results, nil
-}
-
-func V3Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulatorResult, error) {
-	if block == "" {
-		block = "latest"
-	}
-
-	encoded, err := transactions.EncodedTransactions()
-	if err != nil {
-		return nil, err
-	}
-
-	calls := make([]walletestimator.PayloadCall, 0, len(encoded))
-	for _, transaction := range encoded {
-		behaviorOnError := big.NewInt(0)
-		if transaction.RevertOnError {
-			behaviorOnError.SetInt64(1)
-		}
-		calls = append(calls, walletestimator.PayloadCall{
-			To:              transaction.To,
-			Value:           transaction.Value,
-			Data:            transaction.Data,
-			GasLimit:        transaction.GasLimit,
-			DelegateCall:    transaction.DelegateCall,
-			OnlyFallback:    false,
-			BehaviorOnError: behaviorOnError,
-		})
-	}
-
-	data, err := contracts.V3.WalletSimulator.Encode("simulate", calls)
-	if err != nil {
-		return nil, err
-	}
-
-	type ethCallParams struct {
-		To   common.Address `json:"to"`
-		Data string         `json:"data"`
-	}
-
-	params := ethCallParams{
-		To:   wallet,
-		Data: hexutil.Encode(data),
-	}
-
-	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasSimulatorCodeV3},
-	}
-	for address, override := range overrides {
-		if address == wallet {
-			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
-		}
-
-		allOverrides[address] = override
-	}
-
-	var responseHex string
-	call := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
-	_, err = provider.Do(context.Background(), call.Into(&responseHex))
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := hexutil.Decode(responseHex)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []SimulatorResult
-	err = contracts.V3.WalletSimulator.Decode(&results, "simulate", response)
-	if err != nil {
-		return nil, err
-	}
-
-	return results, nil
-}
-
-func Simulate(provider *ethrpc.Provider, wallet common.Address, transactions Transactions, block string, overrides map[common.Address]*CallOverride) ([]SimulatorResult, error) {
-	return V3Simulate(provider, wallet, transactions, block, overrides)
 }
