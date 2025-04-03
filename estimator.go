@@ -513,89 +513,76 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 		}
 	}
 
-	estimates := make([]*big.Int, len(txs)+1)
-
 	// The nonce is ignored by the MainModuleGasEstimator
 	// so we use a stub nonce takes at least 4 bytes
 	nonce := big.NewInt(4294967295)
 
-	// Compute gas estimation for slices of all transactions
-	// including no transaction execution and all transactions
-
-	for i := range estimates {
-		subTxs := txs[0:i]
-
-		encTxs, err := subTxs.EncodedTransactions()
+	switch walletConfig.(type) {
+	case *v1.WalletConfig:
+		encoded, err := txs.EncodedTransactions()
 		if err != nil {
 			return 0, err
 		}
 
-		var execData []byte
-		if _, ok := walletConfig.(*v1.WalletConfig); ok {
-			execData, err = contracts.V1.WalletMainModule.Encode("execute", encTxs, nonce, signature)
-			if err != nil {
-				return 0, err
-			}
-
-			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
-				To:   address,
-				Data: execData,
-			}, overrides, "")
-			if err != nil {
-				return 0, err
-			}
-
-			estimates[i] = estimated
-		} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-			execData, err = contracts.V2.WalletMainModule.Encode("execute", encTxs, nonce, signature)
-			if err != nil {
-				return 0, err
-			}
-
-			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
-				To:   address,
-				Data: execData,
-			}, overrides, "")
-			if err != nil {
-				return 0, err
-			}
-
-			estimates[i] = estimated
-		} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-			// TODO: set nonce space
-			payload, err := subTxs.Payload(address, chainID, new(big.Int), nonce)
-			if err != nil {
-				return 0, err
-			}
-
-			execData, err := contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
-			if err != nil {
-				return 0, err
-			}
-
-			estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
-				To:   address,
-				Data: execData,
-			}, overrides, "")
-			if err != nil {
-				return 0, err
-			}
-
-			estimates[i] = estimated
+		execData, err := contracts.V1.WalletMainModule.Encode("execute", encoded, nonce, signature)
+		if err != nil {
+			return 0, err
 		}
-	}
 
-	minGasLimit := big.NewInt(25000)
-
-	for i := range txs {
-		marginalGas := big.NewInt(0).Sub(estimates[i+1], estimates[i])
-
-		if marginalGas.Cmp(minGasLimit) < 0 {
-			txs[i].GasLimit = big.NewInt(0)
-		} else {
-			txs[i].GasLimit = marginalGas
+		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
+			To:   address,
+			Data: execData,
+		}, overrides, "")
+		if err != nil {
+			return 0, err
 		}
-	}
 
-	return estimates[len(estimates)-1].Uint64(), nil
+		return estimated.Uint64(), nil
+
+	case *v2.WalletConfig:
+		encoded, err := txs.EncodedTransactions()
+		if err != nil {
+			return 0, err
+		}
+
+		execData, err := contracts.V2.WalletMainModule.Encode("execute", encoded, nonce, signature)
+		if err != nil {
+			return 0, err
+		}
+
+		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
+			To:   address,
+			Data: execData,
+		}, overrides, "")
+		if err != nil {
+			return 0, err
+		}
+
+		return estimated.Uint64(), nil
+
+	case *v3.WalletConfig:
+		// TODO: set nonce space
+		payload, err := txs.Payload(address, chainID, new(big.Int), nonce)
+		if err != nil {
+			return 0, err
+		}
+
+		execData, err := contracts.V3.WalletEstimator.Encode("estimate", payload.Encode(address), signature)
+		if err != nil {
+			return 0, err
+		}
+
+		estimated, err := e.EstimateCall(ctx, provider, &EstimateTransaction{
+			To:   address,
+			Data: execData,
+		}, overrides, "")
+		if err != nil {
+			return 0, err
+		}
+
+		return estimated.Uint64(), nil
+
+	default:
+		return 0, fmt.Errorf("unknown wallet config type %T", walletConfig)
+	}
 }
