@@ -16,10 +16,11 @@ type AddressCalculateParams struct {
 
 // Config params
 type ConfigNewParams struct {
-	Threshold  string `json:"threshold"`
-	Checkpoint string `json:"checkpoint"`
-	From       string `json:"from"`
-	Content    string `json:"content"`
+	Threshold    string `json:"threshold"`
+	Checkpoint   string `json:"checkpoint"`
+	From         string `json:"from"`
+	Content      string `json:"content"`
+	Checkpointer string `json:"checkpointer,omitempty"`
 }
 
 // ConfigImageHashParams represents parameters for calculating image hash

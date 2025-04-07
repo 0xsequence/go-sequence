@@ -131,9 +131,10 @@ func (n *NodeElement) ToTree() v3.WalletConfigTree {
 }
 
 type JSONOutput struct {
-	Threshold  string      `json:"threshold"`
-	Checkpoint string      `json:"checkpoint"`
-	Topology   interface{} `json:"topology"`
+	Threshold    string      `json:"threshold"`
+	Checkpoint   string      `json:"checkpoint"`
+	Topology     interface{} `json:"topology"`
+	Checkpointer string      `json:"checkpointer,omitempty"`
 }
 
 type JSONLeaf struct {
@@ -158,9 +159,10 @@ type JSONNested struct {
 }
 
 type ConfigOutput struct {
-	Threshold  string      `json:"threshold"`
-	Checkpoint string      `json:"checkpoint"`
-	Topology   interface{} `json:"topology"`
+	Threshold    string      `json:"threshold"`
+	Checkpoint   string      `json:"checkpoint"`
+	Topology     interface{} `json:"topology"`
+	Checkpointer string      `json:"checkpointer,omitempty"`
 }
 
 func (c ConfigOutput) MarshalJSON() ([]byte, error) {
@@ -444,8 +446,8 @@ func parseNestedElement(element string) (*NestedElement, error) {
 }
 
 // Updated createConfig function
-func createConfig(threshold uint16, checkpoint uint64, content string) (ConfigOutput, error) {
-	log.Printf("Creating config with threshold: %d, checkpoint: %d, content: %q", threshold, checkpoint, content)
+func createConfig(threshold uint16, checkpoint uint64, content string, checkpointer string) (ConfigOutput, error) {
+	log.Printf("Creating config with threshold: %d, checkpoint: %d, content: %q, checkpointer: %q", threshold, checkpoint, content, checkpointer)
 
 	elements, err := parseElements(content)
 	if err != nil {
@@ -470,9 +472,10 @@ func createConfig(threshold uint16, checkpoint uint64, content string) (ConfigOu
 	topology := treeToMap(tree)
 
 	return ConfigOutput{
-		Threshold:  fmt.Sprintf("%d", threshold),
-		Checkpoint: fmt.Sprintf("%d", checkpoint),
-		Topology:   topology,
+		Threshold:    fmt.Sprintf("%d", threshold),
+		Checkpoint:   fmt.Sprintf("%d", checkpoint),
+		Topology:     topology,
+		Checkpointer: checkpointer,
 	}, nil
 }
 
@@ -494,12 +497,19 @@ func createNewConfig(params *ConfigNewParams) (string, error) {
 		return "", fmt.Errorf("checkpoint too large: %s", params.Checkpoint)
 	}
 
+	if params.Checkpointer != "" {
+		if !common.IsHexAddress(params.Checkpointer) {
+			return "", fmt.Errorf("invalid checkpointer address: %s", params.Checkpointer)
+		}
+	}
+
 	if params.From != "flat" {
 		return "", fmt.Errorf("unsupported 'from' format: %s", params.From)
 	}
 
-	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q", params.Threshold, params.Checkpoint, params.Content)
-	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), params.Content)
+	log.Printf("Creating config with threshold=%s checkpoint=%s content=%q checkpointer=%q", params.Threshold, params.Checkpoint, params.Content, params.Checkpointer)
+
+	config, err := createConfig(uint16(threshold.Uint64()), uint64(checkpoint.Uint64()), params.Content, params.Checkpointer)
 	if err != nil {
 		return "", fmt.Errorf("failed to create config: %w", err)
 	}
@@ -658,6 +668,7 @@ func newConfigCmd() *cobra.Command {
 	}
 	newCmd.Flags().StringVar(&newParams.Threshold, "threshold", "1", "Threshold value for the configuration")
 	newCmd.Flags().StringVar(&newParams.Checkpoint, "checkpoint", "0", "Checkpoint value for the configuration")
+	newCmd.Flags().StringVar(&newParams.Checkpointer, "checkpointer", "", "Optional checkpointer address for the configuration")
 	newCmd.Flags().StringVar(&newParams.From, "from", "flat", "The process to use to create the configuration")
 
 	imageHashCmd := &cobra.Command{
