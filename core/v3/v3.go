@@ -277,7 +277,7 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 	if thresholdSize == 2 {
 		flag |= 0x20
 	}
-	if len(s.CheckpointerData) > 0 {
+	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
 		flag |= 0x40
 	}
 
@@ -286,7 +286,7 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
 
-	if len(s.CheckpointerData) > 0 {
+	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
 		_, err = writer.Write(s.Checkpointer.Bytes())
 		if err != nil {
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
@@ -433,7 +433,7 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 	if thresholdSize == 2 {
 		flag |= 0x20
 	}
-	if len(s.CheckpointerData) > 0 {
+	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
 		flag |= 0x40
 	}
 
@@ -442,7 +442,7 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 		return fmt.Errorf("unable to write signature flag: %w", err)
 	}
 
-	if len(s.CheckpointerData) > 0 {
+	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
 		_, err = writer.Write(s.Checkpointer.Bytes())
 		if err != nil {
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
