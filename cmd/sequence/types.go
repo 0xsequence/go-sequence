@@ -35,9 +35,10 @@ type ConfigEncodeParams struct {
 
 // Signature params
 type SignatureEncodeParams struct {
-	Input      json.RawMessage `json:"input"`
-	Signatures string          `json:"signatures"`
-	ChainId    bool            `json:"chainId"`
+	Input            json.RawMessage `json:"input"`
+	Signatures       string          `json:"signatures"`
+	ChainId          bool            `json:"chainId"`
+	CheckpointerData string          `json:"checkpointerData,omitempty"`
 }
 
 type SignatureConcatParams struct {

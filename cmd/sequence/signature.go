@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -20,10 +21,11 @@ type SignatureElement struct {
 }
 
 type WalletConfigInput struct {
-	Threshold  json.RawMessage `json:"threshold"`
-	Checkpoint json.RawMessage `json:"checkpoint"`
-	Tree       json.RawMessage `json:"tree,omitempty"`
-	Topology   json.RawMessage `json:"topology,omitempty"`
+	Threshold    json.RawMessage `json:"threshold"`
+	Checkpoint   json.RawMessage `json:"checkpoint"`
+	Tree         json.RawMessage `json:"tree,omitempty"`
+	Topology     json.RawMessage `json:"topology,omitempty"`
+	Checkpointer json.RawMessage `json:"checkpointer,omitempty"`
 }
 
 func convertTopologyToTree(topology interface{}) (interface{}, error) {
@@ -142,6 +144,16 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 		"checkpoint": convertNumbers(checkpoint),
 	}
 
+	var checkpointerStr string
+	if input.Checkpointer != nil {
+		if err := json.Unmarshal(input.Checkpointer, &checkpointerStr); err != nil {
+			return nil, fmt.Errorf("failed to parse checkpointer: %w", err)
+		}
+		if checkpointerStr != "" {
+			rawConfig["checkpointer"] = checkpointerStr
+		}
+	}
+
 	var treeData json.RawMessage
 	if input.Tree != nil {
 		treeData = input.Tree
@@ -181,6 +193,15 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 				Values:  sigParts[2:],
 			}
 			signatures = append(signatures, sig)
+		}
+	}
+
+	var checkpointerDataBytes []byte
+	if p.CheckpointerData != "" {
+		var err error
+		checkpointerDataBytes, err = hex.DecodeString(strings.TrimPrefix(p.CheckpointerData, "0x"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode checkpointer data: %w", err)
 		}
 	}
 
@@ -232,7 +253,7 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 			}
 
 			return 0, nil, core.ErrSigningNoSigner
-		})
+		}, true, checkpointerDataBytes)
 	} else {
 		signature, err = config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			for _, sig := range signatures {
@@ -280,7 +301,7 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 			}
 
 			return 0, nil, core.ErrSigningNoSigner
-		})
+		}, true, checkpointerDataBytes)
 	}
 
 	if err != nil {
@@ -304,6 +325,7 @@ func newSignatureCmd() *cobra.Command {
 	var input string
 	var signatures []string
 	var chainId bool
+	var checkpointerData string
 
 	encodeCmd := &cobra.Command{
 		Use:   "encode [input]",
@@ -322,9 +344,10 @@ func newSignatureCmd() *cobra.Command {
 			allSignatures := strings.Join(signatures, " ")
 
 			params := &SignatureEncodeParams{
-				Input:      json.RawMessage(input),
-				Signatures: allSignatures,
-				ChainId:    chainId,
+				Input:            json.RawMessage(input),
+				Signatures:       allSignatures,
+				ChainId:          chainId,
+				CheckpointerData: checkpointerData,
 			}
 
 			result, err := signatureEncode(params)
@@ -361,6 +384,7 @@ func newSignatureCmd() *cobra.Command {
 
 	encodeCmd.Flags().StringArrayVarP(&signatures, "signature", "s", []string{}, "Signatures")
 	encodeCmd.Flags().BoolVar(&chainId, "chain-id", true, "Use chainId of recovered chain on signature")
+	encodeCmd.Flags().StringVar(&checkpointerData, "checkpointer-data", "", "Checkpointer data in hex format")
 
 	cmd.AddCommand(encodeCmd, concatCmd)
 

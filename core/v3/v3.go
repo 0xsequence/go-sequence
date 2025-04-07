@@ -1953,8 +1953,8 @@ func (c *WalletConfig) BuildSubdigestSignature(noChainID bool) (core.Signature[*
 	}, nil
 }
 
-func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
-	isValid := len(validateSigningPower) == 0 || !validateSigningPower[0]
+func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
+	var isValid bool
 	configSigners := c.Signers()
 
 	signCtx, signCancel := context.WithCancel(ctx)
@@ -1987,18 +1987,23 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 		return nil, fmt.Errorf("not enough signers to build regular signature")
 	}
 
+	var cpData []byte
+	if len(checkpointerData) > 0 {
+		cpData = checkpointerData[0]
+	}
+
 	return &RegularSignature{&Signature{
 		NoChainId:        false,
 		Threshold:        c.Threshold_,
 		Checkpoint:       c.Checkpoint_,
 		Tree:             c.Tree.buildSignatureTree(signerSignatures),
-		Checkpointer:     common.Address{},
-		CheckpointerData: nil,
+		Checkpointer:     c.Checkpointer,
+		CheckpointerData: cpData,
 	}}, nil
 }
 
-func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower ...bool) (core.Signature[*WalletConfig], error) {
-	isValid := len(validateSigningPower) == 0 || !validateSigningPower[0]
+func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
+	var isValid bool
 	configSigners := c.Signers()
 
 	signCtx, signCancel := context.WithCancel(ctx)
@@ -2031,13 +2036,18 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 		return nil, fmt.Errorf("not enough signers to build no chain ID signature")
 	}
 
+	var cpData []byte
+	if len(checkpointerData) > 0 {
+		cpData = checkpointerData[0]
+	}
+
 	return &NoChainIDSignature{&Signature{
 		NoChainId:        true,
 		Threshold:        c.Threshold_,
 		Checkpoint:       c.Checkpoint_,
 		Tree:             c.Tree.buildSignatureTree(signerSignatures),
-		Checkpointer:     common.Address{},
-		CheckpointerData: nil,
+		Checkpointer:     c.Checkpointer,
+		CheckpointerData: cpData,
 	}}, nil
 }
 
