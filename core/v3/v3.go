@@ -1983,7 +1983,7 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 		}
 	}
 
-	if !isValid {
+	if !isValid && validateSigningPower {
 		return nil, fmt.Errorf("not enough signers to build regular signature")
 	}
 
@@ -2032,7 +2032,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 		}
 	}
 
-	if !isValid {
+	if !isValid && validateSigningPower {
 		return nil, fmt.Errorf("not enough signers to build no chain ID signature")
 	}
 
