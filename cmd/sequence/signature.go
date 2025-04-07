@@ -253,7 +253,7 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 			}
 
 			return 0, nil, core.ErrSigningNoSigner
-		}, true, checkpointerDataBytes)
+		}, false, checkpointerDataBytes)
 	} else {
 		signature, err = config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			for _, sig := range signatures {
@@ -301,7 +301,7 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 			}
 
 			return 0, nil, core.ErrSigningNoSigner
-		}, true, checkpointerDataBytes)
+		}, false, checkpointerDataBytes)
 	}
 
 	if err != nil {
