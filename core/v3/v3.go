@@ -137,10 +137,25 @@ func (v3Core) DecodeWalletConfig(object any) (*WalletConfig, error) {
 		return nil, fmt.Errorf("unable to decode wallet config tree: %w", err)
 	}
 
+	var checkpointer_ common.Address
+	if checkpointerVal, ok := object_["checkpointer"]; ok && checkpointerVal != nil {
+		checkpointerStr, ok := checkpointerVal.(string)
+		if !ok {
+			return nil, fmt.Errorf("checkpointer must be a string")
+		}
+		if checkpointerStr != "" {
+			if !common.IsHexAddress(checkpointerStr) {
+				return nil, fmt.Errorf(`invalid checkpointer address: "%v"`, checkpointerStr)
+			}
+			checkpointer_ = common.HexToAddress(checkpointerStr)
+		}
+	}
+
 	return &WalletConfig{
-		Threshold_:  threshold_,
-		Checkpoint_: checkpoint_,
-		Tree:        tree_,
+		Threshold_:   threshold_,
+		Checkpoint_:  checkpoint_,
+		Tree:         tree_,
+		Checkpointer: checkpointer_,
 	}, nil
 }
 
