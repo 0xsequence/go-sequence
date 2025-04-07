@@ -6,97 +6,8 @@
     {
       "inputs": [
         {
-          "components": [
-            {
-              "internalType": "uint8",
-              "name": "kind",
-              "type": "uint8"
-            },
-            {
-              "internalType": "bool",
-              "name": "noChainId",
-              "type": "bool"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "to",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "value",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "data",
-                  "type": "bytes"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "gasLimit",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "delegateCall",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "onlyFallback",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "behaviorOnError",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct Payload.Call[]",
-              "name": "calls",
-              "type": "tuple[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "space",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "nonce",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "message",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "imageHash",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "digest",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address[]",
-              "name": "parentWallets",
-              "type": "address[]"
-            }
-          ],
-          "internalType": "struct Payload.Decoded",
-          "name": "_payload",
-          "type": "tuple"
-        },
-        {
           "internalType": "bytes32",
-          "name": "_subdigest",
+          "name": "_opHash",
           "type": "bytes32"
         },
         {
@@ -110,7 +21,7 @@
           "type": "bytes"
         }
       ],
-      "name": "InvalidNestedSignature",
+      "name": "InvalidERC1271Signature",
       "type": "error"
     },
     {
@@ -185,8 +96,8 @@
       "type": "error"
     }
   ],
-  "bytecode": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220736656bb74f7328bfaf72bb4d13a9f8b26e5472da65e5b8cbe1c9c6b70012ff764736f6c634300081b0033",
-  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220736656bb74f7328bfaf72bb4d13a9f8b26e5472da65e5b8cbe1c9c6b70012ff764736f6c634300081b0033",
+  "bytecode": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122080ed7407928f34a5513b6901d234cd0553433ae9e0d8bbc3c91faeb9fffb0e1764736f6c634300081b0033",
+  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122080ed7407928f34a5513b6901d234cd0553433ae9e0d8bbc3c91faeb9fffb0e1764736f6c634300081b0033",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }
