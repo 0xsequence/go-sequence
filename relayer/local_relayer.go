@@ -163,17 +163,25 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 			signedTxs.Signature,
 		)
 	case 3:
-		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
-			r,
-			signedTxs.WalletAddress,
-			signedTxs.ChainID,
-			signedTxs.WalletConfig,
-			signedTxs.WalletContext,
-			signedTxs.Transactions,
-			signedTxs.Space,
-			signedTxs.Nonce,
-			signedTxs.Signature,
-		)
+		if r.IsDeployTransaction(signedTxs) {
+			payload, err := signedTxs.Payload()
+			if err != nil {
+				return "", nil, nil, err
+			}
+			execdata = payload.Encode(signedTxs.WalletContext.GuestModuleAddress)
+		} else {
+			to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+				r,
+				signedTxs.WalletAddress,
+				signedTxs.ChainID,
+				signedTxs.WalletConfig,
+				signedTxs.WalletContext,
+				signedTxs.Transactions,
+				signedTxs.Space,
+				signedTxs.Nonce,
+				signedTxs.Signature,
+			)
+		}
 	}
 	if err != nil {
 		return "", nil, nil, err
@@ -206,6 +214,8 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				},
 			}
 
+			to = signedTxs.WalletContext.GuestModuleAddress
+
 			switch version {
 			case 1, 2:
 				encodedTxns, err := txns.EncodedTransactions()
@@ -219,28 +229,12 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				}
 
 			case 3:
-				_, execdata, err = sequence.EncodeTransactionsForRelayingV3(
-					r,
-					signedTxs.WalletAddress,
-					signedTxs.ChainID,
-					signedTxs.WalletConfig,
-					signedTxs.WalletContext,
-					txns,
-					signedTxs.Space,
-					signedTxs.Nonce,
-					signedTxs.Signature,
-				)
+				payload, err := signedTxs.Payload()
 				if err != nil {
 					return "", nil, nil, err
 				}
-
-				execdata, err = contracts.V3.WalletStage1Module.Encode("execute", execdata, []byte{})
-				if err != nil {
-					return "", nil, nil, err
-				}
+				execdata = payload.Encode(to)
 			}
-
-			to = signedTxs.WalletContext.GuestModuleAddress
 		}
 	}
 
