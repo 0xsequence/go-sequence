@@ -661,9 +661,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		payload, err := bundle.Payload(guestAddress, testChain.ChainID(), nil, nil)
 		assert.NoError(t, err)
 
-		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(guestAddress), []byte{})
-		assert.NoError(t, err)
-
+		execdata := payload.Encode(guestAddress)
 		sender := testChain.GetRelayerWallet()
 
 		// Relay the txn manually, directly to the guest module
