@@ -486,7 +486,7 @@ func decodeChainedSignature(data []byte) (ChainedSignature, error) {
 	if len(data) < 1 {
 		return nil, fmt.Errorf("insufficient data for chained signature")
 	}
-	if data[0] != 0x01 {
+	if data[0]&0x03 != 0x01 {
 		return nil, fmt.Errorf("expected chained signature type 0x01, got %v", data[0])
 	}
 	data = data[1:]
