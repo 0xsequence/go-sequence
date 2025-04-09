@@ -700,3 +700,103 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, isDeployed)
 }
+
+func TestIntentConfigurationAddress(t *testing.T) {
+	// Create context matching TypeScript test
+	context := sequence.V3SequenceContext()
+	context.FactoryAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	context.MainModuleAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+
+	// Main signer matching TypeScript test
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	t.Run("single operation", func(t *testing.T) {
+		// Create a single operation matching TypeScript test
+		operation := sequence.NewIntentOperation(
+			big.NewInt(1),
+			[]v3.Call{
+				{
+					To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+					Value:           big.NewInt(0),
+					Data:            common.FromHex("0x1234"),
+					GasLimit:        big.NewInt(0),
+					DelegateCall:    false,
+					OnlyFallback:    false,
+					BehaviorOnError: v3.BehaviorOnErrorRevert,
+				},
+			},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
+
+		// Create intent configuration
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*sequence.IntentOperation{operation})
+		require.NoError(t, err)
+
+		// Calculate image hash
+		imageHash := config.ImageHash()
+
+		// Calculate counterfactual address
+		address, err := sequence.AddressFromImageHash(imageHash, context)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fmt.Printf("Single Operation Test:\n")
+		fmt.Printf("Address: %s\n", address.Hex())
+	})
+
+	t.Run("multiple operations", func(t *testing.T) {
+		// Create multiple operations matching TypeScript test
+		operations := []*sequence.IntentOperation{
+			sequence.NewIntentOperation(
+				big.NewInt(1),
+				[]v3.Call{
+					{
+						To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+						Value:           big.NewInt(0),
+						Data:            common.FromHex("0x1234"),
+						GasLimit:        big.NewInt(0),
+						DelegateCall:    false,
+						OnlyFallback:    false,
+						BehaviorOnError: v3.BehaviorOnErrorRevert,
+					},
+				},
+				big.NewInt(0),
+				big.NewInt(0),
+			),
+			sequence.NewIntentOperation(
+				big.NewInt(1),
+				[]v3.Call{
+					{
+						To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+						Value:           big.NewInt(0),
+						Data:            common.FromHex("0x5678"),
+						GasLimit:        big.NewInt(0),
+						DelegateCall:    false,
+						OnlyFallback:    false,
+						BehaviorOnError: v3.BehaviorOnErrorRevert,
+					},
+				},
+				big.NewInt(0),
+				big.NewInt(0),
+			),
+		}
+
+		// Create intent configuration
+		config, err := sequence.CreateIntentConfiguration(mainSigner, operations)
+		require.NoError(t, err)
+
+		// Calculate image hash
+		imageHash := config.ImageHash()
+
+		// Calculate counterfactual address
+		address, err := sequence.AddressFromImageHash(imageHash, context)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fmt.Printf("\nMultiple Operations Test:\n")
+		fmt.Printf("Address: %s\n", address.Hex())
+	})
+}
