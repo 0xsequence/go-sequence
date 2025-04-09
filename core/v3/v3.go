@@ -246,8 +246,12 @@ func (s *RegularSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wall
 }
 
 func (s *RegularSignature) Data() ([]byte, error) {
+	return s.data()
+}
+
+func (s *RegularSignature) data(ignoreCheckpointer ...bool) ([]byte, error) {
 	var buffer bytes.Buffer
-	err := s.Write(&buffer)
+	err := s.write(&buffer, ignoreCheckpointer...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +259,14 @@ func (s *RegularSignature) Data() ([]byte, error) {
 }
 
 func (s *RegularSignature) Write(writer io.Writer) error {
+	return s.write(writer)
+}
+
+func (s *RegularSignature) write(writer io.Writer, ignoreCheckpointer ...bool) error {
+	if len(ignoreCheckpointer) == 0 {
+		ignoreCheckpointer = append(ignoreCheckpointer, false)
+	}
+
 	checkpointSize := minBytesForUint64(s.CheckpointV3())
 	thresholdSize := minBytesForUint16(s.Threshold())
 
@@ -291,13 +303,15 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
 		}
-		err = writeUint24(writer, uint32(len(s.CheckpointerData)))
-		if err != nil {
-			return fmt.Errorf("unable to write checkpointer data length: %w", err)
-		}
-		_, err = writer.Write(s.CheckpointerData)
-		if err != nil {
-			return fmt.Errorf("unable to write checkpointer data: %w", err)
+		if !ignoreCheckpointer[0] {
+			err = writeUint24(writer, uint32(len(s.CheckpointerData)))
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data length: %w", err)
+			}
+			_, err = writer.Write(s.CheckpointerData)
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			}
 		}
 	}
 
@@ -402,8 +416,12 @@ func (s *NoChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wa
 }
 
 func (s *NoChainIDSignature) Data() ([]byte, error) {
+	return s.data()
+}
+
+func (s *NoChainIDSignature) data(ignoreCheckpointer ...bool) ([]byte, error) {
 	var buffer bytes.Buffer
-	err := s.Write(&buffer)
+	err := s.write(&buffer, ignoreCheckpointer...)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +429,14 @@ func (s *NoChainIDSignature) Data() ([]byte, error) {
 }
 
 func (s *NoChainIDSignature) Write(writer io.Writer) error {
+	return s.write(writer)
+}
+
+func (s *NoChainIDSignature) write(writer io.Writer, ignoreCheckpointer ...bool) error {
+	if len(ignoreCheckpointer) == 0 {
+		ignoreCheckpointer = append(ignoreCheckpointer, false)
+	}
+
 	checkpointSize := minBytesForUint64(s.CheckpointV3())
 	thresholdSize := minBytesForUint16(s.Threshold())
 
@@ -447,13 +473,15 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
 		}
-		err = writeUint24(writer, uint32(len(s.CheckpointerData)))
-		if err != nil {
-			return fmt.Errorf("unable to write checkpointer data length: %w", err)
-		}
-		_, err = writer.Write(s.CheckpointerData)
-		if err != nil {
-			return fmt.Errorf("unable to write checkpointer data: %w", err)
+		if !ignoreCheckpointer[0] {
+			err = writeUint24(writer, uint32(len(s.CheckpointerData)))
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data length: %w", err)
+			}
+			_, err = writer.Write(s.CheckpointerData)
+			if err != nil {
+				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			}
 		}
 	}
 
@@ -575,8 +603,12 @@ func (s ChainedSignature) Reduce(subdigest core.Subdigest) core.Signature[*Walle
 }
 
 func (s ChainedSignature) Data() ([]byte, error) {
+	return s.data()
+}
+
+func (s ChainedSignature) data(ignoreCheckpointer ...bool) ([]byte, error) {
 	var buffer bytes.Buffer
-	err := s.Write(&buffer)
+	err := s.write(&buffer, ignoreCheckpointer...)
 	if err != nil {
 		return nil, err
 	}
@@ -584,6 +616,14 @@ func (s ChainedSignature) Data() ([]byte, error) {
 }
 
 func (s ChainedSignature) Write(writer io.Writer) error {
+	return s.write(writer)
+}
+
+func (s ChainedSignature) write(writer io.Writer, ignoreCheckpointer ...bool) error {
+	if len(ignoreCheckpointer) == 0 {
+		ignoreCheckpointer = append(ignoreCheckpointer, false)
+	}
+
 	flag := byte(0x01)
 
 	if len(s) > 0 {
@@ -611,32 +651,46 @@ func (s ChainedSignature) Write(writer io.Writer) error {
 			if err != nil {
 				return fmt.Errorf("unable to write checkpointer address: %w", err)
 			}
-			err = writeUint24(writer, uint32(len(regSig.Signature.CheckpointerData)))
-			if err != nil {
-				return fmt.Errorf("unable to write checkpointer data length: %w", err)
-			}
-			_, err = writer.Write(regSig.Signature.CheckpointerData)
-			if err != nil {
-				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			if !ignoreCheckpointer[0] {
+				err = writeUint24(writer, uint32(len(regSig.Signature.CheckpointerData)))
+				if err != nil {
+					return fmt.Errorf("unable to write checkpointer data length: %w", err)
+				}
+				_, err = writer.Write(regSig.Signature.CheckpointerData)
+				if err != nil {
+					return fmt.Errorf("unable to write checkpointer data: %w", err)
+				}
 			}
 		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok && noChainSig.Signature.Checkpointer != (common.Address{}) {
 			_, err = writer.Write(noChainSig.Signature.Checkpointer.Bytes())
 			if err != nil {
 				return fmt.Errorf("unable to write checkpointer address: %w", err)
 			}
-			err = writeUint24(writer, uint32(len(noChainSig.Signature.CheckpointerData)))
-			if err != nil {
-				return fmt.Errorf("unable to write checkpointer data length: %w", err)
-			}
-			_, err = writer.Write(noChainSig.Signature.CheckpointerData)
-			if err != nil {
-				return fmt.Errorf("unable to write checkpointer data: %w", err)
+			if !ignoreCheckpointer[0] {
+				err = writeUint24(writer, uint32(len(noChainSig.Signature.CheckpointerData)))
+				if err != nil {
+					return fmt.Errorf("unable to write checkpointer data length: %w", err)
+				}
+				_, err = writer.Write(noChainSig.Signature.CheckpointerData)
+				if err != nil {
+					return fmt.Errorf("unable to write checkpointer data: %w", err)
+				}
 			}
 		}
 	}
 
 	for i, subsignature := range s {
-		data, err := subsignature.Data()
+		var data []byte
+		switch subsignature := subsignature.(type) {
+		case *RegularSignature:
+			data, err = subsignature.data(true)
+		case *NoChainIDSignature:
+			data, err = subsignature.data(true)
+		case ChainedSignature:
+			data, err = subsignature.data(true)
+		case *ChainedSignature:
+			data, err = subsignature.data(true)
+		}
 		if err != nil {
 			return fmt.Errorf("unable to encode subsignature %v: %w", i, err)
 		}
