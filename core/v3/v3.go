@@ -614,7 +614,7 @@ func (s ChainedSignature) Write(writer io.Writer) error {
 func (s ChainedSignature) write(writer io.Writer, ignoreCheckpointer, ignoreCheckpointerData bool) error {
 	flag := byte(0x01)
 
-	if len(s) > 0 {
+	if !ignoreCheckpointer && len(s) > 0 {
 		lastSig := s[len(s)-1]
 		if regSig, ok := lastSig.(*RegularSignature); ok {
 			if regSig.Signature.Checkpointer != (common.Address{}) {
