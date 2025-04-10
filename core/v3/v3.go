@@ -285,7 +285,7 @@ func (s *RegularSignature) write(writer io.Writer, ignoreCheckpointer, ignoreChe
 	if thresholdSize == 2 {
 		flag |= 0x20
 	}
-	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
+	if !ignoreCheckpointer && (s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0) {
 		flag |= 0x40
 	}
 
@@ -451,7 +451,7 @@ func (s *NoChainIDSignature) write(writer io.Writer, ignoreCheckpointer, ignoreC
 	if thresholdSize == 2 {
 		flag |= 0x20
 	}
-	if s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0 {
+	if !ignoreCheckpointer && (s.Checkpointer != (common.Address{}) || len(s.CheckpointerData) > 0) {
 		flag |= 0x40
 	}
 
