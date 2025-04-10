@@ -553,6 +553,42 @@ func (s ChainedSignature) Checkpoint() uint32 {
 	return uint32(s[len(s)-1].Checkpoint())
 }
 
+func (s ChainedSignature) Checkpointer() common.Address {
+	if len(s) == 0 {
+		return common.Address{}
+	}
+	switch signature := s[len(s)-1].(type) {
+	case *RegularSignature:
+		return signature.Checkpointer
+	case *NoChainIDSignature:
+		return signature.Checkpointer
+	case ChainedSignature:
+		return signature.Checkpointer()
+	case *ChainedSignature:
+		return signature.Checkpointer()
+	default:
+		panic(fmt.Errorf("unknown signature type %T", signature))
+	}
+}
+
+func (s ChainedSignature) CheckpointerData() []byte {
+	if len(s) == 0 {
+		return nil
+	}
+	switch signature := s[len(s)-1].(type) {
+	case *RegularSignature:
+		return signature.CheckpointerData
+	case *NoChainIDSignature:
+		return signature.CheckpointerData
+	case ChainedSignature:
+		return signature.CheckpointerData()
+	case *ChainedSignature:
+		return signature.CheckpointerData()
+	default:
+		panic(fmt.Errorf("unknown signature type %T", signature))
+	}
+}
+
 func (s ChainedSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
 		signerSignatures = []core.SignerSignatures{nil}
@@ -613,18 +649,11 @@ func (s ChainedSignature) Write(writer io.Writer) error {
 
 func (s ChainedSignature) write(writer io.Writer, ignoreCheckpointer, ignoreCheckpointerData bool) error {
 	flag := byte(0x01)
+	checkpointer := s.Checkpointer()
+	checkpointerData := s.CheckpointerData()
 
-	if !ignoreCheckpointer && len(s) > 0 {
-		lastSig := s[len(s)-1]
-		if regSig, ok := lastSig.(*RegularSignature); ok {
-			if regSig.Signature.Checkpointer != (common.Address{}) {
-				flag |= 0x40
-			}
-		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok {
-			if noChainSig.Signature.Checkpointer != (common.Address{}) {
-				flag |= 0x40
-			}
-		}
+	if !ignoreCheckpointer && (checkpointer != (common.Address{}) || len(checkpointerData) != 0) {
+		flag |= 0x40
 	}
 
 	_, err := writer.Write([]byte{flag})
@@ -632,37 +661,19 @@ func (s ChainedSignature) write(writer io.Writer, ignoreCheckpointer, ignoreChec
 		return fmt.Errorf("unable to write chained signature type: %w", err)
 	}
 
-	if !ignoreCheckpointer && len(s) > 0 {
-		lastSig := s[len(s)-1]
-		if regSig, ok := lastSig.(*RegularSignature); ok && regSig.Signature.Checkpointer != (common.Address{}) {
-			_, err = writer.Write(regSig.Signature.Checkpointer.Bytes())
+	if !ignoreCheckpointer && (checkpointer != (common.Address{}) || len(checkpointerData) != 0) {
+		_, err := writer.Write(checkpointer.Bytes())
+		if err != nil {
+			return fmt.Errorf("unable to write checkpointer address: %w", err)
+		}
+		if !ignoreCheckpointerData {
+			err := writeUint24(writer, uint32(len(checkpointerData)))
 			if err != nil {
-				return fmt.Errorf("unable to write checkpointer address: %w", err)
+				return fmt.Errorf("unable to write checkpointer data size: %w", err)
 			}
-			if !ignoreCheckpointerData {
-				err = writeUint24(writer, uint32(len(regSig.Signature.CheckpointerData)))
-				if err != nil {
-					return fmt.Errorf("unable to write checkpointer data length: %w", err)
-				}
-				_, err = writer.Write(regSig.Signature.CheckpointerData)
-				if err != nil {
-					return fmt.Errorf("unable to write checkpointer data: %w", err)
-				}
-			}
-		} else if noChainSig, ok := lastSig.(*NoChainIDSignature); ok && noChainSig.Signature.Checkpointer != (common.Address{}) {
-			_, err = writer.Write(noChainSig.Signature.Checkpointer.Bytes())
+			_, err = writer.Write(checkpointerData)
 			if err != nil {
-				return fmt.Errorf("unable to write checkpointer address: %w", err)
-			}
-			if !ignoreCheckpointerData {
-				err = writeUint24(writer, uint32(len(noChainSig.Signature.CheckpointerData)))
-				if err != nil {
-					return fmt.Errorf("unable to write checkpointer data length: %w", err)
-				}
-				_, err = writer.Write(noChainSig.Signature.CheckpointerData)
-				if err != nil {
-					return fmt.Errorf("unable to write checkpointer data: %w", err)
-				}
+				return fmt.Errorf("unable to write checkpointer data: %w", err)
 			}
 		}
 	}
