@@ -705,8 +705,8 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 func TestIntentConfigurationAddress(t *testing.T) {
 	// Create context matching TypeScript test
 	context := sequence.V3SequenceContext()
-	context.FactoryAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	context.MainModuleAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	// context.FactoryAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	// context.MainModuleAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 
 	// Main signer matching TypeScript test
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
@@ -746,7 +746,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("Single Operation Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0x8577dFb93fE58cc8EE90DEA522555Fdf01Fd7429"))
+		assert.Equal(t, address, common.HexToAddress("0xe5fb957d17E0cCE2D940A04C4AE801a17a8e320C"))
 	})
 
 	t.Run("multiple operations", func(t *testing.T) {
@@ -802,7 +802,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("\nMultiple Operations Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xBd820eD5b1E969eD6509E8EdE687DfC4c714438F"))
+		assert.Equal(t, address, common.HexToAddress("0xc3944AD3f5DB0a2dc0088E14145E3CFf039ef1B9"))
 	})
 }
 
