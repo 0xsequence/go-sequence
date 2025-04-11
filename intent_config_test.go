@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/0xsequence/go-sequence/contracts"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -744,6 +745,8 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 		fmt.Printf("Single Operation Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
+
+		assert.Equal(t, address, common.HexToAddress("0x8577dFb93fE58cc8EE90DEA522555Fdf01Fd7429"))
 	})
 
 	t.Run("multiple operations", func(t *testing.T) {
@@ -798,5 +801,45 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 		fmt.Printf("\nMultiple Operations Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
+
+		assert.Equal(t, address, common.HexToAddress("0xBd820eD5b1E969eD6509E8EdE687DfC4c714438F"))
 	})
+}
+
+func TestCreateIntentCallsPayloadDigest(t *testing.T) {
+	// Create an intent operation with a single call
+	op := sequence.NewIntentOperation(
+		big.NewInt(1),
+		[]v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x1234"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+		big.NewInt(0),
+		big.NewInt(0),
+	)
+
+	// Create the calls payload
+	bundle, err := sequence.CreateIntentCallsPayload(op)
+	require.NoError(t, err)
+	require.NotNil(t, bundle)
+
+	spew.Dump(bundle)
+
+	// Get the digest
+	digest := bundle.Digest()
+	require.NotNil(t, digest)
+	require.NotNil(t, digest.Hash)
+
+	// Verify the digest hash is not empty
+	require.NotEqual(t, common.Hash{}, digest.Hash)
+
+	// Print the digest hash for debugging
+	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
 }
