@@ -30,6 +30,26 @@ func NewIntentOperation(chainId *big.Int, calls []v3.Call, space *big.Int, nonce
 	}
 }
 
+// ChainID returns the chain ID of the operation.
+func (op *IntentOperation) ChainID() *big.Int {
+	return op.chainId
+}
+
+// Space returns the space of the operation.
+func (op *IntentOperation) Space() *big.Int {
+	return op.space
+}
+
+// Nonce returns the nonce of the operation.
+func (op *IntentOperation) Nonce() *big.Int {
+	return op.nonce
+}
+
+// Calls returns the calls associated with the operation.
+func (op *IntentOperation) Calls() []v3.Call {
+	return op.calls
+}
+
 // `CreateIntentCallsPayload` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
 func CreateIntentCallsPayload(op *IntentOperation, target ...common.Address) (v3.CallsPayload, error) {
 	// If the chainId is not provided, throw an error
