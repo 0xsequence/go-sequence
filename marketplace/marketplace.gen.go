@@ -2077,6 +2077,11 @@ var methods = map[string]method{
 		service:     "Marketplace",
 		annotations: map[string]string{"auth": "Public+"},
 	},
+	"/rpc/Marketplace/SupportedMarketplaces": {
+		Name:        "SupportedMarketplaces",
+		Service:     "Marketplace",
+		Annotations: map[string]string{"auth": "Public"},
+	},
 }
 
 func WebrpcMethods() map[string]method {
@@ -3650,6 +3655,22 @@ func (c *marketplaceClient) GetCountOfPrimarySaleItems(ctx context.Context, chai
 	}{}
 
 	resp, err := doHTTPRequest(ctx, c.client, c.urls[41], in, &out)
+	if resp != nil {
+		cerr := resp.Body.Close()
+		if err == nil && cerr != nil {
+			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
+		}
+	}
+
+	return out.Ret0, err
+}
+
+func (c *marketplaceClient) SupportedMarketplaces(ctx context.Context) ([]MarketplaceKind, error) {
+	out := struct {
+		Ret0 []MarketplaceKind `json:"marketplaces"`
+	}{}
+
+	resp, err := doHTTPRequest(ctx, c.client, c.urls[36], nil, &out)
 	if resp != nil {
 		cerr := resp.Body.Close()
 		if err == nil && cerr != nil {
