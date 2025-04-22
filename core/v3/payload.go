@@ -831,6 +831,10 @@ type ConfigUpdatePayload struct {
 	imageHash common.Hash
 }
 
+func (p ConfigUpdatePayload) ImageHash() common.Hash {
+	return p.imageHash
+}
+
 func (p ConfigUpdatePayload) Digest() PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
