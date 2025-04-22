@@ -49,7 +49,7 @@ type Signature[C WalletConfig] interface {
 	Threshold() uint16
 
 	// Checkpoint is the nonce of the wallet configuration that the signature applies to.
-	Checkpoint() uint32
+	Checkpoint() uint64
 
 	// Recover derives the wallet configuration that the signature applies to.
 	// Also returns the signature's weight.
@@ -82,7 +82,7 @@ type WalletConfig interface {
 	Threshold() uint16
 
 	// Checkpoint is the nonce of the wallet configuration.
-	Checkpoint() uint32
+	Checkpoint() uint64
 
 	// Signers is the set of signers in the wallet configuration.
 	Signers() map[common.Address]uint16

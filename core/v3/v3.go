@@ -176,11 +176,7 @@ func (s *RegularSignature) Threshold() uint16 {
 	return s.Signature.Threshold
 }
 
-func (s *RegularSignature) Checkpoint() uint32 {
-	return uint32(s.Signature.Checkpoint)
-}
-
-func (s *RegularSignature) CheckpointV3() uint64 {
+func (s *RegularSignature) Checkpoint() uint64 {
 	return s.Signature.Checkpoint
 }
 
@@ -215,8 +211,8 @@ func (s *RegularSignature) Join(subdigest core.Subdigest, other core.Signature[*
 		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.Threshold(), other_.Threshold())
 	}
 
-	if s.CheckpointV3() != other_.Signature.Checkpoint {
-		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.CheckpointV3(), other_.Checkpoint())
+	if s.Checkpoint() != other_.Signature.Checkpoint {
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.Checkpoint(), other_.Checkpoint())
 	}
 
 	tree, err := s.Tree.join(other_.Tree)
@@ -227,7 +223,7 @@ func (s *RegularSignature) Join(subdigest core.Subdigest, other core.Signature[*
 	return &RegularSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.CheckpointV3(),
+		Checkpoint:       s.Checkpoint(),
 		Tree:             tree,
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -238,7 +234,7 @@ func (s *RegularSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wall
 	return &RegularSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.CheckpointV3(),
+		Checkpoint:       s.Checkpoint(),
 		Tree:             s.Tree.reduce(),
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -263,7 +259,7 @@ func (s *RegularSignature) Write(writer io.Writer) error {
 }
 
 func (s *RegularSignature) write(writer io.Writer, ignoreCheckpointer, ignoreCheckpointerData bool) error {
-	checkpointSize := minBytesForUint64(s.CheckpointV3())
+	checkpointSize := minBytesForUint64(s.Checkpoint())
 	thresholdSize := minBytesForUint16(s.Threshold())
 
 	if checkpointSize == 0 {
@@ -311,7 +307,7 @@ func (s *RegularSignature) write(writer io.Writer, ignoreCheckpointer, ignoreChe
 		}
 	}
 
-	err = writeUintX(writer, s.CheckpointV3(), checkpointSize)
+	err = writeUintX(writer, s.Checkpoint(), checkpointSize)
 	if err != nil {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
 	}
@@ -342,11 +338,7 @@ func (s *NoChainIDSignature) Threshold() uint16 {
 	return s.Signature.Threshold
 }
 
-func (s *NoChainIDSignature) Checkpoint() uint32 {
-	return uint32(s.Signature.Checkpoint)
-}
-
-func (s *NoChainIDSignature) CheckpointV3() uint64 {
+func (s *NoChainIDSignature) Checkpoint() uint64 {
 	return s.Signature.Checkpoint
 }
 
@@ -381,8 +373,8 @@ func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature
 		return nil, fmt.Errorf("threshold mismatch: %v != %v", s.Threshold(), other_.Threshold())
 	}
 
-	if s.CheckpointV3() != other_.Signature.Checkpoint {
-		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.CheckpointV3(), other_.Checkpoint())
+	if s.Checkpoint() != other_.Signature.Checkpoint {
+		return nil, fmt.Errorf("checkpoint mismatch: %v != %v", s.Checkpoint(), other_.Checkpoint())
 	}
 
 	tree, err := s.Tree.join(other_.Tree)
@@ -393,7 +385,7 @@ func (s *NoChainIDSignature) Join(subdigest core.Subdigest, other core.Signature
 	return &NoChainIDSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.CheckpointV3(),
+		Checkpoint:       s.Checkpoint(),
 		Tree:             tree,
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -404,7 +396,7 @@ func (s *NoChainIDSignature) Reduce(subdigest core.Subdigest) core.Signature[*Wa
 	return &NoChainIDSignature{&Signature{
 		NoChainId:        s.NoChainId,
 		Threshold:        s.Threshold(),
-		Checkpoint:       s.CheckpointV3(),
+		Checkpoint:       s.Checkpoint(),
 		Tree:             s.Tree.reduce(),
 		Checkpointer:     s.Checkpointer,
 		CheckpointerData: s.CheckpointerData,
@@ -429,7 +421,7 @@ func (s *NoChainIDSignature) Write(writer io.Writer) error {
 }
 
 func (s *NoChainIDSignature) write(writer io.Writer, ignoreCheckpointer, ignoreCheckpointerData bool) error {
-	checkpointSize := minBytesForUint64(s.CheckpointV3())
+	checkpointSize := minBytesForUint64(s.Checkpoint())
 	thresholdSize := minBytesForUint16(s.Threshold())
 
 	if checkpointSize == 0 {
@@ -477,7 +469,7 @@ func (s *NoChainIDSignature) write(writer io.Writer, ignoreCheckpointer, ignoreC
 		}
 	}
 
-	err = writeUintX(writer, s.CheckpointV3(), checkpointSize)
+	err = writeUintX(writer, s.Checkpoint(), checkpointSize)
 	if err != nil {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
 	}
@@ -549,8 +541,8 @@ func (s ChainedSignature) Threshold() uint16 {
 	return s[len(s)-1].Threshold()
 }
 
-func (s ChainedSignature) Checkpoint() uint32 {
-	return uint32(s[len(s)-1].Checkpoint())
+func (s ChainedSignature) Checkpoint() uint64 {
+	return s[len(s)-1].Checkpoint()
 }
 
 func (s ChainedSignature) Checkpointer() common.Address {
@@ -1923,8 +1915,8 @@ func (c *WalletConfig) Threshold() uint16 {
 	return c.Threshold_
 }
 
-func (c *WalletConfig) Checkpoint() uint32 {
-	return uint32(c.Checkpoint_)
+func (c *WalletConfig) Checkpoint() uint64 {
+	return c.Checkpoint_
 }
 
 func (c *WalletConfig) Signers() map[common.Address]uint16 {

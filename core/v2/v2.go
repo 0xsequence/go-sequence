@@ -151,8 +151,8 @@ func (s *regularSignature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *regularSignature) Checkpoint() uint32 {
-	return s.checkpoint
+func (s *regularSignature) Checkpoint() uint64 {
+	return uint64(s.checkpoint)
 }
 
 func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
@@ -306,8 +306,8 @@ func (s *noChainIDSignature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *noChainIDSignature) Checkpoint() uint32 {
-	return s.checkpoint
+func (s *noChainIDSignature) Checkpoint() uint64 {
+	return uint64(s.checkpoint)
 }
 
 func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
@@ -464,7 +464,7 @@ func (s chainedSignature) Threshold() uint16 {
 	return s[len(s)-1].Threshold()
 }
 
-func (s chainedSignature) Checkpoint() uint32 {
+func (s chainedSignature) Checkpoint() uint64 {
 	return s[len(s)-1].Checkpoint()
 }
 
@@ -1444,8 +1444,8 @@ func (c *WalletConfig) Threshold() uint16 {
 	return c.Threshold_
 }
 
-func (c *WalletConfig) Checkpoint() uint32 {
-	return c.Checkpoint_
+func (c *WalletConfig) Checkpoint() uint64 {
+	return uint64(c.Checkpoint_)
 }
 
 func (c *WalletConfig) Signers() map[common.Address]uint16 {

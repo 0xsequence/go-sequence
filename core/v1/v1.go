@@ -135,7 +135,7 @@ func (s *signature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *signature) Checkpoint() uint32 {
+func (s *signature) Checkpoint() uint64 {
 	return 0
 }
 
@@ -787,7 +787,7 @@ func (c *WalletConfig) Threshold() uint16 {
 	return c.Threshold_
 }
 
-func (c *WalletConfig) Checkpoint() uint32 {
+func (c *WalletConfig) Checkpoint() uint64 {
 	return 0
 }
 
