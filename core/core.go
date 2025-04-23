@@ -230,6 +230,10 @@ type ImageHash struct {
 	Preimage ImageHashable
 }
 
+func (h ImageHash) ImageHash() ImageHash {
+	return h
+}
+
 var imageHashApprovalSalt = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
 
 // Approval derives the digest that must be signed to approve the ImageHash for subsequent signatures.
