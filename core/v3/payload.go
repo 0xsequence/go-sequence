@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 const (
@@ -728,14 +729,14 @@ func NewMessagePayload(address common.Address, chainID *big.Int, message_ []byte
 			parentWallets: parentWallets[0],
 		},
 
-		message: message_,
+		Message: message_,
 	}
 }
 
 type MessagePayload struct {
 	basePayload
 
-	message []byte
+	Message []byte
 }
 
 func (p MessagePayload) Digest() PayloadDigest {
@@ -755,7 +756,7 @@ func (p MessagePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"message": p.message,
+			"message": p.Message,
 			"wallets": wallets,
 		},
 	}
@@ -775,12 +776,12 @@ func (p MessagePayload) Encode(address common.Address) []byte {
 	mustWrite(&buffer, []byte{KindMessage})
 
 	// Write message length as 3 bytes
-	size := len(p.message)
+	size := len(p.Message)
 	mustWrite(&buffer, []byte{byte(size >> 16), byte(size >> 8), byte(size)})
 
 	// Write message data
-	if len(p.message) > 0 {
-		mustWrite(&buffer, p.message)
+	if len(p.Message) > 0 {
+		mustWrite(&buffer, p.Message)
 	}
 
 	return buffer.Bytes()
@@ -821,18 +822,14 @@ func NewConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash 
 			parentWallets: parentWallets[0],
 		},
 
-		imageHash: imageHash,
+		ImageHash: core.ImageHash{Hash: imageHash},
 	}
 }
 
 type ConfigUpdatePayload struct {
 	basePayload
 
-	imageHash common.Hash
-}
-
-func (p ConfigUpdatePayload) ImageHash() common.Hash {
-	return p.imageHash
+	ImageHash core.ImageHashable
 }
 
 func (p ConfigUpdatePayload) Digest() PayloadDigest {
@@ -852,7 +849,7 @@ func (p ConfigUpdatePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"imageHash": p.imageHash,
+			"imageHash": p.ImageHash,
 			"wallets":   wallets,
 		},
 	}
@@ -872,7 +869,7 @@ func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
 	mustWrite(&buffer, []byte{KindConfigUpdate})
 
 	// Write image hash
-	mustWrite(&buffer, p.imageHash.Bytes())
+	mustWrite(&buffer, p.ImageHash.ImageHash().Bytes())
 
 	return buffer.Bytes()
 }
@@ -905,14 +902,14 @@ func NewDigestPayload(address common.Address, chainID *big.Int, digest_ common.H
 			parentWallets: parentWallets[0],
 		},
 
-		digest: digest_,
+		MessageDigest: digest_,
 	}
 }
 
 type DigestPayload struct {
 	basePayload
 
-	digest common.Hash
+	MessageDigest common.Hash
 }
 
 func (p DigestPayload) Digest() PayloadDigest {
@@ -953,7 +950,7 @@ func (p DigestPayload) Digest() PayloadDigest {
 		},
 		[]any{
 			crypto.Keccak256Hash([]byte("Message(bytes message,address[] wallets)")),
-			p.digest,
+			p.MessageDigest,
 			wallets,
 		},
 	)
@@ -972,7 +969,7 @@ func (p DigestPayload) Encode(address common.Address) []byte {
 	mustWrite(&buffer, []byte{KindDigest})
 
 	// Write digest
-	mustWrite(&buffer, p.digest.Bytes())
+	mustWrite(&buffer, p.MessageDigest.Bytes())
 
 	return buffer.Bytes()
 }
