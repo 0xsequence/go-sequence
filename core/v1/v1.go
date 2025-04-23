@@ -813,6 +813,10 @@ func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
 	return totalWeight
 }
 
+func (c *WalletConfig) IsComplete() bool {
+	return true
+}
+
 func (c *WalletConfig) IsUsable() error {
 	if c.Threshold_ == 0 {
 		return fmt.Errorf("threshold is 0")

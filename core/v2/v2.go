@@ -1464,6 +1464,10 @@ func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
 	return uint16(weight.Uint64())
 }
 
+func (c *WalletConfig) IsComplete() bool {
+	return c.Tree.isComplete()
+}
+
 func (c *WalletConfig) IsUsable() error {
 	if c.Threshold_ == 0 {
 		return fmt.Errorf("threshold is 0")
@@ -1593,6 +1597,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 type WalletConfigTree interface {
 	core.ImageHashable
 
+	isComplete() bool
 	maxWeight() *big.Int
 	readSignersIntoMap(signers map[common.Address]uint16)
 	unverifiedWeight(signers map[common.Address]uint16) *big.Int
@@ -1701,6 +1706,10 @@ func (n *WalletConfigTreeNode) ImageHash() core.ImageHash {
 	}
 }
 
+func (n *WalletConfigTreeNode) isComplete() bool {
+	return n.Left.isComplete() && n.Right.isComplete()
+}
+
 func (n *WalletConfigTreeNode) maxWeight() *big.Int {
 	left, right := n.Left.maxWeight(), n.Right.maxWeight()
 	return new(big.Int).Add(left, right)
@@ -1766,6 +1775,10 @@ func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
 	hash.SetBytes(l.Address.Bytes())
 	hash[common.HashLength-common.AddressLength-1] = l.Weight
 	return core.ImageHash{Hash: hash, Preimage: l}
+}
+
+func (l *WalletConfigTreeAddressLeaf) isComplete() bool {
+	return true
 }
 
 func (l *WalletConfigTreeAddressLeaf) maxWeight() *big.Int {
@@ -1866,6 +1879,10 @@ func (l WalletConfigTreeNodeLeaf) ImageHash() core.ImageHash {
 	return l.Node
 }
 
+func (l WalletConfigTreeNodeLeaf) isComplete() bool {
+	return false
+}
+
 func (l WalletConfigTreeNodeLeaf) maxWeight() *big.Int {
 	return new(big.Int)
 }
@@ -1943,6 +1960,10 @@ func (l *WalletConfigTreeNestedLeaf) ImageHash() core.ImageHash {
 	}
 }
 
+func (l *WalletConfigTreeNestedLeaf) isComplete() bool {
+	return l.Tree.isComplete()
+}
+
 func (l *WalletConfigTreeNestedLeaf) maxWeight() *big.Int {
 	if l.Tree.maxWeight().Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
 		return new(big.Int).SetUint64(uint64(l.Weight))
@@ -2008,6 +2029,10 @@ func (l WalletConfigTreeSubdigestLeaf) ImageHash() core.ImageHash {
 		),
 		Preimage: &l,
 	}
+}
+
+func (l WalletConfigTreeSubdigestLeaf) isComplete() bool {
+	return true
 }
 
 func (l WalletConfigTreeSubdigestLeaf) maxWeight() *big.Int {

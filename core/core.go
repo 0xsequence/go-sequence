@@ -90,6 +90,9 @@ type WalletConfig interface {
 	// SignersWeight is the total weight of the signers passed to the function according to the wallet configuration.
 	SignersWeight(signers []common.Address) uint16
 
+	// IsComplete checks if the wallet configuration doesn't have pruned subtrees.
+	IsComplete() bool
+
 	// IsUsable checks if it's possible to construct signatures that meet threshold.
 	IsUsable() error
 }
