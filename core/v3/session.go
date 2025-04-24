@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/core"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -300,7 +301,7 @@ func GetExplicitSigners(topology SessionsTopology) []common.Address {
 
 func SessionsTopologyToGenericTree(topology SessionsTopology) (Tree, error) {
 	if IsSessionsBranch(topology) {
-		branch := make(Branch, len(topology.Branch))
+		branch := make(TreeBranch, len(topology.Branch))
 		for i, child := range topology.Branch {
 			leaf, err := SessionsTopologyToGenericTree(child)
 			if err != nil {
@@ -311,20 +312,20 @@ func SessionsTopologyToGenericTree(topology SessionsTopology) (Tree, error) {
 		return branch, nil
 	}
 	if IsSessionsNode(topology) {
-		return Node(PadLeft(topology.Node, 32)), nil
+		return core.ImageHash{Hash: common.Hash(PadLeft(topology.Node, 32))}, nil
 	}
 	return encodeLeafToGenericLeaf(topology)
 }
 
 // encodeLeafToGeneric encodes a session leaf to a GenericTree.Leaf.
-func encodeLeafToGenericLeaf(leaf SessionsTopology) (Leaf, error) {
+func encodeLeafToGenericLeaf(leaf SessionsTopology) (TreeLeaf, error) {
 	if IsSessionPermissionsLeaf(leaf) {
 		// Call the permission package encoder.
 		encoded, err := EncodeSessionPermissions(&leaf.Leaf.(*SessionPermissionsLeaf).SessionPermissions)
 		if err != nil {
-			return Leaf{}, err
+			return TreeLeaf{}, err
 		}
-		return Leaf{Value: Concat([][]byte{FromNumber(SESSIONS_FLAG_PERMISSIONS), encoded})}, nil
+		return TreeLeaf(Concat([][]byte{FromNumber(SESSIONS_FLAG_PERMISSIONS), encoded})), nil
 	}
 	if IsImplicitBlacklistLeaf(leaf) {
 		ibl := leaf.Leaf.(*ImplicitBlacklistLeaf)
@@ -333,13 +334,13 @@ func encodeLeafToGenericLeaf(leaf SessionsTopology) (Leaf, error) {
 		for _, addr := range ibl.Blacklist {
 			parts = append(parts, PadLeft(addr.Bytes(), 20))
 		}
-		return Leaf{Value: Concat(parts)}, nil
+		return TreeLeaf(Concat(parts)), nil
 	}
 	if IsIdentitySignerLeaf(leaf) {
 		isLeaf := leaf.Leaf.(*IdentitySignerLeaf)
-		return Leaf{Value: Concat([][]byte{FromNumber(SESSIONS_FLAG_IDENTITY_SIGNER), PadLeft(isLeaf.IdentitySigner.Bytes(), 20)})}, nil
+		return TreeLeaf(Concat([][]byte{FromNumber(SESSIONS_FLAG_IDENTITY_SIGNER), PadLeft(isLeaf.IdentitySigner.Bytes(), 20)})), nil
 	}
-	return Leaf{}, fmt.Errorf("invalid leaf")
+	return TreeLeaf{}, fmt.Errorf("invalid leaf")
 }
 
 // EncodeSessionCallSignatures encodes the call signatures for contract validation.
@@ -852,15 +853,11 @@ func MinimiseSessionsTopology(topology SessionsTopology, explicitSigners []commo
 			}
 		}
 		if allNodes {
-			nodeBranch := make(Branch, len(branches))
+			nodeBranch := make(TreeBranch, len(branches))
 			for i, b := range branches {
-				nodeBranch[i] = Node(PadLeft(b.Node, 32))
+				nodeBranch[i] = core.ImageHash{Hash: common.Hash(PadLeft(b.Node, 32))}
 			}
-			hash, err := HashTree(nodeBranch)
-			if err != nil {
-				return SessionsTopology{}, fmt.Errorf("failed to hash branch: %w", err)
-			}
-			return SessionsTopology{Node: hash}, nil
+			return SessionsTopology{Node: nodeBranch.ImageHash().Bytes()}, nil
 		}
 		return SessionsTopology{Branch: branches}, nil
 	}
@@ -877,11 +874,7 @@ func MinimiseSessionsTopology(topology SessionsTopology, explicitSigners []commo
 		if err != nil {
 			return SessionsTopology{}, fmt.Errorf("failed to encode leaf: %w", err)
 		}
-		hash, err := HashTree(encoded)
-		if err != nil {
-			return SessionsTopology{}, fmt.Errorf("failed to hash leaf: %w", err)
-		}
-		return SessionsTopology{Node: hash}, nil
+		return SessionsTopology{Node: encoded.ImageHash().Bytes()}, nil
 	}
 	if IsImplicitBlacklistLeaf(topology) {
 		if len(implicitSigners) == 0 {
@@ -890,11 +883,7 @@ func MinimiseSessionsTopology(topology SessionsTopology, explicitSigners []commo
 			if err != nil {
 				return SessionsTopology{}, fmt.Errorf("failed to encode leaf: %w", err)
 			}
-			hash, err := HashTree(encoded)
-			if err != nil {
-				return SessionsTopology{}, fmt.Errorf("failed to hash leaf: %w", err)
-			}
-			return SessionsTopology{Node: hash}, nil
+			return SessionsTopology{Node: encoded.ImageHash().Bytes()}, nil
 		}
 		return topology, nil
 	}

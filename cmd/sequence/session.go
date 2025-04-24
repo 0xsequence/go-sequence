@@ -116,11 +116,7 @@ func handleImageHash(p *ImageHashParams) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to convert session topology to generic tree: %w", err)
 	}
-	hash, err := v3.HashTree(configTree)
-	if err != nil {
-		return "", fmt.Errorf("failed to hash generic tree: %w", err)
-	}
-	return "0x" + common.Bytes2Hex(hash), nil
+	return configTree.ImageHash().String(), nil
 }
 
 func rsyFromRsvStr(sigStr string) (v3.RSY, error) {
