@@ -2078,9 +2078,9 @@ var methods = map[string]method{
 		annotations: map[string]string{"auth": "Public+"},
 	},
 	"/rpc/Marketplace/SupportedMarketplaces": {
-		Name:        "SupportedMarketplaces",
-		Service:     "Marketplace",
-		Annotations: map[string]string{"auth": "Public"},
+		name:        "SupportedMarketplaces",
+		service:     "Marketplace",
+		annotations: map[string]string{"auth": "Public+"},
 	},
 }
 
