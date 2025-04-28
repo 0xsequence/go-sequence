@@ -6,12 +6,17 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "wallet",
+          "type": "address"
+        },
+        {
           "internalType": "bytes32",
-          "name": "",
+          "name": "usageHash",
           "type": "bytes32"
         }
       ],
-      "name": "limitUsage",
+      "name": "getLimitUsage",
       "outputs": [
         {
           "internalType": "uint256",
@@ -111,9 +116,14 @@
           "type": "tuple"
         },
         {
-          "internalType": "bytes32",
-          "name": "limitHashPrefix",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "wallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "signer",
+          "type": "address"
         },
         {
           "components": [
