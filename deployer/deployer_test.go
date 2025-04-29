@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/testutil"
@@ -46,16 +45,12 @@ func TestDeployer(t *testing.T) {
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
 	V2WalletFactoryAddress, err := ud.Deploy(context.Background(), contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, 0, nil, 1000000)
 	assert.NoError(t, err)
-	// v2 is deployed through the eip2470 factory address
-	assert.NotEqual(t, testV2SequenceContext.FactoryAddress, V2WalletFactoryAddress)
-	assert.Equal(t, common.HexToAddress("0xAA4A319D9f7b43e197555d1c219F9195B80F0C8c"), V2WalletFactoryAddress)
+	assert.Equal(t, testV2SequenceContext.FactoryAddress, V2WalletFactoryAddress)
 
 	testV3SequenceContext := testutil.V3SequenceContext()
 
 	// Deploy sequence wallet-contract factory and ensure it equals the expected value in testutil
 	V3WalletFactoryAddress, err := ud.Deploy(context.Background(), contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, 0, nil, 1000000)
 	assert.NoError(t, err)
-	// v3 is deployed through the eip2470 factory address
-	assert.NotEqual(t, testV3SequenceContext.FactoryAddress, V3WalletFactoryAddress)
-	assert.Equal(t, common.HexToAddress("0x8a394520f8d2a78e2ccc5EC53b8A24B67a5F4Bac"), V3WalletFactoryAddress)
+	assert.Equal(t, testV3SequenceContext.FactoryAddress, V3WalletFactoryAddress)
 }
