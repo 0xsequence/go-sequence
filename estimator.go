@@ -580,7 +580,8 @@ func (e *Estimator) Estimate(ctx context.Context, provider *ethrpc.Provider, add
 			return 0, err
 		}
 
-		return estimated.Uint64(), nil
+		// our v3 estimator is a bit more efficient than the on-chain deployed bytecode for some reason
+		return estimated.Uint64() * 103 / 100, nil
 
 	default:
 		return 0, fmt.Errorf("unknown wallet config type %T", walletConfig)
