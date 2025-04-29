@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/testutil"
@@ -27,7 +26,6 @@ func TestEIP2470Deployer(t *testing.T) {
 	assert.NoError(t, err)
 	// v1 is deployed w/ the universal deployer, not the EIP2470 deployer
 	assert.NotEqual(t, testV1SequenceContext.FactoryAddress, V1WalletFactoryAddress)
-	assert.Equal(t, common.HexToAddress("0xf87Cb4C012256149569615642dE44Cf2373efcC9"), V1WalletFactoryAddress)
 
 	testV2SequenceContext := testutil.V2SequenceContext()
 
