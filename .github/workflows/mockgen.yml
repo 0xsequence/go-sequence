@@ -1,0 +1,48 @@
+name: Generate Mocks
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'api/api.gen.go'
+      - 'indexer/indexer.gen.go'
+      - 'marketplace/marketplace.gen.go'
+      - 'metadata/metadata.gen.go'
+      - 'relayer/relayer.gen.go'
+
+  workflow_dispatch:
+
+jobs:
+  generate-mocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run make mock
+        run: make mock
+
+      - name: Commit and push if mock/ changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add mock/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update mocks"
+            git push origin master
+          else
+            echo "No changes to commit."
+          fi
