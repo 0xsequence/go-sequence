@@ -38,5 +38,5 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.GH_TOKEN_GIT_COMMIT }}
         with:
           files: 'mock/'
-          branch: ${{ github.head_ref }}
+          branch: 'master'
           commit_message: '[AUTOMATED] Generate mock clients'
