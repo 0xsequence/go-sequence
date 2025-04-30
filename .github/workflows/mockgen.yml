@@ -20,13 +20,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          persist-credentials: true
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: 'go.mod'
 
       - name: Download dependencies
         run: go mod download
@@ -34,15 +32,11 @@ jobs:
       - name: Run make mock
         run: make mock
 
-      - name: Commit and push if mock/ changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add mock/
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: update mocks"
-            git push origin master
-          else
-            echo "No changes to commit."
-          fi
+      - name: Commit back
+        uses: 0xsequence/actions/git-commit@v0.0.5
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.GH_TOKEN_GIT_COMMIT }}
+        with:
+          files: 'mock/'
+          branch: ${{ github.head_ref }}
+          commit_message: '[AUTOMATED] Generate mock clients'
