@@ -719,44 +719,35 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 }
 
 // GetSignedIntentTransactionWithIntentOperation creates an intent signature for a v3.CallsPayload.
-func (w *Wallet[C]) GetSignedIntentTransactionWithIntentOperation(ctx context.Context, op *IntentOperation) (*SignedTransactions, error) {
-	return w.GetSignedIntentPayload(ctx, op)
+func (w *Wallet[C]) GetSignedIntentTransactionWithIntentOperation(ctx context.Context, call *v3.CallsPayload) (*SignedTransactions, error) {
+	return w.GetSignedIntentPayload(ctx, call)
 }
 
 // GetSignedIntentTransactionsWithIntentOperations creates an intent signature for multiple v3.CallsPayload objects.
-func (w *Wallet[C]) GetSignedIntentTransactionsWithIntentOperations(ctx context.Context, ops []*IntentOperation) (*SignedTransactions, error) {
-	if len(ops) == 0 {
+func (w *Wallet[C]) GetSignedIntentTransactionsWithIntentOperations(ctx context.Context, calls []*v3.CallsPayload) (*SignedTransactions, error) {
+	if len(calls) == 0 {
 		return nil, fmt.Errorf("cannot sign an empty set of payloads")
 	}
 
 	// For now, we only support a single payload in the batch
-	if len(ops) > 1 {
+	if len(calls) > 1 {
 		return nil, fmt.Errorf("multiple payloads not supported yet, please use CreateIntentDigestTree for multiple payloads")
 	}
 
-	return w.GetSignedIntentPayload(ctx, ops[0])
+	return w.GetSignedIntentPayload(ctx, calls[0])
 }
 
 // GetSignedIntentPayload is the core implementation for creating intent signatures.
-func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperation) (*SignedTransactions, error) {
-
-	// Compute the digest of the payload
-	bundle, err := CreateIntentCallsPayload(op)
-	if err != nil {
-		return nil, err
-	}
-
-	digest := bundle.Digest()
-
+func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload *v3.CallsPayload) (*SignedTransactions, error) {
 	// Sign the payload
-	sig, err := w.SignV3Payload(ctx, bundle)
+	sig, err := w.SignV3Payload(ctx, payload)
 	if err != nil {
 		return nil, err
 	}
 
 	// Convert payload back to Transactions for compatibility with SignedTransactions
-	txns := make(Transactions, len(bundle.Calls))
-	for i, call := range bundle.Calls {
+	txns := make(Transactions, len(payload.Calls))
+	for i, call := range payload.Calls {
 		txns[i] = &Transaction{
 			To:            call.To,
 			Value:         call.Value,
@@ -764,7 +755,7 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperat
 			GasLimit:      call.GasLimit,
 			DelegateCall:  call.DelegateCall,
 			RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
-			Nonce:         bundle.Nonce,
+			Nonce:         payload.Nonce,
 		}
 	}
 
@@ -775,9 +766,9 @@ func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, op *IntentOperat
 		WalletConfig:  w.config,
 		WalletContext: w.context,
 		Transactions:  txns,
-		Space:         bundle.Space,
-		Nonce:         bundle.Nonce,
-		Digest:        digest.Hash,
+		Space:         payload.Space,
+		Nonce:         payload.Nonce,
+		Digest:        payload.Digest().Hash,
 		Signature:     sig,
 	}, nil
 }

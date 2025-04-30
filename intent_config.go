@@ -9,105 +9,24 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-// `IntentOperation` represents a single operation in an intent.
-// It contains the chain ID + the calls to be executed in the operation.
-// The space and nonce are optional, and if not provided, the default values will be used.
-type IntentOperation struct {
-	chainId *big.Int // The chain ID of the operation, required
-	space   *big.Int // The space of the operation, optional
-	nonce   *big.Int // The nonce of the operation, optional
-
-	calls []v3.Call
-}
-
-// `NewIntentOperation` creates a new `IntentOperation` with the given chain ID and calls.
-func NewIntentOperation(chainId *big.Int, calls []v3.Call, space *big.Int, nonce *big.Int) *IntentOperation {
-	return &IntentOperation{
-		chainId: chainId,
-		calls:   calls,
-		space:   space,
-		nonce:   nonce,
-	}
-}
-
-// ChainID returns the chain ID of the operation.
-func (op *IntentOperation) ChainID() *big.Int {
-	return op.chainId
-}
-
-// Space returns the space of the operation.
-func (op *IntentOperation) Space() *big.Int {
-	return op.space
-}
-
-// Nonce returns the nonce of the operation.
-func (op *IntentOperation) Nonce() *big.Int {
-	return op.nonce
-}
-
-// Calls returns the calls associated with the operation.
-func (op *IntentOperation) Calls() []v3.Call {
-	return op.calls
-}
-
-// `CreateIntentCallsPayload` creates a bundle of transactions with the gas limit 0 and the initial nonce 0
-func CreateIntentCallsPayload(op *IntentOperation, target ...common.Address) (v3.CallsPayload, error) {
-	// If the chainId is not provided, throw an error
-	if op.chainId == nil {
-		return v3.CallsPayload{}, fmt.Errorf("chainId is required")
-	}
-
-	// If the space is not provided, use the default value
-	if op.space == nil {
-		op.space = big.NewInt(0)
-	}
-
-	// If the nonce is not provided, use the default value
-	if op.nonce == nil {
-		op.nonce = big.NewInt(0)
-	}
-
-	// If the target is specified, get the first element
-	var addr common.Address
-	if target != nil {
-		addr = target[0]
-	}
-
-	// Construct the payload with the correct address, chain ID, and calls.
-	bundle := v3.NewCallsPayload(addr, op.chainId, op.calls, op.space, op.nonce)
-
-	// Set consistent gas limit to 0 for all calls
-	for i := range bundle.Calls {
-		bundle.Calls[i].GasLimit = big.NewInt(0)
-	}
-
-	return bundle, nil
-}
-
 // `CreateIntentDigestTree` iterates over each batch of payloads,
 // validates that each call in the payload meets the following criteria:
 //   - GasLimit must be 0,
 //
 // For each valid batch, it creates a bundle, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error) {
+func CreateIntentDigestTree(calls []*v3.CallsPayload) (*v3.WalletConfigTree, error) {
 	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
 
-	for batchIndex, op := range ops {
+	for batchIndex, call := range calls {
 		// Validate each call in the payload
-		for j, call := range op.calls {
+		for j, call := range call.Calls {
 			if call.GasLimit != nil && call.GasLimit.Cmp(big.NewInt(0)) != 0 {
 				return nil, fmt.Errorf("batch %d, call %d: GasLimit must be 0", batchIndex, j)
 			}
 		}
 
-		// Create the intent bundle for this batch.
-		bundle, err := CreateIntentCallsPayload(op)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create intent bundle for batch %d: %w", batchIndex, err)
-		}
-
-		digest := bundle.Digest()
+		digest := call.Digest()
 
 		// Create a subdigest leaf with the computed digest.
 		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
@@ -135,8 +54,8 @@ func CreateIntentDigestTree(ops []*IntentOperation) (*v3.WalletConfigTree, error
 }
 
 // CreateIntentTree creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfigTree, error) {
-	digestTree, err := CreateIntentDigestTree(ops)
+func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfigTree, error) {
+	digestTree, err := CreateIntentDigestTree(calls)
 	if err != nil {
 		return nil, err
 	}
@@ -154,9 +73,9 @@ func CreateIntentTree(mainSigner common.Address, ops []*IntentOperation) (*v3.Wa
 }
 
 // CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, ops []*IntentOperation) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
-	tree, err := CreateIntentTree(mainSigner, ops)
+	tree, err := CreateIntentTree(mainSigner, calls)
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +91,9 @@ func CreateIntentConfiguration(mainSigner common.Address, ops []*IntentOperation
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, ops []*IntentOperation) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
-	config, err := CreateIntentConfiguration(mainSigner, ops)
+	config, err := CreateIntentConfiguration(mainSigner, calls)
 	if err != nil {
 		return nil, err
 	}

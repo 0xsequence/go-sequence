@@ -22,8 +22,8 @@ import (
 )
 
 func TestCreateIntentCallsPayload_Valid(t *testing.T) {
-	// Create an intent operation
-	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	// Create a calls payload
+	calls := []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           big.NewInt(0),
@@ -33,91 +33,69 @@ func TestCreateIntentCallsPayload_Valid(t *testing.T) {
 			OnlyFallback:    false,
 			BehaviorOnError: v3.BehaviorOnErrorRevert,
 		},
-	}, big.NewInt(0), big.NewInt(0))
+	}
 
-	bundle, err := sequence.CreateIntentCallsPayload(op)
-	require.NoError(t, err)
-	require.NotNil(t, bundle)
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), calls, big.NewInt(0), big.NewInt(0))
 
-	// spew.Dump(bundle)
+	require.NotNil(t, payload)
+
+	spew.Dump(payload)
 }
 
 // TestCreateIntentDigestTree_Valid creates a valid payload and computes the intent digest
 func TestCreateIntentDigestTree_Valid(t *testing.T) {
-	// Create valid intent operations with required fields
-	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
-		{
-			To:              common.Address{},
-			Value:           nil,
-			Data:            []byte("transaction1"),
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
+	// Create valid calls payloads
+	calls1 := v3.Call{
+		To:              common.Address{},
+		Value:           nil,
+		Data:            []byte("transaction1"),
+		GasLimit:        big.NewInt(0),
+		DelegateCall:    false,
+		OnlyFallback:    false,
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+	}
 
-	op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
-		{
-			To:              common.Address{},
-			Value:           nil,
-			Data:            []byte("transaction2"),
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{calls1}, big.NewInt(0), big.NewInt(0))
 
-	op3 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
-		{
-			To:              common.Address{},
-			Value:           nil,
-			Data:            []byte("transaction3"),
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
+	calls2 := v3.Call{
+		To:              common.Address{},
+		Value:           nil,
+		Data:            []byte("transaction2"),
+		GasLimit:        big.NewInt(0),
+		DelegateCall:    false,
+		OnlyFallback:    false,
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+	}
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{calls2}, big.NewInt(0), big.NewInt(0))
+
+	calls3 := v3.Call{
+		To:              common.Address{},
+		Value:           nil,
+		Data:            []byte("transaction3"),
+		GasLimit:        big.NewInt(0),
+		DelegateCall:    false,
+		OnlyFallback:    false,
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+	}
+	payload3 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{calls3}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("One batch", func(t *testing.T) {
-		// Use a single payload
-		batches := []*sequence.IntentOperation{op1}
-
-		bundle, err := sequence.CreateIntentCallsPayload(op1)
-		require.NoError(t, err)
-
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
-
-		// Dump the tree
-		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		anyAddressLeaf, ok := (*tree).(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		digest := bundle.Digest()
+		digest := payload1.Digest()
 		require.Equal(t, digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		// Use two payloads
-		batches := []*sequence.IntentOperation{op1, op2}
-
-		bundle1, err := sequence.CreateIntentCallsPayload(op1)
-		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentCallsPayload(op2)
-		require.NoError(t, err)
-
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1, &payload2})
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
-
-		// Dump the tree
-		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -130,29 +108,16 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		rightLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		digest1 := bundle1.Digest()
-		digest2 := bundle2.Digest()
+		digest1 := payload1.Digest()
+		digest2 := payload2.Digest()
 		require.Equal(t, digest1.Hash, leftLeaf.Digest.Hash, "left leaf digest does not match")
 		require.Equal(t, digest2.Hash, rightLeaf.Digest.Hash, "right leaf digest does not match")
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		// Use three payloads
-		batches := []*sequence.IntentOperation{op1, op2, op3}
-
-		bundle1, err := sequence.CreateIntentCallsPayload(op1)
-		require.NoError(t, err)
-		bundle2, err := sequence.CreateIntentCallsPayload(op2)
-		require.NoError(t, err)
-		bundle3, err := sequence.CreateIntentCallsPayload(op3)
-		require.NoError(t, err)
-
-		tree, err := sequence.CreateIntentDigestTree(batches)
+		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1, &payload2, &payload3})
 		require.NoError(t, err)
 		require.NotNil(t, tree, "expected a tree")
-
-		// Dump the tree
-		// spew.Dump((*tree))
 
 		// Type assert to the concrete type
 		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
@@ -171,9 +136,9 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		leftRightLeaf, ok := leftLeaf.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "left right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		digest1 := bundle1.Digest()
-		digest2 := bundle2.Digest()
-		digest3 := bundle3.Digest()
+		digest1 := payload1.Digest()
+		digest2 := payload2.Digest()
+		digest3 := payload3.Digest()
 		require.Equal(t, digest1.Hash, leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
 		require.Equal(t, digest2.Hash, leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
 		require.Equal(t, digest3.Hash, rightLeaf.Digest.Hash, "right leaf digest does not match")
@@ -183,7 +148,7 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 // TestCreateIntentTree_Valid creates a valid payload and computes the intent digest
 func TestCreateIntentTree_Valid(t *testing.T) {
 	// Create valid intent operations with required fields
-	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -195,7 +160,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -207,7 +172,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	op3 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload3 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -220,10 +185,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("One batch", func(t *testing.T) {
-		// Use a single payload
-		batches := []*sequence.IntentOperation{op1}
-
-		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -245,16 +207,13 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		require.NotNil(t, digest)
 
 		// Get the digest of the payload
-		bundle, err := sequence.CreateIntentCallsPayload(op1)
+		bundle, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 		require.NotNil(t, bundle)
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		// Use two payloads
-		batches := []*sequence.IntentOperation{op1, op2}
-
-		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2})
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -281,27 +240,12 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		digest := anyAddressLeaf.Digest.Hash
 		require.NotNil(t, digest)
 
-		// Get the digest of the payload
-		bundle, err := sequence.CreateIntentCallsPayload(op1)
-		require.NoError(t, err)
-		require.NotNil(t, bundle)
-
-		bundle2, err := sequence.CreateIntentCallsPayload(op2)
-		require.NoError(t, err)
-		require.NotNil(t, bundle2)
-
-		bundleDigest := bundle.Digest()
-		bundle2Digest := bundle2.Digest()
-
-		require.Equal(t, bundleDigest.Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
-		require.Equal(t, bundle2Digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
+		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		// Use three payloads
-		batches := []*sequence.IntentOperation{op1, op2, op3}
-
-		tree, err := sequence.CreateIntentTree(common.Address{}, batches)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2, &payload3})
 		require.NoError(t, err)
 
 		// spew.Dump(tree)
@@ -338,31 +282,15 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		digest3 := anyAddressLeaf3.Digest.Hash
 		require.NotNil(t, digest3)
 
-		bundle, err := sequence.CreateIntentCallsPayload(op1)
-		require.NoError(t, err)
-		require.NotNil(t, bundle)
-
-		bundle2, err := sequence.CreateIntentCallsPayload(op2)
-		require.NoError(t, err)
-		require.NotNil(t, bundle2)
-
-		bundle3, err := sequence.CreateIntentCallsPayload(op3)
-		require.NoError(t, err)
-		require.NotNil(t, bundle3)
-
-		bundleDigest := bundle.Digest()
-		bundle2Digest := bundle2.Digest()
-		bundle3Digest := bundle3.Digest()
-
-		require.Equal(t, bundleDigest.Hash, anyAddressLeaf3.Digest.Hash, "digests do not match")
-		require.Equal(t, bundle2Digest.Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
-		require.Equal(t, bundle3Digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf3.Digest.Hash, "digests do not match")
+		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
+		require.Equal(t, payload3.Digest().Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
 	})
 }
 
 func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Create a valid payload
-	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -374,12 +302,10 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	batches := []*sequence.IntentOperation{op}
-
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, batches)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -394,7 +320,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 	calldata, err := callmockContract.Encode("testCall", big.NewInt(65), ethcoder.MustHexDecode("0x332255"))
 	require.NoError(t, err)
 
-	op := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
 			Value:           nil,
@@ -407,15 +333,12 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
-		// Use the payload directly
-		batches := []*sequence.IntentOperation{op}
-
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), batches)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), batches)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -465,7 +388,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		calldata2, err := callmockContract.Encode("testCall", big.NewInt(66), ethcoder.MustHexDecode("0x332255"))
 		require.NoError(t, err)
 
-		op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+		payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 			{
 				To:              callmockContract.Address,
 				Value:           nil,
@@ -477,7 +400,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 			},
 		}, big.NewInt(0), big.NewInt(0))
 
-		op2 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+		payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 			{
 				To:              callmockContract.Address,
 				Value:           nil,
@@ -490,10 +413,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*sequence.IntentOperation{op1})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*sequence.IntentOperation{op2})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -502,13 +425,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		ops := []*sequence.IntentOperation{op}
-
-		// Create the same payload signature twice
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -522,7 +442,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a payload with multiple calls
-	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.Address{},
 			Value:           nil,
@@ -543,26 +463,15 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	ops := []*sequence.IntentOperation{op1}
-
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), ops)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
 	sigHex := common.Bytes2Hex(sig)
 
-	// Create the bundle from the payload
-	bundle, err := sequence.CreateIntentCallsPayload(op1)
-	require.NoError(t, err)
-
-	// Compute the digest of the bundle
-	bundleDigest := bundle.Digest()
-	require.NoError(t, err)
-
 	// Expect that the signature (in hex) contains the substrings of the bundle's digest.
-	bundleDigestHex := bundleDigest.Hash.Hex()
-	require.Contains(t, sigHex, bundleDigestHex[2:], "signature should contain transaction bundle digest")
+	require.Contains(t, sigHex, payload1.Digest().Hash.Hex()[2:], "signature should contain transaction bundle digest")
 }
 
 func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
@@ -573,7 +482,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
 
-	op1 := sequence.NewIntentOperation(testChain.ChainID(), []v3.Call{
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
 			Value:           nil,
@@ -594,12 +503,13 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	ops := []*sequence.IntentOperation{op1}
-
 	// Ensure dummy sequence wallet from the intent operation
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), ops, true)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), []*v3.CallsPayload{&payload}, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
+
+	// Get the payload w/ the operation (The on-chain payload is different since it's the digest of the wallet's address vs. any address subdigest is the address zero)
+	opPayload := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload.Calls, nil, nil)
 
 	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
 	isDeployed, err := wallet.IsDeployed()
@@ -622,19 +532,12 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, ops)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
 	require.NoError(t, err)
-
-	bundle, err := sequence.CreateIntentCallsPayload(op1)
-	assert.NoError(t, err)
-
-	// Since the opHash is generated w/ the wallet addr, create a payload w/ the valid wallet address
-	opHashBundle, err := sequence.CreateIntentCallsPayload(op1, wallet.Address())
-	assert.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
 
-	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", bundle.Encode(common.Address{}), intentConfigSig)
+	signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(common.Address{}), intentConfigSig)
 	assert.NoError(t, err)
 
 	// fmt.Println("==> signedPayloadHash", bundle.Digest().Hash.Hex())
@@ -692,7 +595,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.Equal(t, "2255", ret[0])
 
 	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(opHashBundle.Digest().String()[2:]))
+	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:]))
 	assert.NoError(t, err)
 	assert.True(t, result.Status == sequence.MetaTxnExecuted)
 
@@ -713,25 +616,23 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 	t.Run("single operation", func(t *testing.T) {
 		// Create a single operation matching TypeScript test
-		operation := sequence.NewIntentOperation(
-			big.NewInt(1),
-			[]v3.Call{
-				{
-					To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-					Value:           big.NewInt(0),
-					Data:            common.FromHex("0x1234"),
-					GasLimit:        big.NewInt(0),
-					DelegateCall:    false,
-					OnlyFallback:    false,
-					BehaviorOnError: v3.BehaviorOnErrorRevert,
-				},
+		payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x1234"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
 			},
+		},
 			big.NewInt(0),
 			big.NewInt(0),
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*sequence.IntentOperation{operation})
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -751,43 +652,37 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 	t.Run("multiple operations", func(t *testing.T) {
 		// Create multiple operations matching TypeScript test
-		operations := []*sequence.IntentOperation{
-			sequence.NewIntentOperation(
-				big.NewInt(1),
-				[]v3.Call{
-					{
-						To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-						Value:           big.NewInt(0),
-						Data:            common.FromHex("0x1234"),
-						GasLimit:        big.NewInt(0),
-						DelegateCall:    false,
-						OnlyFallback:    false,
-						BehaviorOnError: v3.BehaviorOnErrorRevert,
-					},
-				},
-				big.NewInt(0),
-				big.NewInt(0),
-			),
-			sequence.NewIntentOperation(
-				big.NewInt(1),
-				[]v3.Call{
-					{
-						To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-						Value:           big.NewInt(0),
-						Data:            common.FromHex("0x5678"),
-						GasLimit:        big.NewInt(0),
-						DelegateCall:    false,
-						OnlyFallback:    false,
-						BehaviorOnError: v3.BehaviorOnErrorRevert,
-					},
-				},
-				big.NewInt(0),
-				big.NewInt(0),
-			),
-		}
+		payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x1234"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
+		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x5678"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, operations)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2})
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -808,32 +703,20 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 	// Create an intent operation with a single call
-	op := sequence.NewIntentOperation(
-		big.NewInt(1),
-		[]v3.Call{
-			{
-				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-				Value:           big.NewInt(0),
-				Data:            common.FromHex("0x1234"),
-				GasLimit:        big.NewInt(0),
-				DelegateCall:    false,
-				OnlyFallback:    false,
-				BehaviorOnError: v3.BehaviorOnErrorRevert,
-			},
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x1234"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
 		},
-		big.NewInt(0),
-		big.NewInt(0),
-	)
-
-	// Create the calls payload
-	bundle, err := sequence.CreateIntentCallsPayload(op)
-	require.NoError(t, err)
-	require.NotNil(t, bundle)
-
-	spew.Dump(bundle)
+	}, big.NewInt(0), big.NewInt(0))
 
 	// Get the digest
-	digest := bundle.Digest()
+	digest := payload.Digest()
 	require.NotNil(t, digest)
 	require.NotNil(t, digest.Hash)
 
