@@ -30,12 +30,7 @@ func handleToPacked(p *PayloadToPackedParams) (string, error) {
 		return "", fmt.Errorf("conversion to packed only implemented for call payloads")
 	}
 
-	packed, err := v3.EncodeDecodedPayload(decoded, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to encode to packed: %w", err)
-	}
-
-	return hexutil.Encode(packed), nil
+	return hexutil.Encode(v3.NewCallsPayload(common.Address{0x01}, nil, decoded.Calls, decoded.Space, decoded.Nonce, decoded.ParentWallets).Encode(common.Address{0x02})), nil
 }
 
 func handleToJSON(p *PayloadToJSONParams) (string, error) {
