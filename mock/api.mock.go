@@ -103,8 +103,23 @@ func (mr *APIMockRecorder) CheckoutOptionsGetTransakContractID(ctx, chainId, con
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckoutOptionsGetTransakContractID", reflect.TypeOf((*API)(nil).CheckoutOptionsGetTransakContractID), ctx, chainId, contractAddress)
 }
 
+// CheckoutOptionsPrimary mocks base method.
+func (m *API) CheckoutOptionsPrimary(ctx context.Context, chainId uint64, wallet, contractAddress, collectionAddress string, params []*api.CheckoutOptionsPrimaryParams) (*api.CheckoutOptions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckoutOptionsPrimary", ctx, chainId, wallet, contractAddress, collectionAddress, params)
+	ret0, _ := ret[0].(*api.CheckoutOptions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckoutOptionsPrimary indicates an expected call of CheckoutOptionsPrimary.
+func (mr *APIMockRecorder) CheckoutOptionsPrimary(ctx, chainId, wallet, contractAddress, collectionAddress, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckoutOptionsPrimary", reflect.TypeOf((*API)(nil).CheckoutOptionsPrimary), ctx, chainId, wallet, contractAddress, collectionAddress, params)
+}
+
 // CheckoutOptionsSecondary mocks base method.
-func (m *API) CheckoutOptionsSecondary(ctx context.Context, chainId uint64, wallet string, params []*api.SecondaryCheckoutOptionsParams) (*api.CheckoutOptions, error) {
+func (m *API) CheckoutOptionsSecondary(ctx context.Context, chainId uint64, wallet string, params []*api.CheckoutOptionsSecondaryParams) (*api.CheckoutOptions, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckoutOptionsSecondary", ctx, chainId, wallet, params)
 	ret0, _ := ret[0].(*api.CheckoutOptions)
@@ -368,18 +383,18 @@ func (mr *APIMockRecorder) GetLifiSwapQuote(ctx, params any) *gomock.Call {
 }
 
 // GetLifiSwapRoutes mocks base method.
-func (m *API) GetLifiSwapRoutes(ctx context.Context, chainId uint64, toTokenAddress string) ([]*api.LifiSwapRoute, error) {
+func (m *API) GetLifiSwapRoutes(ctx context.Context, chainId uint64, toTokenAddress, toTokenAmount, walletAddress string) ([]*api.LifiSwapRoute, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLifiSwapRoutes", ctx, chainId, toTokenAddress)
+	ret := m.ctrl.Call(m, "GetLifiSwapRoutes", ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
 	ret0, _ := ret[0].([]*api.LifiSwapRoute)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLifiSwapRoutes indicates an expected call of GetLifiSwapRoutes.
-func (mr *APIMockRecorder) GetLifiSwapRoutes(ctx, chainId, toTokenAddress any) *gomock.Call {
+func (mr *APIMockRecorder) GetLifiSwapRoutes(ctx, chainId, toTokenAddress, toTokenAmount, walletAddress any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapRoutes", reflect.TypeOf((*API)(nil).GetLifiSwapRoutes), ctx, chainId, toTokenAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapRoutes", reflect.TypeOf((*API)(nil).GetLifiSwapRoutes), ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
 }
 
 // GetLifiTokens mocks base method.
