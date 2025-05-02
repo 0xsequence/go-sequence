@@ -509,7 +509,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.NotNil(t, wallet)
 
 	// Get the payload w/ the operation (The on-chain payload is different since it's the digest of the wallet's address vs. any address subdigest is the address zero)
-	opPayload := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload.Calls, nil, nil)
+	opPayload := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload.Calls, big.NewInt(0), big.NewInt(0))
 
 	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
 	isDeployed, err := wallet.IsDeployed()
@@ -557,7 +557,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	}
 
 	guestAddress := testChain.V3SequenceContext().GuestModuleAddress
-	execdata := v3.NewCallsPayload(guestAddress, testChain.ChainID(), guestBundle, nil, nil).Encode(guestAddress)
+	execdata := v3.NewCallsPayload(guestAddress, testChain.ChainID(), guestBundle, big.NewInt(0), big.NewInt(0)).Encode(guestAddress)
 
 	// Relay the txn manually, directly to the guest module
 	sender := testChain.GetRelayerWallet()
@@ -605,7 +605,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.True(t, isDeployed)
 }
 
-func TestIntentTransactionToGuestModuleDeployAndCallMultiple(t *testing.T) {
+func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.T) {
 	// Create normal txn of: callmockContract.testCall(55, 0x112255) for first chain
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 	calldata1, err := callmockContract.Encode("setRevertFlag", false)
@@ -649,17 +649,22 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiple(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
-	payloads := []*v3.CallsPayload{&payload1}
-	// payloads := []*v3.CallsPayload{&payload1, &payload2}
+	payloads := []*v3.CallsPayload{&payload1, &payload2}
 
 	// Ensure dummy sequence wallet from the intent operation
 	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), payloads, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
+	// Log payload digests used for signature leaves
+	fmt.Println("--- Payload Digests (for signature) ---")
+	for i, p := range payloads {
+		fmt.Printf("Payload %d Digest: %s\n", i+1, p.Digest().Hash.Hex())
+	}
+
 	// Get the payloads w/ the operation (The on-chain payload is different since it's the digest of the wallet's address vs. any address subdigest is the address zero)
-	opPayload1 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload1.Calls, nil, nil)
-	opPayload2 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload2.Calls, nil, nil)
+	opPayload1 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload1.Calls, big.NewInt(0), big.NewInt(0))
+	opPayload2 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload2.Calls, big.NewInt(0), big.NewInt(0))
 
 	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
 	isDeployed, err := wallet.IsDeployed()
@@ -684,11 +689,16 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiple(t *testing.T) {
 	// Generate a configuration signature for both batches
 	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads)
 	require.NoError(t, err)
+	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
 	// Create and execute guest bundles for each payload separately
 	for i, payload := range payloads {
 		signedExecdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(common.Address{}), intentConfigSig)
 		assert.NoError(t, err)
+
+		// Log encoded payload sent to contract
+		fmt.Printf("--- Executing Payload %d ---\n", i+1)
+		fmt.Printf("Encoded Payload (to execute): %s\n", common.Bytes2Hex(payload.Encode(common.Address{})))
 
 		guestBundle := []v3.Call{
 			{
@@ -723,6 +733,10 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiple(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
+		// Log receipt status
+		// spew.Dump(receipt)
+		fmt.Printf("Receipt Status Payload %d: %d\n", i+1, receipt.Status)
+
 		// Check the value for each contract
 		var expectedValue string
 		var contractAddress common.Address
@@ -747,7 +761,11 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiple(t *testing.T) {
 			opPayload = &opPayload2
 		}
 
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:]))
+		// Log expected MetaTxnID
+		expectedMetaTxnID := sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:])
+		fmt.Printf("Expected MetaTxnID Payload %d: %s\n", i+1, expectedMetaTxnID)
+
+		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, expectedMetaTxnID)
 		assert.NoError(t, err)
 		assert.True(t, result.Status == sequence.MetaTxnExecuted)
 	}

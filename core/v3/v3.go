@@ -1992,7 +1992,7 @@ func (c *WalletConfig) BuildSubdigestSignature(noChainID bool) (core.Signature[*
 
 	return &RegularSignature{
 		Signature: &Signature{
-			NoChainId:        false,
+			NoChainId:        noChainID,
 			Threshold:        c.Threshold_,
 			Checkpoint:       c.Checkpoint_,
 			Tree:             tree,
