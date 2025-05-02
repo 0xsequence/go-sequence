@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage1"
 	"github.com/0xsequence/go-sequence/core"
 )
 
@@ -156,6 +157,7 @@ type Payload interface {
 	Address() common.Address
 	ChainID() *big.Int
 	Encode(address common.Address) []byte
+	ABIEncode() walletstage1.PayloadDecoded
 }
 
 var (
@@ -477,6 +479,30 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 	return data
 }
 
+func (p CallsPayload) ABIEncode() walletstage1.PayloadDecoded {
+	calls := make([]walletstage1.PayloadCall, 0, len(p.Calls))
+	for _, call := range p.Calls {
+		calls = append(calls, walletstage1.PayloadCall{
+			To:              call.To,
+			Value:           call.Value,
+			Data:            call.Data,
+			GasLimit:        call.GasLimit,
+			DelegateCall:    call.DelegateCall,
+			OnlyFallback:    call.OnlyFallback,
+			BehaviorOnError: big.NewInt(int64(call.BehaviorOnError)),
+		})
+	}
+
+	return walletstage1.PayloadDecoded{
+		Kind:          KindTransactions,
+		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Calls:         calls,
+		Space:         p.Space,
+		Nonce:         p.Nonce,
+		ParentWallets: p.parentWallets,
+	}
+}
+
 func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPayload, error) {
 	var space, nonce *big.Int
 	space = big.NewInt(0)
@@ -616,6 +642,15 @@ func (p MessagePayload) Encode(address common.Address) []byte {
 	return buffer.Bytes()
 }
 
+func (p MessagePayload) ABIEncode() walletstage1.PayloadDecoded {
+	return walletstage1.PayloadDecoded{
+		Kind:          KindMessage,
+		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Message:       p.Message,
+		ParentWallets: p.parentWallets,
+	}
+}
+
 func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
 	if len(data) < 4 { // kind byte + 3 bytes length
 		return nil, fmt.Errorf("message payload too short")
@@ -701,6 +736,15 @@ func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
 	mustWrite(&buffer, p.ImageHash.ImageHash().Bytes())
 
 	return buffer.Bytes()
+}
+
+func (p ConfigUpdatePayload) ABIEncode() walletstage1.PayloadDecoded {
+	return walletstage1.PayloadDecoded{
+		Kind:          KindConfigUpdate,
+		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		ImageHash:     p.ImageHash.ImageHash().Hash,
+		ParentWallets: p.parentWallets,
+	}
 }
 
 func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
@@ -801,6 +845,15 @@ func (p DigestPayload) Encode(address common.Address) []byte {
 	mustWrite(&buffer, p.MessageDigest.Bytes())
 
 	return buffer.Bytes()
+}
+
+func (p DigestPayload) ABIEncode() walletstage1.PayloadDecoded {
+	return walletstage1.PayloadDecoded{
+		Kind:          KindDigest,
+		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Digest:        p.MessageDigest,
+		ParentWallets: p.parentWallets,
+	}
 }
 
 func mustWrite(writer io.Writer, data []byte) {
