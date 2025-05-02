@@ -2114,6 +2114,7 @@ type WalletConfigTree interface {
 	readSignersIntoMap(signers map[common.Address]uint16)
 	unverifiedWeight(signers map[common.Address]uint16) *big.Int
 	buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree
+	ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree
 }
 
 func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
@@ -2272,6 +2273,13 @@ func (n *WalletConfigTreeNode) buildSignatureTree(signerSignatures map[common.Ad
 	return &signatureTreeNode{left: leftTree, right: rightTree}
 }
 
+func (n *WalletConfigTreeNode) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return &WalletConfigTreeNode{
+		Left:  n.Left.ReplaceSubdigestLeaves(targetLeaf),
+		Right: n.Right.ReplaceSubdigestLeaves(targetLeaf),
+	}
+}
+
 type WalletConfigTreeAddressLeaf struct {
 	Weight  uint8          `json:"weight" toml:"weight"`
 	Address common.Address `json:"address" toml:"address"`
@@ -2388,6 +2396,10 @@ func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[co
 	return &signatureTreeAddressLeaf{Weight: l.Weight, Address: l.Address}
 }
 
+func (l *WalletConfigTreeAddressLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return l
+}
+
 type WalletConfigTreeNodeLeaf struct {
 	Node core.ImageHash `json:"node" toml:"node"`
 }
@@ -2439,6 +2451,10 @@ func (l WalletConfigTreeNodeLeaf) unverifiedWeight(signers map[common.Address]ui
 
 func (l WalletConfigTreeNodeLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
 	return signatureTreeNodeLeaf{l.Node}
+}
+
+func (l WalletConfigTreeNodeLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return l
 }
 
 type WalletConfigTreeNestedLeaf struct {
@@ -2533,6 +2549,14 @@ func (l *WalletConfigTreeNestedLeaf) buildSignatureTree(signerSignatures map[com
 	}
 }
 
+func (l *WalletConfigTreeNestedLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return &WalletConfigTreeNestedLeaf{
+		Weight:    l.Weight,
+		Threshold: l.Threshold,
+		Tree:      l.Tree.ReplaceSubdigestLeaves(targetLeaf),
+	}
+}
+
 type WalletConfigTreeSubdigestLeaf struct {
 	Subdigest core.Subdigest `json:"subdigest" toml:"subdigest"`
 }
@@ -2591,6 +2615,10 @@ func (l WalletConfigTreeSubdigestLeaf) unverifiedWeight(signers map[common.Addre
 
 func (l WalletConfigTreeSubdigestLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
 	return signatureTreeSubdigestLeaf{l.Subdigest}
+}
+
+func (l WalletConfigTreeSubdigestLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return l
 }
 
 type WalletConfigTreeSapientSignerLeaf struct {
@@ -2704,6 +2732,10 @@ func (l *WalletConfigTreeSapientSignerLeaf) buildSignatureTree(signerSignatures 
 	}
 }
 
+func (l *WalletConfigTreeSapientSignerLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return l
+}
+
 type WalletConfigTreeAnyAddressSubdigestLeaf struct {
 	Digest core.Subdigest `json:"digest" toml:"digest"`
 }
@@ -2760,6 +2792,10 @@ func (l WalletConfigTreeAnyAddressSubdigestLeaf) unverifiedWeight(signers map[co
 
 func (l WalletConfigTreeAnyAddressSubdigestLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
 	return &signatureTreeAnyAddressSubdigestLeaf{l.Digest}
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) ReplaceSubdigestLeaves(targetLeaf *WalletConfigTreeAnyAddressSubdigestLeaf) WalletConfigTree {
+	return targetLeaf
 }
 
 func ecrecover(subdigest core.Subdigest, signature []byte) (common.Address, error) {

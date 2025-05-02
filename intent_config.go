@@ -91,12 +91,20 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload, targetCall *v3.CallsPayload) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, calls)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create an any address subdigest leaf for the target call.
+	targetCallLeaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
+		Digest: core.Subdigest{Hash: targetCall.Digest().Hash},
+	}
+
+	// Replace all any address subdigest leaves with the target call leaf in the config tree.
+	config.Tree = config.Tree.ReplaceSubdigestLeaves(targetCallLeaf)
 
 	// Default to building the regular signature
 	sig, err := config.BuildSubdigestSignature(false)
