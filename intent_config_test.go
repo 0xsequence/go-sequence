@@ -624,7 +624,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		},
 		{
 			To:              callmockContract.Address,
@@ -633,7 +633,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
@@ -645,9 +645,9 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		},
-	}, big.NewInt(0), big.NewInt(0))
+	}, big.NewInt(1), big.NewInt(0))
 
 	payloads := []*v3.CallsPayload{&payload1, &payload2}
 
@@ -664,7 +664,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 
 	// Get the payloads w/ the operation (The on-chain payload is different since it's the digest of the wallet's address vs. any address subdigest is the address zero)
 	opPayload1 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload1.Calls, big.NewInt(0), big.NewInt(0))
-	opPayload2 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload2.Calls, big.NewInt(0), big.NewInt(0))
+	opPayload2 := v3.NewCallsPayload(wallet.Address(), testChain.ChainID(), payload2.Calls, big.NewInt(1), big.NewInt(0))
 
 	// Assert the wallet is undeployed -- this is desired so we relayer the txn to the guest module
 	isDeployed, err := wallet.IsDeployed()
@@ -700,18 +700,29 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 		fmt.Printf("--- Executing Payload %d ---\n", i+1)
 		fmt.Printf("Encoded Payload (to execute): %s\n", common.Bytes2Hex(payload.Encode(common.Address{})))
 
-		guestBundle := []v3.Call{
-			{
-				To:   walletFactoryAddress,
-				Data: walletDeployData,
-			},
-			{
-				To:   wallet.Address(),
-				Data: signedExecdata,
-			},
+		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
+
+		var guestBundle []v3.Call
+		if i == 0 {
+			guestBundle = []v3.Call{
+				{
+					To:   walletFactoryAddress,
+					Data: walletDeployData,
+				},
+				{
+					To:   wallet.Address(),
+					Data: signedExecdata,
+				},
+			}
+		} else {
+			guestBundle = []v3.Call{
+				{
+					To:   wallet.Address(),
+					Data: signedExecdata,
+				},
+			}
 		}
 
-		guestAddress := testChain.V3SequenceContext().GuestModuleAddress
 		execdata := v3.NewCallsPayload(guestAddress, testChain.ChainID(), guestBundle, nil, nil).Encode(guestAddress)
 
 		// Relay the txn manually, directly to the guest module
@@ -879,7 +890,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	// Context for the counterfactual address
 	context := sequence.V3SequenceContext()
 	context.FactoryAddress = common.HexToAddress("0xBd0F8abD58B4449B39C57Ac9D5C67433239aC447")
-	context.MainModuleAddress = common.HexToAddress("0x2440595Ead70Ba5874572153910362DcA2dde417")
+	context.MainModuleAddress = common.HexToAddress("0x53bA242E7C2501839DF2972c75075dc693176Cd0")
 
 	// Create first operation on Arbitrum (chainId: 42161)
 	payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(42161), []v3.Call{
