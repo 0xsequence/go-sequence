@@ -6,11 +6,53 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/eip6492"
 )
+
+func RecoverSapientSignature(ctx context.Context, signer common.Address, payload Payload, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
+	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignature", payload.ABIEncode(), signature)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignature call: %w", err)
+	}
+
+	response, err := provider.CallContract(ctx, ethereum.CallMsg{To: &signer, Data: data}, nil)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature: %w", err)
+	}
+
+	var imageHash common.Hash
+	err = contracts.V3.WalletStage1Module.Decode(&imageHash, "recoverSapientSignature", response)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to decode recoverSapientSignature response: %w", err)
+	}
+
+	return core.ImageHash{Hash: imageHash}, nil
+}
+
+func RecoverSapientSignatureCompact(ctx context.Context, signer common.Address, payload PayloadDigestable, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
+	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignatureCompact", payload.Digest().Hash, signature)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignatureCompact call: %w", err)
+	}
+
+	response, err := provider.CallContract(ctx, ethereum.CallMsg{To: &signer, Data: data}, nil)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature compact: %w", err)
+	}
+
+	var imageHash common.Hash
+	err = contracts.V3.WalletStage1Module.Decode(&imageHash, "recoverSapientSignatureCompact", response)
+	if err != nil {
+		return core.ImageHash{}, fmt.Errorf("unable to decode recoverSapientSignatureCompact response: %w", err)
+	}
+
+	return core.ImageHash{Hash: imageHash}, nil
+}
 
 type ValidationResult struct {
 	IsValid         bool
