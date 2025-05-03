@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -115,13 +116,9 @@ func LoadIndexes(ci *Compressor) error {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()
 
-	for k, v := range addrs {
-		ci.Encoder.AddressIndexes[k] = v
-	}
+	maps.Copy(ci.Encoder.AddressIndexes, addrs)
 
-	for k, v := range bytes32s {
-		ci.Encoder.Bytes32Indexes[k] = v
-	}
+	maps.Copy(ci.Encoder.Bytes32Indexes, bytes32s)
 
 	ci.AddressesHeight = nah
 	ci.Bytes32Height = nbh

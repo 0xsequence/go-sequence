@@ -1,5 +1,7 @@
 package compressor
 
+import "maps"
+
 type CBuffer struct {
 	SignatureLevel uint
 
@@ -34,14 +36,10 @@ func NewCBuffer(useStorage bool) *CBuffer {
 
 func (r *References) Copy() *References {
 	usedFlags := make(map[string]int, len(r.usedFlags))
-	for k, v := range r.usedFlags {
-		usedFlags[k] = v
-	}
+	maps.Copy(usedFlags, r.usedFlags)
 
 	usedStorageFlags := make(map[string]int, len(r.usedStorageFlags))
-	for k, v := range r.usedStorageFlags {
-		usedStorageFlags[k] = v
-	}
+	maps.Copy(usedStorageFlags, r.usedStorageFlags)
 
 	return &References{
 		useContractStorage: r.useContractStorage,
