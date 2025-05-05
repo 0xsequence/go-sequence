@@ -15,6 +15,10 @@ import (
 )
 
 func RecoverSapientSignature(ctx context.Context, signer common.Address, payload Payload, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
+	if provider == nil {
+		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature without provider")
+	}
+
 	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignature", payload.ABIEncode(), signature)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignature call: %w", err)
@@ -35,6 +39,10 @@ func RecoverSapientSignature(ctx context.Context, signer common.Address, payload
 }
 
 func RecoverSapientSignatureCompact(ctx context.Context, signer common.Address, payload PayloadDigestable, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
+	if provider == nil {
+		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature compact without provider")
+	}
+
 	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignatureCompact", payload.Digest().Hash, signature)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignatureCompact call: %w", err)
