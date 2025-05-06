@@ -3665,12 +3665,16 @@ func (c *marketplaceClient) GetCountOfPrimarySaleItems(ctx context.Context, chai
 	return out.Ret0, err
 }
 
-func (c *marketplaceClient) SupportedMarketplaces(ctx context.Context) ([]MarketplaceKind, error) {
+func (c *marketplaceClient) SupportedMarketplaces(ctx context.Context, chainId string) ([]MarketplaceKind, error) {
+	in := struct {
+		Arg0 string `json:"chainId"`
+	}{chainId}
+
 	out := struct {
 		Ret0 []MarketplaceKind `json:"marketplaces"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[36], nil, &out)
+	resp, err := doHTTPRequest(ctx, c.client, c.urls[36], in, &out)
 	if resp != nil {
 		cerr := resp.Body.Close()
 		if err == nil && cerr != nil {
