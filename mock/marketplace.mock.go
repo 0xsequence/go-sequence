@@ -72,18 +72,18 @@ func (mr *MarketplaceMockRecorder) CheckoutOptionsSalesContract(ctx, wallet, con
 }
 
 // Execute mocks base method.
-func (m *Marketplace) Execute(ctx context.Context, signature string, executeType marketplace.ExecuteType, body any) (string, error) {
+func (m *Marketplace) Execute(ctx context.Context, signature, method, endpoint string, executeType marketplace.ExecuteType, body any) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", ctx, signature, executeType, body)
+	ret := m.ctrl.Call(m, "Execute", ctx, signature, method, endpoint, executeType, body)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MarketplaceMockRecorder) Execute(ctx, signature, executeType, body any) *gomock.Call {
+func (mr *MarketplaceMockRecorder) Execute(ctx, signature, method, endpoint, executeType, body any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Marketplace)(nil).Execute), ctx, signature, executeType, body)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*Marketplace)(nil).Execute), ctx, signature, method, endpoint, executeType, body)
 }
 
 // GenerateBuyTransaction mocks base method.
@@ -530,9 +530,9 @@ func (mr *MarketplaceMockRecorder) ListCurrencies(ctx any) *gomock.Call {
 }
 
 // ListListingsForCollectible mocks base method.
-func (m *Marketplace) ListListingsForCollectible(ctx context.Context, contractAddress, tokenId string, filter *marketplace.OrderFilter, skipRealtimeSync bool, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
+func (m *Marketplace) ListListingsForCollectible(ctx context.Context, contractAddress, tokenId string, filter *marketplace.OrderFilter, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListListingsForCollectible", ctx, contractAddress, tokenId, filter, skipRealtimeSync, page)
+	ret := m.ctrl.Call(m, "ListListingsForCollectible", ctx, contractAddress, tokenId, filter, page)
 	ret0, _ := ret[0].([]*marketplace.Order)
 	ret1, _ := ret[1].(*marketplace.Page)
 	ret2, _ := ret[2].(error)
@@ -540,15 +540,15 @@ func (m *Marketplace) ListListingsForCollectible(ctx context.Context, contractAd
 }
 
 // ListListingsForCollectible indicates an expected call of ListListingsForCollectible.
-func (mr *MarketplaceMockRecorder) ListListingsForCollectible(ctx, contractAddress, tokenId, filter, skipRealtimeSync, page any) *gomock.Call {
+func (mr *MarketplaceMockRecorder) ListListingsForCollectible(ctx, contractAddress, tokenId, filter, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListListingsForCollectible", reflect.TypeOf((*Marketplace)(nil).ListListingsForCollectible), ctx, contractAddress, tokenId, filter, skipRealtimeSync, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListListingsForCollectible", reflect.TypeOf((*Marketplace)(nil).ListListingsForCollectible), ctx, contractAddress, tokenId, filter, page)
 }
 
 // ListOffersForCollectible mocks base method.
-func (m *Marketplace) ListOffersForCollectible(ctx context.Context, contractAddress, tokenId string, filter *marketplace.OrderFilter, skipRealtimeSync bool, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
+func (m *Marketplace) ListOffersForCollectible(ctx context.Context, contractAddress, tokenId string, filter *marketplace.OrderFilter, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListOffersForCollectible", ctx, contractAddress, tokenId, filter, skipRealtimeSync, page)
+	ret := m.ctrl.Call(m, "ListOffersForCollectible", ctx, contractAddress, tokenId, filter, page)
 	ret0, _ := ret[0].([]*marketplace.Order)
 	ret1, _ := ret[1].(*marketplace.Page)
 	ret2, _ := ret[2].(error)
@@ -556,9 +556,9 @@ func (m *Marketplace) ListOffersForCollectible(ctx context.Context, contractAddr
 }
 
 // ListOffersForCollectible indicates an expected call of ListOffersForCollectible.
-func (mr *MarketplaceMockRecorder) ListOffersForCollectible(ctx, contractAddress, tokenId, filter, skipRealtimeSync, page any) *gomock.Call {
+func (mr *MarketplaceMockRecorder) ListOffersForCollectible(ctx, contractAddress, tokenId, filter, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOffersForCollectible", reflect.TypeOf((*Marketplace)(nil).ListOffersForCollectible), ctx, contractAddress, tokenId, filter, skipRealtimeSync, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOffersForCollectible", reflect.TypeOf((*Marketplace)(nil).ListOffersForCollectible), ctx, contractAddress, tokenId, filter, page)
 }
 
 // SyncOrder mocks base method.
