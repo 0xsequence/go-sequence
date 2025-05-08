@@ -456,6 +456,7 @@ func (p CallsPayload) Encode(address common.Address) []byte {
 	}
 
 	nonce := p.Nonce.Bytes()
+
 	flags |= byte(len(nonce)) << 1
 	mustWrite(&buffer, nonce)
 

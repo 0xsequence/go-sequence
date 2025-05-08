@@ -981,18 +981,25 @@ func TestHashIntentParams(t *testing.T) {
 			OnlyFallback:    false,
 			BehaviorOnError: v3.BehaviorOnErrorRevert,
 		}
-		payload := v3.NewCallsPayload(common.HexToAddress("0x2222222222222222222222222222222222222222"), big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
+		payload := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
-			UserAddress:        common.HexToAddress("0x3333333333333333333333333333333333333333"),
-			OriginChainId:      1,
-			OriginTokenAddress: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-			DestinationCalls:   []*v3.CallsPayload{&payload},
+			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			OriginTokens: []sequence.OriginToken{{
+				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				ChainId: 1,
+			}},
+			DestinationTokens: []sequence.DestinationToken{{
+				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				ChainId: 1,
+				Amount:  big.NewInt(123),
+			}},
+			DestinationCalls: []*v3.CallsPayload{&payload},
 		}
 		hash, err := sequence.HashIntentParams(params)
 		require.NoError(t, err)
 		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("a922e29ce304fb6c02f7e32a75a89e1b1ded5be7387e583a63871f5b6c550b01"), common.Hash(hash))
+		assert.Equal(t, common.HexToHash("9622268e7b27321fa1f2e38e09444251a6a3febe8e5b022887b57df0916f00b2"), common.Hash(hash))
 	})
 
 	t.Run("Multiple calls", func(t *testing.T) {
@@ -1014,20 +1021,27 @@ func TestHashIntentParams(t *testing.T) {
 			OnlyFallback:    false,
 			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		}
-		payload1 := v3.NewCallsPayload(common.HexToAddress("0x2222222222222222222222222222222222222222"), big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
-		payload2 := v3.NewCallsPayload(common.HexToAddress("0x6666666666666666666666666666666666666666"), big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
+		payload1 := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
+		payload2 := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
-			UserAddress:        common.HexToAddress("0x3333333333333333333333333333333333333333"),
-			OriginChainId:      1,
-			OriginTokenAddress: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-			DestinationCalls:   []*v3.CallsPayload{&payload1, &payload2},
+			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			OriginTokens: []sequence.OriginToken{{
+				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				ChainId: 1,
+			}},
+			DestinationTokens: []sequence.DestinationToken{{
+				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				ChainId: 1,
+				Amount:  big.NewInt(123),
+			}},
+			DestinationCalls: []*v3.CallsPayload{&payload1, &payload2},
 		}
 		hash, err := sequence.HashIntentParams(params)
 		require.NoError(t, err)
 
 		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("24ae10d23433225835212b2017324479cf43f3dc6358b33ad68226296ab1a2f5"), common.Hash(hash))
+		assert.Equal(t, common.HexToHash("3d89683957ae91a022ca6d0231a9d1b51be616512ee9bdcb5abc30a1f299b4ce"), common.Hash(hash))
 
 		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
 	})

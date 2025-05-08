@@ -10,12 +10,24 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-// IntentParamsV2 is a new version of intent parameters that uses CallsPayload for destination calls.
+// Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
+type OriginToken struct {
+	Address common.Address
+	ChainId uint64
+}
+
+type DestinationToken struct {
+	Address common.Address
+	ChainId uint64
+	Amount  *big.Int
+}
+
+// IntentParams is a new version of intent parameters that uses CallsPayload for destination calls.
 type IntentParams struct {
-	UserAddress        common.Address
-	OriginChainId      uint64
-	OriginTokenAddress common.Address
-	DestinationCalls   []*v3.CallsPayload
+	UserAddress       common.Address
+	OriginTokens      []OriginToken
+	DestinationCalls  []*v3.CallsPayload
+	DestinationTokens []DestinationToken
 }
 
 // HashIntentParams generates a unique bytes32 hash from the IntentParams struct.
@@ -26,14 +38,14 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	if params.UserAddress == (common.Address{}) {
 		return [32]byte{}, fmt.Errorf("UserAddress is zero")
 	}
-	if params.OriginChainId == 0 {
-		return [32]byte{}, fmt.Errorf("OriginChainId is zero")
-	}
-	if params.OriginTokenAddress == (common.Address{}) {
-		return [32]byte{}, fmt.Errorf("OriginTokenAddress is zero")
+	if len(params.OriginTokens) == 0 {
+		return [32]byte{}, fmt.Errorf("OriginTokens is empty")
 	}
 	if len(params.DestinationCalls) == 0 {
 		return [32]byte{}, fmt.Errorf("DestinationCalls is empty")
+	}
+	if len(params.DestinationTokens) == 0 {
+		return [32]byte{}, fmt.Errorf("DestinationTokens is empty")
 	}
 	for i, call := range params.DestinationCalls {
 		if call == nil {
@@ -41,34 +53,45 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		}
 	}
 
-	// ABI encode the fields in a deterministic order
-	var (
-		callsEncoded []byte
-	)
-	for _, call := range params.DestinationCalls {
-		// Use the Encode method to get the byte encoding of each CallsPayload
-		callsEncoded = append(callsEncoded, call.Encode(common.Address{})...) // Use AnyAddressSubdigestLeaf as the digest hash
+	fmt.Printf("hashIntentParams debug:\n")
+	fmt.Printf("  userAddress: %s\n", params.UserAddress.Hex())
+	fmt.Printf("  originTokens: %v\n", params.OriginTokens)
+	fmt.Printf("  destinationCalls: [\n")
+	destinationCalls := make([][]byte, len(params.DestinationCalls))
+	for i, call := range params.DestinationCalls {
+		destinationCalls[i] = call.Encode(common.Address{})
+		fmt.Printf("  %q\n", fmt.Sprintf("0x%s", common.Bytes2Hex(destinationCalls[i])))
 	}
+	fmt.Printf("]\n")
+	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
+	// ABI encode all fields
 	encoded, err := ethcoder.ABIPackArguments(
 		[]string{
 			"address", // UserAddress
-			"uint256", // OriginChainId
-			"address", // OriginTokenAddress
-			"bytes",   // DestinationCalls
+			"tuple[]", // OriginTokens
+			"bytes[]", // DestinationCalls
+			"tuple[]", // DestinationTokens
 		},
 		[]interface{}{
 			params.UserAddress,
-			big.NewInt(int64(params.OriginChainId)),
-			params.OriginTokenAddress,
-			callsEncoded,
+			params.OriginTokens,
+			destinationCalls,
+			params.DestinationTokens,
 		},
 	)
 	if err != nil {
 		return [32]byte{}, err
 	}
 
+	fmt.Printf("  ABI-encoded (hex): 0x%s\n", common.Bytes2Hex(encoded))
+	fmt.Printf("  ABI-encoded (bytes): %v\n", encoded)
+	fmt.Printf("  ABI-encoded (length): %d\n", len(encoded))
+
 	hash := ethcoder.Keccak256(encoded)
+	fmt.Printf("  Hash: 0x%s\n", common.Bytes2Hex(hash))
+	fmt.Printf("  Hash: %v\n", hash)
+
 	var hash32 [32]byte
 	copy(hash32[:], hash)
 	return hash32, nil
