@@ -4,10 +4,75 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
+
+// IntentParamsV2 is a new version of intent parameters that uses CallsPayload for destination calls.
+type IntentParams struct {
+	UserAddress        common.Address
+	OriginChainId      uint64
+	OriginTokenAddress common.Address
+	DestinationCalls   []*v3.CallsPayload
+}
+
+// HashIntentParams generates a unique bytes32 hash from the IntentParams struct.
+func HashIntentParams(params *IntentParams) ([32]byte, error) {
+	if params == nil {
+		return [32]byte{}, fmt.Errorf("params is nil")
+	}
+	if params.UserAddress == (common.Address{}) {
+		return [32]byte{}, fmt.Errorf("UserAddress is zero")
+	}
+	if params.OriginChainId == 0 {
+		return [32]byte{}, fmt.Errorf("OriginChainId is zero")
+	}
+	if params.OriginTokenAddress == (common.Address{}) {
+		return [32]byte{}, fmt.Errorf("OriginTokenAddress is zero")
+	}
+	if len(params.DestinationCalls) == 0 {
+		return [32]byte{}, fmt.Errorf("DestinationCalls is empty")
+	}
+	for i, call := range params.DestinationCalls {
+		if call == nil {
+			return [32]byte{}, fmt.Errorf("DestinationCalls[%d] is nil", i)
+		}
+	}
+
+	// ABI encode the fields in a deterministic order
+	var (
+		callsEncoded []byte
+	)
+	for _, call := range params.DestinationCalls {
+		// Use the Encode method to get the byte encoding of each CallsPayload
+		callsEncoded = append(callsEncoded, call.Encode(common.Address{})...) // Use AnyAddressSubdigestLeaf as the digest hash
+	}
+
+	encoded, err := ethcoder.ABIPackArguments(
+		[]string{
+			"address", // UserAddress
+			"uint256", // OriginChainId
+			"address", // OriginTokenAddress
+			"bytes",   // DestinationCalls
+		},
+		[]interface{}{
+			params.UserAddress,
+			big.NewInt(int64(params.OriginChainId)),
+			params.OriginTokenAddress,
+			callsEncoded,
+		},
+	)
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	hash := ethcoder.Keccak256(encoded)
+	var hash32 [32]byte
+	copy(hash32[:], hash)
+	return hash32, nil
+}
 
 // `CreateIntentDigestTree` iterates over each batch of payloads,
 // validates that each call in the payload meets the following criteria:

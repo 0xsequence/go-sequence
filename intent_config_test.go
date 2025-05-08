@@ -963,3 +963,72 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 	// Print the digest hash for debugging
 	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
 }
+
+func TestHashIntentParams(t *testing.T) {
+	t.Run("Empty fields", func(t *testing.T) {
+		params := &sequence.IntentParams{}
+		_, err := sequence.HashIntentParams(params)
+		require.Error(t, err)
+	})
+
+	t.Run("Single call", func(t *testing.T) {
+		call := v3.Call{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           big.NewInt(123),
+			Data:            []byte("data1"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		}
+		payload := v3.NewCallsPayload(common.HexToAddress("0x2222222222222222222222222222222222222222"), big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
+		params := &sequence.IntentParams{
+			UserAddress:        common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			OriginChainId:      1,
+			OriginTokenAddress: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+			DestinationCalls:   []*v3.CallsPayload{&payload},
+		}
+		hash, err := sequence.HashIntentParams(params)
+		require.NoError(t, err)
+		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+
+		assert.Equal(t, common.HexToHash("a922e29ce304fb6c02f7e32a75a89e1b1ded5be7387e583a63871f5b6c550b01"), common.Hash(hash))
+	})
+
+	t.Run("Multiple calls", func(t *testing.T) {
+		call1 := v3.Call{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           big.NewInt(123),
+			Data:            []byte("data1"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		}
+		call2 := v3.Call{
+			To:              common.HexToAddress("0x5555555555555555555555555555555555555555"),
+			Value:           big.NewInt(456),
+			Data:            []byte("data2"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    true,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
+		}
+		payload1 := v3.NewCallsPayload(common.HexToAddress("0x2222222222222222222222222222222222222222"), big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
+		payload2 := v3.NewCallsPayload(common.HexToAddress("0x6666666666666666666666666666666666666666"), big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
+		params := &sequence.IntentParams{
+			UserAddress:        common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			OriginChainId:      1,
+			OriginTokenAddress: common.HexToAddress("0x4444444444444444444444444444444444444444"),
+			DestinationCalls:   []*v3.CallsPayload{&payload1, &payload2},
+		}
+		hash, err := sequence.HashIntentParams(params)
+		require.NoError(t, err)
+
+		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+
+		assert.Equal(t, common.HexToHash("24ae10d23433225835212b2017324479cf43f3dc6358b33ad68226296ab1a2f5"), common.Hash(hash))
+
+		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+	})
+}
