@@ -183,6 +183,10 @@ type basePayload struct {
 	parentWallets []common.Address
 }
 
+func (p *basePayload) AddressZero() {
+	p.address = common.Address{}
+}
+
 func (p basePayload) Address() common.Address {
 	return p.address
 }

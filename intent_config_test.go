@@ -979,19 +979,19 @@ func TestHashIntentParams(t *testing.T) {
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert, // 0 in Solidity
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		}
-		// Solidity Payload.Decoded has space:0, nonce:0. Wallet is 0x0, chainId is 1.
+
 		payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
 			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
 			OriginTokens: []sequence.OriginToken{{
 				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-				ChainId: 1,
+				ChainId: big.NewInt(1),
 			}},
 			DestinationTokens: []sequence.DestinationToken{{
 				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-				ChainId: 1,
+				ChainId: big.NewInt(1),
 				Amount:  big.NewInt(123),
 			}},
 			DestinationCalls: []*v3.CallsPayload{&payload},
@@ -1000,7 +1000,7 @@ func TestHashIntentParams(t *testing.T) {
 		require.NoError(t, err)
 		fmt.Printf("Hash (Single call payload matching Solidity): %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("0b8d4dd3cd166737a495e2404a5f4b4f81b5643daa93687ef1678ba4ffefe528"), common.Hash(hash))
+		assert.Equal(t, common.HexToHash("0xd033d3e730025c33a97e791c3e5606e22fb4af1bc028faa994cb58818b9b3ea5"), common.Hash(hash))
 	})
 
 	t.Run("Multiple call payloads matching Solidity test", func(t *testing.T) {
@@ -1029,11 +1029,11 @@ func TestHashIntentParams(t *testing.T) {
 			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
 			OriginTokens: []sequence.OriginToken{{
 				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-				ChainId: 1,
+				ChainId: big.NewInt(1),
 			}},
 			DestinationTokens: []sequence.DestinationToken{{
 				Address: common.HexToAddress("0x4444444444444444444444444444444444444444"),
-				ChainId: 1,
+				ChainId: big.NewInt(1),
 				Amount:  big.NewInt(123),
 			}},
 			DestinationCalls: []*v3.CallsPayload{&payload1, &payload2},

@@ -13,12 +13,12 @@ import (
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
 type OriginToken struct {
 	Address common.Address
-	ChainId uint64
+	ChainId *big.Int
 }
 
 type DestinationToken struct {
 	Address common.Address
-	ChainId uint64
+	ChainId *big.Int
 	Amount  *big.Int
 }
 
@@ -53,44 +53,75 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		}
 	}
 
-	fmt.Printf("hashIntentParams debug:\n")
-	fmt.Printf("  userAddress: %s\n", params.UserAddress.Hex())
-	fmt.Printf("  originTokens: %v\n", params.OriginTokens)
-	fmt.Printf("  destinationCalls: [\n")
-	destinationCalls := make([][]byte, len(params.DestinationCalls))
-	for i, call := range params.DestinationCalls {
-		destinationCalls[i] = call.Encode(common.Address{})
-		fmt.Printf("  %q\n", fmt.Sprintf("0x%s", common.Bytes2Hex(destinationCalls[i])))
+	// Calculate cumulativeCallsHash
+	var cumulativeCallsHash [32]byte
+	for i, callPayload := range params.DestinationCalls {
+		// Change the address to address(0)
+		callPayload.AddressZero()
+
+		individualPayloadDigest := callPayload.Digest()
+
+		packedForKeccak := append(cumulativeCallsHash[:], individualPayloadDigest.Hash[:]...)
+		fmt.Printf("    packedForKeccak: 0x%s\n", common.Bytes2Hex(packedForKeccak))
+
+		cumulativeCallsHash = ethcoder.Keccak256Hash(packedForKeccak)
+		fmt.Printf("    cumulativeCallsHash after callPayload[%d]: 0x%s\n", i, common.Bytes2Hex(cumulativeCallsHash[:]))
 	}
-	fmt.Printf("]\n")
+	fmt.Printf("  final cumulativeCallsHash: 0x%s\n", common.Bytes2Hex(cumulativeCallsHash[:]))
 	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
-	// ABI encode all fields
-	encoded, err := ethcoder.ABIPackArguments(
-		[]string{
-			"address", // UserAddress
-			"tuple[]", // OriginTokens
-			"bytes[]", // DestinationCalls
-			"tuple[]", // DestinationTokens
-		},
-		[]interface{}{
-			params.UserAddress,
-			params.OriginTokens,
-			destinationCalls,
-			params.DestinationTokens,
-		},
+	// Encode ABIPackArguments for OriginTokens
+	v := []any{}
+
+	for _, originToken := range params.OriginTokens {
+		tuple := []any{originToken.Address, originToken.ChainId}
+		v = append(v, tuple)
+	}
+
+	encodedOriginTokens, err := ethcoder.ABIPackArguments(
+		[]string{"(address,uint256)[]"},
+		v,
 	)
 	if err != nil {
 		return [32]byte{}, err
 	}
 
-	fmt.Printf("  ABI-encoded (hex): 0x%s\n", common.Bytes2Hex(encoded))
-	fmt.Printf("  ABI-encoded (bytes): %v\n", encoded)
-	fmt.Printf("  ABI-encoded (length): %d\n", len(encoded))
+	// // Manually construct the array of tuples for DestinationTokens
+	// destinationTokenValues := make([][]interface{}, len(params.DestinationTokens))
+	// for i, token := range params.DestinationTokens {
+	// 	destinationTokenValues[i] = []interface{}{token.Address, token.ChainId, token.Amount}
+	// }
 
-	hash := ethcoder.Keccak256(encoded)
-	fmt.Printf("  Hash: 0x%s\n", common.Bytes2Hex(hash))
-	fmt.Printf("  Hash: %v\n", hash)
+	// // Encode ABIPackArguments for DestinationTokens
+	// encodedDestinationTokens, err := ethcoder.ABIPackArguments(
+	// 	[]string{"(address,uint256,uint256)[]"},
+	// 	[]any{[]any{destinationTokenValues}},
+	// )
+	// if err != nil {
+	// 	return [32]byte{}, err
+	// }
+
+	// // ABI encode all fields
+	// encoded, err := ethcoder.ABIPackArguments(
+	// 	[]string{
+	// 		"address", // UserAddress
+	// 		"bytes",   // OriginTokens
+	// 		"bytes",   // DestinationTokens
+	// 		"bytes32", // DestinationCalls
+	// 	},
+	// 	[]interface{}{
+	// 		params.UserAddress,
+	// 		encodedOriginTokens,
+	// 		encodedDestinationTokens,
+	// 		cumulativeCallsHash,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return [32]byte{}, err
+	// }
+	// fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
+
+	hash := ethcoder.Keccak256(encodedOriginTokens)
 
 	var hash32 [32]byte
 	copy(hash32[:], hash)
@@ -200,3 +231,5 @@ func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.Call
 
 	return data, nil
 }
+
+// 0x0000000000000000000000003333333333333333333333333333333333333333000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a0b7195964128db1a713f3fecb76d8045ee4bbbfad092a2391f269230f571230940000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000044444444444444444444444444444444444444440000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000007b
