@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -12,8 +13,8 @@ import (
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
 type OriginToken struct {
-	Address common.Address
-	ChainId *big.Int
+	Address common.Address `abi:"address"`
+	ChainId *big.Int       `abi:"chainId"`
 }
 
 type DestinationToken struct {
@@ -70,21 +71,38 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	fmt.Printf("  final cumulativeCallsHash: 0x%s\n", common.Bytes2Hex(cumulativeCallsHash[:]))
 	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
-	// Encode ABIPackArguments for OriginTokens
-	v := []any{}
-
+	// Abi encode of OriginTokens
+	args := []OriginToken{}
 	for _, originToken := range params.OriginTokens {
-		tuple := []any{originToken.Address, originToken.ChainId}
-		v = append(v, tuple)
+		args = append(args, OriginToken{
+			Address: originToken.Address,
+			ChainId: originToken.ChainId,
+		})
 	}
 
-	encodedOriginTokens, err := ethcoder.ABIPackArguments(
-		[]string{"(address,uint256)[]"},
-		v,
-	)
+	abiType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
+		{Name: "address", Type: "address"},
+		{Name: "chainId", Type: "uint256"},
+	})
 	if err != nil {
 		return [32]byte{}, err
 	}
+
+	abiArgs := abi.Arguments{abi.Argument{Type: abiType}}
+
+	encodedOriginTokens, err := abiArgs.Pack(args)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	fmt.Printf("    encodedOriginTokens: 0x%s\n", common.Bytes2Hex(encodedOriginTokens))
+
+	// encodedOriginTokens, err := ethcoder.ABIPackArguments(
+	// 	[]string{"(address,uint256)[]"},
+	// 	v,
+	// )
+	// if err != nil {
+	// 	return [32]byte{}, err
+	// }
 
 	// // Manually construct the array of tuples for DestinationTokens
 	// destinationTokenValues := make([][]interface{}, len(params.DestinationTokens))
