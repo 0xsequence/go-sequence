@@ -151,8 +151,8 @@ func (s *regularSignature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *regularSignature) Checkpoint() uint32 {
-	return s.checkpoint
+func (s *regularSignature) Checkpoint() uint64 {
+	return uint64(s.checkpoint)
 }
 
 func (s *regularSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
@@ -306,8 +306,8 @@ func (s *noChainIDSignature) Threshold() uint16 {
 	return s.threshold
 }
 
-func (s *noChainIDSignature) Checkpoint() uint32 {
-	return s.checkpoint
+func (s *noChainIDSignature) Checkpoint() uint64 {
+	return uint64(s.checkpoint)
 }
 
 func (s *noChainIDSignature) Recover(ctx context.Context, digest core.Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
@@ -464,7 +464,7 @@ func (s chainedSignature) Threshold() uint16 {
 	return s[len(s)-1].Threshold()
 }
 
-func (s chainedSignature) Checkpoint() uint32 {
+func (s chainedSignature) Checkpoint() uint64 {
 	return s[len(s)-1].Checkpoint()
 }
 
@@ -1444,8 +1444,8 @@ func (c *WalletConfig) Threshold() uint16 {
 	return c.Threshold_
 }
 
-func (c *WalletConfig) Checkpoint() uint32 {
-	return c.Checkpoint_
+func (c *WalletConfig) Checkpoint() uint64 {
+	return uint64(c.Checkpoint_)
 }
 
 func (c *WalletConfig) Signers() map[common.Address]uint16 {
@@ -1462,6 +1462,10 @@ func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
 
 	weight := c.Tree.unverifiedWeight(signersMap)
 	return uint16(weight.Uint64())
+}
+
+func (c *WalletConfig) IsComplete() bool {
+	return c.Tree.isComplete()
 }
 
 func (c *WalletConfig) IsUsable() error {
@@ -1593,6 +1597,7 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 type WalletConfigTree interface {
 	core.ImageHashable
 
+	isComplete() bool
 	maxWeight() *big.Int
 	readSignersIntoMap(signers map[common.Address]uint16)
 	unverifiedWeight(signers map[common.Address]uint16) *big.Int
@@ -1701,6 +1706,10 @@ func (n *WalletConfigTreeNode) ImageHash() core.ImageHash {
 	}
 }
 
+func (n *WalletConfigTreeNode) isComplete() bool {
+	return n.Left.isComplete() && n.Right.isComplete()
+}
+
 func (n *WalletConfigTreeNode) maxWeight() *big.Int {
 	left, right := n.Left.maxWeight(), n.Right.maxWeight()
 	return new(big.Int).Add(left, right)
@@ -1766,6 +1775,10 @@ func (l *WalletConfigTreeAddressLeaf) ImageHash() core.ImageHash {
 	hash.SetBytes(l.Address.Bytes())
 	hash[common.HashLength-common.AddressLength-1] = l.Weight
 	return core.ImageHash{Hash: hash, Preimage: l}
+}
+
+func (l *WalletConfigTreeAddressLeaf) isComplete() bool {
+	return true
 }
 
 func (l *WalletConfigTreeAddressLeaf) maxWeight() *big.Int {
@@ -1866,6 +1879,10 @@ func (l WalletConfigTreeNodeLeaf) ImageHash() core.ImageHash {
 	return l.Node
 }
 
+func (l WalletConfigTreeNodeLeaf) isComplete() bool {
+	return false
+}
+
 func (l WalletConfigTreeNodeLeaf) maxWeight() *big.Int {
 	return new(big.Int)
 }
@@ -1943,6 +1960,10 @@ func (l *WalletConfigTreeNestedLeaf) ImageHash() core.ImageHash {
 	}
 }
 
+func (l *WalletConfigTreeNestedLeaf) isComplete() bool {
+	return l.Tree.isComplete()
+}
+
 func (l *WalletConfigTreeNestedLeaf) maxWeight() *big.Int {
 	if l.Tree.maxWeight().Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
 		return new(big.Int).SetUint64(uint64(l.Weight))
@@ -2008,6 +2029,10 @@ func (l WalletConfigTreeSubdigestLeaf) ImageHash() core.ImageHash {
 		),
 		Preimage: &l,
 	}
+}
+
+func (l WalletConfigTreeSubdigestLeaf) isComplete() bool {
+	return true
 }
 
 func (l WalletConfigTreeSubdigestLeaf) maxWeight() *big.Int {
