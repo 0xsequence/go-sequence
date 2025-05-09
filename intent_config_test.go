@@ -971,7 +971,7 @@ func TestHashIntentParams(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("Single call", func(t *testing.T) {
+	t.Run("Single call payload matching Solidity test", func(t *testing.T) {
 		call := v3.Call{
 			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
 			Value:           big.NewInt(123),
@@ -979,9 +979,10 @@ func TestHashIntentParams(t *testing.T) {
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			BehaviorOnError: v3.BehaviorOnErrorRevert, // 0 in Solidity
 		}
-		payload := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
+		// Solidity Payload.Decoded has space:0, nonce:0. Wallet is 0x0, chainId is 1.
+		payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
 			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
 			OriginTokens: []sequence.OriginToken{{
@@ -997,12 +998,12 @@ func TestHashIntentParams(t *testing.T) {
 		}
 		hash, err := sequence.HashIntentParams(params)
 		require.NoError(t, err)
-		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+		fmt.Printf("Hash (Single call payload matching Solidity): %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("9622268e7b27321fa1f2e38e09444251a6a3febe8e5b022887b57df0916f00b2"), common.Hash(hash))
+		assert.Equal(t, common.HexToHash("0b8d4dd3cd166737a495e2404a5f4b4f81b5643daa93687ef1678ba4ffefe528"), common.Hash(hash))
 	})
 
-	t.Run("Multiple calls", func(t *testing.T) {
+	t.Run("Multiple call payloads matching Solidity test", func(t *testing.T) {
 		call1 := v3.Call{
 			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
 			Value:           big.NewInt(123),
@@ -1017,12 +1018,13 @@ func TestHashIntentParams(t *testing.T) {
 			Value:           big.NewInt(456),
 			Data:            []byte("data2"),
 			GasLimit:        big.NewInt(0),
-			DelegateCall:    true,
+			DelegateCall:    false,
 			OnlyFallback:    false,
 			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		}
-		payload1 := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
-		payload2 := v3.NewCallsPayload(common.HexToAddress("0x0000000000000000000000000000000000000000"), big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
+
+		payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
+		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
 			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
 			OriginTokens: []sequence.OriginToken{{
@@ -1039,10 +1041,8 @@ func TestHashIntentParams(t *testing.T) {
 		hash, err := sequence.HashIntentParams(params)
 		require.NoError(t, err)
 
-		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+		fmt.Printf("Hash (Multiple call payloads matching Solidity): %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("3d89683957ae91a022ca6d0231a9d1b51be616512ee9bdcb5abc30a1f299b4ce"), common.Hash(hash))
-
-		fmt.Printf("Hash: %s\n", common.Bytes2Hex(hash[:]))
+		assert.Equal(t, common.HexToHash("a6fa28fd6bb9ca5cae503c6bb67342d15b16749c32aafdc325323c37d50822ec"), common.Hash(hash))
 	})
 }
