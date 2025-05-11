@@ -128,7 +128,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 			"address", // UserAddress
 			"bytes",   // OriginTokens
 			"bytes",   // DestinationTokens
-			"bytess",  // DestinationCalls
+			"bytes32", // DestinationCalls
 		},
 		[]interface{}{
 			params.UserAddress,
