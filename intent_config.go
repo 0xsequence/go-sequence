@@ -18,17 +18,17 @@ type OriginToken struct {
 }
 
 type DestinationToken struct {
-	Address common.Address
-	ChainId *big.Int
-	Amount  *big.Int
+	Address common.Address `abi:"address"`
+	ChainId *big.Int       `abi:"chainId"`
+	Amount  *big.Int       `abi:"amount"`
 }
 
 // IntentParams is a new version of intent parameters that uses CallsPayload for destination calls.
 type IntentParams struct {
 	UserAddress       common.Address
 	OriginTokens      []OriginToken
-	DestinationCalls  []*v3.CallsPayload
 	DestinationTokens []DestinationToken
+	DestinationCalls  []*v3.CallsPayload
 }
 
 // HashIntentParams generates a unique bytes32 hash from the IntentParams struct.
@@ -72,9 +72,9 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
 	// Abi encode of OriginTokens
-	args := []OriginToken{}
+	originArgs := []OriginToken{}
 	for _, originToken := range params.OriginTokens {
-		args = append(args, OriginToken{
+		originArgs = append(originArgs, OriginToken{
 			Address: originToken.Address,
 			ChainId: originToken.ChainId,
 		})
@@ -88,58 +88,61 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		return [32]byte{}, err
 	}
 
-	abiArgs := abi.Arguments{abi.Argument{Type: abiType}}
+	originAbiArgs := abi.Arguments{abi.Argument{Type: abiType}}
 
-	encodedOriginTokens, err := abiArgs.Pack(args)
+	encodedOriginTokens, err := originAbiArgs.Pack(originArgs)
 	if err != nil {
 		return [32]byte{}, err
 	}
 	fmt.Printf("    encodedOriginTokens: 0x%s\n", common.Bytes2Hex(encodedOriginTokens))
 
-	// encodedOriginTokens, err := ethcoder.ABIPackArguments(
-	// 	[]string{"(address,uint256)[]"},
-	// 	v,
-	// )
-	// if err != nil {
-	// 	return [32]byte{}, err
-	// }
+	// Abi encode of DestinationTokens
+	destinationArgs := []DestinationToken{}
+	for _, destinationToken := range params.DestinationTokens {
+		destinationArgs = append(destinationArgs, DestinationToken{
+			Address: destinationToken.Address,
+			ChainId: destinationToken.ChainId,
+			Amount:  destinationToken.Amount,
+		})
+	}
 
-	// // Manually construct the array of tuples for DestinationTokens
-	// destinationTokenValues := make([][]interface{}, len(params.DestinationTokens))
-	// for i, token := range params.DestinationTokens {
-	// 	destinationTokenValues[i] = []interface{}{token.Address, token.ChainId, token.Amount}
-	// }
+	destinationAbiType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
+		{Name: "address", Type: "address"},
+		{Name: "chainId", Type: "uint256"},
+		{Name: "amount", Type: "uint256"},
+	})
+	if err != nil {
+		return [32]byte{}, err
+	}
 
-	// // Encode ABIPackArguments for DestinationTokens
-	// encodedDestinationTokens, err := ethcoder.ABIPackArguments(
-	// 	[]string{"(address,uint256,uint256)[]"},
-	// 	[]any{[]any{destinationTokenValues}},
-	// )
-	// if err != nil {
-	// 	return [32]byte{}, err
-	// }
+	destinationAbiArgs := abi.Arguments{abi.Argument{Type: destinationAbiType}}
+	encodedDestinationTokens, err := destinationAbiArgs.Pack(destinationArgs)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	fmt.Printf("    encodedDestinationTokens: 0x%s\n", common.Bytes2Hex(encodedDestinationTokens))
 
-	// // ABI encode all fields
-	// encoded, err := ethcoder.ABIPackArguments(
-	// 	[]string{
-	// 		"address", // UserAddress
-	// 		"bytes",   // OriginTokens
-	// 		"bytes",   // DestinationTokens
-	// 		"bytes32", // DestinationCalls
-	// 	},
-	// 	[]interface{}{
-	// 		params.UserAddress,
-	// 		encodedOriginTokens,
-	// 		encodedDestinationTokens,
-	// 		cumulativeCallsHash,
-	// 	},
-	// )
-	// if err != nil {
-	// 	return [32]byte{}, err
-	// }
-	// fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
+	// ABI encode all fields
+	encoded, err := ethcoder.ABIPackArguments(
+		[]string{
+			"address", // UserAddress
+			"bytes",   // OriginTokens
+			"bytes",   // DestinationTokens
+			"bytess",  // DestinationCalls
+		},
+		[]interface{}{
+			params.UserAddress,
+			encodedOriginTokens,
+			encodedDestinationTokens,
+			cumulativeCallsHash,
+		},
+	)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
 
-	hash := ethcoder.Keccak256(encodedOriginTokens)
+	hash := ethcoder.Keccak256(encoded)
 
 	var hash32 [32]byte
 	copy(hash32[:], hash)
