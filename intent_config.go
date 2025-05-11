@@ -71,7 +71,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	fmt.Printf("  final cumulativeCallsHash: 0x%s\n", common.Bytes2Hex(cumulativeCallsHash[:]))
 	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
-	// Abi encode of OriginTokens
+	// Prepare OriginTokens data
 	originArgs := []OriginToken{}
 	for _, originToken := range params.OriginTokens {
 		originArgs = append(originArgs, OriginToken{
@@ -80,23 +80,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		})
 	}
 
-	abiType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
-		{Name: "address", Type: "address"},
-		{Name: "chainId", Type: "uint256"},
-	})
-	if err != nil {
-		return [32]byte{}, err
-	}
-
-	originAbiArgs := abi.Arguments{abi.Argument{Type: abiType}}
-
-	encodedOriginTokens, err := originAbiArgs.Pack(originArgs)
-	if err != nil {
-		return [32]byte{}, err
-	}
-	fmt.Printf("    encodedOriginTokens: 0x%s\n", common.Bytes2Hex(encodedOriginTokens))
-
-	// Abi encode of DestinationTokens
+	// Prepare DestinationTokens data
 	destinationArgs := []DestinationToken{}
 	for _, destinationToken := range params.DestinationTokens {
 		destinationArgs = append(destinationArgs, DestinationToken{
@@ -106,39 +90,52 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		})
 	}
 
-	destinationAbiType, err := abi.NewType("tuple[]", "", []abi.ArgumentMarshaling{
+	// Define ABI types for the combined packing
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to create address ABI type: %w", err)
+	}
+
+	originTokensComponents := []abi.ArgumentMarshaling{
+		{Name: "address", Type: "address"},
+		{Name: "chainId", Type: "uint256"},
+	}
+	originTokensListType, err := abi.NewType("tuple[]", "", originTokensComponents)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to create origin tokens list ABI type: %w", err)
+	}
+
+	destinationTokensComponents := []abi.ArgumentMarshaling{
 		{Name: "address", Type: "address"},
 		{Name: "chainId", Type: "uint256"},
 		{Name: "amount", Type: "uint256"},
-	})
+	}
+	destinationTokensListType, err := abi.NewType("tuple[]", "", destinationTokensComponents)
 	if err != nil {
-		return [32]byte{}, err
+		return [32]byte{}, fmt.Errorf("failed to create destination tokens list ABI type: %w", err)
 	}
 
-	destinationAbiArgs := abi.Arguments{abi.Argument{Type: destinationAbiType}}
-	encodedDestinationTokens, err := destinationAbiArgs.Pack(destinationArgs)
+	bytes32Type, err := abi.NewType("bytes32", "", nil)
 	if err != nil {
-		return [32]byte{}, err
+		return [32]byte{}, fmt.Errorf("failed to create bytes32 ABI type: %w", err)
 	}
-	fmt.Printf("    encodedDestinationTokens: 0x%s\n", common.Bytes2Hex(encodedDestinationTokens))
 
-	// ABI encode all fields
-	encoded, err := ethcoder.ABIPackArguments(
-		[]string{
-			"address", // UserAddress
-			"bytes",   // OriginTokens
-			"bytes",   // DestinationTokens
-			"bytes32", // DestinationCalls
-		},
-		[]interface{}{
-			params.UserAddress,
-			encodedOriginTokens,
-			encodedDestinationTokens,
-			cumulativeCallsHash,
-		},
+	fullArguments := abi.Arguments{
+		{Name: "userAddress", Type: addressType},
+		{Name: "originTokens", Type: originTokensListType},
+		{Name: "destinationTokens", Type: destinationTokensListType},
+		{Name: "cumulativeCallsHash", Type: bytes32Type},
+	}
+
+	// ABI encode all fields in one go
+	encoded, err := fullArguments.Pack(
+		params.UserAddress,
+		originArgs,
+		destinationArgs,
+		cumulativeCallsHash,
 	)
 	if err != nil {
-		return [32]byte{}, err
+		return [32]byte{}, fmt.Errorf("failed to ABI pack combined arguments: %w", err)
 	}
 	fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
 

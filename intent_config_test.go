@@ -1043,6 +1043,6 @@ func TestHashIntentParams(t *testing.T) {
 
 		fmt.Printf("Hash (Multiple call payloads matching Solidity): %s\n", common.Bytes2Hex(hash[:]))
 
-		assert.Equal(t, common.HexToHash("a6fa28fd6bb9ca5cae503c6bb67342d15b16749c32aafdc325323c37d50822ec"), common.Hash(hash))
+		assert.Equal(t, common.HexToHash("a3809d7b18b9d7b08536effc5bbd411147850972a576fcb0653993b96d43101e"), common.Hash(hash))
 	})
 }
