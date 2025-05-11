@@ -1011,7 +1011,7 @@ func TestHashIntentParams(t *testing.T) {
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
 			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
+			BehaviorOnError: v3.BehaviorOnErrorIgnore,
 		}
 		call2 := v3.Call{
 			To:              common.HexToAddress("0x5555555555555555555555555555555555555555"),
@@ -1024,7 +1024,7 @@ func TestHashIntentParams(t *testing.T) {
 		}
 
 		payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{call1}, big.NewInt(0), big.NewInt(0))
-		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(2), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
+		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{call2}, big.NewInt(0), big.NewInt(0))
 		params := &sequence.IntentParams{
 			UserAddress: common.HexToAddress("0x3333333333333333333333333333333333333333"),
 			OriginTokens: []sequence.OriginToken{{
