@@ -268,53 +268,21 @@ func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPa
 	return config, nil
 }
 
-// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, authSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, []byte, error) {
-	isFullSignature := false
-	var authSignerWallet ethwallet.Wallet
+//
 
-	if len(opts) > 0 {
-		switch v := opts[0].(type) {
-		case ethwallet.Wallet:
-			authSignerWallet = v
-			authWalletSigner := authSignerWallet.Address()
-			// Check if the wallet's authSigner is the same as the provided authSigner
-			if authWalletSigner != authSigner {
-				return nil, nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
-			}
+func GetIntentConfigurationUpdateSignature(mainSigner common.Address, calls []*v3.CallsPayload, authSigner common.Address, authSignerWallet ethwallet.Wallet) (v3.Payload, []byte, error) {
+	// Get the auth signer addr
+	authWalletSigner := authSignerWallet.Address()
 
-			isFullSignature = true
-		case bool:
-			isFullSignature = v
-		}
+	// Check if the wallet's authSigner is the same as the provided authSigner
+	if authWalletSigner != authSigner {
+		return nil, nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
 	}
 
 	// Create the initial intent configuration using the main signer and auth signer addresses.
 	initialConfig, err := CreateInitialIntentConfiguration(mainSigner, authSigner)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	// Create the intent configuration using the batched transactions.
-	config, err := CreateRawIntentConfiguration(mainSigner, calls)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Default to building the regular signature
-	sig, err := config.BuildSubdigestSignature(false)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build subdigest signature: %w", err)
-	}
-
-	// Get the signature data
-	data, err := sig.Data()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get signature data: %w", err)
-	}
-
-	if !isFullSignature {
-		return data, nil, nil
 	}
 
 	// Wallet address
@@ -347,7 +315,31 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 		return nil, nil, fmt.Errorf("failed to sign intent config update payload: %w", err)
 	}
 
-	return data, initialConfigUpdateSig, nil
+	return intentConfigUpdatePayload, initialConfigUpdateSig, nil
+}
+
+// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
+func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, error) {
+
+	// Create the intent configuration using the batched transactions.
+	config, err := CreateRawIntentConfiguration(mainSigner, calls)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default to building the regular signature
+	sig, err := config.BuildSubdigestSignature(false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+	}
+
+	// Get the signature data
+	data, err := sig.Data()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get signature data: %w", err)
+	}
+
+	return data, nil
 }
 
 type AuthorizationSigner struct {
