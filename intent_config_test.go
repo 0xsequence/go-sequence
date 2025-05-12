@@ -342,7 +342,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
+		signature, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -417,10 +417,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload1})
+		sig1, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload2})
+		sig2, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload2})
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -429,10 +429,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
+		sig1, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
+		sig2, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -472,7 +472,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload1})
+	sig, _, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), authSigner.Address(), []*v3.CallsPayload{&payload1})
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -516,7 +516,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Ensure dummy sequence wallet from the intent operation
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), []*v3.CallsPayload{&payload}, true)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -544,7 +544,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, authSigner.Address(), []*v3.CallsPayload{&payload})
+	intentConfigSig, _, err := sequence.GetIntentConfigurationSignature(mainSigner, authSigner.Address(), []*v3.CallsPayload{&payload}, &authSigner)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -668,7 +668,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	payloads := []*v3.CallsPayload{&payload1, &payload2}
 
 	// Ensure dummy sequence wallet from the intent operation
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), payloads, true)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -703,7 +703,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, authSigner.Address(), payloads)
+	intentConfigSig, _, err := sequence.GetIntentConfigurationSignature(mainSigner, authSigner.Address(), payloads, &authSigner)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 

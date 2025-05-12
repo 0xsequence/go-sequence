@@ -269,7 +269,7 @@ func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPa
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, authSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, authSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, []byte, error) {
 	isFullSignature := false
 	var authSignerWallet ethwallet.Wallet
 
@@ -280,7 +280,7 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 			authWalletSigner := authSignerWallet.Address()
 			// Check if the wallet's authSigner is the same as the provided authSigner
 			if authWalletSigner != authSigner {
-				return nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
+				return nil, nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
 			}
 
 			isFullSignature = true
@@ -292,35 +292,35 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 	// Create the initial intent configuration using the main signer and auth signer addresses.
 	initialConfig, err := CreateInitialIntentConfiguration(mainSigner, authSigner)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateRawIntentConfiguration(mainSigner, calls)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Default to building the regular signature
 	sig, err := config.BuildSubdigestSignature(false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+		return nil, nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+	}
+
+	// Get the signature data
+	data, err := sig.Data()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get signature data: %w", err)
 	}
 
 	if !isFullSignature {
-		// Get the signature data
-		data, err := sig.Data()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get signature data: %w", err)
-		}
-
-		return data, nil
+		return data, nil, nil
 	}
 
 	// Wallet address
 	address, _, _, err := EncodeWalletDeployment(initialConfig, V3SequenceContext())
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode wallet deployment: %w", err)
+		return nil, nil, fmt.Errorf("failed to encode wallet deployment: %w", err)
 	}
 
 	// Create a config update payload
@@ -338,26 +338,16 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 		}(),
 	}, authorizationSigner)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create wallet: %w", err)
+		return nil, nil, fmt.Errorf("failed to create wallet: %w", err)
 	}
 
-	_, initialSig, err := wallet.SignV3Payload(context.Background(), intentConfigUpdatePayload)
+	// Sign the intent config update payload
+	initialConfigUpdateSig, _, err := wallet.SignV3Payload(context.Background(), intentConfigUpdatePayload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign intent config update payload: %w", err)
+		return nil, nil, fmt.Errorf("failed to sign intent config update payload: %w", err)
 	}
 
-	// Get the chained signature
-	chainedSig := v3.ChainedSignature{
-		initialSig,
-		sig,
-	}
-
-	data, err := chainedSig.Data()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get chained signature data: %w", err)
-	}
-
-	return data, nil
+	return data, initialConfigUpdateSig, nil
 }
 
 type AuthorizationSigner struct {
