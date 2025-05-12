@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
@@ -220,7 +221,33 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.
 	return &fullTree, nil
 }
 
-// CreateRawIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+// `CreateInitialIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+func CreateInitialIntentConfiguration(mainSigner common.Address, authSigner common.Address) (*v3.WalletConfig, error) {
+	// Create a 1/2 call payload with the main signer and auth signer addresses.
+
+	// Create the main signer leaf with weight 1.
+	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
+		Weight:  1,
+		Address: mainSigner,
+	}
+
+	// Create the auth signer leaf with weight 1.
+	authSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
+		Weight:  1,
+		Address: authSigner,
+	}
+
+	// Construct the new wallet config using:
+	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, authSignerLeaf)
+
+	return &v3.WalletConfig{
+		Threshold_:  1,
+		Checkpoint_: 0,
+		Tree:        fullTree,
+	}, nil
+}
+
+// `CreateRawIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
 func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentTree(mainSigner, calls)
@@ -239,7 +266,32 @@ func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPa
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, authSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, error) {
+	isFullSignature := false
+	var authSignerWallet ethwallet.Wallet
+
+	if len(opts) > 0 {
+		switch v := opts[0].(type) {
+		case ethwallet.Wallet:
+			authSignerWallet = v
+			authWalletSigner := authSignerWallet.Address()
+			// Check if the wallet's authSigner is the same as the provided authSigner
+			if authWalletSigner != authSigner {
+				return nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
+			}
+
+			isFullSignature = true
+		case bool:
+			isFullSignature = v
+		}
+	}
+
+	// Create the initial intent configuration using the main signer and auth signer addresses.
+	initialConfig, err := CreateInitialIntentConfiguration(mainSigner, authSigner)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateRawIntentConfiguration(mainSigner, calls)
 	if err != nil {
@@ -252,13 +304,32 @@ func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.Call
 		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
 	}
 
-	// Get the signature data
-	data, err := sig.Data()
+	if !isFullSignature {
+		// Get the signature data
+		data, err := sig.Data()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get signature data: %w", err)
+		}
+
+		return data, nil
+	}
+
+	// Default to building the regular signature
+	initialSig, err := initialConfig.BuildSubdigestSignature(false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get signature data: %w", err)
+		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+	}
+
+	// Get the chained signature
+	chainedSig := v3.ChainedSignature{
+		initialSig,
+		sig,
+	}
+
+	data, err := chainedSig.Data()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chained signature data: %w", err)
 	}
 
 	return data, nil
 }
-
-// 0x0000000000000000000000003333333333333333333333333333333333333333000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a0b7195964128db1a713f3fecb76d8045ee4bbbfad092a2391f269230f571230940000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000044444444444444444444444444444444444444440000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000007b
