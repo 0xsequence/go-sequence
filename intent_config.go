@@ -220,8 +220,8 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.
 	return &fullTree, nil
 }
 
-// CreateIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
+// CreateRawIntentConfiguration creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentTree(mainSigner, calls)
 	if err != nil {
@@ -241,7 +241,7 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
 func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
-	config, err := CreateIntentConfiguration(mainSigner, calls)
+	config, err := CreateRawIntentConfiguration(mainSigner, calls)
 	if err != nil {
 		return nil, err
 	}

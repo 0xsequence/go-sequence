@@ -288,7 +288,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	})
 }
 
-func TestCreateIntentConfiguration_Valid(t *testing.T) {
+func TestCreateRawIntentConfiguration_Valid(t *testing.T) {
 	// Create a valid payload
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
@@ -305,7 +305,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
+	config, err := sequence.CreateRawIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -334,7 +334,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload})
+		config, err := sequence.CreateRawIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Create the signature
@@ -814,7 +814,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
+		config, err := sequence.CreateRawIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload})
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -864,7 +864,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2})
+		config, err := sequence.CreateRawIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2})
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -919,7 +919,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create intent configuration
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2})
+	config, err := sequence.CreateRawIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2})
 	require.NoError(t, err)
 
 	// Calculate image hash
