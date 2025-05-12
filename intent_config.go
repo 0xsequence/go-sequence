@@ -26,6 +26,7 @@ type DestinationToken struct {
 // IntentParams is a new version of intent parameters that uses CallsPayload for destination calls.
 type IntentParams struct {
 	UserAddress       common.Address
+	Nonce             *big.Int
 	OriginTokens      []OriginToken
 	DestinationTokens []DestinationToken
 	DestinationCalls  []*v3.CallsPayload
@@ -38,6 +39,9 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	}
 	if params.UserAddress == (common.Address{}) {
 		return [32]byte{}, fmt.Errorf("UserAddress is zero")
+	}
+	if params.Nonce == nil {
+		return [32]byte{}, fmt.Errorf("Nonce is nil")
 	}
 	if len(params.OriginTokens) == 0 {
 		return [32]byte{}, fmt.Errorf("OriginTokens is empty")
@@ -96,6 +100,11 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 		return [32]byte{}, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
+	nonceType, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to create nonce ABI type: %w", err)
+	}
+
 	originTokensComponents := []abi.ArgumentMarshaling{
 		{Name: "address", Type: "address"},
 		{Name: "chainId", Type: "uint256"},
@@ -122,6 +131,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 
 	fullArguments := abi.Arguments{
 		{Name: "userAddress", Type: addressType},
+		{Name: "nonce", Type: nonceType},
 		{Name: "originTokens", Type: originTokensListType},
 		{Name: "destinationTokens", Type: destinationTokensListType},
 		{Name: "cumulativeCallsHash", Type: bytes32Type},
@@ -130,6 +140,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	// ABI encode all fields in one go
 	encoded, err := fullArguments.Pack(
 		params.UserAddress,
+		params.Nonce,
 		originArgs,
 		destinationArgs,
 		cumulativeCallsHash,
