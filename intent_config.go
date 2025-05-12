@@ -1,6 +1,7 @@
 package sequence
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -247,6 +248,8 @@ func CreateInitialIntentConfiguration(mainSigner common.Address, authSigner comm
 	}, nil
 }
 
+// `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
+
 // `CreateRawIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
 func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
@@ -314,10 +317,33 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 		return data, nil
 	}
 
-	// Default to building the regular signature
-	initialSig, err := initialConfig.BuildSubdigestSignature(false)
+	// Wallet address
+	address, _, _, err := EncodeWalletDeployment(initialConfig, V3SequenceContext())
 	if err != nil {
-		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+		return nil, fmt.Errorf("failed to encode wallet deployment: %w", err)
+	}
+
+	// Create a config update payload
+	intentConfigUpdatePayload := v3.NewConfigUpdatePayload(address, nil, initialConfig.Tree.ImageHash().Hash)
+
+	// Create a new auth signer
+	authorizationSigner := NewAuthorizationSigner(&authSignerWallet)
+
+	// Create a new wallet using the intentConfig v3.WalletConfig.
+	wallet, err := V3NewWallet(WalletOptions[*v3.WalletConfig]{
+		Config: initialConfig,
+		Context: func() *WalletContext {
+			ctx := V3SequenceContext()
+			return &ctx
+		}(),
+	}, authorizationSigner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
+
+	_, initialSig, err := wallet.SignV3Payload(context.Background(), intentConfigUpdatePayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign intent config update payload: %w", err)
 	}
 
 	// Get the chained signature
@@ -332,4 +358,25 @@ func GetIntentConfigurationSignature(mainSigner common.Address, authSigner commo
 	}
 
 	return data, nil
+}
+
+type AuthorizationSigner struct {
+	Wallet *ethwallet.Wallet
+}
+
+func NewAuthorizationSigner(wallet *ethwallet.Wallet) *AuthorizationSigner {
+	return &AuthorizationSigner{Wallet: wallet}
+}
+
+func (n *AuthorizationSigner) Address() common.Address {
+	return n.Wallet.Address()
+}
+
+func (n *AuthorizationSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
+	sig, err := n.Wallet.SignMessage(digest.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return append(sig, 1), nil
 }

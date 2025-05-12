@@ -557,9 +557,9 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	return res, err
 }
 
-func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, error) {
+func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
-		return nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
+		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
 
 	var chainID *big.Int
@@ -607,8 +607,8 @@ func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optCh
 		}
 	}
 
-	res, _, err := w.buildSignature(ctx, sign, chainID)
-	return res, err
+	res, sig, err := w.buildSignature(ctx, sign, chainID)
+	return res, sig, err
 }
 
 var _ DigestSigner = (*Wallet[*v1.WalletConfig])(nil)
@@ -697,7 +697,7 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		digest := payload.Digest()
 
 		// Sign the transactions
-		sig, err := w.SignV3Payload(ctx, payload)
+		sig, _, err := w.SignV3Payload(ctx, payload)
 		if err != nil {
 			return nil, err
 		}
@@ -740,7 +740,7 @@ func (w *Wallet[C]) GetSignedIntentTransactionsWithIntentOperations(ctx context.
 // GetSignedIntentPayload is the core implementation for creating intent signatures.
 func (w *Wallet[C]) GetSignedIntentPayload(ctx context.Context, payload *v3.CallsPayload) (*SignedTransactions, error) {
 	// Sign the payload
-	sig, err := w.SignV3Payload(ctx, payload)
+	sig, _, err := w.SignV3Payload(ctx, payload)
 	if err != nil {
 		return nil, err
 	}

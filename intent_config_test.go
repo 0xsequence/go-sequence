@@ -490,6 +490,10 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
 
+	// Create a auth signer
+	authSigner, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
@@ -512,7 +516,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Ensure dummy sequence wallet from the intent operation
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), []*v3.CallsPayload{&payload}, true)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), []*v3.CallsPayload{&payload}, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 
@@ -538,10 +542,6 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		break
 	}
 	require.NotNil(t, mainSigner)
-
-	// Create a auth signer
-	authSigner, err := ethwallet.NewWalletFromRandomEntropy()
-	require.NoError(t, err)
 
 	// Generate a configuration signature for the batch.
 	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, authSigner.Address(), []*v3.CallsPayload{&payload})
@@ -668,7 +668,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	payloads := []*v3.CallsPayload{&payload1, &payload2}
 
 	// Ensure dummy sequence wallet from the intent operation
-	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), payloads, true)
+	wallet, err := testChain.V3DummySequenceWalletWithIntentConfig(testutil.RandomSeed(), authSigner.Address(), payloads, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, wallet)
 

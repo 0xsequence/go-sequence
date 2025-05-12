@@ -710,7 +710,7 @@ func (c *TestChain) V3DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	return genericWallet, nil
 }
 
-func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, calls []*v3.CallsPayload, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
+func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, authSigner common.Address, calls []*v3.CallsPayload, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
 	if err != nil {
@@ -718,7 +718,7 @@ func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, calls []*
 	}
 
 	// Create an intent config
-	intentConfig, err := sequence.CreateRawIntentConfiguration(owner.Address(), calls)
+	intentConfig, err := sequence.CreateInitialIntentConfiguration(owner.Address(), authSigner)
 	if err != nil {
 		return nil, err
 	}
@@ -762,6 +762,8 @@ func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, calls []*
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: Update the intent config w/ GetIntentConfigurationSignature
 
 	return genericWallet, nil
 }
