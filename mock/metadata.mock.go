@@ -537,9 +537,9 @@ func (mr *MetadataMockRecorder) SearchTokenMetadata(ctx, chainID, contractAddres
 }
 
 // SearchTokenMetadataByQuery mocks base method.
-func (m *Metadata) SearchTokenMetadataByQuery(ctx context.Context, q string, chainID *string, page *metadata.Page) ([]*metadata.TokenMetadata, *metadata.Page, error) {
+func (m *Metadata) SearchTokenMetadataByQuery(ctx context.Context, q string, chainID, contractAddress *string, page *metadata.Page) ([]*metadata.TokenMetadata, *metadata.Page, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SearchTokenMetadataByQuery", ctx, q, chainID, page)
+	ret := m.ctrl.Call(m, "SearchTokenMetadataByQuery", ctx, q, chainID, contractAddress, page)
 	ret0, _ := ret[0].([]*metadata.TokenMetadata)
 	ret1, _ := ret[1].(*metadata.Page)
 	ret2, _ := ret[2].(error)
@@ -547,9 +547,9 @@ func (m *Metadata) SearchTokenMetadataByQuery(ctx context.Context, q string, cha
 }
 
 // SearchTokenMetadataByQuery indicates an expected call of SearchTokenMetadataByQuery.
-func (mr *MetadataMockRecorder) SearchTokenMetadataByQuery(ctx, q, chainID, page any) *gomock.Call {
+func (mr *MetadataMockRecorder) SearchTokenMetadataByQuery(ctx, q, chainID, contractAddress, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenMetadataByQuery", reflect.TypeOf((*Metadata)(nil).SearchTokenMetadataByQuery), ctx, q, chainID, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenMetadataByQuery", reflect.TypeOf((*Metadata)(nil).SearchTokenMetadataByQuery), ctx, q, chainID, contractAddress, page)
 }
 
 // SearchTokenMetadataTokenIDs mocks base method.
