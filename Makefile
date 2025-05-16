@@ -42,3 +42,6 @@ wait-on-chain:
 .PHONY: mock
 mock:
 	go generate ./mock
+
+generate-contracts:
+	go generate ./contracts/gen/.
