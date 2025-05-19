@@ -1021,3 +1021,112 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
 	})
 }
+
+func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
+	// Create context matching TypeScript test
+	context := sequence.V3SequenceContext()
+	context.FactoryAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	context.MainModuleAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+
+	// Main signer matching TypeScript test
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	// Sample LifiInfo - adjust as needed
+	lifiInfos := []sequence.AnypayLifiInfo{
+		{
+			OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			MinAmount:          big.NewInt(100),
+			OriginChainId:      big.NewInt(1),
+			DestinationChainId: big.NewInt(10),
+		},
+	}
+	// attestationAddr := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
+
+	t.Run("single operation with lifiInfo", func(t *testing.T) {
+		// Create a single operation matching TypeScript test
+		payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x1234"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
+
+		// Create intent configuration
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, lifiInfos...)
+		require.NoError(t, err)
+
+		// Calculate image hash
+		imageHash := config.ImageHash()
+
+		// Calculate counterfactual address
+		address, err := sequence.AddressFromImageHash(imageHash, context)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fmt.Printf("Single Operation with LifiInfo Test:\n")
+		fmt.Printf("Address: %s\n", address.Hex())
+
+		// IMPORTANT: Update this with the correct expected address
+		assert.Equal(t, address, common.HexToAddress("0xDa03ec55e905FE0DE6082a1Ad537428d2b06A980"))
+	})
+
+	t.Run("multiple operations with lifiInfo", func(t *testing.T) {
+		// Create multiple operations matching TypeScript test
+		payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x1234"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
+		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+			{
+				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+				Value:           big.NewInt(0),
+				Data:            common.FromHex("0x5678"),
+				GasLimit:        big.NewInt(0),
+				DelegateCall:    false,
+				OnlyFallback:    false,
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+			big.NewInt(0),
+			big.NewInt(0),
+		)
+
+		// Create intent configuration
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos...)
+		require.NoError(t, err)
+
+		// Calculate image hash
+		imageHash := config.ImageHash()
+
+		// Calculate counterfactual address
+		address, err := sequence.AddressFromImageHash(imageHash, context)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fmt.Printf("\nMultiple Operations with LifiInfo Test:\n")
+		fmt.Printf("Address: %s\n", address.Hex())
+
+		// IMPORTANT: Update this with the correct expected address
+		assert.Equal(t, address, common.HexToAddress("0xCC9AFe5577a463E9e1d3B1FB01471FF508Ab7585"))
+	})
+}
