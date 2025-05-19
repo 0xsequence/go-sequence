@@ -213,8 +213,8 @@ func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common
 //
 // For each valid batch, it creates a bundle, computes its digest,
 // and creates a new WalletConfigTreeSubdigestLeaf.
-func CreateIntentDigestTree(calls []*v3.CallsPayload) (*v3.WalletConfigTree, error) {
-	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
+func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigTree, error) {
+	var leaves []v3.WalletConfigTree
 
 	for batchIndex, call := range calls {
 		// Validate each call in the payload
@@ -233,45 +233,11 @@ func CreateIntentDigestTree(calls []*v3.CallsPayload) (*v3.WalletConfigTree, err
 		leaves = append(leaves, leaf)
 	}
 
-	// If the length of the leaves is 1, return the leaf as the tree.
-	if len(leaves) == 1 {
-		tree := v3.WalletConfigTree(leaves[0])
-		return &tree, nil
-	}
-
-	// Convert the slice of subdigest leaves into a slice of v3.WalletConfigTree.
-	var treeNodes []v3.WalletConfigTree
-	for _, leaf := range leaves {
-		treeNodes = append(treeNodes, leaf)
-	}
-
-	// Create a tree from the subdigest leaves.
-	tree := v3.WalletConfigTreeNodes(treeNodes...)
-
-	return &tree, nil
-}
-
-// `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfigTree, error) {
-	digestTree, err := CreateIntentDigestTree(calls)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the main signer leaf (with weight 1).
-	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
-		Weight:  1,
-		Address: mainSigner,
-	}
-
-	// Construct the new wallet config using:
-	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, *digestTree)
-
-	return &fullTree, nil
+	return leaves, nil
 }
 
 // `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayLifiInfo and a main signer address.
-func CreateAnypaySapientSignerTree(mainSigner common.Address, lifiInfos []AnypayLifiInfo) (*v3.WalletConfigTree, error) {
+func CreateAnypaySapientSignerTree(mainSigner common.Address, lifiInfos []AnypayLifiInfo) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
 	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, mainSigner)
 	if err != nil {
@@ -283,16 +249,58 @@ func CreateAnypaySapientSignerTree(mainSigner common.Address, lifiInfos []Anypay
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
 
+	return sapientSignerLeaf, nil
+}
+
+// `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
+func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) (*v3.WalletConfigTree, error) {
+	var sapientSignerLeaf v3.WalletConfigTree
+	var err error
+
+	if len(lifiInfos) > 0 {
+		// Create the lifi info leaf.
+		sapientSignerLeaf, err = CreateAnypaySapientSignerTree(mainSigner, lifiInfos)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
+		}
+	}
+
+	// Create the subdigest leaves from the batched transactions.
+	leaves, err := CreateAnyAddressSubdigestTree(calls)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the sapient signer leaf is not nil, add it to the leaves.
+	if sapientSignerLeaf != nil {
+		leaves = append(leaves, sapientSignerLeaf)
+	}
+
+	// If the length of the leaves is 1
+	if len(leaves) == 1 {
+		tree := v3.WalletConfigTree(leaves[0])
+		return &tree, nil
+	}
+
+	// Create a tree from the subdigest leaves.
+	tree := v3.WalletConfigTreeNodes(leaves...)
+
+	// Create the main signer leaf (with weight 1).
+	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
+		Weight:  1,
+		Address: mainSigner,
+	}
+
 	// Construct the new wallet config using:
-	fullTree := v3.WalletConfigTreeNodes(sapientSignerLeaf)
+	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, tree)
 
 	return &fullTree, nil
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
-	tree, err := CreateIntentTree(mainSigner, calls)
+	tree, err := CreateIntentTree(mainSigner, calls, lifiInfos...)
 	if err != nil {
 		return nil, err
 	}
@@ -308,9 +316,9 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
-	config, err := CreateIntentConfiguration(mainSigner, calls)
+	config, err := CreateIntentConfiguration(mainSigner, calls, lifiInfos...)
 	if err != nil {
 		return nil, err
 	}

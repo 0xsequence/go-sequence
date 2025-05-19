@@ -80,12 +80,15 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 	payload3 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{calls3}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("One batch", func(t *testing.T) {
-		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1})
+		leaves, err := sequence.CreateAnyAddressSubdigestTree([]*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
+
+		// Create a tree from the subdigest leaves.
+		tree := v3.WalletConfigTreeNodes(leaves...)
 		require.NotNil(t, tree, "expected a tree")
 
 		// Type assert to the concrete type
-		anyAddressLeaf, ok := (*tree).(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		anyAddressLeaf, ok := tree.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
 
 		digest := payload1.Digest()
@@ -93,12 +96,15 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1, &payload2})
+		leaves, err := sequence.CreateAnyAddressSubdigestTree([]*v3.CallsPayload{&payload1, &payload2})
 		require.NoError(t, err)
+
+		// Create a tree from the subdigest leaves.
+		tree := v3.WalletConfigTreeNodes(leaves...)
 		require.NotNil(t, tree, "expected a tree")
 
 		// Type assert to the concrete type
-		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		nodeTree, ok := (tree).(*v3.WalletConfigTreeNode)
 		require.True(t, ok, "tree should be a WalletConfigTreeNode")
 
 		// For a node with two leaves, we should check both digests
@@ -115,12 +121,15 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1, &payload2, &payload3})
+		leaves, err := sequence.CreateAnyAddressSubdigestTree([]*v3.CallsPayload{&payload1, &payload2, &payload3})
 		require.NoError(t, err)
+
+		// Create a tree from the subdigest leaves.
+		tree := v3.WalletConfigTreeNodes(leaves...)
 		require.NotNil(t, tree, "expected a tree")
 
 		// Type assert to the concrete type
-		nodeTree, ok := (*tree).(*v3.WalletConfigTreeNode)
+		nodeTree, ok := tree.(*v3.WalletConfigTreeNode)
 		require.True(t, ok, "tree should be a WalletConfigTreeNode")
 
 		// For a node with three leaves, we should check all three digests
@@ -207,7 +216,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		require.NotNil(t, digest)
 
 		// Get the digest of the payload
-		bundle, err := sequence.CreateIntentDigestTree([]*v3.CallsPayload{&payload1})
+		bundle, err := sequence.CreateAnyAddressSubdigestTree([]*v3.CallsPayload{&payload1})
 		require.NoError(t, err)
 		require.NotNil(t, bundle)
 	})
