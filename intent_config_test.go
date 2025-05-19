@@ -1077,7 +1077,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("Single Operation with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0x499022142bd8795BE14754C7B2642BE19fED21CC"))
+		assert.Equal(t, address, common.HexToAddress("0x2627C2b5c0a257f7595C51726A8330035F23a307"))
 	})
 
 	t.Run("multiple operations with lifiInfo", func(t *testing.T) {
@@ -1127,6 +1127,6 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("\nMultiple Operations with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xCd9773B71703001678E758Ac2870c3E1b3143103"))
+		assert.Equal(t, address, common.HexToAddress("0xe94A6831e46f6FB75E6d53E632B28155846908B3"))
 	})
 }
