@@ -1,12 +1,10 @@
 package sequence
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
-	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
@@ -32,6 +30,14 @@ type IntentParams struct {
 	OriginTokens      []OriginToken
 	DestinationTokens []DestinationToken
 	DestinationCalls  []*v3.CallsPayload
+}
+
+// AnypayLifiInfo represents the information for a Lifi bridge or swap.
+type AnypayLifiInfo struct {
+	OriginToken        common.Address `abi:"originToken"`
+	MinAmount          *big.Int       `abi:"minAmount"`
+	OriginChainId      *big.Int       `abi:"originChainId"`
+	DestinationChainId *big.Int       `abi:"destinationChainId"`
 }
 
 // HashIntentParams generates a unique bytes32 hash from the IntentParams struct.
@@ -159,13 +165,6 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	return hash32, nil
 }
 
-type AnypayLifiInfo struct {
-	OriginToken        common.Address `abi:"originToken"`
-	MinAmount          *big.Int       `abi:"minAmount"`
-	OriginChainId      *big.Int       `abi:"originChainId"`
-	DestinationChainId *big.Int       `abi:"destinationChainId"`
-}
-
 // GetAnypayLifiInfoHash computes the Keccak256 hash of ABI-encoded AnypayLifiInfo array and an attestation address.
 func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common.Address) ([32]byte, error) {
 	// Define ABI type components for the AnypayLifiInfo struct
@@ -252,7 +251,7 @@ func CreateIntentDigestTree(calls []*v3.CallsPayload) (*v3.WalletConfigTree, err
 	return &tree, nil
 }
 
-// CreateIntentTree creates a tree from a list of intent operations and a main signer address.
+// `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
 func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfigTree, error) {
 	digestTree, err := CreateIntentDigestTree(calls)
 	if err != nil {
@@ -271,36 +270,8 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.
 	return &fullTree, nil
 }
 
-// `CreateInitialIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateInitialIntentConfiguration(mainSigner common.Address, authSigner common.Address) (*v3.WalletConfig, error) {
-	// Create a 1/2 call payload with the main signer and auth signer addresses.
-
-	// Create the main signer leaf with weight 1.
-	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
-		Weight:  1,
-		Address: mainSigner,
-	}
-
-	// Create the auth signer leaf with weight 1.
-	authSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
-		Weight:  1,
-		Address: authSigner,
-	}
-
-	// Construct the new wallet config using:
-	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, authSignerLeaf)
-
-	return &v3.WalletConfig{
-		Threshold_:  1,
-		Checkpoint_: 0,
-		Tree:        fullTree,
-	}, nil
-}
-
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-
-// `CreateRawIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentTree(mainSigner, calls)
 	if err != nil {
@@ -317,61 +288,10 @@ func CreateRawIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPa
 	return config, nil
 }
 
-//
-
-func GetIntentConfigurationUpdateSignature(mainSigner common.Address, calls []*v3.CallsPayload, authSigner common.Address, authSignerWallet ethwallet.Wallet) (v3.Payload, []byte, error) {
-	// Get the auth signer addr
-	authWalletSigner := authSignerWallet.Address()
-
-	// Check if the wallet's authSigner is the same as the provided authSigner
-	if authWalletSigner != authSigner {
-		return nil, nil, fmt.Errorf("auth signer wallet's auth signer is not the same as the provided auth signer")
-	}
-
-	// Create the initial intent configuration using the main signer and auth signer addresses.
-	initialConfig, err := CreateInitialIntentConfiguration(mainSigner, authSigner)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Wallet address
-	address, _, _, err := EncodeWalletDeployment(initialConfig, V3SequenceContext())
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to encode wallet deployment: %w", err)
-	}
-
-	// Create a config update payload
-	intentConfigUpdatePayload := v3.NewConfigUpdatePayload(address, nil, initialConfig.Tree.ImageHash().Hash)
-
-	// Create a new auth signer
-	authorizationSigner := NewAuthorizationSigner(&authSignerWallet)
-
-	// Create a new wallet using the intentConfig v3.WalletConfig.
-	wallet, err := V3NewWallet(WalletOptions[*v3.WalletConfig]{
-		Config: initialConfig,
-		Context: func() *WalletContext {
-			ctx := V3SequenceContext()
-			return &ctx
-		}(),
-	}, authorizationSigner)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create wallet: %w", err)
-	}
-
-	// Sign the intent config update payload
-	initialConfigUpdateSig, _, err := wallet.SignV3Payload(context.Background(), intentConfigUpdatePayload)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to sign intent config update payload: %w", err)
-	}
-
-	return intentConfigUpdatePayload, initialConfigUpdateSig, nil
-}
-
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload, opts ...interface{}) ([]byte, error) {
-
+func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.CallsPayload) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
-	config, err := CreateRawIntentConfiguration(mainSigner, calls)
+	config, err := CreateIntentConfiguration(mainSigner, calls)
 	if err != nil {
 		return nil, err
 	}
@@ -389,25 +309,4 @@ func GetIntentConfigurationSignature(mainSigner common.Address, calls []*v3.Call
 	}
 
 	return data, nil
-}
-
-type AuthorizationSigner struct {
-	Wallet *ethwallet.Wallet
-}
-
-func NewAuthorizationSigner(wallet *ethwallet.Wallet) *AuthorizationSigner {
-	return &AuthorizationSigner{Wallet: wallet}
-}
-
-func (n *AuthorizationSigner) Address() common.Address {
-	return n.Wallet.Address()
-}
-
-func (n *AuthorizationSigner) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
-	sig, err := n.Wallet.SignMessage(digest.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return append(sig, 1), nil
 }
