@@ -1031,6 +1031,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 
 	// Main signer matching TypeScript test
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	attestationSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
 	// Sample LifiInfo - adjust as needed
 	lifiInfos := []sequence.AnypayLifiInfo{
@@ -1061,7 +1062,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, lifiInfos...)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload}, lifiInfos...)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1076,7 +1077,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("Single Operation with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xDa03ec55e905FE0DE6082a1Ad537428d2b06A980"))
+		assert.Equal(t, address, common.HexToAddress("0x499022142bd8795BE14754C7B2642BE19fED21CC"))
 	})
 
 	t.Run("multiple operations with lifiInfo", func(t *testing.T) {
@@ -1111,7 +1112,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, common.Address{}, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos...)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos...)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1126,6 +1127,6 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("\nMultiple Operations with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xCC9AFe5577a463E9e1d3B1FB01471FF508Ab7585"))
+		assert.Equal(t, address, common.HexToAddress("0xCd9773B71703001678E758Ac2870c3E1b3143103"))
 	})
 }
