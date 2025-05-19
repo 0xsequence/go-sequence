@@ -276,20 +276,20 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, lifiI
 		leaves = append(leaves, sapientSignerLeaf)
 	}
 
-	// If the length of the leaves is 1
-	if len(leaves) == 1 {
-		tree := v3.WalletConfigTree(leaves[0])
-		return &tree, nil
-	}
-
-	// Create a tree from the subdigest leaves.
-	tree := v3.WalletConfigTreeNodes(leaves...)
-
 	// Create the main signer leaf (with weight 1).
 	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
 	}
+
+	// If the length of the leaves is 1
+	if len(leaves) == 1 {
+		tree := v3.WalletConfigTreeNodes(mainSignerLeaf, leaves[0])
+		return &tree, nil
+	}
+
+	// Create a tree from the subdigest leaves.
+	tree := v3.WalletConfigTreeNodes(leaves...)
 
 	// Construct the new wallet config using:
 	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, tree)
