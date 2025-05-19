@@ -270,6 +270,25 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.
 	return &fullTree, nil
 }
 
+// `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayLifiInfo and a main signer address.
+func CreateAnypaySapientSignerTree(mainSigner common.Address, lifiInfos []AnypayLifiInfo) (*v3.WalletConfigTree, error) {
+	// Get the image hash for the main signer.
+	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, mainSigner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
+	}
+
+	// Create the lifi info leaf.
+	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
+	}
+
+	// Construct the new wallet config using:
+	fullTree := v3.WalletConfigTreeNodes(sapientSignerLeaf)
+
+	return &fullTree, nil
+}
+
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
 func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
