@@ -159,6 +159,55 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	return hash32, nil
 }
 
+type AnypayLifiInfo struct {
+	OriginToken        common.Address `abi:"originToken"`
+	MinAmount          *big.Int       `abi:"minAmount"`
+	OriginChainId      *big.Int       `abi:"originChainId"`
+	DestinationChainId *big.Int       `abi:"destinationChainId"`
+}
+
+// GetAnypayLifiInfoHash computes the Keccak256 hash of ABI-encoded AnypayLifiInfo array and an attestation address.
+func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common.Address) ([32]byte, error) {
+	// Define ABI type components for the AnypayLifiInfo struct
+	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+		{Name: "originToken", Type: "address"},
+		{Name: "minAmount", Type: "uint256"},
+		{Name: "originChainId", Type: "uint256"},
+		{Name: "destinationChainId", Type: "uint256"},
+	}
+
+	// Define ABI type for a list of AnypayLifiInfo structs (AnypayLifiInfo[])
+	anypayLifiInfoListType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to create anypay lifi info list ABI type: %w", err)
+	}
+
+	// Define ABI type for address
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to create address ABI type: %w", err)
+	}
+
+	// Define the arguments for ABI encoding
+	arguments := abi.Arguments{
+		{Name: "lifiInfos", Type: anypayLifiInfoListType},
+		{Name: "attestationAddress", Type: addressType},
+	}
+
+	// ABI encode the arguments
+	encodedData, err := arguments.Pack(lifiInfos, attestationAddress)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayLifiInfo hash: %w", err)
+	}
+
+	// Compute Keccak256 hash
+	hash := ethcoder.Keccak256(encodedData)
+
+	var hash32 [32]byte
+	copy(hash32[:], hash)
+	return hash32, nil
+}
+
 // `CreateIntentDigestTree` iterates over each batch of payloads,
 // validates that each call in the payload meets the following criteria:
 //   - GasLimit must be 0,
