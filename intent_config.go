@@ -37,7 +37,7 @@ type IntentParams struct {
 // AnypayLifiInfo represents the information for a Lifi bridge or swap.
 type AnypayLifiInfo struct {
 	OriginToken        common.Address `abi:"originToken"`
-	Amount             *big.Int       `abi:"maxAmount"`
+	Amount             *big.Int       `abi:"amount"`
 	OriginChainId      *big.Int       `abi:"originChainId"`
 	DestinationChainId *big.Int       `abi:"destinationChainId"`
 }
