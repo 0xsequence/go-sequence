@@ -37,7 +37,7 @@ type IntentParams struct {
 // AnypayLifiInfo represents the information for a Lifi bridge or swap.
 type AnypayLifiInfo struct {
 	OriginToken        common.Address `abi:"originToken"`
-	MinAmount          *big.Int       `abi:"minAmount"`
+	Amount             *big.Int       `abi:"maxAmount"`
 	OriginChainId      *big.Int       `abi:"originChainId"`
 	DestinationChainId *big.Int       `abi:"destinationChainId"`
 }
@@ -172,7 +172,7 @@ func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common
 	// Define ABI type components for the AnypayLifiInfo struct
 	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
-		{Name: "minAmount", Type: "uint256"},
+		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
@@ -407,7 +407,7 @@ func CreateAnypayLifiAttestation(
 	// 4. Define ABI types for abi.encode(AnypayLifiInfo[] memory, bytes memory)
 	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
-		{Name: "minAmount", Type: "uint256"},
+		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}

@@ -985,7 +985,7 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 func TestGetAnypayLifiInfoHash(t *testing.T) {
 	t.Run("SingleInfo", func(t *testing.T) {
 		originTokenAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")
-		minAmountVal := big.NewInt(100)
+		amountVal := big.NewInt(100)
 		originChainIdVal := big.NewInt(1)
 		destinationChainIdVal := big.NewInt(10)
 		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
@@ -993,7 +993,7 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		lifiInfos := []sequence.AnypayLifiInfo{
 			{
 				OriginToken:        originTokenAddr,
-				MinAmount:          minAmountVal,
+				Amount:             amountVal,
 				OriginChainId:      originChainIdVal,
 				DestinationChainId: destinationChainIdVal,
 			},
@@ -1010,13 +1010,13 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		lifiInfos := []sequence.AnypayLifiInfo{
 			{
 				OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
-				MinAmount:          big.NewInt(100),
+				Amount:             big.NewInt(100),
 				OriginChainId:      big.NewInt(1),
 				DestinationChainId: big.NewInt(10),
 			},
 			{
 				OriginToken:        common.HexToAddress("0x2222222222222222222222222222222222222222"),
-				MinAmount:          big.NewInt(200),
+				Amount:             big.NewInt(200),
 				OriginChainId:      big.NewInt(137),
 				DestinationChainId: big.NewInt(42161),
 			},
@@ -1045,7 +1045,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 	lifiInfos := []sequence.AnypayLifiInfo{
 		{
 			OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
-			MinAmount:          big.NewInt(100),
+			Amount:             big.NewInt(100),
 			OriginChainId:      big.NewInt(1),
 			DestinationChainId: big.NewInt(10),
 		},
@@ -1183,13 +1183,13 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	lifiInfos := []sequence.AnypayLifiInfo{
 		{
 			OriginToken:        common.HexToAddress("0xOriginToken0000000000000000000000000000"),
-			MinAmount:          big.NewInt(1000),
+			Amount:             big.NewInt(1000),
 			OriginChainId:      big.NewInt(1),  // Ethereum Mainnet
 			DestinationChainId: big.NewInt(10), // Optimism
 		},
 		{
 			OriginToken:        common.HexToAddress("0xOriginToken2222222222222222222222222222"),
-			MinAmount:          big.NewInt(500),
+			Amount:             big.NewInt(500),
 			OriginChainId:      big.NewInt(137),   // Polygon
 			DestinationChainId: big.NewInt(42161), // Arbitrum
 		},
@@ -1205,7 +1205,7 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	// Define ABI type components for the AnypayLifiInfo struct
 	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
-		{Name: "minAmount", Type: "uint256"},
+		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
