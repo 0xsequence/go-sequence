@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
 	"github.com/davecgh/go-spew/spew"
 
@@ -1138,6 +1139,28 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 	})
 }
 
+// ecrecoverForTest is a helper function to recover an address from a message hash and signature.
+// It assumes the input signature's V value has been incremented by 27 twice (e.g., V = original_V_from_crypto.Sign + 54)
+// and normalizes it to original_V (0 or 1) for crypto.SigToPub.
+func ecrecoverForTest(hash []byte, signature []byte) (common.Address, error) {
+	if len(signature) != crypto.SignatureLength { // crypto.SignatureLength is 65
+		return common.Address{}, fmt.Errorf("invalid signature length %d, expected %d", len(signature), crypto.SignatureLength)
+	}
+
+	// Create a mutable copy of the signature to adjust V.
+	// crypto.SigToPub expects V to be 0 or 1.
+	// This function assumes the input signature's V has been incremented by 27 twice (total +54).
+	var sigToPub [crypto.SignatureLength]byte // Use array as in user's example for fixed-size operations
+	copy(sigToPub[:], signature)
+	sigToPub[crypto.SignatureLength-1] -= (2 * 27) // Adjust V from (original_V + 54) down to original_V (0 or 1)
+
+	pubkey, err := crypto.SigToPub(hash, sigToPub[:]) // Pass as slice
+	if err != nil {
+		return common.Address{}, fmt.Errorf("unable to recover public key: %w", err)
+	}
+	return crypto.PubkeyToAddress(*pubkey), nil
+}
+
 func TestCreateAnypayLifiAttestation(t *testing.T) {
 	// 1. Setup
 	attestationSignerWallet, err := ethwallet.NewWalletFromRandomEntropy()
@@ -1205,10 +1228,12 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	require.Len(t, decodedSignature, 65, "Decoded signature should be 65 bytes long (R + S + V)")
 
 	// Verify the ECDSA signature
-	// messageHash := payload.Digest().Hash
-	// ethcoder.RecoverAddress expects the signature V value to be 27 or 28.
-	// CreateAnypayLifiAttestation already adjusts V, so no further adjustment is needed here.
-	// recoveredAddress, err := ethcoder.RecoverAddress(decodedSignature, messageHash[:])
-	// require.NoError(t, err, "Failed to recover address from decoded signature")
-	// assert.Equal(t, attestationSignerWallet.Address(), recoveredAddress, "Recovered address does not match the attestation signer's address")
+	// 1. Determine the hash that was actually signed by crypto.Sign inside SignData.
+	originalPayloadDigestHash := payload.Digest().Hash
+	hashSignedByCryptoSign := crypto.Keccak256Hash(originalPayloadDigestHash[:])
+
+	// 2. Use the ecrecoverForTest helper for signature verification.
+	recoveredAddress, err := ecrecoverForTest(hashSignedByCryptoSign.Bytes(), decodedSignature)
+	require.NoError(t, err, "Failed to recover address using ecrecoverForTest")
+	assert.Equal(t, attestationSignerWallet.Address(), recoveredAddress, "Recovered address does not match the attestation signer's address")
 }
