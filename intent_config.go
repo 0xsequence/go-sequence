@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
@@ -338,4 +339,59 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	}
 
 	return data, nil
+}
+
+// CreateAnypayLifiAttestation generates the ABI-encoded signature required by the AnypayLifiSapientSigner contract.
+func CreateAnypayLifiAttestation(
+	attestationSignerWallet *ethwallet.Wallet,
+	payload *v3.CallsPayload,
+	lifiInfos []AnypayLifiInfo,
+) ([]byte, error) {
+	if attestationSignerWallet == nil {
+		return nil, fmt.Errorf("attestationSignerWallet is nil")
+	}
+
+	if len(lifiInfos) == 0 {
+		return nil, fmt.Errorf("lifiInfos is empty")
+	}
+
+	digestToSign := payload.Digest()
+
+	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
+	}
+
+	// Adjust V: Ethereum expects V to be 27 or 28. crypto.Sign returns 0 or 1.
+	// The last byte of the 65-byte signature is V.
+	if len(rawSignature) == 65 {
+		rawSignature[64] = rawSignature[64] + 27
+	} else {
+		return nil, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(rawSignature))
+	}
+	eoaSignatureBytes := rawSignature
+
+	// 4. Define ABI types for abi.encode(AnypayLifiInfo[] memory, bytes memory)
+	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+		{Name: "originToken", Type: "address"},
+		{Name: "minAmount", Type: "uint256"},
+		{Name: "originChainId", Type: "uint256"},
+		{Name: "destinationChainId", Type: "uint256"},
+	}
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AnypayLifiInfo[] ABI type: %w", err)
+	}
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
+	}
+
+	// 5. Pack lifiInfos and eoaSignatureBytes
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}}.Pack(lifiInfos, eoaSignatureBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
+	}
+
+	return encodedAttestation, nil
 }
