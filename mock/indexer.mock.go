@@ -246,9 +246,9 @@ func (mr *IndexerMockRecorder) GetTokenBalancesSummary(ctx, filter, omitMetadata
 }
 
 // GetTokenIDRanges mocks base method.
-func (m *Indexer) GetTokenIDRanges(ctx context.Context, contractAddress string) (indexer.ContractType, []*indexer.TokenIDRange, bool, error) {
+func (m *Indexer) GetTokenIDRanges(ctx context.Context, contractAddress string, lastTokenID *string) (indexer.ContractType, []*indexer.TokenIDRange, bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenIDRanges", ctx, contractAddress)
+	ret := m.ctrl.Call(m, "GetTokenIDRanges", ctx, contractAddress, lastTokenID)
 	ret0, _ := ret[0].(indexer.ContractType)
 	ret1, _ := ret[1].([]*indexer.TokenIDRange)
 	ret2, _ := ret[2].(bool)
@@ -257,9 +257,9 @@ func (m *Indexer) GetTokenIDRanges(ctx context.Context, contractAddress string) 
 }
 
 // GetTokenIDRanges indicates an expected call of GetTokenIDRanges.
-func (mr *IndexerMockRecorder) GetTokenIDRanges(ctx, contractAddress any) *gomock.Call {
+func (mr *IndexerMockRecorder) GetTokenIDRanges(ctx, contractAddress, lastTokenID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenIDRanges", reflect.TypeOf((*Indexer)(nil).GetTokenIDRanges), ctx, contractAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenIDRanges", reflect.TypeOf((*Indexer)(nil).GetTokenIDRanges), ctx, contractAddress, lastTokenID)
 }
 
 // GetTokenIDs mocks base method.
@@ -777,9 +777,9 @@ func (mr *IndexerClientMockRecorder) GetTokenBalancesSummary(ctx, filter, omitMe
 }
 
 // GetTokenIDRanges mocks base method.
-func (m *IndexerClient) GetTokenIDRanges(ctx context.Context, contractAddress string) (indexer.ContractType, []*indexer.TokenIDRange, bool, error) {
+func (m *IndexerClient) GetTokenIDRanges(ctx context.Context, contractAddress string, lastTokenID *string) (indexer.ContractType, []*indexer.TokenIDRange, bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenIDRanges", ctx, contractAddress)
+	ret := m.ctrl.Call(m, "GetTokenIDRanges", ctx, contractAddress, lastTokenID)
 	ret0, _ := ret[0].(indexer.ContractType)
 	ret1, _ := ret[1].([]*indexer.TokenIDRange)
 	ret2, _ := ret[2].(bool)
@@ -788,9 +788,9 @@ func (m *IndexerClient) GetTokenIDRanges(ctx context.Context, contractAddress st
 }
 
 // GetTokenIDRanges indicates an expected call of GetTokenIDRanges.
-func (mr *IndexerClientMockRecorder) GetTokenIDRanges(ctx, contractAddress any) *gomock.Call {
+func (mr *IndexerClientMockRecorder) GetTokenIDRanges(ctx, contractAddress, lastTokenID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenIDRanges", reflect.TypeOf((*IndexerClient)(nil).GetTokenIDRanges), ctx, contractAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenIDRanges", reflect.TypeOf((*IndexerClient)(nil).GetTokenIDRanges), ctx, contractAddress, lastTokenID)
 }
 
 // GetTokenIDs mocks base method.
@@ -1218,6 +1218,22 @@ func (mr *IndexerGatewayMockRecorder) GetTokenBalancesSummary(ctx, chainIds, net
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
 }
 
+// GetTransactionHistory mocks base method.
+func (m *IndexerGateway) GetTransactionHistory(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TransactionHistoryFilter, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTransaction, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransactionHistory", ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
+	ret0, _ := ret[0].(*indexer.Page)
+	ret1, _ := ret[1].([]*indexer.GatewayTransaction)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetTransactionHistory indicates an expected call of GetTransactionHistory.
+func (mr *IndexerGatewayMockRecorder) GetTransactionHistory(ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionHistory", reflect.TypeOf((*IndexerGateway)(nil).GetTransactionHistory), ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
+}
+
 // Ping mocks base method.
 func (m *IndexerGateway) Ping(ctx context.Context) (bool, error) {
 	m.ctrl.T.Helper()
@@ -1397,6 +1413,22 @@ func (m *IndexerGatewayClient) GetTokenBalancesSummary(ctx context.Context, chai
 func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesSummary(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+}
+
+// GetTransactionHistory mocks base method.
+func (m *IndexerGatewayClient) GetTransactionHistory(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TransactionHistoryFilter, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTransaction, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransactionHistory", ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
+	ret0, _ := ret[0].(*indexer.Page)
+	ret1, _ := ret[1].([]*indexer.GatewayTransaction)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetTransactionHistory indicates an expected call of GetTransactionHistory.
+func (mr *IndexerGatewayClientMockRecorder) GetTransactionHistory(ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionHistory", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTransactionHistory), ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
 }
 
 // Ping mocks base method.
