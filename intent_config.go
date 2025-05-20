@@ -1,6 +1,7 @@
 package sequence
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -319,17 +320,45 @@ func CreateIntentConfiguration(mainSigner common.Address, attestationSigner comm
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
+	// Check that the attestation signer wallet's address matches the attestation signer address.
+	if len(lifiInfos) > 0 && attestationSignerWallet != nil && attestationSignerWallet.Address() != attestationSigner {
+		return nil, fmt.Errorf("attestation signer wallet address does not match attestation signer address")
+	}
+	if len(lifiInfos) > 0 && attestationSignerWallet == nil && attestationSigner != (common.Address{}) {
+		return nil, fmt.Errorf("attestationSignerWallet is nil but lifiInfos and attestationSigner are provided")
+	}
+
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos...)
 	if err != nil {
 		return nil, err
 	}
 
-	// Default to building the regular signature
-	sig, err := config.BuildSubdigestSignature(false)
+	var attestationBytes []byte
+	if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) && attestationSignerWallet != nil {
+		attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, calls[0], lifiInfos)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create attestation: %w", err)
+		}
+	}
+
+	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		// TODO: Add correct sapient signature address and attestation signer address
+		if signer == (common.Address{}) && len(lifiInfos) > 0 && attestationBytes != nil {
+			return core.SignerSignatureTypeSapient, attestationBytes, nil
+		}
+
+		// For mainSigner or other signers, we don't provide a signature here.
+		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
+		return 0, nil, nil
+	}
+
+	// Build the signature using BuildNoChainIDSignature, which allows us to inject custom signatures via SigningFunction.
+	// Set validateSigningPower to false, as we are not necessarily providing signatures for all parts of the config.
+	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build subdigest signature: %w", err)
+		return nil, fmt.Errorf("failed to build regular signature: %w", err)
 	}
 
 	// Get the signature data
@@ -349,6 +378,10 @@ func CreateAnypayLifiAttestation(
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
 		return nil, fmt.Errorf("attestationSignerWallet is nil")
+	}
+
+	if payload == nil {
+		return nil, fmt.Errorf("payload is nil for attestation")
 	}
 
 	if len(lifiInfos) == 0 {

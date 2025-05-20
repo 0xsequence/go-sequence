@@ -9,6 +9,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
@@ -347,7 +348,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload})
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -422,10 +423,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2}, eoa1)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -434,10 +435,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -473,7 +474,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1})
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -490,6 +491,9 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.NoError(t, err)
 	calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
+
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
 
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
@@ -541,7 +545,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload})
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, eoa1)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -624,6 +628,9 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	calldata3, err := callmockContract.Encode("testCall", big.NewInt(6655), ethcoder.MustHexDecode("0x332266"))
 	assert.NoError(t, err)
 
+	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err)
+
 	// Create multiple payloads
 	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
@@ -696,7 +703,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads, eoa1)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
@@ -1129,4 +1136,79 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 
 		assert.Equal(t, address, common.HexToAddress("0xe94A6831e46f6FB75E6d53E632B28155846908B3"))
 	})
+}
+
+func TestCreateAnypayLifiAttestation(t *testing.T) {
+	// 1. Setup
+	attestationSignerWallet, err := ethwallet.NewWalletFromRandomEntropy()
+	require.NoError(t, err, "Failed to create attestation signer wallet")
+
+	// Create a simple CallsPayload
+	call := v3.Call{
+		To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+		Value:           big.NewInt(0),
+		Data:            []byte("test_payload_data_for_lifi_attestation"),
+		GasLimit:        big.NewInt(100000), // Example gas limit
+		DelegateCall:    false,
+		OnlyFallback:    false,
+		BehaviorOnError: v3.BehaviorOnErrorRevert,
+	}
+	payloadAddress := common.HexToAddress("0xPayloadAddressForTest123456789012345")
+	// Using chain ID 1 for simplicity in this test context, can be any valid chain ID
+	payload := v3.NewCallsPayload(payloadAddress, big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
+
+	lifiInfos := []sequence.AnypayLifiInfo{
+		{
+			OriginToken:        common.HexToAddress("0xOriginToken0000000000000000000000000000"),
+			MinAmount:          big.NewInt(1000),
+			OriginChainId:      big.NewInt(1),  // Ethereum Mainnet
+			DestinationChainId: big.NewInt(10), // Optimism
+		},
+		{
+			OriginToken:        common.HexToAddress("0xOriginToken2222222222222222222222222222"),
+			MinAmount:          big.NewInt(500),
+			OriginChainId:      big.NewInt(137),   // Polygon
+			DestinationChainId: big.NewInt(42161), // Arbitrum
+		},
+	}
+
+	// 2. Call CreateAnypayLifiAttestation
+	encodedAttestation, err := sequence.CreateAnypayLifiAttestation(attestationSignerWallet, &payload, lifiInfos)
+	require.NoError(t, err, "CreateAnypayLifiAttestation should not return an error for valid inputs")
+	require.NotNil(t, encodedAttestation, "Encoded attestation should not be nil")
+	require.NotEmpty(t, encodedAttestation, "Encoded attestation should not be empty")
+
+	// 3. Decode the result (abi.encode(AnypayLifiInfo[] memory, bytes memory))
+	// Define ABI type components for the AnypayLifiInfo struct
+	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+		{Name: "originToken", Type: "address"},
+		{Name: "minAmount", Type: "uint256"},
+		{Name: "originChainId", Type: "uint256"},
+		{Name: "destinationChainId", Type: "uint256"},
+	}
+	// Define ABI type for a list of AnypayLifiInfo structs (AnypayLifiInfo[])
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	require.NoError(t, err, "Failed to create AnypayLifiInfo[] ABI type")
+	bytesType, err := abi.NewType("bytes", "", nil)
+	require.NoError(t, err, "Failed to create bytes ABI type")
+
+	// Define the arguments for ABI decoding
+	argumentsToUnpack := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}}
+	unpackedData, err := argumentsToUnpack.Unpack(encodedAttestation)
+	require.NoError(t, err, "Failed to unpack encoded attestation")
+	require.Len(t, unpackedData, 2, "Unpacked data should contain two elements: lifiInfos and signature")
+
+	// 4. Verify decoded signature
+	decodedSignature, ok := unpackedData[1].([]byte)
+	require.True(t, ok, "Failed to assert unpackedData[1] as []byte for the signature")
+	require.NotEmpty(t, decodedSignature, "Decoded signature should not be empty")
+	require.Len(t, decodedSignature, 65, "Decoded signature should be 65 bytes long (R + S + V)")
+
+	// Verify the ECDSA signature
+	// messageHash := payload.Digest().Hash
+	// ethcoder.RecoverAddress expects the signature V value to be 27 or 28.
+	// CreateAnypayLifiAttestation already adjusts V, so no further adjustment is needed here.
+	// recoveredAddress, err := ethcoder.RecoverAddress(decodedSignature, messageHash[:])
+	// require.NoError(t, err, "Failed to recover address from decoded signature")
+	// assert.Equal(t, attestationSignerWallet.Address(), recoveredAddress, "Recovered address does not match the attestation signer's address")
 }
