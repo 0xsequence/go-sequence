@@ -20,6 +20,7 @@ struct Signature
 enum IntentName: string
   - initiateAuth
   - openSession
+  - openScopedSession
   - closeSession
   - validateSession
   - finishValidateSession
@@ -69,6 +70,15 @@ struct IntentDataOpenSession
   # Deprecated
   - idToken?: string
     + go.tag.json = idToken,omitempty
+
+struct IntentDataOpenScopedSession
+  - sessionId: string
+    + go.field.name = SessionID
+  - scopedSessionId: string
+    + go.field.name = ScopedSessionID
+  - wallet: string
+  - projectId: uint64
+    + go.field.name = ProjectID
 
 struct IntentDataCloseSession
   - sessionId: string
