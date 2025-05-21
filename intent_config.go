@@ -252,7 +252,7 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 
 	// Create the lifi info leaf.
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		Address:    common.Address{},
+		Address:    AnypayLiFiSapientSignerAddress,
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
