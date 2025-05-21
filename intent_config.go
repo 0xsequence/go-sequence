@@ -13,6 +13,10 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
+var (
+	AnypayLiFiSapientSignerAddress = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+)
+
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
 type OriginToken struct {
 	Address common.Address `abi:"address"`
@@ -344,8 +348,7 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	}
 
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// TODO: Add correct sapient signature address and attestation signer address
-		if signer == (common.Address{}) && len(lifiInfos) > 0 && attestationBytes != nil {
+		if signer == AnypayLiFiSapientSignerAddress && len(lifiInfos) > 0 && attestationBytes != nil {
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
