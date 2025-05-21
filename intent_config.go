@@ -15,7 +15,7 @@ import (
 
 var (
 	AnypayLiFiSapientSignerAddress     = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0x180ec8046b6dc401361d5a0326b0d092dc20796c")
+	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0x180Ec8046B6dc401361d5a0326B0d092dc20796c")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -246,7 +246,8 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 // `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayLifiInfo and a main signer address.
 func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayLifiInfo) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
-	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
+	// sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
+	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, common.HexToAddress("0x0000000000000000000000000000000000000001"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
