@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	AnypayLiFiSapientSignerAddress = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+	AnypayLiFiSapientSignerAddress     = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0xFd23306107C5376334Ba8B7FF26A88F5fAa9E72B")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -252,7 +253,8 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 
 	// Create the lifi info leaf.
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		Address:    AnypayLiFiSapientSignerAddress,
+		// Address:    AnypayLiFiSapientSignerAddress,
+		Address:    AnypayLifiSapientSignerLiteAddress,
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
@@ -324,7 +326,7 @@ func CreateIntentConfiguration(mainSigner common.Address, attestationSigner comm
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
 	// Check that the attestation signer wallet's address matches the attestation signer address.
 	if len(lifiInfos) > 0 && attestationSignerWallet != nil && attestationSignerWallet.Address() != attestationSigner {
 		return nil, fmt.Errorf("attestation signer wallet address does not match attestation signer address")
@@ -339,16 +341,26 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 		return nil, err
 	}
 
-	var attestationBytes []byte
-	if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) && attestationSignerWallet != nil {
-		attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, calls[0], lifiInfos)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create attestation: %w", err)
-		}
-	}
-
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		if signer == AnypayLiFiSapientSignerAddress && len(lifiInfos) > 0 && attestationBytes != nil {
+		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
+
+		// if signer == AnypayLifiSapientSignerAddress && len(lifiInfos) > 0 {
+		if signer == AnypayLifiSapientSignerLiteAddress && len(lifiInfos) > 0 {
+			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
+			fmt.Printf("signingFunc: lifiInfos: %v\n", lifiInfos)
+			var attestationBytes []byte
+			if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) && attestationSignerWallet != nil {
+				if targetPayload == nil {
+					// If the target payload is nil, we don't need to create an attestation.
+					return 0, nil, nil
+				}
+				// attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, lifiInfos)
+				attestationBytes, err = CreateAnypayLifiAttestationLite(lifiInfos)
+				if err != nil {
+					return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
+				}
+			}
+
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
@@ -392,6 +404,7 @@ func CreateAnypayLifiAttestation(
 	}
 
 	digestToSign := payload.Digest()
+	fmt.Printf("digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
 
 	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
 	if err != nil {
@@ -425,6 +438,34 @@ func CreateAnypayLifiAttestation(
 
 	// 5. Pack lifiInfos and eoaSignatureBytes
 	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}}.Pack(lifiInfos, eoaSignatureBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
+	}
+
+	return encodedAttestation, nil
+}
+
+func CreateAnypayLifiAttestationLite(
+	lifiInfos []AnypayLifiInfo,
+) ([]byte, error) {
+	// 4. Define ABI types for abi.encode(AnypayLifiInfo[] memory, bytes memory)
+	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+		{Name: "originToken", Type: "address"},
+		{Name: "amount", Type: "uint256"},
+		{Name: "originChainId", Type: "uint256"},
+		{Name: "destinationChainId", Type: "uint256"},
+	}
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AnypayLifiInfo[] ABI type: %w", err)
+	}
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
+	}
+
+	// 5. Pack lifiInfos and eoaSignatureBytes
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: addressType}}.Pack(lifiInfos, common.Address{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
 	}
