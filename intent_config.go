@@ -15,7 +15,7 @@ import (
 
 var (
 	AnypayLiFiSapientSignerAddress     = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0xFd23306107C5376334Ba8B7FF26A88F5fAa9E72B")
+	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0xEcD969131B326850013847110Bd5a0188A38923a")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
