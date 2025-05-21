@@ -247,7 +247,7 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayLifiInfo) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
 	// sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
-	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, common.HexToAddress("0x0000000000000000000000000000000000000001"))
+	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}

@@ -1039,7 +1039,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 
 	// Main signer matching TypeScript test
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	attestationSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	attestationSigner := common.HexToAddress("0x0000000000000000000000000000000000000001")
 
 	// Sample LifiInfo - adjust as needed
 	lifiInfos := []sequence.AnypayLifiInfo{
@@ -1085,7 +1085,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("Single Operation with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xC8B15aAd357F1Bc327eeA838825a552e244d0CA9"))
+		assert.Equal(t, address, common.HexToAddress("0x869929e07Cc5F6160e9729d5aC0716C10100C70b"))
 	})
 
 	t.Run("multiple operations with lifiInfo", func(t *testing.T) {
@@ -1135,7 +1135,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		fmt.Printf("\nMultiple Operations with LifiInfo Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0x24b99b5b571fe723cB7Ec3bF580fA51663880F24"))
+		assert.Equal(t, address, common.HexToAddress("0x21b98Be5E52BcFE9b90a901De524af592901C9a8"))
 	})
 }
 
