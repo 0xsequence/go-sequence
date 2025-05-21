@@ -465,7 +465,7 @@ func CreateAnypayLifiAttestationLite(
 	}
 
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: addressType}}.Pack(lifiInfos, common.Address{})
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: addressType}}.Pack(lifiInfos, common.HexToAddress("0x0000000000000000000000000000000000000001"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
 	}
