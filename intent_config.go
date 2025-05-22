@@ -252,6 +252,7 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
+	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
 
 	// Create the lifi info leaf.
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
@@ -260,6 +261,7 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
+	fmt.Printf("sapientSignerLeaf.ImageHash(): %s\n", sapientSignerLeaf.ImageHash().Hash.Hex())
 
 	return sapientSignerLeaf, nil
 }
@@ -369,14 +371,6 @@ func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.Walle
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
 func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
-	// Check that the attestation signer wallet's address matches the attestation signer address.
-	if len(lifiInfos) > 0 && attestationSignerWallet != nil && attestationSignerWallet.Address() != attestationSigner {
-		return nil, fmt.Errorf("attestation signer wallet address does not match attestation signer address")
-	}
-	if len(lifiInfos) > 0 && attestationSignerWallet == nil && attestationSigner != (common.Address{}) {
-		return nil, fmt.Errorf("attestationSignerWallet is nil but lifiInfos and attestationSigner are provided")
-	}
-
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos...)
 	if err != nil {
@@ -420,11 +414,36 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
 	}
 
+	spew.Dump(sig)
+
+	if regularSig, ok := sig.(*v3.RegularSignature); ok {
+		if regularSig.Signature != nil {
+			signatureTree := regularSig.Signature.Tree
+			fmt.Println("Accessing sig.Signature.Tree:")
+			spew.Dump(signatureTree)
+		} else {
+			fmt.Println("sig.Signature is nil")
+		}
+	} else if noChainIdSig, ok := sig.(*v3.NoChainIDSignature); ok {
+		if noChainIdSig.Signature != nil {
+			signatureTree := noChainIdSig.Signature.Tree
+			fmt.Println("Accessing sig.Signature.Tree (NoChainID):")
+			spew.Dump(signatureTree)
+		} else {
+			fmt.Println("sig.Signature is nil for NoChainIDSignature")
+		}
+	} else {
+		fmt.Printf("sig is not of type *v3.RegularSignature or *v3.NoChainIDSignature, it is %T\n", sig)
+	}
+
 	// Get the signature data
 	data, err := sig.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature data: %w", err)
 	}
+
+	// Print the signature data
+	fmt.Printf("signature data: %s\n", common.Bytes2Hex(data))
 
 	return data, nil
 }
