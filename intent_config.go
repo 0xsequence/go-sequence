@@ -360,10 +360,7 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	}
 
 	if targetPayload == nil {
-		// If a sapient signer (for AnypayLifiSapientSignerLiteAddress) was part of the config, replace it with a node leaf.
-		if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) {
-			config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
-		}
+		config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
 	}
 
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
