@@ -11,6 +11,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -265,15 +266,16 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
 func CreateIntentTree(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) (*v3.WalletConfigTree, error) {
-	var sapientSignerLeaf v3.WalletConfigTree
+	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
 	if attestationSigner != (common.Address{}) && len(lifiInfos) > 0 {
 		// Create the lifi info leaf.
-		sapientSignerLeaf, err = CreateAnypaySapientSignerTree(attestationSigner, lifiInfos)
+		sapientSignerLeaf, err := CreateAnypaySapientSignerTree(attestationSigner, lifiInfos)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
 		}
+		sapientSignerLeafNode = v3.WalletConfigTreeNodes(sapientSignerLeaf)
 	}
 
 	// Create the subdigest leaves from the batched transactions.
@@ -283,8 +285,8 @@ func CreateIntentTree(mainSigner common.Address, attestationSigner common.Addres
 	}
 
 	// If the sapient signer leaf is not nil, add it to the leaves.
-	if sapientSignerLeaf != nil {
-		leaves = append(leaves, sapientSignerLeaf)
+	if sapientSignerLeafNode != nil {
+		leaves = append(leaves, sapientSignerLeafNode)
 	}
 
 	// Create the main signer leaf (with weight 1).
@@ -346,35 +348,58 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
 		// if signer == AnypayLifiSapientSignerAddress && len(lifiInfos) > 0 {
-		if signer == AnypayLifiSapientSignerLiteAddress && len(lifiInfos) > 0 {
+		if signer == AnypayLifiSapientSignerLiteAddress && len(lifiInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
 			fmt.Printf("signingFunc: lifiInfos: %v\n", lifiInfos)
 			var attestationBytes []byte
-			if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) && attestationSignerWallet != nil {
-				if targetPayload == nil {
-					// If the target payload is nil, we don't need to create an attestation.
-					return 0, nil, nil
-				}
-				// attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, lifiInfos)
-				attestationBytes, err = CreateAnypayLifiAttestationLite(lifiInfos)
-				if err != nil {
-					return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
-				}
+			// attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, lifiInfos)
+			attestationBytes, err = CreateAnypayLifiAttestationLite(lifiInfos)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
 
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
+		fmt.Printf("signingFunc: returning nil signature for signer: %s\n", signer.Hex())
 		// For mainSigner or other signers, we don't provide a signature here.
 		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
 		return 0, nil, nil
 	}
+
+	spew.Dump(config)
+	spew.Dump(config.Tree)
 
 	// Build the signature using BuildNoChainIDSignature, which allows us to inject custom signatures via SigningFunction.
 	// Set validateSigningPower to false, as we are not necessarily providing signatures for all parts of the config.
 	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
+	}
+
+	spew.Dump(sig)
+
+	// Reduce the signature
+	sig = sig.Reduce(core.Subdigest{})
+
+	if regularSig, ok := sig.(*v3.RegularSignature); ok {
+		if regularSig.Signature != nil {
+			signatureTree := regularSig.Signature.Tree
+			fmt.Println("Accessing sig.Signature.Tree:")
+			spew.Dump(signatureTree)
+		} else {
+			fmt.Println("sig.Signature is nil")
+		}
+	} else if noChainIdSig, ok := sig.(*v3.NoChainIDSignature); ok {
+		if noChainIdSig.Signature != nil {
+			signatureTree := noChainIdSig.Signature.Tree
+			fmt.Println("Accessing sig.Signature.Tree (NoChainID):")
+			spew.Dump(signatureTree)
+		} else {
+			fmt.Println("sig.Signature is nil for NoChainIDSignature")
+		}
+	} else {
+		fmt.Printf("sig is not of type *v3.RegularSignature or *v3.NoChainIDSignature, it is %T\n", sig)
 	}
 
 	// Get the signature data

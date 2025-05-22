@@ -1076,6 +1076,8 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		// Calculate image hash
 		imageHash := config.ImageHash()
 
+		spew.Dump(config.Tree)
+
 		// Calculate counterfactual address
 		address, err := sequence.AddressFromImageHash(imageHash, context)
 		if err != nil {
@@ -1125,6 +1127,8 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 
 		// Calculate image hash
 		imageHash := config.ImageHash()
+
+		spew.Dump(config.Tree)
 
 		// Calculate counterfactual address
 		address, err := sequence.AddressFromImageHash(imageHash, context)
