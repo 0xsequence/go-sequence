@@ -328,6 +328,21 @@ func CreateIntentConfiguration(mainSigner common.Address, attestationSigner comm
 	return config, nil
 }
 
+// replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.
+func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.WalletConfigTree {
+	if tree == nil {
+		return nil
+	}
+
+	switch node := tree.(type) {
+	case *v3.WalletConfigTreeSapientSignerLeaf:
+		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
+
+	default:
+		return tree
+	}
+}
+
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
 func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
 	// Check that the attestation signer wallet's address matches the attestation signer address.
@@ -342,6 +357,13 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	config, err := CreateIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos...)
 	if err != nil {
 		return nil, err
+	}
+
+	if targetPayload == nil {
+		// If a sapient signer (for AnypayLifiSapientSignerLiteAddress) was part of the config, replace it with a node leaf.
+		if len(lifiInfos) > 0 && attestationSigner != (common.Address{}) {
+			config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
+		}
 	}
 
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
@@ -375,31 +397,6 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
-	}
-
-	spew.Dump(sig)
-
-	// Reduce the signature
-	sig = sig.Reduce(core.Subdigest{})
-
-	if regularSig, ok := sig.(*v3.RegularSignature); ok {
-		if regularSig.Signature != nil {
-			signatureTree := regularSig.Signature.Tree
-			fmt.Println("Accessing sig.Signature.Tree:")
-			spew.Dump(signatureTree)
-		} else {
-			fmt.Println("sig.Signature is nil")
-		}
-	} else if noChainIdSig, ok := sig.(*v3.NoChainIDSignature); ok {
-		if noChainIdSig.Signature != nil {
-			signatureTree := noChainIdSig.Signature.Tree
-			fmt.Println("Accessing sig.Signature.Tree (NoChainID):")
-			spew.Dump(signatureTree)
-		} else {
-			fmt.Println("sig.Signature is nil for NoChainIDSignature")
-		}
-	} else {
-		fmt.Printf("sig is not of type *v3.RegularSignature or *v3.NoChainIDSignature, it is %T\n", sig)
 	}
 
 	// Get the signature data
