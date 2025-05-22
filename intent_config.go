@@ -335,7 +335,31 @@ func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.Walle
 	}
 
 	switch node := tree.(type) {
+	case *v3.WalletConfigTreeNode:
+		// Recursively call on left and right children
+		left := replaceSapientSignerWithNodeInConfigTree(node.Left)
+		right := replaceSapientSignerWithNodeInConfigTree(node.Right)
+
+		if left == node.Left && right == node.Right {
+			return node
+		}
+		return &v3.WalletConfigTreeNode{Left: left, Right: right}
+
+	case *v3.WalletConfigTreeNestedLeaf:
+		// Recursively call on the inner tree
+		innerTree := replaceSapientSignerWithNodeInConfigTree(node.Tree)
+
+		if innerTree == node.Tree { // Check for pointer equality
+			return node // No change, return original
+		}
+		return &v3.WalletConfigTreeNestedLeaf{
+			Weight:    node.Weight,
+			Threshold: node.Threshold,
+			Tree:      innerTree,
+		}
+
 	case *v3.WalletConfigTreeSapientSignerLeaf:
+		// This is the target node type to replace
 		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
 
 	default:
