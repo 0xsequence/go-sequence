@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 type Receipt struct {
@@ -331,12 +332,15 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		return nil, nil, err
 	}
 
-	space, nonce := DecodeNonce(nonce)
-	payload, err := transactions.Payload(address, chainID, space, nonce)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to convert transactions to payload: %w", err)
+	var digest v3.PayloadDigest
+	if nonce != nil {
+		space, nonce := DecodeNonce(nonce)
+		payload, err := transactions.Payload(address, chainID, space, nonce)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to convert transactions to payload: %w", err)
+		}
+		digest = payload.Digest()
 	}
-	digest := payload.Digest()
 
 	var topLevelLogs []*types.Log
 	var receipts []*Receipt
