@@ -324,7 +324,11 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
 			}
 		}
-		nonce = decoded.Nonce
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	} else if bytes.Equal(data[:4], v3SelfExecuteMethod.ID) {
 		// V3 selfExecute method takes (bytes calldata _payload)
 		var values []interface{}
@@ -356,7 +360,11 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
 			}
 		}
-		nonce = decoded.Nonce
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	} else {
 		// V3 guest module allows sending just the packed calls payload without solidity abi encoding
 		decoded, err := v3.DecodeCalls(walletAddress, chainID, data)
@@ -375,7 +383,11 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
 			}
 		}
-		nonce = decoded.Nonce
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	if err != nil {

@@ -331,6 +331,13 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		return nil, nil, err
 	}
 
+	space, nonce := DecodeNonce(nonce)
+	payload, err := transactions.Payload(address, chainID, space, nonce)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to convert transactions to payload: %w", err)
+	}
+	digest := payload.Digest()
+
 	var topLevelLogs []*types.Log
 	var receipts []*Receipt
 
@@ -360,23 +367,41 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash) || V3IsCallSuccessEvent(log, hash)
-
-			failedHash, failedReason, err := V1DecodeTxFailedEvent(log)
-			if err != nil {
-				failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
-			}
-			if err != nil {
-				failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
-			}
-			if err != nil {
-				failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
-			}
-			if err != nil {
-				failedHash, _, err = V3DecodeCallSkippedEvent(log)
+			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash)
+			if V3IsCallSuccessEvent(log, digest.Hash) {
+				isTxExecuted = true
+				receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
 			}
 
-			isTxFailed := err == nil && failedHash == hash
+			var isTxFailed bool
+			var failedReason string
+			if !isTxExecuted {
+				var failedHash common.Hash
+				failedHash, failedReason, err = V1DecodeTxFailedEvent(log)
+				if err != nil {
+					failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
+				}
+				if err != nil {
+					failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+					}
+				}
+				if err != nil {
+					failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+					}
+				}
+				if err != nil {
+					failedHash, _, err = V3DecodeCallSkippedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+					}
+				}
+
+				isTxFailed = err == nil && (failedHash == hash || failedHash == digest.Hash)
+			}
 
 			if isTxExecuted || isTxFailed {
 				if isTxExecuted {
