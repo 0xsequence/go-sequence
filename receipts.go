@@ -374,7 +374,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash)
 			if V3IsCallSuccessEvent(log, digest.Hash) {
 				isTxExecuted = true
-				receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+				receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 			}
 
 			var isTxFailed bool
@@ -388,19 +388,19 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 				if err != nil {
 					failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
 					if err == nil {
-						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 					}
 				}
 				if err != nil {
 					failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
 					if err == nil {
-						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 					}
 				}
 				if err != nil {
 					failedHash, _, err = V3DecodeCallSkippedEvent(log)
 					if err == nil {
-						receipt.MetaTxnID = MetaTxnID(digest.Hash.String())
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 					}
 				}
 
