@@ -227,9 +227,12 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 		// Handle nested transactions by recursively encoding them
 		data := tx.Data
 		if tx.IsBundle() {
-			space, nonce := DecodeNonce(tx.Nonce)
+			var space_, nonce_ *big.Int
+			if tx.Nonce != nil {
+				space, nonce = DecodeNonce(tx.Nonce)
+			}
 
-			subPayload, err := tx.Transactions.Payload(tx.To, chainID, space, nonce)
+			subPayload, err := tx.Transactions.Payload(tx.To, chainID, space_, nonce_)
 			if err != nil {
 				return v3.CallsPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
 			}
