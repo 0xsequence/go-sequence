@@ -326,11 +326,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		digestType = MetaTxnGuestExec
 	}
 
-	// compute the logged transaction hash
-	metaTxnID, hash, err := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
-	if err != nil {
-		return nil, nil, err
-	}
+	metaTxnID, hash, _ := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
 
 	var digest v3.PayloadDigest
 	if nonce != nil {
@@ -381,6 +377,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var failedReason string
 			if !isTxExecuted {
 				var failedHash common.Hash
+				var err error
 				failedHash, failedReason, err = V1DecodeTxFailedEvent(log)
 				if err != nil {
 					failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
