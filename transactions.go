@@ -237,9 +237,16 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 				return v3.CallsPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
 			}
 
-			data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", subPayload.Encode(tx.To))
-			if err != nil {
-				return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+			if len(tx.Signature) != 0 {
+				data, err = contracts.V3.WalletStage1Module.Encode("execute", subPayload.Encode(tx.To), tx.Signature)
+				if err != nil {
+					return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload execute call: %w", err)
+				}
+			} else {
+				data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", subPayload.Encode(tx.To))
+				if err != nil {
+					return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+				}
 			}
 		}
 
