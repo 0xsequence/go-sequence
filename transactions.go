@@ -312,8 +312,8 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 			return nil, nil, nil, err
 		}
 
-		var payload, sig []byte
-		err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &sig}, values)
+		var payload []byte
+		err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &signature}, values)
 		if err != nil {
 			return nil, nil, nil, err
 		}
