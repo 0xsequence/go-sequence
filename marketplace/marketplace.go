@@ -11,7 +11,7 @@ type Options struct {
 	HTTPClient        HTTPClient
 }
 
-func NewMarketplaceAdmin(projectAccessKey string, chainHandle string, options ...Options) AdminClient {
+func NewMarketplaceAdmin(projectAccessKey string, options ...Options) AdminClient {
 	opts := Options{}
 	if len(options) > 0 {
 		opts = options[0]
@@ -32,9 +32,9 @@ func NewMarketplaceAdmin(projectAccessKey string, chainHandle string, options ..
 
 	// prod: https://marketplace-api.sequence.app
 	// dev: https://dev-marketplace-api.sequence.app
-	apiURL := fmt.Sprintf("https://marketplace-api.sequence.app/%s", chainHandle)
+	apiURL := fmt.Sprintf("https://marketplace-api.sequence.app/")
 	if opts.MarketplaceAPIURL != "" {
-		apiURL = opts.MarketplaceAPIURL + "/" + chainHandle
+		apiURL = opts.MarketplaceAPIURL
 	}
 
 	return NewAdminClient(apiURL, client)
