@@ -1,8 +1,10 @@
 package marketplace
 
 import (
+	"cmp"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Options struct {
@@ -11,42 +13,41 @@ type Options struct {
 	HTTPClient        HTTPClient
 }
 
-func NewMarketplaceAdmin(projectAccessKey string, chainHandle string, options ...Options) AdminClient {
-	opts := Options{}
+func NewMarketplaceAdmin(projectAccessKey string, options ...Options) AdminClient {
+	return NewAdminClient(newMarketplaceClient(projectAccessKey, options...))
+}
+
+func NewMarketplaceMarketplace(projectAccessKey string, options ...Options) MarketplaceClient {
+	return NewMarketplaceClient(newMarketplaceClient(projectAccessKey, options...))
+}
+
+func newMarketplaceClient(projectAccessKey string, options ...Options) (string, *httpClient) {
+	o := Options{}
 	if len(options) > 0 {
-		opts = options[0]
+		o = options[0]
 	}
 
-	client := &httpclient{
-		client:           opts.HTTPClient,
+	c := &httpClient{
+		client:           cmp.Or[HTTPClient](o.HTTPClient, http.DefaultClient),
 		projectAccessKey: projectAccessKey,
 	}
 
-	if client.client == nil {
-		client.client = http.DefaultClient
+	if o.JWTAuthToken != "" {
+		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", o.JWTAuthToken)
 	}
 
-	if opts.JWTAuthToken != "" {
-		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
-	}
+	apiURL := cmp.Or(o.MarketplaceAPIURL, "https://marketplace-api.sequence.app")
 
-	// prod: https://marketplace-api.sequence.app
-	// dev: https://dev-marketplace-api.sequence.app
-	apiURL := fmt.Sprintf("https://marketplace-api.sequence.app/%s", chainHandle)
-	if opts.MarketplaceAPIURL != "" {
-		apiURL = opts.MarketplaceAPIURL + "/" + chainHandle
-	}
-
-	return NewAdminClient(apiURL, client)
+	return strings.TrimSuffix(apiURL, "/"), c
 }
 
-type httpclient struct {
+type httpClient struct {
 	client           HTTPClient
-	jwtAuthHeader    string
 	projectAccessKey string
+	jwtAuthHeader    string
 }
 
-func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
+func (c *httpClient) Do(req *http.Request) (*http.Response, error) {
 	if c.projectAccessKey != "" {
 		req.Header.Set("X-Access-Key", c.projectAccessKey)
 	}
