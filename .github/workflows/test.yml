@@ -55,7 +55,7 @@ jobs:
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
 
       - name: Boot testchain
-        run: make start-testchain-verbose &
+        run: make start-testchain-geth-verbose &
 
       - name: Wait for testchain to initialize
         run: |
