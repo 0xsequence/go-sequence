@@ -1,3 +1,5 @@
+github.com/0xsequence/ethkit v1.36.0 h1:U8UI6sbx8c9yn6tnyS+yihz7Jfa6OhyAd6oKLUsr8Qs=
+github.com/0xsequence/ethkit v1.36.0/go.mod h1:VDI5gCYn82WLnpVtBAbZZDOb5vn+Dcvg6t4mCVmnl34=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -12,9 +14,7 @@ github.com/webrpc/webrpc v0.24.0 h1:QcMeQgGqjfI1p+j8B36GbqyPatwAsP8n1FDk368hTjI=
 github.com/webrpc/webrpc v0.24.0/go.mod h1:89yVd4LLsLzGT13IuIIwYfJ14ru9h9poCAVvCPOJCUg=
 go.uber.org/mock v0.5.1-0.20250204205401-bb4128ea0af2 h1:65NTFXB57NltVJ1ptcFUxW+bStZxJL9Are7/e7q8Y4c=
 go.uber.org/mock v0.5.1-0.20250204205401-bb4128ea0af2/go.mod h1:ge71pBPLYDk7QIi1LupWxdAykm7KIEFchiOqd6z7qMM=
-golang.org/x/crypto v0.37.0 h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=
-golang.org/x/crypto v0.37.0/go.mod h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=
-golang.org/x/sys v0.32.0 h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=
-golang.org/x/sys v0.32.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
+golang.org/x/crypto v0.38.0 h1:jt+WWG8IZlBnVbomuhg2Mdq0+BBQaHbtqHEFEigjUV8=
+golang.org/x/sys v0.33.0 h1:q3i8TbbEz+JRD9ywIRlyRAQbM0qF7hu24q3teo2hbuw=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
