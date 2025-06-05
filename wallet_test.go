@@ -10,9 +10,9 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -324,7 +324,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		s, err := v1.Core.DecodeSignature(sig)
 		assert.NoError(t, err)
 
-		recoveredWalletConfig, weight, err := s.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(ethcoder.Keccak256([]byte(message)))}, wallet.Address(), wallet.GetChainID(), testChain.Provider)
+		recoveredWalletConfig, weight, err := s.Recover(context.Background(), v1.Digest(crypto.Keccak256Hash([]byte(message)), wallet.Address(), wallet.GetChainID()), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold_)
@@ -352,7 +352,7 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		s, err := v2.Core.DecodeSignature(sig)
 		assert.NoError(t, err)
 
-		recoveredWalletConfig, weight, err := s.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(ethcoder.Keccak256([]byte(message)))}, wallet.Address(), wallet.GetChainID(), testChain.Provider)
+		recoveredWalletConfig, weight, err := s.Recover(context.Background(), v2.Digest(crypto.Keccak256Hash([]byte(message)), wallet.Address(), wallet.GetChainID()), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold_)
@@ -380,11 +380,8 @@ func TestWalletSignAndRecoverConfig(t *testing.T) {
 		s, err := v3.Core.DecodeSignature(sig)
 		assert.NoError(t, err)
 
-		digest := core.Digest{Hash: common.BytesToHash(ethcoder.Keccak256([]byte(message)))}
-		subDigest, err := sequence.SubDigest(wallet.GetChainID(), wallet.Address(), digest.Hash)
-		assert.NoError(t, err)
-
-		recoveredWalletConfig, weight, err := s.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(subDigest)}, wallet.Address(), wallet.GetChainID(), testChain.Provider)
+		// TODO: use v3
+		recoveredWalletConfig, weight, err := s.Recover(context.Background(), v2.Digest(crypto.Keccak256Hash([]byte(message)), wallet.Address(), wallet.GetChainID()), testChain.Provider)
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint16(1), recoveredWalletConfig.Threshold_)

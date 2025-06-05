@@ -82,7 +82,7 @@ func (s *SapientSignerElement) ToTree() v3.WalletConfigTree {
 }
 
 type SubdigestElement struct {
-	Digest core.Subdigest
+	Digest common.Hash
 }
 
 func (s *SubdigestElement) ToTree() v3.WalletConfigTree {
@@ -92,7 +92,7 @@ func (s *SubdigestElement) ToTree() v3.WalletConfigTree {
 }
 
 type AnyAddressSubdigestElement struct {
-	Digest core.Subdigest
+	Digest common.Hash
 }
 
 func (s *AnyAddressSubdigestElement) ToTree() v3.WalletConfigTree {
@@ -371,18 +371,14 @@ func parseElement(element string) (ConfigElement, error) {
 			return nil, fmt.Errorf("invalid subdigest format: %s", element)
 		}
 		hash := common.HexToHash(parts[1])
-		return &SubdigestElement{
-			Digest: core.Subdigest{Hash: hash},
-		}, nil
+		return &SubdigestElement{Digest: hash}, nil
 
 	case "any-address-subdigest":
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid any-address-subdigest format: %s", element)
 		}
 		hash := common.HexToHash(parts[1])
-		return &AnyAddressSubdigestElement{
-			Digest: core.Subdigest{Hash: hash},
-		}, nil
+		return &AnyAddressSubdigestElement{Digest: hash}, nil
 
 	case "node":
 		if len(parts) != 2 {

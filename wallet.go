@@ -557,7 +557,7 @@ func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChain
 	return res, err
 }
 
-func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload v3.Payload, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
+func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload core.Payload, optChainID ...*big.Int) ([]byte, core.Signature[C], error) {
 	if (optChainID == nil && len(optChainID) == 0) && w.chainID == nil {
 		return nil, nil, fmt.Errorf("sequence.Wallet#SignDigest: %w", ErrUnknownChainID)
 	}
@@ -906,7 +906,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), v3.NewDigestPayload(w.address, w.chainID, digest), w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -918,7 +918,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), v2.Digest(digest, w.address, w.chainID), w.provider)
 		if err != nil {
 			return false, err
 		} else {
@@ -930,7 +930,7 @@ func (w *Wallet[C]) IsValidSignature(digest common.Hash, signature []byte) (bool
 			return false, err
 		}
 
-		config, weight, err := sig.Recover(context.Background(), core.Digest{Hash: digest}, w.address, w.chainID, w.provider)
+		config, weight, err := sig.Recover(context.Background(), v1.Digest(digest, w.address, w.chainID), w.provider)
 		if err != nil {
 			return false, err
 		} else {
