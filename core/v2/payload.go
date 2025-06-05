@@ -38,17 +38,13 @@ type DigestPayload struct {
 
 var approvalPrefix = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
 
+func ApprovalDigest(imageHash core.ImageHashable) common.Hash {
+	return crypto.Keccak256Hash(approvalPrefix.Bytes(), imageHash.ImageHash().Bytes())
+}
+
 func (p ApprovalPayload) Digest() core.PayloadDigest {
-	digest := Digest(
-		crypto.Keccak256Hash(
-			approvalPrefix.Bytes(),
-			p.ImageHash().Bytes(),
-		),
-		p.Address,
-	).Digest()
-
+	digest := Digest(ApprovalDigest(p.ImageHashable), p.Address).Digest()
 	digest.Payload = p
-
 	return digest
 }
 
