@@ -77,7 +77,7 @@ func GenericRecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []
 		return wc, weight, err
 	}
 
-	wc, weight, err = decoded.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(digest)}, walletAddress, chainID, provider)
+	wc, weight, err = decoded.Recover(context.Background(), v2.Digest(common.Hash(digest), walletAddress, chainID), provider) // TODO: v3
 	if err != nil {
 		return wc, weight, err
 	}
@@ -244,7 +244,7 @@ func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common
 		return false, err
 	}
 
-	recovered, weight, err := decoded.Recover(context.Background(), core.Digest{Hash: digest}, walletAddress, chainID, provider)
+	recovered, weight, err := decoded.Recover(context.Background(), v2.Digest(digest, walletAddress, chainID), provider) // TODO: v3
 	if err != nil {
 		return false, err
 	}
@@ -304,7 +304,7 @@ func EIP6492Signature(signature []byte, config core.WalletConfig) ([]byte, error
 		return nil, fmt.Errorf("unable to encode deploy call: %w", err)
 	}
 
-	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{factory, deploy, signature})
+	signature, err = ethcoder.ABIPackArguments([]string{"address", "bytes", "bytes"}, []any{factory, deploy, signature})
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
 	}
@@ -349,7 +349,7 @@ func EIP6492SignatureWithMultipleDeployments(signature []byte, configs []core.Wa
 		return nil, err
 	}
 
-	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{sequenceContextV2.GuestModuleAddress, execdata, signature})
+	signature, err = ethcoder.ABIPackArguments([]string{"address", "bytes", "bytes"}, []any{sequenceContextV2.GuestModuleAddress, execdata, signature})
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
 	}
@@ -369,7 +369,7 @@ func UnwrapEIP6492Signature(signature []byte) ([]byte, error) {
 		signature_ []byte
 	)
 
-	err := ethcoder.AbiDecoder([]string{"address", "bytes", "bytes"}, signature, []any{&to, &data, &signature_})
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"address", "bytes", "bytes"}, signature, []any{&to, &data, &signature_})
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode eip-6492 signature: %w", err)
 	}
