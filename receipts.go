@@ -13,7 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 type Receipt struct {
@@ -328,7 +328,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 
 	metaTxnID, hash, _ := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
 
-	var digest v3.PayloadDigest
+	var digest core.PayloadDigest
 	if nonce != nil {
 		space, nonce := DecodeNonce(nonce)
 		payload, err := transactions.Payload(address, chainID, space, nonce)
