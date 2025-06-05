@@ -17,7 +17,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
@@ -359,7 +358,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err, "signature should be decodable")
 
 		// Get the config from the signature
-		recoveredConfig, _, err := sig.Recover(context.Background(), core.PayloadDigest{Hash: anyAddressSubdigestLeaf.Digest}, nil)
+		recoveredConfig, _, err := sig.Recover(context.Background(), payload, nil)
 		// spew.Dump(recoveredConfig)
 
 		require.NoError(t, err)
