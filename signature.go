@@ -77,7 +77,17 @@ func GenericRecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []
 		return wc, weight, err
 	}
 
-	wc, weight, err = decoded.Recover(context.Background(), v2.Digest(common.Hash(digest), walletAddress, chainID), provider) // TODO: v3
+	var payload core.Payload
+	switch decoded.(type) {
+	case core.Signature[*v1.WalletConfig]:
+		payload = v1.Digest(common.Hash(digest), walletAddress, chainID)
+	case core.Signature[*v2.WalletConfig]:
+		payload = v2.Digest(common.Hash(digest), walletAddress, chainID)
+	case core.Signature[*v3.WalletConfig]:
+		payload = core.PayloadDigest{Hash: common.Hash(digest), Address: walletAddress, ChainID: chainID}
+	}
+
+	wc, weight, err = decoded.Recover(context.Background(), payload, provider)
 	if err != nil {
 		return wc, weight, err
 	}
