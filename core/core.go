@@ -95,7 +95,7 @@ type WalletConfig interface {
 }
 
 type SignerSignatures2 map[common.Address]struct {
-	Signature         SignerSignature
+	Signature         *SignerSignature
 	SapientSignatures map[common.Hash]SignerSignature
 }
 
@@ -105,13 +105,13 @@ func (s SignerSignatures2) Insert2(signer common.Address, signature SignerSignat
 	}
 
 	if signatures, ok := s[signer]; ok {
-		signatures.Signature = signature
+		signatures.Signature = &signature
 		s[signer] = signatures
 	} else {
 		s[signer] = struct {
-			Signature         SignerSignature
+			Signature         *SignerSignature
 			SapientSignatures map[common.Hash]SignerSignature
-		}{Signature: signature}
+		}{Signature: &signature}
 	}
 }
 
@@ -128,7 +128,7 @@ func (s SignerSignatures2) InsertSapient(signer common.Address, imageHash common
 		s[signer] = signatures
 	} else {
 		s[signer] = struct {
-			Signature         SignerSignature
+			Signature         *SignerSignature
 			SapientSignatures map[common.Hash]SignerSignature
 		}{SapientSignatures: map[common.Hash]SignerSignature{imageHash: signature}}
 	}
