@@ -1,0 +1,828 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "balanceOf",
+      "inputs": [
+        {
+          "name": "_owner",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_id",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "balanceOfBatch",
+      "inputs": [
+        {
+          "name": "_owners",
+          "type": "address[]",
+          "internalType": "address[]"
+        },
+        {
+          "name": "_ids",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isApprovedForAll",
+      "inputs": [
+        {
+          "name": "_owner",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_operator",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "isOperator",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "safeBatchTransferFrom",
+      "inputs": [
+        {
+          "name": "_from",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_ids",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        },
+        {
+          "name": "_amounts",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        },
+        {
+          "name": "_data",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "safeTransferFrom",
+      "inputs": [
+        {
+          "name": "_from",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_id",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_data",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setApprovalForAll",
+      "inputs": [
+        {
+          "name": "_operator",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_approved",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "supportsInterface",
+      "inputs": [
+        {
+          "name": "interfaceId",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "tokenSupply",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalSupply",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ApprovalForAll",
+      "inputs": [
+        {
+          "name": "_owner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_approved",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "TransferBatch",
+      "inputs": [
+        {
+          "name": "_operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_from",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_ids",
+          "type": "uint256[]",
+          "indexed": false,
+          "internalType": "uint256[]"
+        },
+        {
+          "name": "_amounts",
+          "type": "uint256[]",
+          "indexed": false,
+          "internalType": "uint256[]"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "TransferSingle",
+      "inputs": [
+        {
+          "name": "_operator",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_from",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "_id",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "InvalidArrayLength",
+      "inputs": []
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "methodIdentifiers": {
+    "balanceOf(address,uint256)": "00fdd58e",
+    "balanceOfBatch(address[],uint256[])": "4e1273f4",
+    "isApprovedForAll(address,address)": "e985e9c5",
+    "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": "2eb2c2d6",
+    "safeTransferFrom(address,address,uint256,uint256,bytes)": "f242432a",
+    "setApprovalForAll(address,bool)": "a22cb465",
+    "supportsInterface(bytes4)": "01ffc9a7",
+    "tokenSupply(uint256)": "2693ebf2",
+    "totalSupply()": "18160ddd"
+  },
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"InvalidArrayLength\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"_approved\",\"type\":\"bool\"}],\"name\":\"ApprovalForAll\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"_amounts\",\"type\":\"uint256[]\"}],\"name\":\"TransferBatch\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"TransferSingle\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_owners\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"}],\"name\":\"balanceOfBatch\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"}],\"name\":\"isApprovedForAll\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isOperator\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"_ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"safeBatchTransferFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"safeTransferFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_operator\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_approved\",\"type\":\"bool\"}],\"name\":\"setApprovalForAll\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"tokenSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"events\":{\"ApprovalForAll(address,address,bool)\":{\"details\":\"MUST emit when an approval is updated\"},\"TransferBatch(address,address,address,uint256[],uint256[])\":{\"details\":\"Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning   Operator MUST be msg.sender   When minting/creating tokens, the `_from` field MUST be set to `0x0`   When burning/destroying tokens, the `_to` field MUST be set to `0x0`   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \\\"circulating supply\\\" for a given token ID   To broadcast the existence of multiple token IDs with no initial balance, this SHOULD emit the TransferBatch event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\"},\"TransferSingle(address,address,address,uint256,uint256)\":{\"details\":\"Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning   Operator MUST be msg.sender   When minting/creating tokens, the `_from` field MUST be set to `0x0`   When burning/destroying tokens, the `_to` field MUST be set to `0x0`   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \\\"circulating supply\\\" for a given token ID   To broadcast the existence of a token ID with no initial balance, the contract SHOULD emit the TransferSingle event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\"}},\"kind\":\"dev\",\"methods\":{\"balanceOf(address,uint256)\":{\"params\":{\"_id\":\"ID of the Token\",\"_owner\":\"The address of the token holder\"},\"returns\":{\"_0\":\"The _owner's balance of the Token type requested\"}},\"balanceOfBatch(address[],uint256[])\":{\"params\":{\"_ids\":\"ID of the Tokens\",\"_owners\":\"The addresses of the token holders\"},\"returns\":{\"_0\":\"The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)\"}},\"isApprovedForAll(address,address)\":{\"params\":{\"_operator\":\"Address of authorized operator\",\"_owner\":\"The owner of the Tokens\"},\"returns\":{\"isOperator\":\"True if the operator is approved, false if not\"}},\"safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)\":{\"params\":{\"_amounts\":\"Transfer amounts per token type\",\"_data\":\"Additional data with no specified format, sent in call to `_to`\",\"_from\":\"Source addresses\",\"_ids\":\"IDs of each token type\",\"_to\":\"Target addresses\"}},\"safeTransferFrom(address,address,uint256,uint256,bytes)\":{\"params\":{\"_amount\":\"Transfered amount\",\"_data\":\"Additional data with no specified format, sent in call to `_to`\",\"_from\":\"Source address\",\"_id\":\"ID of the token type\",\"_to\":\"Target address\"}},\"setApprovalForAll(address,bool)\":{\"params\":{\"_approved\":\"True if the operator is approved, false to revoke approval\",\"_operator\":\"Address to add to the set of authorized operators\"}},\"supportsInterface(bytes4)\":{\"params\":{\"interfaceId\":\"Interface id\"},\"returns\":{\"_0\":\"True if supported\"}}},\"version\":1},\"userdoc\":{\"errors\":{\"InvalidArrayLength()\":[{\"notice\":\"Invalid array input length.\"}]},\"kind\":\"user\",\"methods\":{\"balanceOf(address,uint256)\":{\"notice\":\"Get the balance of an account's Tokens\"},\"balanceOfBatch(address[],uint256[])\":{\"notice\":\"Get the balance of multiple account/token pairs\"},\"isApprovedForAll(address,address)\":{\"notice\":\"Queries the approval status of an operator for a given owner\"},\"safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)\":{\"notice\":\"Send multiple types of Tokens from the _from address to the _to address (with safety call)\"},\"safeTransferFrom(address,address,uint256,uint256,bytes)\":{\"notice\":\"Transfers amount amount of an _id from the _from address to the _to address specified\"},\"setApprovalForAll(address,bool)\":{\"notice\":\"Enable or disable approval for a third party (\\\"operator\\\") to manage all of caller's tokens\"},\"supportsInterface(bytes4)\":{\"notice\":\"Check interface support.\"}},\"notice\":\"An ERC-1155 extension that tracks token supply.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/tokens/ERC1155/extensions/supply/ERC1155Supply.sol\":\"ERC1155Supply\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":20000},\"remappings\":[\":0xsequence/=lib/0xsequence/\",\":@0xsequence/contracts-library/=src/\",\":@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/\",\":@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/\",\":@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin/=lib/openzeppelin/\",\":chiru-labs/=lib/chiru-labs/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":erc721a-upgradeable/=lib/chiru-labs/erc721a-upgradeable/\",\":erc721a/=lib/chiru-labs/erc721a/\",\":forge-std/=lib/forge-std/src/\",\":murky/=lib/murky/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/murky/lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin/\",\":solady/=lib/solady/src/\"],\"viaIR\":true},\"sources\":{\"lib/0xsequence/erc-1155/src/contracts/interfaces/IERC1155.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.0;\\nimport './IERC165.sol';\\n\\n\\ninterface IERC1155 is IERC165 {\\n\\n  /****************************************|\\n  |                 Events                 |\\n  |_______________________________________*/\\n\\n  /**\\n   * @dev Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning\\n   *   Operator MUST be msg.sender\\n   *   When minting/creating tokens, the `_from` field MUST be set to `0x0`\\n   *   When burning/destroying tokens, the `_to` field MUST be set to `0x0`\\n   *   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \\\"circulating supply\\\" for a given token ID\\n   *   To broadcast the existence of a token ID with no initial balance, the contract SHOULD emit the TransferSingle event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\\n   */\\n  event TransferSingle(address indexed _operator, address indexed _from, address indexed _to, uint256 _id, uint256 _amount);\\n\\n  /**\\n   * @dev Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning\\n   *   Operator MUST be msg.sender\\n   *   When minting/creating tokens, the `_from` field MUST be set to `0x0`\\n   *   When burning/destroying tokens, the `_to` field MUST be set to `0x0`\\n   *   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \\\"circulating supply\\\" for a given token ID\\n   *   To broadcast the existence of multiple token IDs with no initial balance, this SHOULD emit the TransferBatch event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\\n   */\\n  event TransferBatch(address indexed _operator, address indexed _from, address indexed _to, uint256[] _ids, uint256[] _amounts);\\n\\n  /**\\n   * @dev MUST emit when an approval is updated\\n   */\\n  event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);\\n\\n\\n  /****************************************|\\n  |                Functions               |\\n  |_______________________________________*/\\n\\n  /**\\n    * @notice Transfers amount of an _id from the _from address to the _to address specified\\n    * @dev MUST emit TransferSingle event on success\\n    * Caller must be approved to manage the _from account's tokens (see isApprovedForAll)\\n    * MUST throw if `_to` is the zero address\\n    * MUST throw if balance of sender for token `_id` is lower than the `_amount` sent\\n    * MUST throw on any other error\\n    * When transfer is complete, this function MUST check if `_to` is a smart contract (code size > 0). If so, it MUST call `onERC1155Received` on `_to` and revert if the return amount is not `bytes4(keccak256(\\\"onERC1155Received(address,address,uint256,uint256,bytes)\\\"))`\\n    * @param _from    Source address\\n    * @param _to      Target address\\n    * @param _id      ID of the token type\\n    * @param _amount  Transfered amount\\n    * @param _data    Additional data with no specified format, sent in call to `_to`\\n    */\\n  function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount, bytes calldata _data) external;\\n\\n  /**\\n    * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\\n    * @dev MUST emit TransferBatch event on success\\n    * Caller must be approved to manage the _from account's tokens (see isApprovedForAll)\\n    * MUST throw if `_to` is the zero address\\n    * MUST throw if length of `_ids` is not the same as length of `_amounts`\\n    * MUST throw if any of the balance of sender for token `_ids` is lower than the respective `_amounts` sent\\n    * MUST throw on any other error\\n    * When transfer is complete, this function MUST check if `_to` is a smart contract (code size > 0). If so, it MUST call `onERC1155BatchReceived` on `_to` and revert if the return amount is not `bytes4(keccak256(\\\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\\\"))`\\n    * Transfers and events MUST occur in the array order they were submitted (_ids[0] before _ids[1], etc)\\n    * @param _from     Source addresses\\n    * @param _to       Target addresses\\n    * @param _ids      IDs of each token type\\n    * @param _amounts  Transfer amounts per token type\\n    * @param _data     Additional data with no specified format, sent in call to `_to`\\n  */\\n  function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _amounts, bytes calldata _data) external;\\n\\n  /**\\n   * @notice Get the balance of an account's Tokens\\n   * @param _owner  The address of the token holder\\n   * @param _id     ID of the Token\\n   * @return        The _owner's balance of the Token type requested\\n   */\\n  function balanceOf(address _owner, uint256 _id) external view returns (uint256);\\n\\n  /**\\n   * @notice Get the balance of multiple account/token pairs\\n   * @param _owners The addresses of the token holders\\n   * @param _ids    ID of the Tokens\\n   * @return        The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)\\n   */\\n  function balanceOfBatch(address[] calldata _owners, uint256[] calldata _ids) external view returns (uint256[] memory);\\n\\n  /**\\n   * @notice Enable or disable approval for a third party (\\\"operator\\\") to manage all of caller's tokens\\n   * @dev MUST emit the ApprovalForAll event on success\\n   * @param _operator  Address to add to the set of authorized operators\\n   * @param _approved  True if the operator is approved, false to revoke approval\\n   */\\n  function setApprovalForAll(address _operator, bool _approved) external;\\n\\n  /**\\n   * @notice Queries the approval status of an operator for a given owner\\n   * @param _owner     The owner of the Tokens\\n   * @param _operator  Address of authorized operator\\n   * @return isOperator True if the operator is approved, false if not\\n   */\\n  function isApprovedForAll(address _owner, address _operator) external view returns (bool isOperator);\\n}\\n\",\"keccak256\":\"0x7b79eac7b638311b89a25daf124f54fb100eecefc5e361a66ed5f2f0cb7303ea\",\"license\":\"Apache-2.0\"},\"lib/0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev ERC-1155 interface for accepting safe transfers.\\n */\\ninterface IERC1155TokenReceiver {\\n\\n  /**\\n   * @notice Handle the receipt of a single ERC1155 token type\\n   * @dev An ERC1155-compliant smart contract MUST call this function on the token recipient contract, at the end of a `safeTransferFrom` after the balance has been updated\\n   * This function MAY throw to revert and reject the transfer\\n   * Return of other amount than the magic value MUST result in the transaction being reverted\\n   * Note: The token contract address is always the message sender\\n   * @param _operator  The address which called the `safeTransferFrom` function\\n   * @param _from      The address which previously owned the token\\n   * @param _id        The id of the token being transferred\\n   * @param _amount    The amount of tokens being transferred\\n   * @param _data      Additional data with no specified format\\n   * @return           `bytes4(keccak256(\\\"onERC1155Received(address,address,uint256,uint256,bytes)\\\"))`\\n   */\\n  function onERC1155Received(address _operator, address _from, uint256 _id, uint256 _amount, bytes calldata _data) external returns(bytes4);\\n\\n  /**\\n   * @notice Handle the receipt of multiple ERC1155 token types\\n   * @dev An ERC1155-compliant smart contract MUST call this function on the token recipient contract, at the end of a `safeBatchTransferFrom` after the balances have been updated\\n   * This function MAY throw to revert and reject the transfer\\n   * Return of other amount than the magic value WILL result in the transaction being reverted\\n   * Note: The token contract address is always the message sender\\n   * @param _operator  The address which called the `safeBatchTransferFrom` function\\n   * @param _from      The address which previously owned the token\\n   * @param _ids       An array containing ids of each token being transferred\\n   * @param _amounts   An array containing amounts of each token being transferred\\n   * @param _data      Additional data with no specified format\\n   * @return           `bytes4(keccak256(\\\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\\\"))`\\n   */\\n  function onERC1155BatchReceived(address _operator, address _from, uint256[] calldata _ids, uint256[] calldata _amounts, bytes calldata _data) external returns(bytes4);\\n}\\n\",\"keccak256\":\"0x4d4b523af96c1e8a2027add342820a5591fe117d40c9fda530b3e4cef466491f\",\"license\":\"Apache-2.0\"},\"lib/0xsequence/erc-1155/src/contracts/interfaces/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.0;\\n\\n\\n/**\\n * @title ERC165\\n * @dev https://github.com/ethereum/EIPs/blob/master/EIPS/eip-165.md\\n */\\ninterface IERC165 {\\n\\n    /**\\n     * @notice Query if a contract implements an interface\\n     * @dev Interface identification is specified in ERC-165. This function\\n     * uses less than 30,000 gas\\n     * @param _interfaceId The interface identifier, as specified in ERC-165\\n     */\\n    function supportsInterface(bytes4 _interfaceId)\\n    external\\n    view\\n    returns (bool);\\n}\\n\",\"keccak256\":\"0x0d9ed4d43a3a1fdea8ca121b973372cbeb555dc219bec0ecf1720d94c2e31f07\",\"license\":\"Apache-2.0\"},\"lib/0xsequence/erc-1155/src/contracts/tokens/ERC1155/ERC1155.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.0;\\n\\nimport \\\"../../interfaces/IERC1155TokenReceiver.sol\\\";\\nimport \\\"../../interfaces/IERC1155.sol\\\";\\nimport \\\"../../utils/Address.sol\\\";\\nimport \\\"../../utils/ERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of Multi-Token Standard contract\\n */\\ncontract ERC1155 is IERC1155, ERC165 {\\n  using Address for address;\\n\\n  /***********************************|\\n  |        Variables and Events       |\\n  |__________________________________*/\\n\\n  // onReceive function signatures\\n  bytes4 constant internal ERC1155_RECEIVED_VALUE = 0xf23a6e61;\\n  bytes4 constant internal ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;\\n\\n  // Objects balances\\n  mapping (address => mapping(uint256 => uint256)) internal balances;\\n\\n  // Operator Functions\\n  mapping (address => mapping(address => bool)) internal operators;\\n\\n\\n  /***********************************|\\n  |     Public Transfer Functions     |\\n  |__________________________________*/\\n\\n  /**\\n   * @notice Transfers amount amount of an _id from the _from address to the _to address specified\\n   * @param _from    Source address\\n   * @param _to      Target address\\n   * @param _id      ID of the token type\\n   * @param _amount  Transfered amount\\n   * @param _data    Additional data with no specified format, sent in call to `_to`\\n   */\\n  function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount, bytes memory _data)\\n    public virtual override\\n  {\\n    require((msg.sender == _from) || isApprovedForAll(_from, msg.sender), \\\"ERC1155#safeTransferFrom: INVALID_OPERATOR\\\");\\n    require(_to != address(0),\\\"ERC1155#safeTransferFrom: INVALID_RECIPIENT\\\");\\n\\n    _safeTransferFrom(_from, _to, _id, _amount);\\n    _callonERC1155Received(_from, _to, _id, _amount, gasleft(), _data);\\n  }\\n\\n  /**\\n   * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\\n   * @param _from     Source addresses\\n   * @param _to       Target addresses\\n   * @param _ids      IDs of each token type\\n   * @param _amounts  Transfer amounts per token type\\n   * @param _data     Additional data with no specified format, sent in call to `_to`\\n   */\\n  function safeBatchTransferFrom(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data)\\n    public virtual override\\n  {\\n    // Requirements\\n    require((msg.sender == _from) || isApprovedForAll(_from, msg.sender), \\\"ERC1155#safeBatchTransferFrom: INVALID_OPERATOR\\\");\\n    require(_to != address(0), \\\"ERC1155#safeBatchTransferFrom: INVALID_RECIPIENT\\\");\\n\\n    _safeBatchTransferFrom(_from, _to, _ids, _amounts);\\n    _callonERC1155BatchReceived(_from, _to, _ids, _amounts, gasleft(), _data);\\n  }\\n\\n\\n  /***********************************|\\n  |    Internal Transfer Functions    |\\n  |__________________________________*/\\n\\n  /**\\n   * @notice Transfers amount amount of an _id from the _from address to the _to address specified\\n   * @param _from    Source address\\n   * @param _to      Target address\\n   * @param _id      ID of the token type\\n   * @param _amount  Transfered amount\\n   */\\n  function _safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount)\\n    internal virtual\\n  {\\n    // Update balances\\n    balances[_from][_id] -= _amount;\\n    balances[_to][_id] += _amount;\\n\\n    // Emit event\\n    emit TransferSingle(msg.sender, _from, _to, _id, _amount);\\n  }\\n\\n  /**\\n   * @notice Verifies if receiver is contract and if so, calls (_to).onERC1155Received(...)\\n   */\\n  function _callonERC1155Received(address _from, address _to, uint256 _id, uint256 _amount, uint256 _gasLimit, bytes memory _data)\\n    internal virtual\\n  {\\n    // Check if recipient is contract\\n    if (_to.isContract()) {\\n      bytes4 retval = IERC1155TokenReceiver(_to).onERC1155Received{gas: _gasLimit}(msg.sender, _from, _id, _amount, _data);\\n      require(retval == ERC1155_RECEIVED_VALUE, \\\"ERC1155#_callonERC1155Received: INVALID_ON_RECEIVE_MESSAGE\\\");\\n    }\\n  }\\n\\n  /**\\n   * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\\n   * @param _from     Source addresses\\n   * @param _to       Target addresses\\n   * @param _ids      IDs of each token type\\n   * @param _amounts  Transfer amounts per token type\\n   */\\n  function _safeBatchTransferFrom(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts)\\n    internal virtual\\n  {\\n    require(_ids.length == _amounts.length, \\\"ERC1155#_safeBatchTransferFrom: INVALID_ARRAYS_LENGTH\\\");\\n\\n    // Number of transfer to execute\\n    uint256 nTransfer = _ids.length;\\n\\n    // Executing all transfers\\n    for (uint256 i = 0; i < nTransfer; i++) {\\n      // Update storage balance of previous bin\\n      balances[_from][_ids[i]] -= _amounts[i];\\n      balances[_to][_ids[i]] += _amounts[i];\\n    }\\n\\n    // Emit event\\n    emit TransferBatch(msg.sender, _from, _to, _ids, _amounts);\\n  }\\n\\n  /**\\n   * @notice Verifies if receiver is contract and if so, calls (_to).onERC1155BatchReceived(...)\\n   */\\n  function _callonERC1155BatchReceived(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts, uint256 _gasLimit, bytes memory _data)\\n    internal virtual\\n  {\\n    // Pass data if recipient is contract\\n    if (_to.isContract()) {\\n      bytes4 retval = IERC1155TokenReceiver(_to).onERC1155BatchReceived{gas: _gasLimit}(msg.sender, _from, _ids, _amounts, _data);\\n      require(retval == ERC1155_BATCH_RECEIVED_VALUE, \\\"ERC1155#_callonERC1155BatchReceived: INVALID_ON_RECEIVE_MESSAGE\\\");\\n    }\\n  }\\n\\n\\n  /***********************************|\\n  |         Operator Functions        |\\n  |__________________________________*/\\n\\n  /**\\n   * @notice Enable or disable approval for a third party (\\\"operator\\\") to manage all of caller's tokens\\n   * @param _operator  Address to add to the set of authorized operators\\n   * @param _approved  True if the operator is approved, false to revoke approval\\n   */\\n  function setApprovalForAll(address _operator, bool _approved)\\n    external virtual override\\n  {\\n    // Update operator status\\n    operators[msg.sender][_operator] = _approved;\\n    emit ApprovalForAll(msg.sender, _operator, _approved);\\n  }\\n\\n  /**\\n   * @notice Queries the approval status of an operator for a given owner\\n   * @param _owner     The owner of the Tokens\\n   * @param _operator  Address of authorized operator\\n   * @return isOperator True if the operator is approved, false if not\\n   */\\n  function isApprovedForAll(address _owner, address _operator)\\n    public view virtual override returns (bool isOperator)\\n  {\\n    return operators[_owner][_operator];\\n  }\\n\\n\\n  /***********************************|\\n  |         Balance Functions         |\\n  |__________________________________*/\\n\\n  /**\\n   * @notice Get the balance of an account's Tokens\\n   * @param _owner  The address of the token holder\\n   * @param _id     ID of the Token\\n   * @return The _owner's balance of the Token type requested\\n   */\\n  function balanceOf(address _owner, uint256 _id)\\n    public view virtual override returns (uint256)\\n  {\\n    return balances[_owner][_id];\\n  }\\n\\n  /**\\n   * @notice Get the balance of multiple account/token pairs\\n   * @param _owners The addresses of the token holders\\n   * @param _ids    ID of the Tokens\\n   * @return        The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)\\n   */\\n  function balanceOfBatch(address[] memory _owners, uint256[] memory _ids)\\n    public view virtual override returns (uint256[] memory)\\n  {\\n    require(_owners.length == _ids.length, \\\"ERC1155#balanceOfBatch: INVALID_ARRAY_LENGTH\\\");\\n\\n    // Variables\\n    uint256[] memory batchBalances = new uint256[](_owners.length);\\n\\n    // Iterate over each owner and token ID\\n    for (uint256 i = 0; i < _owners.length; i++) {\\n      batchBalances[i] = balances[_owners[i]][_ids[i]];\\n    }\\n\\n    return batchBalances;\\n  }\\n\\n\\n  /***********************************|\\n  |          ERC165 Functions         |\\n  |__________________________________*/\\n\\n  /**\\n   * @notice Query if a contract implements an interface\\n   * @param _interfaceID  The interface identifier, as specified in ERC-165\\n   * @return `true` if the contract implements `_interfaceID` and\\n   */\\n  function supportsInterface(bytes4 _interfaceID) public view virtual override(ERC165, IERC165) returns (bool) {\\n    if (_interfaceID == type(IERC1155).interfaceId) {\\n      return true;\\n    }\\n    return super.supportsInterface(_interfaceID);\\n  }\\n}\\n\",\"keccak256\":\"0xb42b18e1cd2459a04982e979ee0f423155fbab07d3ab0c568614dd96c2dd3bbb\",\"license\":\"Apache-2.0\"},\"lib/0xsequence/erc-1155/src/contracts/utils/Address.sol\":{\"content\":\"pragma solidity ^0.8.0;\\n\\n/**\\n * Utility library of inline functions on addresses\\n */\\nlibrary Address {\\n\\n  // Default hash for EOA accounts returned by extcodehash\\n  bytes32 constant internal ACCOUNT_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;\\n\\n  /**\\n   * Returns whether the target address is a contract\\n   * @dev This function will return false if invoked during the constructor of a contract.\\n   * @param _address address of the account to check\\n   * @return Whether the target address is a contract\\n   */\\n  function isContract(address _address) internal view returns (bool) {\\n    bytes32 codehash;\\n\\n    // Currently there is no better way to check if there is a contract in an address\\n    // than to check the size of the code at that address or if it has a non-zero code hash or account hash\\n    assembly { codehash := extcodehash(_address) }\\n    return (codehash != 0x0 && codehash != ACCOUNT_HASH);\\n  }\\n}\\n\",\"keccak256\":\"0x8b53cc53b8b51f3ee32c73826372c72041c09fe378d9046441392f763c217d91\"},\"lib/0xsequence/erc-1155/src/contracts/utils/ERC165.sol\":{\"content\":\"pragma solidity ^0.8.0;\\nimport \\\"../interfaces/IERC165.sol\\\";\\n\\nabstract contract ERC165 is IERC165 {\\n  /**\\n   * @notice Query if a contract implements an interface\\n   * @param _interfaceID The interface identifier, as specified in ERC-165\\n   * @return `true` if the contract implements `_interfaceID`\\n   */\\n  function supportsInterface(bytes4 _interfaceID) public view virtual override returns (bool) {\\n    return _interfaceID == this.supportsInterface.selector;\\n  }\\n}\\n\",\"keccak256\":\"0x65eac778310d3b4a49d1bc81a0d0a57f4b353504e243ad76d9dcb7a3b47f417a\"},\"src/tokens/ERC1155/extensions/supply/ERC1155Supply.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.19;\\n\\nimport {\\n    IERC1155Supply,\\n    IERC1155SupplyFunctions\\n} from \\\"@0xsequence/contracts-library/tokens/ERC1155/extensions/supply/IERC1155Supply.sol\\\";\\nimport { ERC1155 } from \\\"@0xsequence/erc-1155/contracts/tokens/ERC1155/ERC1155.sol\\\";\\n\\n/**\\n * An ERC-1155 extension that tracks token supply.\\n */\\nabstract contract ERC1155Supply is ERC1155, IERC1155Supply {\\n\\n    // Current supply\\n    uint256 public totalSupply;\\n    mapping(uint256 => uint256) public tokenSupply;\\n\\n    /**\\n     * Mint _amount of tokens of a given id\\n     * @param _to The address to mint tokens to\\n     * @param _id Token id to mint\\n     * @param _amount The amount to be minted\\n     * @param _data Data to pass if receiver is contract\\n     */\\n    function _mint(address _to, uint256 _id, uint256 _amount, bytes memory _data) internal virtual {\\n        totalSupply += _amount;\\n        tokenSupply[_id] += _amount;\\n        balances[_to][_id] += _amount;\\n\\n        emit TransferSingle(msg.sender, address(0x0), _to, _id, _amount);\\n\\n        _callonERC1155Received(address(0x0), _to, _id, _amount, gasleft(), _data);\\n    }\\n\\n    /**\\n     * Mint tokens for each ids in _ids\\n     * @param _to The address to mint tokens to\\n     * @param _ids Array of ids to mint\\n     * @param _amounts Array of amount of tokens to mint per id\\n     * @param _data Data to pass if receiver is contract\\n     */\\n    function _batchMint(\\n        address _to,\\n        uint256[] memory _ids,\\n        uint256[] memory _amounts,\\n        bytes memory _data\\n    ) internal virtual {\\n        uint256 nMint = _ids.length;\\n        if (nMint != _amounts.length) {\\n            revert InvalidArrayLength();\\n        }\\n\\n        // Executing all minting\\n        uint256 totalAmount = 0;\\n        for (uint256 i = 0; i < nMint; i++) {\\n            // Update storage balance\\n            balances[_to][_ids[i]] += _amounts[i];\\n            tokenSupply[_ids[i]] += _amounts[i];\\n            totalAmount += _amounts[i];\\n        }\\n        totalSupply += totalAmount;\\n\\n        emit TransferBatch(msg.sender, address(0x0), _to, _ids, _amounts);\\n\\n        // Calling onReceive method if recipient is contract\\n        _callonERC1155BatchReceived(address(0x0), _to, _ids, _amounts, gasleft(), _data);\\n    }\\n\\n    /**\\n     * Burn _amount of tokens of a given token id\\n     * @param _from The address to burn tokens from\\n     * @param _id Token id to burn\\n     * @param _amount The amount to be burned\\n     */\\n    function _burn(address _from, uint256 _id, uint256 _amount) internal virtual {\\n        // Supply\\n        totalSupply -= _amount;\\n        tokenSupply[_id] -= _amount;\\n\\n        // Balances\\n        balances[_from][_id] -= _amount;\\n\\n        // Emit event\\n        emit TransferSingle(msg.sender, _from, address(0x0), _id, _amount);\\n    }\\n\\n    /**\\n     * Burn tokens of given token id for each (_ids[i], _amounts[i]) pair\\n     * @param _from The address to burn tokens from\\n     * @param _ids Array of token ids to burn\\n     * @param _amounts Array of the amount to be burned\\n     */\\n    function _batchBurn(address _from, uint256[] memory _ids, uint256[] memory _amounts) internal virtual {\\n        uint256 nBurn = _ids.length;\\n        if (nBurn != _amounts.length) {\\n            revert InvalidArrayLength();\\n        }\\n\\n        uint256 totalAmount = 0;\\n        for (uint256 i = 0; i < nBurn; i++) {\\n            // Update balances\\n            balances[_from][_ids[i]] -= _amounts[i];\\n            tokenSupply[_ids[i]] -= _amounts[i];\\n            totalAmount += _amounts[i];\\n        }\\n        totalSupply -= totalAmount;\\n\\n        // Emit batch mint event\\n        emit TransferBatch(msg.sender, _from, address(0x0), _ids, _amounts);\\n    }\\n\\n    //\\n    // Views\\n    //\\n\\n    /**\\n     * Check interface support.\\n     * @param interfaceId Interface id\\n     * @return True if supported\\n     */\\n    function supportsInterface(\\n        bytes4 interfaceId\\n    ) public view virtual override(ERC1155) returns (bool) {\\n        return type(IERC1155SupplyFunctions).interfaceId == interfaceId || super.supportsInterface(interfaceId);\\n    }\\n\\n}\\n\",\"keccak256\":\"0x110bd9d1cb669690e1a02360cd16cf1022581561853c13f4e930ca5e27178f47\",\"license\":\"Apache-2.0\"},\"src/tokens/ERC1155/extensions/supply/IERC1155Supply.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.19;\\n\\ninterface IERC1155SupplyFunctions {\\n\\n    /**\\n     * Returns the total supply of ERC1155 tokens.\\n     */\\n    function totalSupply() external returns (uint256);\\n\\n    /**\\n     * Returns the total supply of a given ERC1155 token.\\n     * @param tokenId The ERC1155 token id.\\n     */\\n    function tokenSupply(\\n        uint256 tokenId\\n    ) external returns (uint256);\\n\\n}\\n\\ninterface IERC1155SupplySignals {\\n\\n    /**\\n     * Invalid array input length.\\n     */\\n    error InvalidArrayLength();\\n\\n}\\n\\ninterface IERC1155Supply is IERC1155SupplySignals { }\\n\",\"keccak256\":\"0x135a8948daebd1229d6bada5ada73f2b3496c9bd9f8cfc78d7a68a0f117e55b5\",\"license\":\"Apache-2.0\"}},\"version\":1}",
+  "metadata": {
+    "compiler": {
+      "version": "0.8.19+commit.7dd6d404"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [],
+          "type": "error",
+          "name": "InvalidArrayLength"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_owner",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "bool",
+              "name": "_approved",
+              "type": "bool",
+              "indexed": false
+            }
+          ],
+          "type": "event",
+          "name": "ApprovalForAll",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "_from",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "_to",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "_ids",
+              "type": "uint256[]",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "_amounts",
+              "type": "uint256[]",
+              "indexed": false
+            }
+          ],
+          "type": "event",
+          "name": "TransferBatch",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "_from",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "address",
+              "name": "_to",
+              "type": "address",
+              "indexed": true
+            },
+            {
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256",
+              "indexed": false
+            },
+            {
+              "internalType": "uint256",
+              "name": "_amount",
+              "type": "uint256",
+              "indexed": false
+            }
+          ],
+          "type": "event",
+          "name": "TransferSingle",
+          "anonymous": false
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_owner",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "balanceOf",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address[]",
+              "name": "_owners",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "_ids",
+              "type": "uint256[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "balanceOfBatch",
+          "outputs": [
+            {
+              "internalType": "uint256[]",
+              "name": "",
+              "type": "uint256[]"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_owner",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "isApprovedForAll",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "isOperator",
+              "type": "bool"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "_ids",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "_amounts",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "bytes",
+              "name": "_data",
+              "type": "bytes"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "safeBatchTransferFrom"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_amount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "_data",
+              "type": "bytes"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "safeTransferFrom"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "_approved",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "setApprovalForAll"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes4",
+              "name": "interfaceId",
+              "type": "bytes4"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "supportsInterface",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "tokenSupply",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [],
+          "stateMutability": "view",
+          "type": "function",
+          "name": "totalSupply",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        }
+      ],
+      "devdoc": {
+        "kind": "dev",
+        "methods": {
+          "balanceOf(address,uint256)": {
+            "params": {
+              "_id": "ID of the Token",
+              "_owner": "The address of the token holder"
+            },
+            "returns": {
+              "_0": "The _owner's balance of the Token type requested"
+            }
+          },
+          "balanceOfBatch(address[],uint256[])": {
+            "params": {
+              "_ids": "ID of the Tokens",
+              "_owners": "The addresses of the token holders"
+            },
+            "returns": {
+              "_0": "The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)"
+            }
+          },
+          "isApprovedForAll(address,address)": {
+            "params": {
+              "_operator": "Address of authorized operator",
+              "_owner": "The owner of the Tokens"
+            },
+            "returns": {
+              "isOperator": "True if the operator is approved, false if not"
+            }
+          },
+          "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": {
+            "params": {
+              "_amounts": "Transfer amounts per token type",
+              "_data": "Additional data with no specified format, sent in call to `_to`",
+              "_from": "Source addresses",
+              "_ids": "IDs of each token type",
+              "_to": "Target addresses"
+            }
+          },
+          "safeTransferFrom(address,address,uint256,uint256,bytes)": {
+            "params": {
+              "_amount": "Transfered amount",
+              "_data": "Additional data with no specified format, sent in call to `_to`",
+              "_from": "Source address",
+              "_id": "ID of the token type",
+              "_to": "Target address"
+            }
+          },
+          "setApprovalForAll(address,bool)": {
+            "params": {
+              "_approved": "True if the operator is approved, false to revoke approval",
+              "_operator": "Address to add to the set of authorized operators"
+            }
+          },
+          "supportsInterface(bytes4)": {
+            "params": {
+              "interfaceId": "Interface id"
+            },
+            "returns": {
+              "_0": "True if supported"
+            }
+          }
+        },
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {
+          "balanceOf(address,uint256)": {
+            "notice": "Get the balance of an account's Tokens"
+          },
+          "balanceOfBatch(address[],uint256[])": {
+            "notice": "Get the balance of multiple account/token pairs"
+          },
+          "isApprovedForAll(address,address)": {
+            "notice": "Queries the approval status of an operator for a given owner"
+          },
+          "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": {
+            "notice": "Send multiple types of Tokens from the _from address to the _to address (with safety call)"
+          },
+          "safeTransferFrom(address,address,uint256,uint256,bytes)": {
+            "notice": "Transfers amount amount of an _id from the _from address to the _to address specified"
+          },
+          "setApprovalForAll(address,bool)": {
+            "notice": "Enable or disable approval for a third party (\"operator\") to manage all of caller's tokens"
+          },
+          "supportsInterface(bytes4)": {
+            "notice": "Check interface support."
+          }
+        },
+        "version": 1
+      }
+    },
+    "settings": {
+      "remappings": [
+        "0xsequence/=lib/0xsequence/",
+        "@0xsequence/contracts-library/=src/",
+        "@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/",
+        "@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/",
+        "@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+        "@openzeppelin/=lib/openzeppelin/",
+        "chiru-labs/=lib/chiru-labs/",
+        "ds-test/=lib/forge-std/lib/ds-test/src/",
+        "erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/",
+        "erc721a-upgradeable/=lib/chiru-labs/erc721a-upgradeable/",
+        "erc721a/=lib/chiru-labs/erc721a/",
+        "forge-std/=lib/forge-std/src/",
+        "murky/=lib/murky/src/",
+        "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+        "openzeppelin-contracts/=lib/murky/lib/openzeppelin-contracts/",
+        "openzeppelin/=lib/openzeppelin/",
+        "solady/=lib/solady/src/"
+      ],
+      "optimizer": {
+        "enabled": true,
+        "runs": 20000
+      },
+      "metadata": {
+        "useLiteralContent": true,
+        "bytecodeHash": "ipfs"
+      },
+      "compilationTarget": {
+        "src/tokens/ERC1155/extensions/supply/ERC1155Supply.sol": "ERC1155Supply"
+      },
+      "evmVersion": "paris",
+      "libraries": {},
+      "viaIR": true
+    },
+    "sources": {
+      "lib/0xsequence/erc-1155/src/contracts/interfaces/IERC1155.sol": {
+        "keccak256": "0x7b79eac7b638311b89a25daf124f54fb100eecefc5e361a66ed5f2f0cb7303ea",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.0;\nimport './IERC165.sol';\n\n\ninterface IERC1155 is IERC165 {\n\n  /****************************************|\n  |                 Events                 |\n  |_______________________________________*/\n\n  /**\n   * @dev Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning\n   *   Operator MUST be msg.sender\n   *   When minting/creating tokens, the `_from` field MUST be set to `0x0`\n   *   When burning/destroying tokens, the `_to` field MUST be set to `0x0`\n   *   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \"circulating supply\" for a given token ID\n   *   To broadcast the existence of a token ID with no initial balance, the contract SHOULD emit the TransferSingle event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\n   */\n  event TransferSingle(address indexed _operator, address indexed _from, address indexed _to, uint256 _id, uint256 _amount);\n\n  /**\n   * @dev Either TransferSingle or TransferBatch MUST emit when tokens are transferred, including zero amount transfers as well as minting or burning\n   *   Operator MUST be msg.sender\n   *   When minting/creating tokens, the `_from` field MUST be set to `0x0`\n   *   When burning/destroying tokens, the `_to` field MUST be set to `0x0`\n   *   The total amount transferred from address 0x0 minus the total amount transferred to 0x0 may be used by clients and exchanges to be added to the \"circulating supply\" for a given token ID\n   *   To broadcast the existence of multiple token IDs with no initial balance, this SHOULD emit the TransferBatch event from `0x0` to `0x0`, with the token creator as `_operator`, and a `_amount` of 0\n   */\n  event TransferBatch(address indexed _operator, address indexed _from, address indexed _to, uint256[] _ids, uint256[] _amounts);\n\n  /**\n   * @dev MUST emit when an approval is updated\n   */\n  event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);\n\n\n  /****************************************|\n  |                Functions               |\n  |_______________________________________*/\n\n  /**\n    * @notice Transfers amount of an _id from the _from address to the _to address specified\n    * @dev MUST emit TransferSingle event on success\n    * Caller must be approved to manage the _from account's tokens (see isApprovedForAll)\n    * MUST throw if `_to` is the zero address\n    * MUST throw if balance of sender for token `_id` is lower than the `_amount` sent\n    * MUST throw on any other error\n    * When transfer is complete, this function MUST check if `_to` is a smart contract (code size > 0). If so, it MUST call `onERC1155Received` on `_to` and revert if the return amount is not `bytes4(keccak256(\"onERC1155Received(address,address,uint256,uint256,bytes)\"))`\n    * @param _from    Source address\n    * @param _to      Target address\n    * @param _id      ID of the token type\n    * @param _amount  Transfered amount\n    * @param _data    Additional data with no specified format, sent in call to `_to`\n    */\n  function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount, bytes calldata _data) external;\n\n  /**\n    * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\n    * @dev MUST emit TransferBatch event on success\n    * Caller must be approved to manage the _from account's tokens (see isApprovedForAll)\n    * MUST throw if `_to` is the zero address\n    * MUST throw if length of `_ids` is not the same as length of `_amounts`\n    * MUST throw if any of the balance of sender for token `_ids` is lower than the respective `_amounts` sent\n    * MUST throw on any other error\n    * When transfer is complete, this function MUST check if `_to` is a smart contract (code size > 0). If so, it MUST call `onERC1155BatchReceived` on `_to` and revert if the return amount is not `bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))`\n    * Transfers and events MUST occur in the array order they were submitted (_ids[0] before _ids[1], etc)\n    * @param _from     Source addresses\n    * @param _to       Target addresses\n    * @param _ids      IDs of each token type\n    * @param _amounts  Transfer amounts per token type\n    * @param _data     Additional data with no specified format, sent in call to `_to`\n  */\n  function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _amounts, bytes calldata _data) external;\n\n  /**\n   * @notice Get the balance of an account's Tokens\n   * @param _owner  The address of the token holder\n   * @param _id     ID of the Token\n   * @return        The _owner's balance of the Token type requested\n   */\n  function balanceOf(address _owner, uint256 _id) external view returns (uint256);\n\n  /**\n   * @notice Get the balance of multiple account/token pairs\n   * @param _owners The addresses of the token holders\n   * @param _ids    ID of the Tokens\n   * @return        The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)\n   */\n  function balanceOfBatch(address[] calldata _owners, uint256[] calldata _ids) external view returns (uint256[] memory);\n\n  /**\n   * @notice Enable or disable approval for a third party (\"operator\") to manage all of caller's tokens\n   * @dev MUST emit the ApprovalForAll event on success\n   * @param _operator  Address to add to the set of authorized operators\n   * @param _approved  True if the operator is approved, false to revoke approval\n   */\n  function setApprovalForAll(address _operator, bool _approved) external;\n\n  /**\n   * @notice Queries the approval status of an operator for a given owner\n   * @param _owner     The owner of the Tokens\n   * @param _operator  Address of authorized operator\n   * @return isOperator True if the operator is approved, false if not\n   */\n  function isApprovedForAll(address _owner, address _operator) external view returns (bool isOperator);\n}\n",
+        "license": "Apache-2.0"
+      },
+      "lib/0xsequence/erc-1155/src/contracts/interfaces/IERC1155TokenReceiver.sol": {
+        "keccak256": "0x4d4b523af96c1e8a2027add342820a5591fe117d40c9fda530b3e4cef466491f",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.0;\n\n/**\n * @dev ERC-1155 interface for accepting safe transfers.\n */\ninterface IERC1155TokenReceiver {\n\n  /**\n   * @notice Handle the receipt of a single ERC1155 token type\n   * @dev An ERC1155-compliant smart contract MUST call this function on the token recipient contract, at the end of a `safeTransferFrom` after the balance has been updated\n   * This function MAY throw to revert and reject the transfer\n   * Return of other amount than the magic value MUST result in the transaction being reverted\n   * Note: The token contract address is always the message sender\n   * @param _operator  The address which called the `safeTransferFrom` function\n   * @param _from      The address which previously owned the token\n   * @param _id        The id of the token being transferred\n   * @param _amount    The amount of tokens being transferred\n   * @param _data      Additional data with no specified format\n   * @return           `bytes4(keccak256(\"onERC1155Received(address,address,uint256,uint256,bytes)\"))`\n   */\n  function onERC1155Received(address _operator, address _from, uint256 _id, uint256 _amount, bytes calldata _data) external returns(bytes4);\n\n  /**\n   * @notice Handle the receipt of multiple ERC1155 token types\n   * @dev An ERC1155-compliant smart contract MUST call this function on the token recipient contract, at the end of a `safeBatchTransferFrom` after the balances have been updated\n   * This function MAY throw to revert and reject the transfer\n   * Return of other amount than the magic value WILL result in the transaction being reverted\n   * Note: The token contract address is always the message sender\n   * @param _operator  The address which called the `safeBatchTransferFrom` function\n   * @param _from      The address which previously owned the token\n   * @param _ids       An array containing ids of each token being transferred\n   * @param _amounts   An array containing amounts of each token being transferred\n   * @param _data      Additional data with no specified format\n   * @return           `bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))`\n   */\n  function onERC1155BatchReceived(address _operator, address _from, uint256[] calldata _ids, uint256[] calldata _amounts, bytes calldata _data) external returns(bytes4);\n}\n",
+        "license": "Apache-2.0"
+      },
+      "lib/0xsequence/erc-1155/src/contracts/interfaces/IERC165.sol": {
+        "keccak256": "0x0d9ed4d43a3a1fdea8ca121b973372cbeb555dc219bec0ecf1720d94c2e31f07",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.0;\n\n\n/**\n * @title ERC165\n * @dev https://github.com/ethereum/EIPs/blob/master/EIPS/eip-165.md\n */\ninterface IERC165 {\n\n    /**\n     * @notice Query if a contract implements an interface\n     * @dev Interface identification is specified in ERC-165. This function\n     * uses less than 30,000 gas\n     * @param _interfaceId The interface identifier, as specified in ERC-165\n     */\n    function supportsInterface(bytes4 _interfaceId)\n    external\n    view\n    returns (bool);\n}\n",
+        "license": "Apache-2.0"
+      },
+      "lib/0xsequence/erc-1155/src/contracts/tokens/ERC1155/ERC1155.sol": {
+        "keccak256": "0xb42b18e1cd2459a04982e979ee0f423155fbab07d3ab0c568614dd96c2dd3bbb",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.0;\n\nimport \"../../interfaces/IERC1155TokenReceiver.sol\";\nimport \"../../interfaces/IERC1155.sol\";\nimport \"../../utils/Address.sol\";\nimport \"../../utils/ERC165.sol\";\n\n/**\n * @dev Implementation of Multi-Token Standard contract\n */\ncontract ERC1155 is IERC1155, ERC165 {\n  using Address for address;\n\n  /***********************************|\n  |        Variables and Events       |\n  |__________________________________*/\n\n  // onReceive function signatures\n  bytes4 constant internal ERC1155_RECEIVED_VALUE = 0xf23a6e61;\n  bytes4 constant internal ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;\n\n  // Objects balances\n  mapping (address => mapping(uint256 => uint256)) internal balances;\n\n  // Operator Functions\n  mapping (address => mapping(address => bool)) internal operators;\n\n\n  /***********************************|\n  |     Public Transfer Functions     |\n  |__________________________________*/\n\n  /**\n   * @notice Transfers amount amount of an _id from the _from address to the _to address specified\n   * @param _from    Source address\n   * @param _to      Target address\n   * @param _id      ID of the token type\n   * @param _amount  Transfered amount\n   * @param _data    Additional data with no specified format, sent in call to `_to`\n   */\n  function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount, bytes memory _data)\n    public virtual override\n  {\n    require((msg.sender == _from) || isApprovedForAll(_from, msg.sender), \"ERC1155#safeTransferFrom: INVALID_OPERATOR\");\n    require(_to != address(0),\"ERC1155#safeTransferFrom: INVALID_RECIPIENT\");\n\n    _safeTransferFrom(_from, _to, _id, _amount);\n    _callonERC1155Received(_from, _to, _id, _amount, gasleft(), _data);\n  }\n\n  /**\n   * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\n   * @param _from     Source addresses\n   * @param _to       Target addresses\n   * @param _ids      IDs of each token type\n   * @param _amounts  Transfer amounts per token type\n   * @param _data     Additional data with no specified format, sent in call to `_to`\n   */\n  function safeBatchTransferFrom(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data)\n    public virtual override\n  {\n    // Requirements\n    require((msg.sender == _from) || isApprovedForAll(_from, msg.sender), \"ERC1155#safeBatchTransferFrom: INVALID_OPERATOR\");\n    require(_to != address(0), \"ERC1155#safeBatchTransferFrom: INVALID_RECIPIENT\");\n\n    _safeBatchTransferFrom(_from, _to, _ids, _amounts);\n    _callonERC1155BatchReceived(_from, _to, _ids, _amounts, gasleft(), _data);\n  }\n\n\n  /***********************************|\n  |    Internal Transfer Functions    |\n  |__________________________________*/\n\n  /**\n   * @notice Transfers amount amount of an _id from the _from address to the _to address specified\n   * @param _from    Source address\n   * @param _to      Target address\n   * @param _id      ID of the token type\n   * @param _amount  Transfered amount\n   */\n  function _safeTransferFrom(address _from, address _to, uint256 _id, uint256 _amount)\n    internal virtual\n  {\n    // Update balances\n    balances[_from][_id] -= _amount;\n    balances[_to][_id] += _amount;\n\n    // Emit event\n    emit TransferSingle(msg.sender, _from, _to, _id, _amount);\n  }\n\n  /**\n   * @notice Verifies if receiver is contract and if so, calls (_to).onERC1155Received(...)\n   */\n  function _callonERC1155Received(address _from, address _to, uint256 _id, uint256 _amount, uint256 _gasLimit, bytes memory _data)\n    internal virtual\n  {\n    // Check if recipient is contract\n    if (_to.isContract()) {\n      bytes4 retval = IERC1155TokenReceiver(_to).onERC1155Received{gas: _gasLimit}(msg.sender, _from, _id, _amount, _data);\n      require(retval == ERC1155_RECEIVED_VALUE, \"ERC1155#_callonERC1155Received: INVALID_ON_RECEIVE_MESSAGE\");\n    }\n  }\n\n  /**\n   * @notice Send multiple types of Tokens from the _from address to the _to address (with safety call)\n   * @param _from     Source addresses\n   * @param _to       Target addresses\n   * @param _ids      IDs of each token type\n   * @param _amounts  Transfer amounts per token type\n   */\n  function _safeBatchTransferFrom(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts)\n    internal virtual\n  {\n    require(_ids.length == _amounts.length, \"ERC1155#_safeBatchTransferFrom: INVALID_ARRAYS_LENGTH\");\n\n    // Number of transfer to execute\n    uint256 nTransfer = _ids.length;\n\n    // Executing all transfers\n    for (uint256 i = 0; i < nTransfer; i++) {\n      // Update storage balance of previous bin\n      balances[_from][_ids[i]] -= _amounts[i];\n      balances[_to][_ids[i]] += _amounts[i];\n    }\n\n    // Emit event\n    emit TransferBatch(msg.sender, _from, _to, _ids, _amounts);\n  }\n\n  /**\n   * @notice Verifies if receiver is contract and if so, calls (_to).onERC1155BatchReceived(...)\n   */\n  function _callonERC1155BatchReceived(address _from, address _to, uint256[] memory _ids, uint256[] memory _amounts, uint256 _gasLimit, bytes memory _data)\n    internal virtual\n  {\n    // Pass data if recipient is contract\n    if (_to.isContract()) {\n      bytes4 retval = IERC1155TokenReceiver(_to).onERC1155BatchReceived{gas: _gasLimit}(msg.sender, _from, _ids, _amounts, _data);\n      require(retval == ERC1155_BATCH_RECEIVED_VALUE, \"ERC1155#_callonERC1155BatchReceived: INVALID_ON_RECEIVE_MESSAGE\");\n    }\n  }\n\n\n  /***********************************|\n  |         Operator Functions        |\n  |__________________________________*/\n\n  /**\n   * @notice Enable or disable approval for a third party (\"operator\") to manage all of caller's tokens\n   * @param _operator  Address to add to the set of authorized operators\n   * @param _approved  True if the operator is approved, false to revoke approval\n   */\n  function setApprovalForAll(address _operator, bool _approved)\n    external virtual override\n  {\n    // Update operator status\n    operators[msg.sender][_operator] = _approved;\n    emit ApprovalForAll(msg.sender, _operator, _approved);\n  }\n\n  /**\n   * @notice Queries the approval status of an operator for a given owner\n   * @param _owner     The owner of the Tokens\n   * @param _operator  Address of authorized operator\n   * @return isOperator True if the operator is approved, false if not\n   */\n  function isApprovedForAll(address _owner, address _operator)\n    public view virtual override returns (bool isOperator)\n  {\n    return operators[_owner][_operator];\n  }\n\n\n  /***********************************|\n  |         Balance Functions         |\n  |__________________________________*/\n\n  /**\n   * @notice Get the balance of an account's Tokens\n   * @param _owner  The address of the token holder\n   * @param _id     ID of the Token\n   * @return The _owner's balance of the Token type requested\n   */\n  function balanceOf(address _owner, uint256 _id)\n    public view virtual override returns (uint256)\n  {\n    return balances[_owner][_id];\n  }\n\n  /**\n   * @notice Get the balance of multiple account/token pairs\n   * @param _owners The addresses of the token holders\n   * @param _ids    ID of the Tokens\n   * @return        The _owner's balance of the Token types requested (i.e. balance for each (owner, id) pair)\n   */\n  function balanceOfBatch(address[] memory _owners, uint256[] memory _ids)\n    public view virtual override returns (uint256[] memory)\n  {\n    require(_owners.length == _ids.length, \"ERC1155#balanceOfBatch: INVALID_ARRAY_LENGTH\");\n\n    // Variables\n    uint256[] memory batchBalances = new uint256[](_owners.length);\n\n    // Iterate over each owner and token ID\n    for (uint256 i = 0; i < _owners.length; i++) {\n      batchBalances[i] = balances[_owners[i]][_ids[i]];\n    }\n\n    return batchBalances;\n  }\n\n\n  /***********************************|\n  |          ERC165 Functions         |\n  |__________________________________*/\n\n  /**\n   * @notice Query if a contract implements an interface\n   * @param _interfaceID  The interface identifier, as specified in ERC-165\n   * @return `true` if the contract implements `_interfaceID` and\n   */\n  function supportsInterface(bytes4 _interfaceID) public view virtual override(ERC165, IERC165) returns (bool) {\n    if (_interfaceID == type(IERC1155).interfaceId) {\n      return true;\n    }\n    return super.supportsInterface(_interfaceID);\n  }\n}\n",
+        "license": "Apache-2.0"
+      },
+      "lib/0xsequence/erc-1155/src/contracts/utils/Address.sol": {
+        "keccak256": "0x8b53cc53b8b51f3ee32c73826372c72041c09fe378d9046441392f763c217d91",
+        "urls": [],
+        "content": "pragma solidity ^0.8.0;\n\n/**\n * Utility library of inline functions on addresses\n */\nlibrary Address {\n\n  // Default hash for EOA accounts returned by extcodehash\n  bytes32 constant internal ACCOUNT_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;\n\n  /**\n   * Returns whether the target address is a contract\n   * @dev This function will return false if invoked during the constructor of a contract.\n   * @param _address address of the account to check\n   * @return Whether the target address is a contract\n   */\n  function isContract(address _address) internal view returns (bool) {\n    bytes32 codehash;\n\n    // Currently there is no better way to check if there is a contract in an address\n    // than to check the size of the code at that address or if it has a non-zero code hash or account hash\n    assembly { codehash := extcodehash(_address) }\n    return (codehash != 0x0 && codehash != ACCOUNT_HASH);\n  }\n}\n",
+        "license": null
+      },
+      "lib/0xsequence/erc-1155/src/contracts/utils/ERC165.sol": {
+        "keccak256": "0x65eac778310d3b4a49d1bc81a0d0a57f4b353504e243ad76d9dcb7a3b47f417a",
+        "urls": [],
+        "content": "pragma solidity ^0.8.0;\nimport \"../interfaces/IERC165.sol\";\n\nabstract contract ERC165 is IERC165 {\n  /**\n   * @notice Query if a contract implements an interface\n   * @param _interfaceID The interface identifier, as specified in ERC-165\n   * @return `true` if the contract implements `_interfaceID`\n   */\n  function supportsInterface(bytes4 _interfaceID) public view virtual override returns (bool) {\n    return _interfaceID == this.supportsInterface.selector;\n  }\n}\n",
+        "license": null
+      },
+      "src/tokens/ERC1155/extensions/supply/ERC1155Supply.sol": {
+        "keccak256": "0x110bd9d1cb669690e1a02360cd16cf1022581561853c13f4e930ca5e27178f47",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.19;\n\nimport {\n    IERC1155Supply,\n    IERC1155SupplyFunctions\n} from \"@0xsequence/contracts-library/tokens/ERC1155/extensions/supply/IERC1155Supply.sol\";\nimport { ERC1155 } from \"@0xsequence/erc-1155/contracts/tokens/ERC1155/ERC1155.sol\";\n\n/**\n * An ERC-1155 extension that tracks token supply.\n */\nabstract contract ERC1155Supply is ERC1155, IERC1155Supply {\n\n    // Current supply\n    uint256 public totalSupply;\n    mapping(uint256 => uint256) public tokenSupply;\n\n    /**\n     * Mint _amount of tokens of a given id\n     * @param _to The address to mint tokens to\n     * @param _id Token id to mint\n     * @param _amount The amount to be minted\n     * @param _data Data to pass if receiver is contract\n     */\n    function _mint(address _to, uint256 _id, uint256 _amount, bytes memory _data) internal virtual {\n        totalSupply += _amount;\n        tokenSupply[_id] += _amount;\n        balances[_to][_id] += _amount;\n\n        emit TransferSingle(msg.sender, address(0x0), _to, _id, _amount);\n\n        _callonERC1155Received(address(0x0), _to, _id, _amount, gasleft(), _data);\n    }\n\n    /**\n     * Mint tokens for each ids in _ids\n     * @param _to The address to mint tokens to\n     * @param _ids Array of ids to mint\n     * @param _amounts Array of amount of tokens to mint per id\n     * @param _data Data to pass if receiver is contract\n     */\n    function _batchMint(\n        address _to,\n        uint256[] memory _ids,\n        uint256[] memory _amounts,\n        bytes memory _data\n    ) internal virtual {\n        uint256 nMint = _ids.length;\n        if (nMint != _amounts.length) {\n            revert InvalidArrayLength();\n        }\n\n        // Executing all minting\n        uint256 totalAmount = 0;\n        for (uint256 i = 0; i < nMint; i++) {\n            // Update storage balance\n            balances[_to][_ids[i]] += _amounts[i];\n            tokenSupply[_ids[i]] += _amounts[i];\n            totalAmount += _amounts[i];\n        }\n        totalSupply += totalAmount;\n\n        emit TransferBatch(msg.sender, address(0x0), _to, _ids, _amounts);\n\n        // Calling onReceive method if recipient is contract\n        _callonERC1155BatchReceived(address(0x0), _to, _ids, _amounts, gasleft(), _data);\n    }\n\n    /**\n     * Burn _amount of tokens of a given token id\n     * @param _from The address to burn tokens from\n     * @param _id Token id to burn\n     * @param _amount The amount to be burned\n     */\n    function _burn(address _from, uint256 _id, uint256 _amount) internal virtual {\n        // Supply\n        totalSupply -= _amount;\n        tokenSupply[_id] -= _amount;\n\n        // Balances\n        balances[_from][_id] -= _amount;\n\n        // Emit event\n        emit TransferSingle(msg.sender, _from, address(0x0), _id, _amount);\n    }\n\n    /**\n     * Burn tokens of given token id for each (_ids[i], _amounts[i]) pair\n     * @param _from The address to burn tokens from\n     * @param _ids Array of token ids to burn\n     * @param _amounts Array of the amount to be burned\n     */\n    function _batchBurn(address _from, uint256[] memory _ids, uint256[] memory _amounts) internal virtual {\n        uint256 nBurn = _ids.length;\n        if (nBurn != _amounts.length) {\n            revert InvalidArrayLength();\n        }\n\n        uint256 totalAmount = 0;\n        for (uint256 i = 0; i < nBurn; i++) {\n            // Update balances\n            balances[_from][_ids[i]] -= _amounts[i];\n            tokenSupply[_ids[i]] -= _amounts[i];\n            totalAmount += _amounts[i];\n        }\n        totalSupply -= totalAmount;\n\n        // Emit batch mint event\n        emit TransferBatch(msg.sender, _from, address(0x0), _ids, _amounts);\n    }\n\n    //\n    // Views\n    //\n\n    /**\n     * Check interface support.\n     * @param interfaceId Interface id\n     * @return True if supported\n     */\n    function supportsInterface(\n        bytes4 interfaceId\n    ) public view virtual override(ERC1155) returns (bool) {\n        return type(IERC1155SupplyFunctions).interfaceId == interfaceId || super.supportsInterface(interfaceId);\n    }\n\n}\n",
+        "license": "Apache-2.0"
+      },
+      "src/tokens/ERC1155/extensions/supply/IERC1155Supply.sol": {
+        "keccak256": "0x135a8948daebd1229d6bada5ada73f2b3496c9bd9f8cfc78d7a68a0f117e55b5",
+        "urls": [],
+        "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.19;\n\ninterface IERC1155SupplyFunctions {\n\n    /**\n     * Returns the total supply of ERC1155 tokens.\n     */\n    function totalSupply() external returns (uint256);\n\n    /**\n     * Returns the total supply of a given ERC1155 token.\n     * @param tokenId The ERC1155 token id.\n     */\n    function tokenSupply(\n        uint256 tokenId\n    ) external returns (uint256);\n\n}\n\ninterface IERC1155SupplySignals {\n\n    /**\n     * Invalid array input length.\n     */\n    error InvalidArrayLength();\n\n}\n\ninterface IERC1155Supply is IERC1155SupplySignals { }\n",
+        "license": "Apache-2.0"
+      }
+    },
+    "version": 1
+  },
+  "id": 106
+}
