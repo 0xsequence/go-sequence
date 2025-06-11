@@ -13,6 +13,7 @@ import (
 	seqmarketplace "github.com/0xsequence/go-sequence/contracts/gen/seq_marketplace"
 	seqsale1155 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc1155"
 	seqsale721 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc721"
+	"github.com/0xsequence/go-sequence/contracts/gen/supply"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 	walletfactory1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
 	walletgasestimator1 "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
@@ -34,6 +35,7 @@ var GasEstimator,
 	IERC20,
 	IERC721,
 	IERC1155,
+	IERC1155Supply,
 	IERC20Wrapper,
 	INiftyswapExchange,
 	INiftyswapExchange20,
@@ -92,6 +94,8 @@ func init() {
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
 	IERC1155 = artifact("IERC1155", tokens.IERC1155ABI, "")
 	IERC20Wrapper = artifact("IERC20Wrapper", tokens.IERC20WrapperABI, "")
+
+	IERC1155Supply = artifact("IERC1155Supply", supply.IERC1155SupplyABI, "")
 
 	INiftyswapExchange = artifact("INIFTYSWAP_EXCHANGE", niftyswap.INiftyswapExchangeABI, "")
 	INiftyswapExchange20 = artifact("INIFTYSWAP_EXCHANGE_20", niftyswap.INiftyswapExchange20ABI, "")

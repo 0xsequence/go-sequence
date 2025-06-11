@@ -34,6 +34,11 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=tokens --type=IERC20Wrapper --outFile=./tokens/ierc20wrapper.gen.go --artifactsFile=../artifacts/erc20-meta-token/interfaces/IERC20Wrapper.sol/IERC20Wrapper.json
 
 //
+// supply
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=supply --type=IERC1155Supply --outFile=./supply/ierc1155.gen.go --artifactsFile=../artifacts/erc1155/interfaces/IERC1155Supply.sol/ERC1155Supply.json
+
+//
 // niftyswap
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=niftyswap --type=INiftyswapExchange --outFile=niftyswap/iniftyswap_exchange.gen.go --artifactsFile=../artifacts/niftyswap/interfaces/INiftyswapExchange.sol/INiftyswapExchange.json
