@@ -718,7 +718,7 @@ func (p ConfigUpdatePayload) Digest() PayloadDigest {
 			},
 		},
 		Message: map[string]any{
-			"imageHash": p.ImageHash,
+			"imageHash": p.ImageHash.ImageHash().Hash,
 			"wallets":   wallets,
 		},
 	}
