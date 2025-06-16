@@ -982,7 +982,7 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
 }
 
-func TestGetAnypayLifiInfoHash(t *testing.T) {
+func TestGetAnypayExecutionInfoHash(t *testing.T) {
 	t.Run("SingleInfo", func(t *testing.T) {
 		originTokenAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")
 		amountVal := big.NewInt(100)
@@ -990,7 +990,7 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		destinationChainIdVal := big.NewInt(10)
 		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
 
-		lifiInfos := []sequence.AnypayLifiInfo{
+		lifiInfos := []sequence.AnypayExecutionInfo{
 			{
 				OriginToken:        originTokenAddr,
 				Amount:             amountVal,
@@ -1000,14 +1000,14 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		}
 
 		expectedHash := common.HexToHash("0x21872bd6b64711c4a5aecba95829c612f0b50c63f1a26991c2f76cf4a754aede")
-		actualHashBytes, err := sequence.GetAnypayLifiInfoHash(lifiInfos, attestationAddrVal)
+		actualHashBytes, err := sequence.GetAnypayExecutionInfoHash(lifiInfos, attestationAddrVal)
 		require.NoError(t, err)
 
 		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "SingleInfo hash mismatch")
 	})
 
 	t.Run("MultipleInfo", func(t *testing.T) {
-		lifiInfos := []sequence.AnypayLifiInfo{
+		lifiInfos := []sequence.AnypayExecutionInfo{
 			{
 				OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
 				Amount:             big.NewInt(100),
@@ -1024,7 +1024,7 @@ func TestGetAnypayLifiInfoHash(t *testing.T) {
 		attestationAddrVal := common.HexToAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
 
 		expectedHash := common.HexToHash("0xd18e54455db64ba31b9f9a447e181f83977cb70b136228d64ac85d64a6aefe71")
-		actualHashBytes, err := sequence.GetAnypayLifiInfoHash(lifiInfos, attestationAddrVal)
+		actualHashBytes, err := sequence.GetAnypayExecutionInfoHash(lifiInfos, attestationAddrVal)
 		require.NoError(t, err)
 
 		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
@@ -1042,7 +1042,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 	attestationSigner := common.HexToAddress("0x0000000000000000000000000000000000000001")
 
 	// Sample LifiInfo - adjust as needed
-	lifiInfos := []sequence.AnypayLifiInfo{
+	lifiInfos := []sequence.AnypayExecutionInfo{
 		{
 			OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
 			Amount:             big.NewInt(100),
@@ -1184,7 +1184,7 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	// Using chain ID 1 for simplicity in this test context, can be any valid chain ID
 	payload := v3.NewCallsPayload(payloadAddress, big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
 
-	lifiInfos := []sequence.AnypayLifiInfo{
+	lifiInfos := []sequence.AnypayExecutionInfo{
 		{
 			OriginToken:        common.HexToAddress("0xOriginToken0000000000000000000000000000"),
 			Amount:             big.NewInt(1000),
@@ -1205,17 +1205,17 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	require.NotNil(t, encodedAttestation, "Encoded attestation should not be nil")
 	require.NotEmpty(t, encodedAttestation, "Encoded attestation should not be empty")
 
-	// 3. Decode the result (abi.encode(AnypayLifiInfo[] memory, bytes memory))
-	// Define ABI type components for the AnypayLifiInfo struct
-	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+	// 3. Decode the result (abi.encode(AnypayExecutionInfo[] memory, bytes memory))
+	// Define ABI type components for the AnypayExecutionInfo struct
+	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	// Define ABI type for a list of AnypayLifiInfo structs (AnypayLifiInfo[])
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
-	require.NoError(t, err, "Failed to create AnypayLifiInfo[] ABI type")
+	// Define ABI type for a list of AnypayExecutionInfo structs (AnypayExecutionInfo[])
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
+	require.NoError(t, err, "Failed to create AnypayExecutionInfo[] ABI type")
 	bytesType, err := abi.NewType("bytes", "", nil)
 	require.NoError(t, err, "Failed to create bytes ABI type")
 

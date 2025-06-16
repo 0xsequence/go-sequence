@@ -40,8 +40,8 @@ type IntentParams struct {
 	DestinationCalls  []*v3.CallsPayload
 }
 
-// AnypayLifiInfo represents the information for a Lifi bridge or swap.
-type AnypayLifiInfo struct {
+// AnypayExecutionInfo represents the information for a Lifi bridge or swap.
+type AnypayExecutionInfo struct {
 	OriginToken        common.Address `abi:"originToken"`
 	Amount             *big.Int       `abi:"amount"`
 	OriginChainId      *big.Int       `abi:"originChainId"`
@@ -173,18 +173,18 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	return hash32, nil
 }
 
-// GetAnypayLifiInfoHash computes the Keccak256 hash of ABI-encoded AnypayLifiInfo array and an attestation address.
-func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common.Address) ([32]byte, error) {
-	// Define ABI type components for the AnypayLifiInfo struct
-	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+// GetAnypayExecutionInfoHash computes the Keccak256 hash of ABI-encoded AnypayExecutionInfo array and an attestation address.
+func GetAnypayExecutionInfoHash(lifiInfos []AnypayExecutionInfo, attestationAddress common.Address) ([32]byte, error) {
+	// Define ABI type components for the AnypayExecutionInfo struct
+	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
 
-	// Define ABI type for a list of AnypayLifiInfo structs (AnypayLifiInfo[])
-	anypayLifiInfoListType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	// Define ABI type for a list of AnypayExecutionInfo structs (AnypayExecutionInfo[])
+	AnypayExecutionInfoListType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("failed to create anypay lifi info list ABI type: %w", err)
 	}
@@ -197,14 +197,14 @@ func GetAnypayLifiInfoHash(lifiInfos []AnypayLifiInfo, attestationAddress common
 
 	// Define the arguments for ABI encoding
 	arguments := abi.Arguments{
-		{Name: "lifiInfos", Type: anypayLifiInfoListType},
+		{Name: "lifiInfos", Type: AnypayExecutionInfoListType},
 		{Name: "attestationAddress", Type: addressType},
 	}
 
 	// ABI encode the arguments
 	encodedData, err := arguments.Pack(lifiInfos, attestationAddress)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayLifiInfo hash: %w", err)
+		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayExecutionInfo hash: %w", err)
 	}
 
 	// Compute Keccak256 hash
@@ -244,11 +244,11 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayLifiInfo and a main signer address.
-func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayLifiInfo) (v3.WalletConfigTree, error) {
+// `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
+func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayExecutionInfo) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
-	// sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
-	sapientImageHash, err := GetAnypayLifiInfoHash(lifiInfos, attestationSigner)
+	// sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
+	sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
@@ -267,7 +267,7 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) (*v3.WalletConfigTree, error) {
+func CreateIntentTree(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfigTree, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
@@ -313,7 +313,7 @@ func CreateIntentTree(mainSigner common.Address, attestationSigner common.Addres
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayLifiInfo) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentTree(mainSigner, attestationSigner, calls, lifiInfos...)
 	if err != nil {
@@ -370,7 +370,7 @@ func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.Walle
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayLifiInfo) ([]byte, error) {
+func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) ([]byte, error) {
 	// Create the intent configuration using the batched transactions.
 	config, err := CreateIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos...)
 	if err != nil {
@@ -452,7 +452,7 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 func CreateAnypayLifiAttestation(
 	attestationSignerWallet *ethwallet.Wallet,
 	payload *v3.CallsPayload,
-	lifiInfos []AnypayLifiInfo,
+	lifiInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
 		return nil, fmt.Errorf("attestationSignerWallet is nil")
@@ -483,16 +483,16 @@ func CreateAnypayLifiAttestation(
 	}
 	eoaSignatureBytes := rawSignature
 
-	// 4. Define ABI types for abi.encode(AnypayLifiInfo[] memory, bytes memory)
-	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
+	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AnypayLifiInfo[] ABI type: %w", err)
+		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
 	}
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
@@ -502,25 +502,25 @@ func CreateAnypayLifiAttestation(
 	// 5. Pack lifiInfos and eoaSignatureBytes
 	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}}.Pack(lifiInfos, eoaSignatureBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
+		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
 
 	return encodedAttestation, nil
 }
 
 func CreateAnypayLifiAttestationLite(
-	lifiInfos []AnypayLifiInfo,
+	lifiInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
-	// 4. Define ABI types for abi.encode(AnypayLifiInfo[] memory, bytes memory)
-	anypayLifiInfoComponents := []abi.ArgumentMarshaling{
+	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
+	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayLifiInfo[]", anypayLifiInfoComponents)
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AnypayLifiInfo[] ABI type: %w", err)
+		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
 	}
 	addressType, err := abi.NewType("address", "", nil)
 	if err != nil {
@@ -530,7 +530,7 @@ func CreateAnypayLifiAttestationLite(
 	// 5. Pack lifiInfos and eoaSignatureBytes
 	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: addressType}}.Pack(lifiInfos, common.HexToAddress("0x0000000000000000000000000000000000000001"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayLifiInfo[] and eoaSignature: %w", err)
+		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
 
 	return encodedAttestation, nil
