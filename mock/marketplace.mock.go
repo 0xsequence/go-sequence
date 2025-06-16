@@ -417,6 +417,21 @@ func (mr *MarketplaceMockRecorder) GetOrders(ctx, chainId, input, page any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrders", reflect.TypeOf((*Marketplace)(nil).GetOrders), ctx, chainId, input, page)
 }
 
+// GetPrimarySaleItem mocks base method.
+func (m *Marketplace) GetPrimarySaleItem(ctx context.Context, chainId, primarySaleContractAddress, tokenId string) (*marketplace.CollectiblePrimarySaleItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPrimarySaleItem", ctx, chainId, primarySaleContractAddress, tokenId)
+	ret0, _ := ret[0].(*marketplace.CollectiblePrimarySaleItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPrimarySaleItem indicates an expected call of GetPrimarySaleItem.
+func (mr *MarketplaceMockRecorder) GetPrimarySaleItem(ctx, chainId, primarySaleContractAddress, tokenId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrimarySaleItem", reflect.TypeOf((*Marketplace)(nil).GetPrimarySaleItem), ctx, chainId, primarySaleContractAddress, tokenId)
+}
+
 // ListCollectibleActivities mocks base method.
 func (m *Marketplace) ListCollectibleActivities(ctx context.Context, chainId, contractAddress, tokenId string, page *marketplace.Page) ([]*marketplace.Activity, *marketplace.Page, error) {
 	m.ctrl.T.Helper()
@@ -544,6 +559,22 @@ func (mr *MarketplaceMockRecorder) ListCurrencies(ctx, chainId any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCurrencies", reflect.TypeOf((*Marketplace)(nil).ListCurrencies), ctx, chainId)
 }
 
+// ListListings mocks base method.
+func (m *Marketplace) ListListings(ctx context.Context, chainId, contractAddress string, filter *marketplace.OrderFilter, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListListings", ctx, chainId, contractAddress, filter, page)
+	ret0, _ := ret[0].([]*marketplace.Order)
+	ret1, _ := ret[1].(*marketplace.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListListings indicates an expected call of ListListings.
+func (mr *MarketplaceMockRecorder) ListListings(ctx, chainId, contractAddress, filter, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListListings", reflect.TypeOf((*Marketplace)(nil).ListListings), ctx, chainId, contractAddress, filter, page)
+}
+
 // ListListingsForCollectible mocks base method.
 func (m *Marketplace) ListListingsForCollectible(ctx context.Context, chainId, contractAddress, tokenId string, filter *marketplace.OrderFilter, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
 	m.ctrl.T.Helper()
@@ -558,6 +589,22 @@ func (m *Marketplace) ListListingsForCollectible(ctx context.Context, chainId, c
 func (mr *MarketplaceMockRecorder) ListListingsForCollectible(ctx, chainId, contractAddress, tokenId, filter, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListListingsForCollectible", reflect.TypeOf((*Marketplace)(nil).ListListingsForCollectible), ctx, chainId, contractAddress, tokenId, filter, page)
+}
+
+// ListOffers mocks base method.
+func (m *Marketplace) ListOffers(ctx context.Context, chainId, contractAddress string, filter *marketplace.OrderFilter, page *marketplace.Page) ([]*marketplace.Order, *marketplace.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListOffers", ctx, chainId, contractAddress, filter, page)
+	ret0, _ := ret[0].([]*marketplace.Order)
+	ret1, _ := ret[1].(*marketplace.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListOffers indicates an expected call of ListOffers.
+func (mr *MarketplaceMockRecorder) ListOffers(ctx, chainId, contractAddress, filter, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOffers", reflect.TypeOf((*Marketplace)(nil).ListOffers), ctx, chainId, contractAddress, filter, page)
 }
 
 // ListOffersForCollectible mocks base method.
