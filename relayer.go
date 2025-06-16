@@ -128,3 +128,21 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address
 
 	return walletAddress, execdata, nil
 }
+
+func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Address, chainID *big.Int, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, space *big.Int, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+	if len(txns) == 0 {
+		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
+	}
+
+	payload, err := txns.Payload(walletAddress, chainID, space, nonce)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	return walletAddress, execdata, nil
+}
