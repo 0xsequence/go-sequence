@@ -8,7 +8,7 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletUtils --outFile=./v1/walletutils/wallet_utils.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/SequenceUtils.sol/SequenceUtils.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletutils --type=WalletRequireFreshSigner --outFile=./v1/walletutils/wallet_require_fresh_signer.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/utils/libs/RequireFreshSigner.sol/RequireFreshSigner.json
 
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./v1/walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployed=true
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./v1/walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployedBin=true
 
 //
 // sequence wallet-contracts v2
@@ -21,8 +21,8 @@
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletcallmock --type=CallReceiverMock --outFile=./walletcallmock/wallet_call_mock.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/mocks/CallReceiverMock.sol/CallReceiverMock.json
 
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./v2/walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployed=true
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=gasestimator --type=GasEstimator --outFile=./gasestimator/gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/modules/utils/GasEstimator.sol/GasEstimator.json --includeDeployed=true
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletgasestimator --type=WalletGasEstimator --outFile=./v2/walletgasestimator/wallet_gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/modules/MainModuleGasEstimation.sol/MainModuleGasEstimation.json --includeDeployedBin
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=gasestimator --type=GasEstimator --outFile=./gasestimator/gas_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v2/modules/utils/GasEstimator.sol/GasEstimator.json --includeDeployedBin
 
 //
 // sequence wallet-contracts v3
@@ -32,8 +32,8 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage2 --type=WalletStage2 --outFile=./v3/walletstage2/wallet_stage2.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./v3/walletguest/wallet_guest.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Guest.sol/Guest.json
 
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployed=true
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployed=true
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployedBin
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployedBin
 
 //
 // tokens

@@ -746,7 +746,7 @@ func decodeSignatureTreeLeaf(data *[]byte) (signatureTree, error) {
 	case FLAG_NODE:
 		return decodeNodeLeaf(data)
 	case FLAG_BRANCH:
-		return decodeBranchLeaf(data)
+		return decodeBranchLeaf(firstByte, data)
 	case FLAG_SUBDIGEST:
 		return decodeSubdigestLeaf(data)
 	case FLAG_NESTED:
@@ -1262,8 +1262,10 @@ func (l signatureTreeNodeLeaf) write(writer io.Writer) error {
 	return nil
 }
 
-func decodeBranchLeaf(data *[]byte) (signatureTree, error) {
-	length, err := readUint24(data)
+func decodeBranchLeaf(firstByte byte, data *[]byte) (signatureTree, error) {
+	lengthSize := firstByte & 0x0f
+
+	length, err := readUintX(lengthSize, data)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read branch length: %w", err)
 	}
