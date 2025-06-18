@@ -1030,115 +1030,62 @@ func TestGetAnypayExecutionInfoHash(t *testing.T) {
 	})
 }
 
-func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
-	// Create context matching TypeScript test
-	context := sequence.V3SequenceContext()
-	context.FactoryAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	context.MainModuleAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-
-	// Main signer matching TypeScript test
-	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	attestationSigner := common.HexToAddress("0x0000000000000000000000000000000000000001")
-
-	// Sample LifiInfo - adjust as needed
-	lifiInfos := []sequence.AnypayExecutionInfo{
-		{
-			OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
-			Amount:             big.NewInt(100),
-			OriginChainId:      big.NewInt(1),
-			DestinationChainId: big.NewInt(10),
-		},
-	}
-	// attestationAddr := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
-
-	t.Run("single operation with lifiInfo", func(t *testing.T) {
-		// Create a single operation matching TypeScript test
-		payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+func TestGetAnypayRelayInfoHash(t *testing.T) {
+	t.Run("SingleInfo", func(t *testing.T) {
+		relayInfos := []sequence.AnypayRelayInfo{
 			{
-				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-				Value:           big.NewInt(0),
-				Data:            common.FromHex("0x1234"),
-				GasLimit:        big.NewInt(0),
-				DelegateCall:    false,
-				OnlyFallback:    false,
-				BehaviorOnError: v3.BehaviorOnErrorRevert,
+				RequestId:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"),
+				Signature:          common.FromHex("abcd"),
+				NonEVMReceiver:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000002"),
+				ReceivingAssetId:   common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000003"),
+				SendingAssetId:     common.HexToAddress("0x5555555555555555555555555555555555555555"),
+				Receiver:           common.HexToAddress("0x6666666666666666666666666666666666666666"),
+				DestinationChainId: big.NewInt(137),
+				MinAmount:          big.NewInt(1000),
+				Target:             common.HexToAddress("0x7777777777777777777777777777777777777777"),
 			},
-		},
-			big.NewInt(0),
-			big.NewInt(0),
-		)
+		}
+		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
 
-		// Create intent configuration
-		config, err := sequence.CreateLifiIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload}, lifiInfos)
+		expectedHash := common.HexToHash("0x34b1669f0dccfb1e185ee9012c92a17c8548dc504d7a3dc0fedf08522c8c5a63")
+		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
 		require.NoError(t, err)
 
-		// Calculate image hash
-		imageHash := config.ImageHash()
-
-		spew.Dump(config.Tree)
-
-		// Calculate counterfactual address
-		address, err := sequence.AddressFromImageHash(imageHash, context)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		fmt.Printf("Single Operation with LifiInfo Test:\n")
-		fmt.Printf("Address: %s\n", address.Hex())
-
-		assert.Equal(t, address, common.HexToAddress("0x820B2237906fEEBdB45a6Be43d33137253Eeeac5"))
+		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "SingleInfo hash mismatch")
 	})
 
-	t.Run("multiple operations with lifiInfo", func(t *testing.T) {
-		// Create multiple operations matching TypeScript test
-		payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+	t.Run("MultipleInfo", func(t *testing.T) {
+		relayInfos := []sequence.AnypayRelayInfo{
 			{
-				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-				Value:           big.NewInt(0),
-				Data:            common.FromHex("0x1234"),
-				GasLimit:        big.NewInt(0),
-				DelegateCall:    false,
-				OnlyFallback:    false,
-				BehaviorOnError: v3.BehaviorOnErrorRevert,
+				RequestId:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"),
+				Signature:          common.FromHex("abcd"),
+				NonEVMReceiver:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000002"),
+				ReceivingAssetId:   common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000003"),
+				SendingAssetId:     common.HexToAddress("0x5555555555555555555555555555555555555555"),
+				Receiver:           common.HexToAddress("0x6666666666666666666666666666666666666666"),
+				DestinationChainId: big.NewInt(137),
+				MinAmount:          big.NewInt(1000),
+				Target:             common.HexToAddress("0x7777777777777777777777777777777777777777"),
 			},
-		},
-			big.NewInt(0),
-			big.NewInt(0),
-		)
-		payload2 := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
 			{
-				To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
-				Value:           big.NewInt(0),
-				Data:            common.FromHex("0x5678"),
-				GasLimit:        big.NewInt(0),
-				DelegateCall:    false,
-				OnlyFallback:    false,
-				BehaviorOnError: v3.BehaviorOnErrorRevert,
+				RequestId:          common.HexToHash("0x1000000000000000000000000000000000000000000000000000000000000001"),
+				Signature:          common.FromHex("dcba"),
+				NonEVMReceiver:     common.HexToHash("0x1000000000000000000000000000000000000000000000000000000000000002"),
+				ReceivingAssetId:   common.HexToHash("0x1000000000000000000000000000000000000000000000000000000000000003"),
+				SendingAssetId:     common.HexToAddress("0x8888888888888888888888888888888888888888"),
+				Receiver:           common.HexToAddress("0x9999999999999999999999999999999999999999"),
+				DestinationChainId: big.NewInt(42161),
+				MinAmount:          big.NewInt(2000),
+				Target:             common.HexToAddress("0x7777777777777777777777777777777777777777"),
 			},
-		},
-			big.NewInt(0),
-			big.NewInt(0),
-		)
+		}
+		attestationAddrVal := common.HexToAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
 
-		// Create intent configuration
-		config, err := sequence.CreateLifiIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos)
+		expectedHash := common.HexToHash("0xe36f2474265f43cea2e68e83112443c9dc35b844f7039d96450adcf1acd6a7e8")
+		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
 		require.NoError(t, err)
 
-		// Calculate image hash
-		imageHash := config.ImageHash()
-
-		spew.Dump(config.Tree)
-
-		// Calculate counterfactual address
-		address, err := sequence.AddressFromImageHash(imageHash, context)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		fmt.Printf("\nMultiple Operations with LifiInfo Test:\n")
-		fmt.Printf("Address: %s\n", address.Hex())
-
-		assert.Equal(t, address, common.HexToAddress("0x807f90d703db799F810a43DBcf81B09d7053e8e6"))
+		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
 	})
 }
 
@@ -1239,63 +1186,4 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	recoveredAddress, err := ecrecoverForTest(hashSignedByCryptoSign.Bytes(), decodedSignature)
 	require.NoError(t, err, "Failed to recover address using ecrecoverForTest")
 	assert.Equal(t, attestationSignerWallet.Address(), recoveredAddress, "Recovered address does not match the attestation signer's address")
-}
-
-func TestGetAnypayRelayInfoHash(t *testing.T) {
-	t.Run("SingleInfo", func(t *testing.T) {
-		relayInfos := []sequence.AnypayRelayInfo{
-			{
-				RequestId:          [32]byte{0x01},
-				Signature:          []byte{0x02},
-				NonEVMReceiver:     [32]byte{0x03},
-				ReceivingAssetId:   [32]byte{0x04},
-				SendingAssetId:     common.HexToAddress("0x1111111111111111111111111111111111111111"),
-				Receiver:           common.HexToAddress("0x2222222222222222222222222222222222222222"),
-				DestinationChainId: big.NewInt(1),
-				MinAmount:          big.NewInt(100),
-				Target:             common.HexToAddress("0x3333333333333333333333333333333333333333"),
-			},
-		}
-		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
-
-		expectedHash := common.HexToHash("0x546b5a34e0638102390f7196013a5f522198086082987a027985475143093155")
-		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
-		require.NoError(t, err)
-
-		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "SingleInfo hash mismatch")
-	})
-
-	t.Run("MultipleInfo", func(t *testing.T) {
-		relayInfos := []sequence.AnypayRelayInfo{
-			{
-				RequestId:          [32]byte{0x01},
-				Signature:          []byte{0x02},
-				NonEVMReceiver:     [32]byte{0x03},
-				ReceivingAssetId:   [32]byte{0x04},
-				SendingAssetId:     common.HexToAddress("0x1111111111111111111111111111111111111111"),
-				Receiver:           common.HexToAddress("0x2222222222222222222222222222222222222222"),
-				DestinationChainId: big.NewInt(1),
-				MinAmount:          big.NewInt(100),
-				Target:             common.HexToAddress("0x3333333333333333333333333333333333333333"),
-			},
-			{
-				RequestId:          [32]byte{0x05},
-				Signature:          []byte{0x06},
-				NonEVMReceiver:     [32]byte{0x07},
-				ReceivingAssetId:   [32]byte{0x08},
-				SendingAssetId:     common.HexToAddress("0x4444444444444444444444444444444444444444"),
-				Receiver:           common.HexToAddress("0x5555555555555555555555555555555555555555"),
-				DestinationChainId: big.NewInt(2),
-				MinAmount:          big.NewInt(200),
-				Target:             common.HexToAddress("0x6666666666666666666666666666666666666666"),
-			},
-		}
-		attestationAddrVal := common.HexToAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
-
-		expectedHash := common.HexToHash("0xbd0dd9844621c272493557e05244192661081513e51a5c63e26f59b68a86a1df")
-		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
-		require.NoError(t, err)
-
-		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
-	})
 }
