@@ -347,19 +347,7 @@ func CreateAnypayRelaySapientSignerTree(attestationSigner common.Address, relayI
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfigTree, error) {
-	var sapientSignerLeafNode v3.WalletConfigTree
-	var err error
-
-	if attestationSigner != (common.Address{}) && len(lifiInfos) > 0 {
-		// Create the lifi info leaf.
-		sapientSignerLeaf, err := CreateAnypaySapientSignerTree(attestationSigner, lifiInfos)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
-		}
-		sapientSignerLeafNode = v3.WalletConfigTreeNodes(sapientSignerLeaf)
-	}
-
+func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
 	// Create the subdigest leaves from the batched transactions.
 	leaves, err := CreateAnyAddressSubdigestTree(calls)
 	if err != nil {
@@ -393,9 +381,9 @@ func CreateIntentTree(mainSigner common.Address, attestationSigner common.Addres
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
-	tree, err := CreateIntentTree(mainSigner, attestationSigner, calls, lifiInfos...)
+	tree, err := CreateIntentTree(mainSigner, calls, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}

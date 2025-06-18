@@ -196,7 +196,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("One batch", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, common.Address{}, []*v3.CallsPayload{&payload1})
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -224,7 +224,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, common.Address{}, []*v3.CallsPayload{&payload1, &payload2})
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -256,7 +256,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, common.Address{}, []*v3.CallsPayload{&payload1, &payload2, &payload3})
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2, &payload3}, nil)
 		require.NoError(t, err)
 
 		// spew.Dump(tree)
@@ -316,7 +316,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, common.Address{}, []*v3.CallsPayload{&payload})
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -345,11 +345,11 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload})
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil, nil)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -424,10 +424,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil, "", nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2}, eoa1, nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2}, eoa1, nil, "", nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -436,10 +436,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -475,7 +475,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil, "", nil, nil)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -493,7 +493,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	calldata2, err := callmockContract.Encode("testCall", big.NewInt(2255), ethcoder.MustHexDecode("0x332255"))
 	assert.NoError(t, err)
 
-	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	_, err = ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
 
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
@@ -546,7 +546,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, nil, nil, "", nil, nil)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -629,7 +629,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	calldata3, err := callmockContract.Encode("testCall", big.NewInt(6655), ethcoder.MustHexDecode("0x332266"))
 	assert.NoError(t, err)
 
-	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
+	_, err = ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
 
 	// Create multiple payloads
@@ -704,7 +704,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads, eoa1, nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads, nil, nil, "", nil, nil)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
@@ -831,7 +831,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, common.Address{}, []*v3.CallsPayload{&payload})
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -881,7 +881,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, common.Address{}, []*v3.CallsPayload{&payload1, &payload2})
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -903,7 +903,6 @@ func TestIntentConfigurationAddress(t *testing.T) {
 func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	// Main signer matching TypeScript test
 	mainSigner := common.HexToAddress("0x8456195dd0793c621c7f9245edF0fEf85b1B879C")
-	attestationSigner := common.Address{}
 
 	// Context for the counterfactual address
 	context := sequence.V3SequenceContext()
@@ -937,7 +936,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create intent configuration
-	config, err := sequence.CreateIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload1, &payload2})
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
 	require.NoError(t, err)
 
 	// Calculate image hash
@@ -1070,7 +1069,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload}, lifiInfos...)
+		config, err := sequence.CreateLifiIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload}, lifiInfos)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1122,7 +1121,7 @@ func TestIntentConfigurationAddressWithLifiInfo(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos...)
+		config, err := sequence.CreateLifiIntentConfiguration(mainSigner, attestationSigner, []*v3.CallsPayload{&payload1, &payload2}, lifiInfos)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1240,4 +1239,63 @@ func TestCreateAnypayLifiAttestation(t *testing.T) {
 	recoveredAddress, err := ecrecoverForTest(hashSignedByCryptoSign.Bytes(), decodedSignature)
 	require.NoError(t, err, "Failed to recover address using ecrecoverForTest")
 	assert.Equal(t, attestationSignerWallet.Address(), recoveredAddress, "Recovered address does not match the attestation signer's address")
+}
+
+func TestGetAnypayRelayInfoHash(t *testing.T) {
+	t.Run("SingleInfo", func(t *testing.T) {
+		relayInfos := []sequence.AnypayRelayInfo{
+			{
+				RequestId:          [32]byte{0x01},
+				Signature:          []byte{0x02},
+				NonEVMReceiver:     [32]byte{0x03},
+				ReceivingAssetId:   [32]byte{0x04},
+				SendingAssetId:     common.HexToAddress("0x1111111111111111111111111111111111111111"),
+				Receiver:           common.HexToAddress("0x2222222222222222222222222222222222222222"),
+				DestinationChainId: big.NewInt(1),
+				MinAmount:          big.NewInt(100),
+				Target:             common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			},
+		}
+		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
+
+		expectedHash := common.HexToHash("0x546b5a34e0638102390f7196013a5f522198086082987a027985475143093155")
+		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
+		require.NoError(t, err)
+
+		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "SingleInfo hash mismatch")
+	})
+
+	t.Run("MultipleInfo", func(t *testing.T) {
+		relayInfos := []sequence.AnypayRelayInfo{
+			{
+				RequestId:          [32]byte{0x01},
+				Signature:          []byte{0x02},
+				NonEVMReceiver:     [32]byte{0x03},
+				ReceivingAssetId:   [32]byte{0x04},
+				SendingAssetId:     common.HexToAddress("0x1111111111111111111111111111111111111111"),
+				Receiver:           common.HexToAddress("0x2222222222222222222222222222222222222222"),
+				DestinationChainId: big.NewInt(1),
+				MinAmount:          big.NewInt(100),
+				Target:             common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			},
+			{
+				RequestId:          [32]byte{0x05},
+				Signature:          []byte{0x06},
+				NonEVMReceiver:     [32]byte{0x07},
+				ReceivingAssetId:   [32]byte{0x08},
+				SendingAssetId:     common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				Receiver:           common.HexToAddress("0x5555555555555555555555555555555555555555"),
+				DestinationChainId: big.NewInt(2),
+				MinAmount:          big.NewInt(200),
+				Target:             common.HexToAddress("0x6666666666666666666666666666666666666666"),
+			},
+		}
+		attestationAddrVal := common.HexToAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
+
+		expectedHash := common.HexToHash("0xbd0dd9844621c272493557e05244192661081513e51a5c63e26f59b68a86a1df")
+		actualHashBytes, err := sequence.GetAnypayRelayInfoHash(relayInfos, attestationAddrVal)
+		require.NoError(t, err)
+
+		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
+	})
 }
