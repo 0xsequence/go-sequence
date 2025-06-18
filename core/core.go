@@ -56,7 +56,7 @@ type Signature[C WalletConfig] interface {
 	// If provider is not provided and the signature contains sapient signer signatures, recovery will fail.
 	// If payload is a digest without preimage and the signature contains non-compact sapient signer signatures, recovery will fail.
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
-	Recover(ctx context.Context, payload Payload, provider *ethrpc.Provider, signerSignatures ...SignerSignatures2) (C, *big.Int, error)
+	Recover(ctx context.Context, payload Payload, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
 	// Reduce returns an equivalent optimized signature.
 	Reduce(payload Payload) Signature[C]
@@ -94,12 +94,12 @@ type WalletConfig interface {
 	IsUsable() error
 }
 
-type SignerSignatures2 map[common.Address]struct {
+type SignerSignatures map[common.Address]struct {
 	Signature         *SignerSignature
 	SapientSignatures map[common.Hash]SignerSignature
 }
 
-func (s SignerSignatures2) Insert2(signer common.Address, signature SignerSignature) {
+func (s SignerSignatures) Insert2(signer common.Address, signature SignerSignature) {
 	if s == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (s SignerSignatures2) Insert2(signer common.Address, signature SignerSignat
 	}
 }
 
-func (s SignerSignatures2) InsertSapient(signer common.Address, imageHash common.Hash, signature SignerSignature) {
+func (s SignerSignatures) InsertSapient(signer common.Address, imageHash common.Hash, signature SignerSignature) {
 	if s == nil {
 		return
 	}
