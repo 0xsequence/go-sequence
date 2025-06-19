@@ -305,8 +305,8 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
-func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayExecutionInfo) (v3.WalletConfigTree, error) {
+// `CreateAnypayExecutionInfoSapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
+func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayExecutionInfo) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
 	// sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
 	sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
@@ -319,25 +319,6 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
 		// Address:    AnypayLiFiSapientSignerAddress,
 		Address:    AnypayLifiSapientSignerLiteAddress,
-		Weight:     1,
-		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
-	}
-	fmt.Printf("sapientSignerLeaf.ImageHash(): %s\n", sapientSignerLeaf.ImageHash().Hash.Hex())
-
-	return sapientSignerLeaf, nil
-}
-
-// `CreateAnypayRelaySapientSignerTree` creates a tree from a list of AnypayRelayInfo and a main signer address.
-func CreateAnypayRelaySapientSignerTree(attestationSigner common.Address, relayInfos []AnypayRelayInfo) (v3.WalletConfigTree, error) {
-	sapientImageHash, err := GetAnypayRelayInfoHash(relayInfos, attestationSigner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
-	}
-	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
-
-	// Create the relay info leaf.
-	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		Address:    AnypayRelaySapientSignerAddress,
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
@@ -399,12 +380,12 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 }
 
 // `CreateLifiIntentConfiguration` is a helper function to create a LiFi intent configuration.
-func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
-	if attestationSigner != (common.Address{}) && len(lifiInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypaySapientSignerTree(attestationSigner, lifiInfos)
+	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
 		}
@@ -414,12 +395,12 @@ func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address,
 }
 
 // `CreateRelayIntentConfiguration` is a helper function to create a relay intent configuration.
-func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, relayInfos []AnypayRelayInfo) (*v3.WalletConfig, error) {
+func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
-	if attestationSigner != (common.Address{}) && len(relayInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayRelaySapientSignerTree(attestationSigner, relayInfos)
+	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
 		}
@@ -437,20 +418,19 @@ func GetIntentConfigurationSignature(
 	attestationSignerWallet *ethwallet.Wallet,
 	targetPayload *v3.CallsPayload,
 	sapientType string, // "lifi" or "relay"
-	lifiInfos []AnypayExecutionInfo,
-	relayInfos []AnypayRelayInfo,
+	anypayExecutionInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
 	var config *v3.WalletConfig
 	var err error
 
 	switch sapientType {
 	case "lifi":
-		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos)
+		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
 		if err != nil {
 			return nil, err
 		}
 	case "relay":
-		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, relayInfos)
+		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
 		if err != nil {
 			return nil, err
 		}
@@ -469,21 +449,21 @@ func GetIntentConfigurationSignature(
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
-		if signer == AnypayLifiSapientSignerLiteAddress && len(lifiInfos) > 0 && targetPayload != nil {
+		if signer == AnypayLifiSapientSignerLiteAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
-			fmt.Printf("signingFunc: lifiInfos: %v\n", lifiInfos)
+			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayLifiAttestationLite(lifiInfos)
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
-		if signer == AnypayRelaySapientSignerAddress && len(relayInfos) > 0 && targetPayload != nil {
+		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayRelayAttestation(attestationSignerWallet, targetPayload, relayInfos, attestationSigner)
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
 			}
@@ -600,69 +580,7 @@ func CreateAnypayLifiAttestation(
 	return encodedAttestation, nil
 }
 
-func CreateAnypayRelayAttestation(
-	attestationSignerWallet *ethwallet.Wallet,
-	payload *v3.CallsPayload,
-	relayInfos []AnypayRelayInfo,
-	attestationSigner common.Address,
-) ([]byte, error) {
-	if attestationSignerWallet == nil {
-		return nil, fmt.Errorf("attestationSignerWallet is nil")
-	}
-	if payload == nil {
-		return nil, fmt.Errorf("payload is nil for attestation")
-	}
-	if len(relayInfos) == 0 {
-		return nil, fmt.Errorf("relayInfos is empty")
-	}
-	if attestationSigner == (common.Address{}) {
-		return nil, fmt.Errorf("attestationSigner is zero address")
-	}
-
-	digestToSign := payload.Digest()
-	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
-	}
-	if len(rawSignature) == 65 {
-		rawSignature[64] = rawSignature[64] + 27
-	}
-
-	// Define ABI types for abi.encode(AnypayRelayInfo[] memory, bytes memory, address)
-	AnypayRelayInfoComponents := []abi.ArgumentMarshaling{
-		{Name: "requestId", Type: "bytes32"},
-		{Name: "signature", Type: "bytes"},
-		{Name: "nonEVMReceiver", Type: "bytes32"},
-		{Name: "receivingAssetId", Type: "bytes32"},
-		{Name: "sendingAssetId", Type: "address"},
-		{Name: "receiver", Type: "address"},
-		{Name: "destinationChainId", Type: "uint256"},
-		{Name: "minAmount", Type: "uint256"},
-		{Name: "target", Type: "address"},
-	}
-	relayInfoArrayType, err := abi.NewType("tuple[]", "AnypayRelayInfo[]", AnypayRelayInfoComponents)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create AnypayRelayInfo[] ABI type: %w", err)
-	}
-	bytesType, err := abi.NewType("bytes", "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
-	}
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
-	}
-
-	// Pack relayInfos, rawSignature, and attestationSigner
-	encodedAttestation, err := abi.Arguments{{Type: relayInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(relayInfos, rawSignature, attestationSigner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayRelayInfo[], signature, and attestationSigner: %w", err)
-	}
-
-	return encodedAttestation, nil
-}
-
-func CreateAnypayLifiAttestationLite(
+func CreateAnypayExecutionInfoAttestationLite(
 	lifiInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
 	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
