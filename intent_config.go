@@ -49,19 +49,6 @@ type AnypayExecutionInfo struct {
 	DestinationChainId *big.Int       `abi:"destinationChainId"`
 }
 
-// AnypayRelayInfo represents the information for a Relay operation.
-type AnypayRelayInfo struct {
-	RequestId          [32]byte       `abi:"requestId"`
-	Signature          []byte         `abi:"signature"`
-	NonEVMReceiver     [32]byte       `abi:"nonEVMReceiver"`
-	ReceivingAssetId   [32]byte       `abi:"receivingAssetId"`
-	SendingAssetId     common.Address `abi:"sendingAssetId"`
-	Receiver           common.Address `abi:"receiver"`
-	DestinationChainId *big.Int       `abi:"destinationChainId"`
-	MinAmount          *big.Int       `abi:"minAmount"`
-	Target             common.Address `abi:"target"`
-}
-
 // HashIntentParams generates a unique bytes32 hash from the IntentParams struct.
 func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	if params == nil {
@@ -219,53 +206,6 @@ func GetAnypayExecutionInfoHash(lifiInfos []AnypayExecutionInfo, attestationAddr
 	encodedData, err := arguments.Pack(lifiInfos, attestationAddress)
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayExecutionInfo hash: %w", err)
-	}
-
-	// Compute Keccak256 hash
-	hash := ethcoder.Keccak256(encodedData)
-
-	var hash32 [32]byte
-	copy(hash32[:], hash)
-	return hash32, nil
-}
-
-// GetAnypayRelayInfoHash computes the Keccak256 hash of ABI-encoded AnypayRelayInfo array and an attestation address.
-func GetAnypayRelayInfoHash(relayInfos []AnypayRelayInfo, attestationAddress common.Address) ([32]byte, error) {
-	// Define ABI type components for the AnypayRelayInfo struct
-	AnypayRelayInfoComponents := []abi.ArgumentMarshaling{
-		{Name: "requestId", Type: "bytes32"},
-		{Name: "signature", Type: "bytes"},
-		{Name: "nonEVMReceiver", Type: "bytes32"},
-		{Name: "receivingAssetId", Type: "bytes32"},
-		{Name: "sendingAssetId", Type: "address"},
-		{Name: "receiver", Type: "address"},
-		{Name: "destinationChainId", Type: "uint256"},
-		{Name: "minAmount", Type: "uint256"},
-		{Name: "target", Type: "address"},
-	}
-
-	// Define ABI type for a list of AnypayRelayInfo structs (AnypayRelayInfo[])
-	AnypayRelayInfoListType, err := abi.NewType("tuple[]", "AnypayRelayInfo[]", AnypayRelayInfoComponents)
-	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to create anypay relay info list ABI type: %w", err)
-	}
-
-	// Define ABI type for address
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to create address ABI type: %w", err)
-	}
-
-	// Define the arguments for ABI encoding
-	arguments := abi.Arguments{
-		{Name: "relayInfos", Type: AnypayRelayInfoListType},
-		{Name: "attestationAddress", Type: addressType},
-	}
-
-	// ABI encode the arguments
-	encodedData, err := arguments.Pack(relayInfos, attestationAddress)
-	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayRelayInfo hash: %w", err)
 	}
 
 	// Compute Keccak256 hash
