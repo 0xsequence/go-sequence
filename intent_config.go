@@ -17,6 +17,7 @@ import (
 var (
 	AnypayLiFiSapientSignerAddress     = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
 	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
+	AnypayRelaySapientSignerAddress    = common.HexToAddress("0x12954621ac2Ce9b7F0eFa3aaBb3f4ed9fc6ae35c")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -241,20 +242,26 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// `CreateAnypaySapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
-func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayExecutionInfo) (v3.WalletConfigTree, error) {
+// `CreateAnypayExecutionInfoSapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
+func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, anypayExecutionInfos []AnypayExecutionInfo, sapientType string) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
-	// sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
-	sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
+	sapientImageHash, err := GetAnypayExecutionInfoHash(anypayExecutionInfos, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
 	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
 
+	var sapientSignerAddress common.Address
+	switch sapientType {
+	case "lifi":
+		sapientSignerAddress = AnypayLifiSapientSignerLiteAddress
+	case "relay":
+		sapientSignerAddress = AnypayRelaySapientSignerAddress
+	}
+
 	// Create the lifi info leaf.
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		// Address:    AnypayLiFiSapientSignerAddress,
-		Address:    AnypayLifiSapientSignerLiteAddress,
+		Address:    sapientSignerAddress,
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
@@ -264,19 +271,7 @@ func CreateAnypaySapientSignerTree(attestationSigner common.Address, lifiInfos [
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfigTree, error) {
-	var sapientSignerLeafNode v3.WalletConfigTree
-	var err error
-
-	if attestationSigner != (common.Address{}) && len(lifiInfos) > 0 {
-		// Create the lifi info leaf.
-		sapientSignerLeaf, err := CreateAnypaySapientSignerTree(attestationSigner, lifiInfos)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
-		}
-		sapientSignerLeafNode = v3.WalletConfigTreeNodes(sapientSignerLeaf)
-	}
-
+func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
 	// Create the subdigest leaves from the batched transactions.
 	leaves, err := CreateAnyAddressSubdigestTree(calls)
 	if err != nil {
@@ -310,9 +305,9 @@ func CreateIntentTree(mainSigner common.Address, attestationSigner common.Addres
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
-	tree, err := CreateIntentTree(mainSigner, attestationSigner, calls, lifiInfos...)
+	tree, err := CreateIntentTree(mainSigner, calls, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}
@@ -327,51 +322,67 @@ func CreateIntentConfiguration(mainSigner common.Address, attestationSigner comm
 	return config, nil
 }
 
-// replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.
-func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.WalletConfigTree {
-	if tree == nil {
-		return nil
+// `CreateLifiIntentConfiguration` is a helper function to create a LiFi intent configuration.
+func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+	var sapientSignerLeafNode v3.WalletConfigTree
+	var err error
+
+	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "lifi")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
+		}
 	}
 
-	switch node := tree.(type) {
-	case *v3.WalletConfigTreeNode:
-		// Recursively call on left and right children
-		left := replaceSapientSignerWithNodeInConfigTree(node.Left)
-		right := replaceSapientSignerWithNodeInConfigTree(node.Right)
-
-		if left == node.Left && right == node.Right {
-			return node
-		}
-		return &v3.WalletConfigTreeNode{Left: left, Right: right}
-
-	case *v3.WalletConfigTreeNestedLeaf:
-		// Recursively call on the inner tree
-		innerTree := replaceSapientSignerWithNodeInConfigTree(node.Tree)
-
-		if innerTree == node.Tree { // Check for pointer equality
-			return node // No change, return original
-		}
-		return &v3.WalletConfigTreeNestedLeaf{
-			Weight:    node.Weight,
-			Threshold: node.Threshold,
-			Tree:      innerTree,
-		}
-
-	case *v3.WalletConfigTreeSapientSignerLeaf:
-		// This is the target node type to replace
-		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
-
-	default:
-		return tree
-	}
+	return CreateIntentConfiguration(mainSigner, calls, sapientSignerLeafNode)
 }
 
-// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation. The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigner common.Address, calls []*v3.CallsPayload, attestationSignerWallet *ethwallet.Wallet, targetPayload *v3.CallsPayload, lifiInfos ...AnypayExecutionInfo) ([]byte, error) {
-	// Create the intent configuration using the batched transactions.
-	config, err := CreateIntentConfiguration(mainSigner, attestationSigner, calls, lifiInfos...)
-	if err != nil {
-		return nil, err
+// `CreateRelayIntentConfiguration` is a helper function to create a relay intent configuration.
+func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+	var sapientSignerLeafNode v3.WalletConfigTree
+	var err error
+
+	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "relay")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
+		}
+	}
+
+	return CreateIntentConfiguration(mainSigner, calls, sapientSignerLeafNode)
+}
+
+// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
+// The signature is based on the transaction bundle digests only.
+func GetIntentConfigurationSignature(
+	mainSigner common.Address,
+	attestationSigner common.Address,
+	calls []*v3.CallsPayload,
+	attestationSignerWallet *ethwallet.Wallet,
+	targetPayload *v3.CallsPayload,
+	sapientType string, // "lifi" or "relay"
+	anypayExecutionInfos []AnypayExecutionInfo,
+) ([]byte, error) {
+	var config *v3.WalletConfig
+	var err error
+
+	switch sapientType {
+	case "lifi":
+		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		if err != nil {
+			return nil, err
+		}
+	case "relay":
+		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		// Default case without any sapient signer
+		config, err = CreateIntentConfiguration(mainSigner, calls, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if targetPayload == nil {
@@ -381,17 +392,24 @@ func GetIntentConfigurationSignature(mainSigner common.Address, attestationSigne
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
-		// if signer == AnypayLifiSapientSignerAddress && len(lifiInfos) > 0 {
-		if signer == AnypayLifiSapientSignerLiteAddress && len(lifiInfos) > 0 && targetPayload != nil {
+		if signer == AnypayLifiSapientSignerLiteAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
-			fmt.Printf("signingFunc: lifiInfos: %v\n", lifiInfos)
+			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
-			// attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, lifiInfos)
-			attestationBytes, err = CreateAnypayLifiAttestationLite(lifiInfos)
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
+			return core.SignerSignatureTypeSapient, attestationBytes, nil
+		}
 
+		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
+			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
+			var attestationBytes []byte
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
+			}
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
@@ -505,7 +523,7 @@ func CreateAnypayLifiAttestation(
 	return encodedAttestation, nil
 }
 
-func CreateAnypayLifiAttestationLite(
+func CreateAnypayExecutionInfoAttestationLite(
 	lifiInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
 	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
@@ -531,4 +549,43 @@ func CreateAnypayLifiAttestationLite(
 	}
 
 	return encodedAttestation, nil
+}
+
+// replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.
+func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.WalletConfigTree {
+	if tree == nil {
+		return nil
+	}
+
+	switch node := tree.(type) {
+	case *v3.WalletConfigTreeNode:
+		// Recursively call on left and right children
+		left := replaceSapientSignerWithNodeInConfigTree(node.Left)
+		right := replaceSapientSignerWithNodeInConfigTree(node.Right)
+
+		if left == node.Left && right == node.Right {
+			return node
+		}
+		return &v3.WalletConfigTreeNode{Left: left, Right: right}
+
+	case *v3.WalletConfigTreeNestedLeaf:
+		// Recursively call on the inner tree
+		innerTree := replaceSapientSignerWithNodeInConfigTree(node.Tree)
+
+		if innerTree == node.Tree { // Check for pointer equality
+			return node // No change, return original
+		}
+		return &v3.WalletConfigTreeNestedLeaf{
+			Weight:    node.Weight,
+			Threshold: node.Threshold,
+			Tree:      innerTree,
+		}
+
+	case *v3.WalletConfigTreeSapientSignerLeaf:
+		// This is the target node type to replace
+		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
+
+	default:
+		return tree
+	}
 }
