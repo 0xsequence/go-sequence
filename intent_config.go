@@ -246,19 +246,25 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 }
 
 // `CreateAnypayExecutionInfoSapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
-func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, lifiInfos []AnypayExecutionInfo) (v3.WalletConfigTree, error) {
+func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, anypayExecutionInfos []AnypayExecutionInfo, sapientType string) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
-	// sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
-	sapientImageHash, err := GetAnypayExecutionInfoHash(lifiInfos, attestationSigner)
+	sapientImageHash, err := GetAnypayExecutionInfoHash(anypayExecutionInfos, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
 	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
 
+	var sapientSignerAddress common.Address
+	switch sapientType {
+	case "lifi":
+		sapientSignerAddress = AnypayLifiSapientSignerLiteAddress
+	case "relay":
+		sapientSignerAddress = AnypayRelaySapientSignerAddress
+	}
+
 	// Create the lifi info leaf.
 	sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		// Address:    AnypayLiFiSapientSignerAddress,
-		Address:    AnypayLifiSapientSignerLiteAddress,
+		Address:    sapientSignerAddress,
 		Weight:     1,
 		ImageHash_: core.ImageHash{Hash: common.BytesToHash(sapientImageHash[:])},
 	}
@@ -325,7 +331,7 @@ func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address,
 	var err error
 
 	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos)
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "lifi")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
 		}
@@ -340,7 +346,7 @@ func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address
 	var err error
 
 	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos)
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "relay")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
 		}
