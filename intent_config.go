@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	AnypayLiFiSapientSignerAddress     = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	AnypayLifiSapientSignerLiteAddress = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
-	AnypayRelaySapientSignerAddress    = common.HexToAddress("0x12954621ac2Ce9b7F0eFa3aaBb3f4ed9fc6ae35c")
+	AnypayLiFiSapientSignerAddress      = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+	AnypayLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
+	AnypayRelaySapientSignerAddress     = common.HexToAddress("0x12954621ac2Ce9b7F0eFa3aaBb3f4ed9fc6ae35c")
+	AnypayRelaySapientSignerLiteAddress = common.HexToAddress("0x12954621ac2Ce9b7F0eFa3aaBb3f4ed9fc6ae35c")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -388,6 +389,8 @@ func GetIntentConfigurationSignature(
 		}
 	}
 
+	// If the target payload is nil, we need to replace the sapient signer with a node in the config tree.
+	// This is because the sapient signer is not included in the target payload, so we need to replace it with a node, since we cannot call the sapient signer directly, but rather the node.
 	if targetPayload == nil {
 		config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
 	}
