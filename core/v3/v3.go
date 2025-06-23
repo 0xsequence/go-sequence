@@ -292,6 +292,9 @@ func (s *RegularSignature) write(writer io.Writer, ignoreCheckpointer, ignoreChe
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
 		}
 		if !ignoreCheckpointerData {
+			if len(s.CheckpointerData) > 0xffffff {
+				return fmt.Errorf("checkpointer data length %v does not fit in a uint24", len(s.CheckpointerData))
+			}
 			err = writeUint24(writer, uint32(len(s.CheckpointerData)))
 			if err != nil {
 				return fmt.Errorf("unable to write checkpointer data length: %w", err)
@@ -450,6 +453,9 @@ func (s *NoChainIDSignature) write(writer io.Writer, ignoreCheckpointer, ignoreC
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
 		}
 		if !ignoreCheckpointerData {
+			if len(s.CheckpointerData) > 0xffffff {
+				return fmt.Errorf("checkpointer data length %v does not fit in a uint24", len(s.CheckpointerData))
+			}
 			err = writeUint24(writer, uint32(len(s.CheckpointerData)))
 			if err != nil {
 				return fmt.Errorf("unable to write checkpointer data length: %w", err)
@@ -647,6 +653,9 @@ func (s ChainedSignature) write(writer io.Writer, ignoreCheckpointer, ignoreChec
 			return fmt.Errorf("unable to write checkpointer address: %w", err)
 		}
 		if !ignoreCheckpointerData {
+			if len(checkpointerData) > 0xffffff {
+				return fmt.Errorf("checkpointer data size %v does not fit in a uint24", len(checkpointerData))
+			}
 			err := writeUint24(writer, uint32(len(checkpointerData)))
 			if err != nil {
 				return fmt.Errorf("unable to write checkpointer data size: %w", err)
@@ -1251,17 +1260,17 @@ func (l signatureTreeNodeLeaf) write(writer io.Writer) error {
 func decodeBranchLeaf(firstByte byte, data *[]byte) (signatureTree, error) {
 	lengthSize := firstByte & 0x0f
 
-	length, err := readUintX(lengthSize, data)
+	length, err := readBigInt(int(lengthSize), data)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read branch length: %w", err)
 	}
 
-	if len(*data) < int(length) {
-		return nil, fmt.Errorf("insufficient data for branch")
+	if length.Cmp(big.NewInt(int64(len(*data)))) > 0 {
+		return nil, fmt.Errorf("insufficient data for branch: %v bytes required, %v remain", length, len(*data))
 	}
 
-	branchData := (*data)[:length]
-	*data = (*data)[length:]
+	branchData := (*data)[:length.Uint64()]
+	*data = (*data)[length.Uint64():]
 	return decodeSignatureTree(branchData)
 }
 
@@ -2760,6 +2769,16 @@ func bitsFor(val uint64) int {
 	return 64 - bits.LeadingZeros64(val)
 }
 
+func readBigInt(size int, data *[]byte) (*big.Int, error) {
+	if len(*data) < size {
+		return nil, fmt.Errorf("insufficient data for uint%v", 8 * size)
+	}
+
+	value := new(big.Int).SetBytes((*data)[:size])
+	*data = (*data)[size:]
+	return value, nil
+}
+
 func readUintX(size uint8, data *[]byte) (uint64, error) {
 	if len(*data) < int(size) {
 		return 0, fmt.Errorf("insufficient data for uint%d", size*8)
@@ -2822,6 +2841,9 @@ func writeUint16(writer io.Writer, value uint16) error {
 }
 
 func writeUint24(writer io.Writer, value uint32) error {
+	if value > 0xffffff {
+		return fmt.Errorf("%v does not fit in a uint24", value)
+	}
 	buf := []byte{
 		byte(value >> 16),
 		byte(value >> 8),

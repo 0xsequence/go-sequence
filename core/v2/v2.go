@@ -1106,6 +1106,10 @@ func (l *signatureTreeDynamicSignatureLeaf) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write dynamic signature leaf address: %w", err)
 	}
 
+	if len(l.signature)+1 > 0xffffffff {
+		return fmt.Errorf("signature length %v does not fit in a uint32", len(l.signature)+1)
+	}
+
 	err = writeUint24(writer, uint32(len(l.signature)+1))
 	if err != nil {
 		return fmt.Errorf("unable to write dynamic signature leaf signature length: %w", err)
@@ -1399,6 +1403,10 @@ func (l *signatureTreeNestedLeaf) write(writer io.Writer) error {
 	err = l.tree.write(&buffer)
 	if err != nil {
 		return fmt.Errorf("unable to encode nested leaf signature: %w", err)
+	}
+
+	if len(buffer.Bytes()) > 0xffffff {
+		return fmt.Errorf("signature length %v does not fit in a uint24", len(buffer.Bytes()))
 	}
 
 	err = writeUint24(writer, uint32(len(buffer.Bytes())))

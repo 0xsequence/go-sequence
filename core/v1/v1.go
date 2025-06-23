@@ -749,6 +749,10 @@ func (l *signatureTreeDynamicSignatureLeaf) write(writer io.Writer) error {
 		return fmt.Errorf("unable to write dynamic signature leaf address: %w", err)
 	}
 
+	if len(l.signature)+1 > 0xffff {
+		return fmt.Errorf("signature length %v does not fit in a uint16", len(l.signature)+1)
+	}
+
 	err = binary.Write(writer, binary.BigEndian, uint16(len(l.signature)+1))
 	if err != nil {
 		return fmt.Errorf("unable to write dynamic signature leaf signature length: %w", err)
