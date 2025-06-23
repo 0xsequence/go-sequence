@@ -2,6 +2,7 @@ package sequence
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -552,8 +554,27 @@ func CreateAnypayExecutionInfoAttestationLite(
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
+	// Create a random digest to sign
+	randomDigest := make([]byte, 32)
+	if _, err := rand.Read(randomDigest); err != nil {
+		return nil, fmt.Errorf("failed to generate random digest: %w", err)
+	}
+
+	// Create a random EOA with a random private key
+	randomPrivateKey, err := crypto.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random private key: %w", err)
+	}
+	randomEoa := crypto.PubkeyToAddress(randomPrivateKey.PublicKey)
+
+	// Generate a random signature for the EOA
+	randomSignature, err := crypto.Sign(randomDigest, randomPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
+	}
+
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, []byte{}, common.HexToAddress("0x0000000000000000000000000000000000000001"))
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, randomEoa)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
