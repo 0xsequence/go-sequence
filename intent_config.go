@@ -532,7 +532,7 @@ func CreateAnypayLifiAttestation(
 func CreateAnypayExecutionInfoAttestationLite(
 	lifiInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
-	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
+	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory, address)
 	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
@@ -543,13 +543,17 @@ func CreateAnypayExecutionInfoAttestationLite(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
 	}
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
+	}
 	addressType, err := abi.NewType("address", "", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: addressType}}.Pack(lifiInfos, common.HexToAddress("0x0000000000000000000000000000000000000001"))
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, []byte{}, common.HexToAddress("0x0000000000000000000000000000000000000001"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
