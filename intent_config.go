@@ -404,7 +404,7 @@ func GetIntentConfigurationSignature(
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
 			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos, attestationSigner)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
@@ -414,7 +414,7 @@ func GetIntentConfigurationSignature(
 		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos)
+			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos, attestationSigner)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
 			}
@@ -533,6 +533,7 @@ func CreateAnypayLifiAttestation(
 
 func CreateAnypayExecutionInfoAttestationLite(
 	lifiInfos []AnypayExecutionInfo,
+	attestationSigner common.Address,
 ) ([]byte, error) {
 	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory, address)
 	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
@@ -573,10 +574,9 @@ func CreateAnypayExecutionInfoAttestationLite(
 	}
 
 	// Hardcode address to one
-	hardcodedAttestationSigner := common.HexToAddress("0x0000000000000000000000000000000000000001")
 
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, hardcodedAttestationSigner)
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
