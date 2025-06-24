@@ -565,7 +565,6 @@ func CreateAnypayExecutionInfoAttestationLite(
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random private key: %w", err)
 	}
-	randomEoa := crypto.PubkeyToAddress(randomPrivateKey.PublicKey)
 
 	// Generate a random signature for the EOA
 	randomSignature, err := crypto.Sign(randomDigest, randomPrivateKey)
@@ -573,8 +572,11 @@ func CreateAnypayExecutionInfoAttestationLite(
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
 	}
 
+	// Hardcode address to one
+	hardcodedAttestationSigner := common.HexToAddress("0x0000000000000000000000000000000000000001")
+
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, randomEoa)
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, hardcodedAttestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
