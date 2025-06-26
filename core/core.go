@@ -99,7 +99,7 @@ type SignerSignatures map[common.Address]struct {
 	SapientSignatures map[common.Hash]SignerSignature
 }
 
-func (s SignerSignatures) Insert2(signer common.Address, signature SignerSignature) {
+func (s SignerSignatures) Insert(signer common.Address, signature SignerSignature) {
 	if s == nil {
 		return
 	}

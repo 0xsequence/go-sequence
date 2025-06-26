@@ -798,7 +798,7 @@ func (l *signatureTreeECDSASignatureLeaf) recover(ctx context.Context, payload c
 		return nil, nil, fmt.Errorf("unable to recover ecdsa signature leaf: %w", err)
 	}
 
-	signerSignatures.Insert2(address, core.SignerSignature{
+	signerSignatures.Insert(address, core.SignerSignature{
 		Type:      l.type_.signerSignatureType(),
 		Signature: l.signature[:],
 	})
@@ -1019,7 +1019,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload
 			return nil, nil, fmt.Errorf("expected dynamic signature by %v, got dynamic signature by %v", l.address, address)
 		}
 
-		signerSignatures.Insert2(l.address, core.SignerSignature{
+		signerSignatures.Insert(l.address, core.SignerSignature{
 			Type:      l.type_.signerSignatureType(),
 			Signature: l.signature,
 		})
@@ -1055,7 +1055,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload
 			effectiveWeight = 0
 		}
 
-		signerSignatures.Insert2(l.address, core.SignerSignature{
+		signerSignatures.Insert(l.address, core.SignerSignature{
 			Type:      l.type_.signerSignatureType(),
 			Signature: signature,
 		})

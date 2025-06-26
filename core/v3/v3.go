@@ -930,7 +930,7 @@ func (l *signatureTreeSignatureHashLeaf) recover(ctx context.Context, payload co
 		return nil, nil, fmt.Errorf("unable to recover signature: %w", err)
 	}
 
-	signerSignatures.Insert2(address, core.SignerSignature{
+	signerSignatures.Insert(address, core.SignerSignature{
 		Type:      core.SignerSignatureTypeEIP712,
 		Signature: signature,
 	})
@@ -1134,7 +1134,7 @@ func (l *signatureTreeSignatureERC1271Leaf) recover(ctx context.Context, payload
 		effectiveWeight = 0
 	}
 
-	signerSignatures.Insert2(l.Address, core.SignerSignature{
+	signerSignatures.Insert(l.Address, core.SignerSignature{
 		Type:      core.SignerSignatureTypeEIP1271,
 		Signature: signature,
 	})
@@ -1523,7 +1523,7 @@ func (l *signatureTreeSignatureEthSignLeaf) recover(ctx context.Context, payload
 		return nil, nil, fmt.Errorf("unable to recover eth sign signature: %w", err)
 	}
 
-	signerSignatures.Insert2(address, core.SignerSignature{
+	signerSignatures.Insert(address, core.SignerSignature{
 		Type:      core.SignerSignatureTypeEthSign,
 		Signature: signature,
 	})
