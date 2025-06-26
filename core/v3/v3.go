@@ -2771,7 +2771,7 @@ func bitsFor(val uint64) int {
 
 func readBigInt(size int, data *[]byte) (*big.Int, error) {
 	if len(*data) < size {
-		return nil, fmt.Errorf("insufficient data for uint%v", 8 * size)
+		return nil, fmt.Errorf("insufficient data for uint%v", 8*size)
 	}
 
 	value := new(big.Int).SetBytes((*data)[:size])
