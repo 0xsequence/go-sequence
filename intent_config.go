@@ -2,7 +2,6 @@ package sequence
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -404,7 +402,7 @@ func GetIntentConfigurationSignature(
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
 			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos, attestationSigner)
+			attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
@@ -414,7 +412,7 @@ func GetIntentConfigurationSignature(
 		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayExecutionInfoAttestationLite(anypayExecutionInfos, attestationSigner)
+			attestationBytes, err = CreateAnypayRelayAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
 			}
@@ -531,18 +529,43 @@ func CreateAnypayLifiAttestation(
 	return encodedAttestation, nil
 }
 
-func CreateAnypayExecutionInfoAttestationLite(
-	lifiInfos []AnypayExecutionInfo,
-	attestationSigner common.Address,
+// CreateAnypayRelayAttestation generates the ABI-encoded signature required by the AnypayRelaySapientSigner contract.
+func CreateAnypayRelayAttestation(
+	attestationSignerWallet *ethwallet.Wallet,
+	payload *v3.CallsPayload,
+	anypayExecutionInfos []AnypayExecutionInfo,
 ) ([]byte, error) {
-	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory, address)
+	if attestationSignerWallet == nil {
+		return nil, fmt.Errorf("attestationSignerWallet is nil")
+	}
+	if payload == nil {
+		return nil, fmt.Errorf("payload is nil for attestation")
+	}
+	if len(anypayExecutionInfos) == 0 {
+		return nil, fmt.Errorf("anypayExecutionInfos is empty")
+	}
+
+	digestToSign := payload.Digest()
+	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
+	}
+
+	if len(rawSignature) == 65 {
+		rawSignature[64] = rawSignature[64] + 27
+	} else {
+		return nil, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(rawSignature))
+	}
+	eoaSignatureBytes := rawSignature
+
+	// Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory, address)
 	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
+	anypayInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
 	}
@@ -555,30 +578,10 @@ func CreateAnypayExecutionInfoAttestationLite(
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
-	// Create a random digest to sign
-	randomDigest := make([]byte, 32)
-	if _, err := rand.Read(randomDigest); err != nil {
-		return nil, fmt.Errorf("failed to generate random digest: %w", err)
-	}
-
-	// Create a random EOA with a random private key
-	randomPrivateKey, err := crypto.GenerateKey()
+	// Pack anypayExecutionInfos, eoaSignatureBytes, and the signer's address
+	encodedAttestation, err := abi.Arguments{{Type: anypayInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(anypayExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate random private key: %w", err)
-	}
-
-	// Generate a random signature for the EOA
-	randomSignature, err := crypto.Sign(randomDigest, randomPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
-	}
-
-	// Hardcode address to one
-
-	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, randomSignature, attestationSigner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
+		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[], signature and address: %w", err)
 	}
 
 	return encodedAttestation, nil
