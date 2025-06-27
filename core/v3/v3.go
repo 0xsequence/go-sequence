@@ -1327,34 +1327,39 @@ type signatureTreeNestedLeaf struct {
 }
 
 func decodeNestedLeaf(firstByte byte, data *[]byte) (*signatureTreeNestedLeaf, error) {
-	weight := firstByte & 0x0f
+	weight := firstByte & 0x0c >> 2
 	if weight == 0 {
 		if len(*data) < 1 {
-			return nil, fmt.Errorf("insufficient data for dynamic weight")
+			return nil, fmt.Errorf("insufficient data for nested leaf weight")
 		}
 		weight = (*data)[0]
 		*data = (*data)[1:]
 	}
 
-	threshold, err := readUint16(data)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read nested threshold: %w", err)
+	threshold := uint16(firstByte & 0x03)
+	if threshold == 0 {
+		var err error
+		threshold, err = readUint16(data)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read nested leaf threshold: %w", err)
+		}
 	}
 
 	length, err := readUint24(data)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read nested tree length: %w", err)
+		return nil, fmt.Errorf("unable to read nested leaf signature length: %w", err)
 	}
 
 	if len(*data) < int(length) {
-		return nil, fmt.Errorf("insufficient data for nested tree")
+		return nil, fmt.Errorf("insufficient data for nested leaf")
 	}
 
-	treeData := (*data)[:length]
-	*data = (*data)[length:]
-	tree, err := decodeSignatureTree(treeData)
+	var signature []byte
+	signature, *data = (*data)[:length], (*data)[length:]
+
+	tree, err := decodeSignatureTree(signature)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode nested tree: %w", err)
+		return nil, fmt.Errorf("unable to decode nested leaf: %w", err)
 	}
 
 	return &signatureTreeNestedLeaf{weight, threshold, tree}, nil
