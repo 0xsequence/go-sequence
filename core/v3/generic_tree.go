@@ -12,10 +12,10 @@ type TreeNode []Tree
 
 var _ Tree = TreeNode{}
 
-func (b TreeNode) ImageHash() core.ImageHash {
+func (n TreeNode) ImageHash() core.ImageHash {
 	var imageHash common.Hash
 
-	for i, tree := range b {
+	for i, tree := range n {
 		if i == 0 {
 			imageHash = tree.ImageHash().Hash
 		} else {
@@ -23,7 +23,7 @@ func (b TreeNode) ImageHash() core.ImageHash {
 		}
 	}
 
-	return core.ImageHash{Hash: imageHash, Preimage: b}
+	return core.ImageHash{Hash: imageHash, Preimage: n}
 }
 
 type TreeLeaf []byte
