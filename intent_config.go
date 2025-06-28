@@ -366,9 +366,18 @@ func GetIntentConfigurationSignature(
 	targetPayload *v3.CallsPayload,
 	sapientType string, // "lifi" or "relay"
 	anypayExecutionInfos []AnypayExecutionInfo,
+	decodingStrategy *uint8,
 ) ([]byte, error) {
 	var config *v3.WalletConfig
 	var err error
+
+	if sapientType == "lifi" {
+		if decodingStrategy == nil {
+			return nil, fmt.Errorf("decodingStrategy is required for lifi sapient type")
+		}
+	} else if decodingStrategy != nil {
+		return nil, fmt.Errorf("decodingStrategy is only supported for lifi sapient type, but got %s", sapientType)
+	}
 
 	switch sapientType {
 	case "lifi":
@@ -402,7 +411,7 @@ func GetIntentConfigurationSignature(
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
 			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos)
+			attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos, *decodingStrategy)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
@@ -474,6 +483,7 @@ func CreateAnypayLifiAttestation(
 	attestationSignerWallet *ethwallet.Wallet,
 	payload *v3.CallsPayload,
 	lifiInfos []AnypayExecutionInfo,
+	decodingStrategy uint8,
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
 		return nil, fmt.Errorf("attestationSignerWallet is nil")
@@ -515,13 +525,21 @@ func CreateAnypayLifiAttestation(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
 	}
+	uint8Type, err := abi.NewType("uint8", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uint8 ABI type: %w", err)
+	}
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
 	}
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
+	}
 
 	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: bytesType}}.Pack(lifiInfos, eoaSignatureBytes)
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: uint8Type}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, decodingStrategy, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
