@@ -8,11 +8,11 @@ import (
 
 type Tree = core.ImageHashable
 
-type TreeBranch []Tree
+type TreeNode []Tree
 
-var _ Tree = TreeBranch{}
+var _ Tree = TreeNode{}
 
-func (b TreeBranch) ImageHash() core.ImageHash {
+func (b TreeNode) ImageHash() core.ImageHash {
 	var imageHash common.Hash
 
 	for i, tree := range b {

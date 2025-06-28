@@ -301,7 +301,7 @@ func GetExplicitSigners(topology SessionsTopology) []common.Address {
 
 func SessionsTopologyToGenericTree(topology SessionsTopology) (Tree, error) {
 	if IsSessionsBranch(topology) {
-		branch := make(TreeBranch, len(topology.Branch))
+		branch := make(TreeNode, len(topology.Branch))
 		for i, child := range topology.Branch {
 			leaf, err := SessionsTopologyToGenericTree(child)
 			if err != nil {
@@ -853,7 +853,7 @@ func MinimiseSessionsTopology(topology SessionsTopology, explicitSigners []commo
 			}
 		}
 		if allNodes {
-			nodeBranch := make(TreeBranch, len(branches))
+			nodeBranch := make(TreeNode, len(branches))
 			for i, b := range branches {
 				nodeBranch[i] = core.ImageHash{Hash: common.Hash(PadLeft(b.Node, 32))}
 			}
