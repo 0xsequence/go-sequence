@@ -13,14 +13,13 @@ type TreeNode []Tree
 var _ Tree = TreeNode{}
 
 func (n TreeNode) ImageHash() core.ImageHash {
-	var imageHash common.Hash
+	if len(n) == 0 {
+		return core.ImageHash{Hash: common.Hash{}, Preimage: n}
+	}
 
-	for i, tree := range n {
-		if i == 0 {
-			imageHash = tree.ImageHash().Hash
-		} else {
-			imageHash = crypto.Keccak256Hash(imageHash.Bytes(), tree.ImageHash().Bytes())
-		}
+	imageHash := n[0].ImageHash().Hash
+	for _, tree := range n[1:] {
+		imageHash = crypto.Keccak256Hash(imageHash.Bytes(), tree.ImageHash().Bytes())
 	}
 
 	return core.ImageHash{Hash: imageHash, Preimage: n}
