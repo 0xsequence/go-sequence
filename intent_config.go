@@ -505,11 +505,9 @@ func CreateAnypayLifiAttestation(
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
 	}
 
-	// Adjust V: Ethereum expects V to be 27 or 28. crypto.Sign returns 0 or 1.
-	// The last byte of the 65-byte signature is V.
-	if len(rawSignature) == 65 {
-		rawSignature[64] = rawSignature[64] + 27
-	} else {
+	// The signature V value is already adjusted by ethwallet.SignData.
+	// We just need to ensure the signature length is correct.
+	if len(rawSignature) != 65 {
 		return nil, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(rawSignature))
 	}
 	eoaSignatureBytes := rawSignature
@@ -569,9 +567,7 @@ func CreateAnypayRelayAttestation(
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
 	}
 
-	if len(rawSignature) == 65 {
-		rawSignature[64] = rawSignature[64] + 27
-	} else {
+	if len(rawSignature) != 65 {
 		return nil, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(rawSignature))
 	}
 	eoaSignatureBytes := rawSignature
