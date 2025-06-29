@@ -32,3 +32,74 @@ var _ Tree = TreeLeaf{}
 func (l TreeLeaf) ImageHash() core.ImageHash {
 	return core.ImageHash{Hash: crypto.Keccak256Hash(l), Preimage: l}
 }
+
+func MergeSubtrees(tree Tree, subtrees map[common.Hash]Tree) (Tree, bool) {
+	switch tree := tree.(type) {
+	case core.ImageHash:
+		subtree, ok := subtrees[tree.Hash]
+		if ok {
+			return subtree, true
+		} else {
+			return tree, false
+		}
+
+	case *core.ImageHash:
+		subtree, ok := subtrees[tree.Hash]
+		if ok {
+			return subtree, true
+		} else {
+			return tree, false
+		}
+
+	case TreeNode:
+		updated := false
+
+		node := make(TreeNode, 0, len(tree))
+		for _, subtree := range tree {
+			subtree_, updated_ := MergeSubtrees(subtree, subtrees)
+			if updated_ {
+				updated = true
+			}
+			node = append(node, subtree_)
+		}
+
+		if updated {
+			return node, true
+		} else {
+			return tree, false
+		}
+
+	default:
+		return tree, false
+	}
+}
+
+func Subtrees(tree Tree) map[common.Hash]Tree {
+	subtrees := map[common.Hash]Tree{}
+	readSubtrees(subtrees, tree)
+	return subtrees
+}
+
+func readSubtrees(subtrees map[common.Hash]Tree, tree Tree) {
+	switch tree := tree.(type) {
+	case core.ImageHash:
+		if tree.Preimage != nil && tree.Preimage != tree {
+			readSubtrees(subtrees, tree.Preimage)
+		}
+
+	case *core.ImageHash:
+		if tree.Preimage != nil && tree.Preimage != tree {
+			readSubtrees(subtrees, tree.Preimage)
+		}
+
+	case TreeNode:
+		for _, subtree := range tree {
+			readSubtrees(subtrees, subtree)
+		}
+
+		subtrees[tree.ImageHash().Hash] = tree
+
+	default:
+		subtrees[tree.ImageHash().Hash] = tree
+	}
+}
