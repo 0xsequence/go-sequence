@@ -39,6 +39,9 @@ func MergeSubtrees(tree Tree, subtrees map[common.Hash]Tree) (Tree, bool) {
 		subtree, ok := subtrees[tree.Hash]
 		if ok {
 			return subtree, true
+		} else if tree.Preimage != nil && tree.Preimage != tree {
+			subtree_, _ := MergeSubtrees(tree.Preimage, subtrees)
+			return subtree_, true
 		} else {
 			return tree, false
 		}
@@ -47,6 +50,9 @@ func MergeSubtrees(tree Tree, subtrees map[common.Hash]Tree) (Tree, bool) {
 		subtree, ok := subtrees[tree.Hash]
 		if ok {
 			return subtree, true
+		} else if tree.Preimage != nil && tree.Preimage != tree {
+			subtree_, _ := MergeSubtrees(tree.Preimage, subtrees)
+			return subtree_, true
 		} else {
 			return tree, false
 		}
