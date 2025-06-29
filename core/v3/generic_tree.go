@@ -109,3 +109,22 @@ func readSubtrees(subtrees map[common.Hash]Tree, tree Tree) {
 		subtrees[tree.ImageHash().Hash] = tree
 	}
 }
+
+func IsCompleteTree(tree Tree) bool {
+	switch tree := tree.(type) {
+	case core.ImageHash, *core.ImageHash:
+		return false
+
+	case TreeNode:
+		for _, subtree := range tree {
+			if !IsCompleteTree(subtree) {
+				return false
+			}
+		}
+
+		return true
+
+	default:
+		return true
+	}
+}
