@@ -500,6 +500,8 @@ func CreateAnypayLifiAttestation(
 	digestToSign := payload.Digest()
 	fmt.Printf("CreateAnypayLifiAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
 	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
+	fmt.Printf("CreateAnypayLifiAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
 	}
@@ -563,6 +565,8 @@ func CreateAnypayRelayAttestation(
 	digestToSign := payload.Digest()
 	fmt.Printf("CreateAnypayRelayAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
 	rawSignature, err := attestationSignerWallet.SignData(digestToSign.Hash[:])
+	fmt.Printf("CreateAnypayRelayAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
 	}
