@@ -537,6 +537,8 @@ func CreateAnypayLifiAttestation(
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
+	fmt.Printf("CreateAnypayLifiAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
+
 	// 5. Pack lifiInfos and eoaSignatureBytes
 	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: uint8Type}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, decodingStrategy, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
@@ -595,6 +597,8 @@ func CreateAnypayRelayAttestation(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
+
+	fmt.Printf("CreateAnypayRelayAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
 
 	// Pack anypayExecutionInfos, eoaSignatureBytes, and the signer's address
 	encodedAttestation, err := abi.Arguments{{Type: anypayInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(anypayExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
