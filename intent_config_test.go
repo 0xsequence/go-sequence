@@ -348,7 +348,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, &payload, "", nil, nil)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -423,10 +423,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil, "", nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, &payload1, "", nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2}, eoa1, nil, "", nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload2}, eoa1, &payload2, "", nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -435,10 +435,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, &payload, "", nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, nil, "", nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload}, eoa1, &payload, "", nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -474,7 +474,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, nil, "", nil)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), common.Address{}, []*v3.CallsPayload{&payload1}, eoa1, &payload1, "", nil, nil)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -545,7 +545,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, nil, nil, "", nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, []*v3.CallsPayload{&payload}, nil, &payload, "", nil, nil)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -703,7 +703,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotNil(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads, nil, nil, "", nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, common.Address{}, payloads, nil, &payload1, "", nil, nil)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
@@ -1064,7 +1064,7 @@ func TestCreateAnypayExecutionInfoAttestation(t *testing.T) {
 	}
 
 	// 2. Call CreateAnypayLifiAttestation
-	encodedAttestation, err := sequence.CreateAnypayLifiAttestation(attestationSignerWallet, &payload, lifiInfos)
+	encodedAttestation, err := sequence.CreateAnypayLifiAttestation(attestationSignerWallet, &payload, lifiInfos, 0)
 	require.NoError(t, err, "CreateAnypayLifiAttestation should not return an error for valid inputs")
 	require.NotNil(t, encodedAttestation, "Encoded attestation should not be nil")
 	require.NotEmpty(t, encodedAttestation, "Encoded attestation should not be empty")
