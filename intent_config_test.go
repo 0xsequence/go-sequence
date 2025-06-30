@@ -980,6 +980,23 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
 }
 
+func TestGetAnypayExecutionInfoHash_WithUserParams(t *testing.T) {
+	executionInfos := []sequence.AnypayExecutionInfo{
+		{
+			OriginToken:        common.HexToAddress("0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"),
+			Amount:             big.NewInt(1052844),
+			OriginChainId:      big.NewInt(42161),
+			DestinationChainId: big.NewInt(8453),
+		},
+	}
+	attestationAddress := common.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
+	expectedHash := common.HexToHash("0x98f9389e78aafff240a62ffbfdd16c3beee1932f5b90e0cfaa90c74c004f4645")
+
+	hash, err := sequence.GetAnypayExecutionInfoHash(executionInfos, attestationAddress)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedHash, common.BytesToHash(hash[:]), "AnypayExecutionInfo hash mismatch with user params")
+}
+
 func TestGetAnypayExecutionInfoHash(t *testing.T) {
 	t.Run("SingleInfo", func(t *testing.T) {
 		originTokenAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")

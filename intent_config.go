@@ -17,8 +17,8 @@ import (
 var (
 	AnypayLiFiSapientSignerAddress      = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
 	AnypayLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
-	AnypayRelaySapientSignerAddress     = common.HexToAddress("0x7fBdE2c840D18f871928A7d5bCA86F5aaD8F66DB")
-	AnypayRelaySapientSignerLiteAddress = common.HexToAddress("0x7fBdE2c840D18f871928A7d5bCA86F5aaD8F66DB")
+	AnypayRelaySapientSignerAddress     = common.HexToAddress("0x7B136DCF6345dFE473ceC99e4Da862a82a5C38f5")
+	AnypayRelaySapientSignerLiteAddress = common.HexToAddress("0x7B136DCF6345dFE473ceC99e4Da862a82a5C38f5")
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -176,7 +176,14 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 }
 
 // GetAnypayExecutionInfoHash computes the Keccak256 hash of ABI-encoded AnypayExecutionInfo array and an attestation address.
-func GetAnypayExecutionInfoHash(lifiInfos []AnypayExecutionInfo, attestationAddress common.Address) ([32]byte, error) {
+func GetAnypayExecutionInfoHash(executionInfos []AnypayExecutionInfo, attestationAddress common.Address) ([32]byte, error) {
+	if len(executionInfos) == 0 {
+		return [32]byte{}, fmt.Errorf("executionInfos is empty")
+	}
+
+	spew.Dump(executionInfos)
+	spew.Dump(attestationAddress)
+
 	// Define ABI type components for the AnypayExecutionInfo struct
 	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
@@ -199,12 +206,12 @@ func GetAnypayExecutionInfoHash(lifiInfos []AnypayExecutionInfo, attestationAddr
 
 	// Define the arguments for ABI encoding
 	arguments := abi.Arguments{
-		{Name: "lifiInfos", Type: AnypayExecutionInfoListType},
+		{Name: "executionInfos", Type: AnypayExecutionInfoListType},
 		{Name: "attestationAddress", Type: addressType},
 	}
 
 	// ABI encode the arguments
-	encodedData, err := arguments.Pack(lifiInfos, attestationAddress)
+	encodedData, err := arguments.Pack(executionInfos, attestationAddress)
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayExecutionInfo hash: %w", err)
 	}
@@ -482,7 +489,7 @@ func GetIntentConfigurationSignature(
 func CreateAnypayLifiAttestation(
 	attestationSignerWallet *ethwallet.Wallet,
 	payload *v3.CallsPayload,
-	lifiInfos []AnypayExecutionInfo,
+	executionInfos []AnypayExecutionInfo,
 	decodingStrategy uint8,
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
@@ -493,8 +500,8 @@ func CreateAnypayLifiAttestation(
 		return nil, fmt.Errorf("payload is nil for attestation")
 	}
 
-	if len(lifiInfos) == 0 {
-		return nil, fmt.Errorf("lifiInfos is empty")
+	if len(executionInfos) == 0 {
+		return nil, fmt.Errorf("executionInfos is empty")
 	}
 
 	digestToSign := payload.Digest()
@@ -539,8 +546,8 @@ func CreateAnypayLifiAttestation(
 
 	fmt.Printf("CreateAnypayLifiAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
 
-	// 5. Pack lifiInfos and eoaSignatureBytes
-	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: uint8Type}, {Type: bytesType}, {Type: addressType}}.Pack(lifiInfos, decodingStrategy, eoaSignatureBytes, attestationSignerWallet.Address())
+	// 5. Pack executionInfos and eoaSignatureBytes
+	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: uint8Type}, {Type: bytesType}, {Type: addressType}}.Pack(executionInfos, decodingStrategy, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
 		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
 	}
