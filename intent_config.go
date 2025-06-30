@@ -2,7 +2,6 @@ package sequence
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/davecgh/go-spew/spew"
