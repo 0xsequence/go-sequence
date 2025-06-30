@@ -6,7 +6,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -15,8 +14,8 @@ import (
 	"sync"
 
 	"github.com/0xsequence/ethkit/ethrpc"
+	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
-	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
@@ -53,19 +52,17 @@ type Signature[C WalletConfig] interface {
 
 	// Recover derives the wallet configuration that the signature applies to.
 	// Also returns the signature's weight.
-	// If chainID is not provided, provider must be provided.
 	// If provider is not provided, EIP-1271 signatures are assumed to be NOT valid and ignored.
+	// If provider is not provided and the signature contains sapient signer signatures, recovery will fail.
+	// If payload is a digest without preimage and the signature contains non-compact sapient signer signatures, recovery will fail.
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
-	Recover(ctx context.Context, digest Digest, wallet common.Address, chainID *big.Int, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
-
-	// Recover a signature but only using the subdigest
-	RecoverSubdigest(ctx context.Context, subdigest Subdigest, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
+	Recover(ctx context.Context, payload Payload, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
 
 	// Reduce returns an equivalent optimized signature.
-	Reduce(subdigest Subdigest) Signature[C]
+	Reduce(payload Payload) Signature[C]
 
 	// Join joins two signatures into one.
-	Join(subdigest Subdigest, other Signature[C]) (Signature[C], error)
+	Join(payload Payload, other Signature[C]) (Signature[C], error)
 
 	// Data is the raw signature data.
 	Data() ([]byte, error)
@@ -97,21 +94,44 @@ type WalletConfig interface {
 	IsUsable() error
 }
 
-// A SignerSignatures object stores signer signatures indexed by signer and subdigest.
-type SignerSignatures map[common.Address]map[common.Hash]SignerSignature
+type SignerSignatures map[common.Address]struct {
+	Signature         *SignerSignature
+	SapientSignatures map[common.Hash]SignerSignature
+}
 
 func (s SignerSignatures) Insert(signer common.Address, signature SignerSignature) {
 	if s == nil {
 		return
 	}
 
-	signerSignatures := s[signer]
-	if signerSignatures == nil {
-		signerSignatures = map[common.Hash]SignerSignature{}
-		s[signer] = signerSignatures
+	if signatures, ok := s[signer]; ok {
+		signatures.Signature = &signature
+		s[signer] = signatures
+	} else {
+		s[signer] = struct {
+			Signature         *SignerSignature
+			SapientSignatures map[common.Hash]SignerSignature
+		}{Signature: &signature}
+	}
+}
+
+func (s SignerSignatures) InsertSapient(signer common.Address, imageHash common.Hash, signature SignerSignature) {
+	if s == nil {
+		return
 	}
 
-	signerSignatures[signature.Subdigest.Hash] = signature
+	if signatures, ok := s[signer]; ok {
+		if signatures.SapientSignatures == nil {
+			signatures.SapientSignatures = map[common.Hash]SignerSignature{}
+		}
+		signatures.SapientSignatures[imageHash] = signature
+		s[signer] = signatures
+	} else {
+		s[signer] = struct {
+			Signature         *SignerSignature
+			SapientSignatures map[common.Hash]SignerSignature
+		}{SapientSignatures: map[common.Hash]SignerSignature{imageHash: signature}}
+	}
 }
 
 type SignerSignatureType int
@@ -126,7 +146,6 @@ const (
 
 type SignerSignature struct {
 	Signer    common.Address
-	Subdigest Subdigest
 	Type      SignerSignatureType
 	Signature []byte
 	Error     error
@@ -234,80 +253,22 @@ func (h ImageHash) ImageHash() ImageHash {
 	return h
 }
 
-var imageHashApprovalSalt = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
-
-// Approval derives the digest that must be signed to approve the ImageHash for subsequent signatures.
-func (h ImageHash) Approval() Digest {
-	return NewDigest(imageHashApprovalSalt.Bytes(), h.Bytes())
+func EthereumSignedMessage(message []byte) common.Hash {
+	return common.Hash(accounts.TextHash(message))
 }
 
-// A Digest is a hash signed by a Sequence wallet.
-// Used for type safety and preimage recovery.
-type Digest struct {
-	common.Hash
-
-	// Preimage is the preimage of the digest, nil if unknown.
-	Preimage []byte
-}
-
-// NewDigest creates a Digest from a list of messages.
-func NewDigest(messages ...[]byte) Digest {
-	preimage := bytes.Join(messages, nil)
-
-	return Digest{
-		Hash:     crypto.Keccak256Hash(preimage),
-		Preimage: preimage,
-	}
-}
-
-// ApprovedImageHash recovers the ImageHash that the Digest approves for subsequent signatures, if known.
-func (d Digest) ApprovedImageHash() (ImageHash, error) {
-	if !bytes.HasPrefix(d.Preimage, imageHashApprovalSalt.Bytes()) || len(d.Preimage) != len(imageHashApprovalSalt.Bytes())+common.HashLength {
-		return ImageHash{}, fmt.Errorf(`preimage %v of %v is not an image hash approval`, hexutil.Encode(d.Preimage), d.Hash)
+func Ecrecover(digest common.Hash, signature []byte) (common.Address, error) {
+	if length := len(signature); length != crypto.SignatureLength {
+		return common.Address{}, fmt.Errorf("invalid ecdsa signature length %v, expected length %v", length, crypto.SignatureLength)
 	}
 
-	return ImageHash{Hash: common.BytesToHash(d.Preimage[len(imageHashApprovalSalt.Bytes()):])}, nil
-}
+	signature_ := [crypto.SignatureLength]byte(signature)
+	signature_[len(signature_)-1] -= 27
 
-// Subdigest derives the hash to be signed by the Sequence wallet's signers to validate the digest.
-func (d Digest) Subdigest(wallet common.Address, chainID ...*big.Int) Subdigest {
-	if len(chainID) == 0 {
-		chainID = []*big.Int{nil}
-	}
-	if chainID[0] == nil {
-		chainID[0] = new(big.Int)
+	pubkey, err := crypto.SigToPub(digest.Bytes(), signature_[:])
+	if err != nil {
+		return common.Address{}, fmt.Errorf("unable to recover ecdsa signature: %w", err)
 	}
 
-	return Subdigest{
-		Hash:    crypto.Keccak256Hash([]byte{0x19, 0x01}, common.BigToHash(chainID[0]).Bytes(), wallet.Bytes(), d.Bytes()),
-		Digest:  &d,
-		Wallet:  &wallet,
-		ChainID: chainID[0],
-	}
-}
-
-// A Subdigest is a hash signed by a Sequence wallet's signers.
-// Used for type safety and preimage recovery.
-type Subdigest struct {
-	common.Hash
-
-	// Digest is the preimage of the subdigest, nil if unknown.
-	Digest *Digest
-
-	// Wallet is the target wallet of the subdigest, nil if unknown.
-	Wallet *common.Address
-
-	// ChainID is the target chain ID of the subdigest, nil if unknown.
-	ChainID *big.Int
-
-	// EthSignPreimage is the preimage of the eth_sign subdigest, nil if unknown.
-	EthSignPreimage *Subdigest
-}
-
-// EthSignSubdigest derives the eth_sign subdigest of a subdigest.
-func (s Subdigest) EthSignSubdigest() Subdigest {
-	return Subdigest{
-		Hash:            crypto.Keccak256Hash([]byte("\x19Ethereum Signed Message:\n"), []byte(fmt.Sprintf("%v", len(s.Bytes()))), s.Bytes()),
-		EthSignPreimage: &s,
-	}
+	return crypto.PubkeyToAddress(*pubkey), nil
 }

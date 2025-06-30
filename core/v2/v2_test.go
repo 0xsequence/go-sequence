@@ -3,7 +3,6 @@ package v2
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -96,15 +95,11 @@ func TestSignatureJoin(t *testing.T) {
 		}
 
 		msg := []byte("hello")
-		digest := core.Digest{
-			Hash:     crypto.Keccak256Hash(msg),
-			Preimage: nil,
-		}
-		subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
 		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa1.Address() {
-				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -114,7 +109,7 @@ func TestSignatureJoin(t *testing.T) {
 
 		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa2.Address() {
-				sig, _ := eoa2.SignMessage(subdigest.Bytes())
+				sig, _ := eoa2.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -122,7 +117,7 @@ func TestSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		joinedSig, err := sig1.Join(subdigest, sig2)
+		joinedSig, err := sig1.Join(payload, sig2)
 		require.NoError(t, err)
 
 		sig1Tree := sig1.(*regularSignature).tree
@@ -166,15 +161,11 @@ func TestSignatureJoin(t *testing.T) {
 		}
 
 		msg := []byte("hello")
-		digest := core.Digest{
-			Hash:     crypto.Keccak256Hash(msg),
-			Preimage: nil,
-		}
-		subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
 		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa1.Address() {
-				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -182,11 +173,11 @@ func TestSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig1 = sig1.Reduce(subdigest)
+		sig1 = sig1.Reduce(payload)
 
 		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa6.Address() {
-				sig, _ := eoa6.SignMessage(subdigest.Bytes())
+				sig, _ := eoa6.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -194,9 +185,9 @@ func TestSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig2 = sig2.Reduce(subdigest)
+		sig2 = sig2.Reduce(payload)
 
-		joinedSig, err := sig1.Join(subdigest, sig2)
+		joinedSig, err := sig1.Join(payload, sig2)
 		require.NoError(t, err)
 
 		sig1Tree := sig1.(*regularSignature).tree
@@ -260,15 +251,11 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}
 
 		msg := []byte("hello")
-		digest := core.Digest{
-			Hash:     crypto.Keccak256Hash(msg),
-			Preimage: nil,
-		}
-		subdigest := digest.Subdigest(common.Address{})
+		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
 		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa1.Address() {
-				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -278,7 +265,7 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 
 		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa2.Address() {
-				sig, _ := eoa2.SignMessage(subdigest.Bytes())
+				sig, _ := eoa2.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -286,7 +273,7 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		joinedSig, err := sig1.Join(subdigest, sig2)
+		joinedSig, err := sig1.Join(payload, sig2)
 		require.NoError(t, err)
 
 		sig1Tree := sig1.(*noChainIDSignature).tree
@@ -330,15 +317,11 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}
 
 		msg := []byte("hello")
-		digest := core.Digest{
-			Hash:     crypto.Keccak256Hash(msg),
-			Preimage: nil,
-		}
-		subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
 		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa1.Address() {
-				sig, _ := eoa1.SignMessage(subdigest.Bytes())
+				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return core.SignerSignatureTypeEIP712, nil, nil
@@ -346,11 +329,11 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig1 = sig1.Reduce(subdigest)
+		sig1 = sig1.Reduce(payload)
 
 		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			if signer == eoa6.Address() {
-				sig, _ := eoa6.SignMessage(subdigest.Bytes())
+				sig, _ := eoa6.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
 				return 0, nil, nil
@@ -358,9 +341,9 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig2 = sig2.Reduce(subdigest)
+		sig2 = sig2.Reduce(payload)
 
-		joinedSig, err := sig1.Join(subdigest, sig2)
+		joinedSig, err := sig1.Join(payload, sig2)
 		require.NoError(t, err)
 
 		sig1Tree := sig1.(*noChainIDSignature).tree
@@ -421,7 +404,7 @@ func TestReduceSignature(t *testing.T) {
 
 	spew.Dump(decodedSignature)
 
-	reducedSignature := decodedSignature.Reduce(core.Subdigest{})
+	reducedSignature := decodedSignature.Reduce(core.PayloadDigest{})
 
 	spew.Dump(reducedSignature)
 

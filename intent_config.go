@@ -2,6 +2,7 @@ package sequence
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math/big"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -80,7 +82,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	var cumulativeCallsHash [32]byte
 	for i, callPayload := range params.DestinationCalls {
 		// Change the address to address(0)
-		callPayload.AddressZero()
+		callPayload, _ := v3.PayloadWithAddress(callPayload, common.Address{})
 
 		individualPayloadDigest := callPayload.Digest()
 
@@ -244,10 +246,7 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 		digest := call.Digest()
 
 		// Create a subdigest leaf with the computed digest.
-		leaf := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
-			Digest: core.Subdigest{Hash: digest.Hash},
-		}
-		leaves = append(leaves, leaf)
+		leaves = append(leaves, &v3.WalletConfigTreeAnyAddressSubdigestLeaf{Digest: digest.Hash})
 	}
 
 	return leaves, nil

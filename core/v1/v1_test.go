@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethwallet"
@@ -69,15 +68,11 @@ func TestSignatureJoin(t *testing.T) {
 	}
 
 	msg := []byte("hello")
-	digest := core.Digest{
-		Hash:     crypto.Keccak256Hash(msg),
-		Preimage: nil,
-	}
-	subdigest := digest.Subdigest(common.Address{}, big.NewInt(0))
+	payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
 	sig1, err := wc.BuildSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		if signer == eoa1.Address() {
-			sig, _ := eoa1.SignMessage(subdigest.Bytes())
+			sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 			return core.SignerSignatureTypeEthSign, sig, nil
 		} else {
 			return 0, nil, nil
@@ -87,7 +82,7 @@ func TestSignatureJoin(t *testing.T) {
 
 	sig2, err := wc.BuildSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		if signer == eoa2.Address() {
-			sig, _ := eoa2.SignMessage(subdigest.Bytes())
+			sig, _ := eoa2.SignMessage(payload.Digest().Bytes())
 			return core.SignerSignatureTypeEthSign, sig, nil
 		} else {
 			return 0, nil, nil
@@ -98,7 +93,7 @@ func TestSignatureJoin(t *testing.T) {
 	sig1Leaves := sig1.(*signature).leaves
 	sig2Leaves := sig2.(*signature).leaves
 
-	sigJoined, err := sig1.Join(subdigest, sig2)
+	sigJoined, err := sig1.Join(payload, sig2)
 	require.NoError(t, err)
 
 	sigJoinedLeaves := sigJoined.(*signature).leaves

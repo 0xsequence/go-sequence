@@ -143,39 +143,49 @@ func DecodeABIPayload(input string) (DecodedPayload, error) {
 	return DecodedPayload{}, fmt.Errorf("failed to decode payload")
 }
 
-type PayloadDigestable interface {
-	Digest() PayloadDigest
+func PayloadWithAddress(payload core.Payload, address common.Address) (core.Payload, error) {
+	switch payload := payload.(type) {
+	case CallsPayload:
+		return CallsPayload{
+			basePayload: payload.basePayload.withAddress(address),
+
+			Calls: payload.Calls,
+			Space: payload.Space,
+			Nonce: payload.Nonce,
+		}, nil
+
+	case MessagePayload:
+		return MessagePayload{
+			basePayload: payload.basePayload.withAddress(address),
+
+			Message: payload.Message,
+		}, nil
+
+	case ConfigUpdatePayload:
+		return ConfigUpdatePayload{
+			basePayload: payload.basePayload.withAddress(address),
+
+			ImageHash: payload.ImageHash,
+		}, nil
+
+	case DigestPayload:
+		return DigestPayload{
+			basePayload: payload.basePayload.withAddress(address),
+
+			MessageDigest: payload.MessageDigest,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unable to override address to %v for %T payload %v", address, payload, payload.Digest())
+	}
 }
 
 var (
-	_ PayloadDigestable = PayloadDigest{}
+	_ core.Payload = CallsPayload{}
+	_ core.Payload = MessagePayload{}
+	_ core.Payload = ConfigUpdatePayload{}
+	_ core.Payload = DigestPayload{}
 )
-
-type Payload interface {
-	PayloadDigestable
-
-	Address() common.Address
-	ChainID() *big.Int
-	Encode(address common.Address) []byte
-	ABIEncode() walletstage1.PayloadDecoded
-}
-
-var (
-	_ Payload = CallsPayload{}
-	_ Payload = MessagePayload{}
-	_ Payload = ConfigUpdatePayload{}
-	_ Payload = DigestPayload{}
-)
-
-type PayloadDigest struct {
-	common.Hash
-
-	Preimage Payload
-}
-
-func (d PayloadDigest) Digest() PayloadDigest {
-	return d
-}
 
 type basePayload struct {
 	address       common.Address
@@ -183,16 +193,12 @@ type basePayload struct {
 	parentWallets []common.Address
 }
 
-func (p *basePayload) AddressZero() {
-	p.address = common.Address{}
-}
-
-func (p basePayload) Address() common.Address {
-	return p.address
-}
-
-func (p basePayload) ChainID() *big.Int {
-	return p.chainID
+func (p basePayload) withAddress(address common.Address) basePayload {
+	return basePayload{
+		address:       address,
+		chainID:       p.chainID,
+		parentWallets: p.parentWallets,
+	}
 }
 
 var eip712Domain = []ethcoder.TypedDataArgument{
@@ -400,7 +406,7 @@ type CallsPayload struct {
 	Nonce *big.Int
 }
 
-func (p CallsPayload) Digest() PayloadDigest {
+func (p CallsPayload) Digest() core.PayloadDigest {
 	calls := make([]any, 0, len(p.Calls))
 	for _, call := range p.Calls {
 		calls = append(calls, any(call.asMap()))
@@ -445,7 +451,7 @@ func (p CallsPayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
 }
 
 func (p CallsPayload) Encode(address common.Address) []byte {
@@ -568,7 +574,7 @@ func DecodeCalls(address common.Address, chainID *big.Int, data []byte) (CallsPa
 	return NewCallsPayload(address, chainID, calls, space, nonce), nil
 }
 
-func NewMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) Payload {
+func NewMessagePayload(address common.Address, chainID *big.Int, message_ []byte, parentWallets ...[]common.Address) MessagePayload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -599,7 +605,7 @@ type MessagePayload struct {
 	Message []byte
 }
 
-func (p MessagePayload) Digest() PayloadDigest {
+func (p MessagePayload) Digest() core.PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -626,7 +632,7 @@ func (p MessagePayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
 }
 
 func (p MessagePayload) Encode(address common.Address) []byte {
@@ -656,21 +662,21 @@ func (p MessagePayload) ABIEncode() walletstage1.PayloadDecoded {
 	}
 }
 
-func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
+func DecodeMessage(address common.Address, chainID *big.Int, data []byte) (MessagePayload, error) {
 	if len(data) < 4 { // kind byte + 3 bytes length
-		return nil, fmt.Errorf("message payload too short")
+		return MessagePayload{}, fmt.Errorf("message payload too short")
 	}
 	data = data[1:] // Skip kind byte
 	msgLen := int(data[0])<<16 + int(data[1])<<8 + int(data[2])
 	data = data[3:]
 	if len(data) < msgLen {
-		return nil, fmt.Errorf("message data too short")
+		return MessagePayload{}, fmt.Errorf("message data too short")
 	}
 	message := data[:msgLen]
 	return NewMessagePayload(address, chainID, message), nil
 }
 
-func NewConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) Payload {
+func NewConfigUpdatePayload(address common.Address, chainID *big.Int, imageHash common.Hash, parentWallets ...[]common.Address) ConfigUpdatePayload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -701,7 +707,7 @@ type ConfigUpdatePayload struct {
 	ImageHash core.ImageHashable
 }
 
-func (p ConfigUpdatePayload) Digest() PayloadDigest {
+func (p ConfigUpdatePayload) Digest() core.PayloadDigest {
 	wallets := make([]any, 0, len(p.parentWallets))
 	for _, wallet := range p.parentWallets {
 		wallets = append(wallets, any(wallet))
@@ -728,7 +734,7 @@ func (p ConfigUpdatePayload) Digest() PayloadDigest {
 		panic(err)
 	}
 
-	return PayloadDigest{Hash: common.Hash(digest), Preimage: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
 }
 
 func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
@@ -752,9 +758,9 @@ func (p ConfigUpdatePayload) ABIEncode() walletstage1.PayloadDecoded {
 	}
 }
 
-func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
+func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (ConfigUpdatePayload, error) {
 	if len(data) < 33 {
-		return nil, fmt.Errorf("config update payload too short")
+		return ConfigUpdatePayload{}, fmt.Errorf("config update payload too short")
 	}
 	data = data[1:]
 	var hash common.Hash
@@ -762,7 +768,7 @@ func DecodeConfigUpdate(address common.Address, chainID *big.Int, data []byte) (
 	return NewConfigUpdatePayload(address, chainID, hash), nil
 }
 
-func NewDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) Payload {
+func NewDigestPayload(address common.Address, chainID *big.Int, digest_ common.Hash, parentWallets ...[]common.Address) DigestPayload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
@@ -790,7 +796,7 @@ type DigestPayload struct {
 	MessageDigest common.Hash
 }
 
-func (p DigestPayload) Digest() PayloadDigest {
+func (p DigestPayload) Digest() core.PayloadDigest {
 	domain, _ := ethcoder.ABIPackArguments(
 		[]string{
 			"bytes32",
@@ -833,11 +839,11 @@ func (p DigestPayload) Digest() PayloadDigest {
 		},
 	)
 
-	return PayloadDigest{Hash: crypto.Keccak256Hash(
+	return core.PayloadDigest{Hash: crypto.Keccak256Hash(
 		[]byte("\x19\x01"),
 		crypto.Keccak256(domain),
 		crypto.Keccak256(message),
-	), Preimage: p}
+	), Address: p.address, ChainID: p.chainID, Payload: p}
 }
 
 func (p DigestPayload) Encode(address common.Address) []byte {
@@ -880,7 +886,7 @@ func isNil(value any) bool {
 	return false
 }
 
-func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (Payload, error) {
+func DecodeRawPayload(address common.Address, chainID *big.Int, data []byte) (core.Payload, error) {
 	decoded, err := DecodeABIPayload(hexutil.Encode(data))
 	if err != nil {
 		return nil, err

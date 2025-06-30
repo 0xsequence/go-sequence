@@ -93,7 +93,7 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		require.True(t, ok, "tree should be a WalletConfigTreeAnyAddressSubdigestLeaf")
 
 		digest := payload1.Digest()
-		require.Equal(t, digest.Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, digest.Hash, anyAddressLeaf.Digest, "digests do not match")
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
@@ -117,8 +117,8 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 
 		digest1 := payload1.Digest()
 		digest2 := payload2.Digest()
-		require.Equal(t, digest1.Hash, leftLeaf.Digest.Hash, "left leaf digest does not match")
-		require.Equal(t, digest2.Hash, rightLeaf.Digest.Hash, "right leaf digest does not match")
+		require.Equal(t, digest1.Hash, leftLeaf.Digest, "left leaf digest does not match")
+		require.Equal(t, digest2.Hash, rightLeaf.Digest, "right leaf digest does not match")
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
@@ -149,9 +149,9 @@ func TestCreateIntentDigestTree_Valid(t *testing.T) {
 		digest1 := payload1.Digest()
 		digest2 := payload2.Digest()
 		digest3 := payload3.Digest()
-		require.Equal(t, digest1.Hash, leftLeftLeaf.Digest.Hash, "left left leaf digest does not match")
-		require.Equal(t, digest2.Hash, leftRightLeaf.Digest.Hash, "left right leaf digest does not match")
-		require.Equal(t, digest3.Hash, rightLeaf.Digest.Hash, "right leaf digest does not match")
+		require.Equal(t, digest1.Hash, leftLeftLeaf.Digest, "left left leaf digest does not match")
+		require.Equal(t, digest2.Hash, leftRightLeaf.Digest, "left right leaf digest does not match")
+		require.Equal(t, digest3.Hash, rightLeaf.Digest, "right leaf digest does not match")
 	})
 }
 
@@ -209,12 +209,8 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		require.True(t, ok, "left leaf should be WalletConfigTreeAddressLeaf")
 		require.Equal(t, addressLeaf.Address, common.Address{}, "address leaf should be the main signer")
 
-		anyAddressLeaf, ok := nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+		_, ok = nodeTree.Right.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "right leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
-
-		// Get the digest of the leaf
-		digest := anyAddressLeaf.Digest.Hash
-		require.NotNil(t, digest)
 
 		// Get the digest of the payload
 		bundle, err := sequence.CreateAnyAddressSubdigestTree([]*v3.CallsPayload{&payload1})
@@ -246,12 +242,8 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		anyAddressLeaf2, ok := nodeRight.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		// Get the digest of the leaf
-		digest := anyAddressLeaf.Digest.Hash
-		require.NotNil(t, digest)
-
-		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
-		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf2.Digest, "digests do not match")
+		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf.Digest, "digests do not match")
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
@@ -283,18 +275,9 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 		anyAddressLeaf3, ok := nodeLeft.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
 		require.True(t, ok, "left leaf should be WalletConfigTreeAnyAddressSubdigestLeaf")
 
-		digest1 := anyAddressLeaf.Digest.Hash
-		require.NotNil(t, digest1)
-
-		digest2 := anyAddressLeaf2.Digest.Hash
-		require.NotNil(t, digest2)
-
-		digest3 := anyAddressLeaf3.Digest.Hash
-		require.NotNil(t, digest3)
-
-		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf3.Digest.Hash, "digests do not match")
-		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf2.Digest.Hash, "digests do not match")
-		require.Equal(t, payload3.Digest().Hash, anyAddressLeaf.Digest.Hash, "digests do not match")
+		require.Equal(t, payload1.Digest().Hash, anyAddressLeaf3.Digest, "digests do not match")
+		require.Equal(t, payload2.Digest().Hash, anyAddressLeaf2.Digest, "digests do not match")
+		require.Equal(t, payload3.Digest().Hash, anyAddressLeaf.Digest, "digests do not match")
 	})
 }
 
@@ -374,7 +357,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err, "signature should be decodable")
 
 		// Get the config from the signature
-		recoveredConfig, _, err := sig.RecoverSubdigest(context.Background(), anyAddressSubdigestLeaf.Digest, nil)
+		recoveredConfig, _, err := sig.Recover(context.Background(), payload, nil)
 		// spew.Dump(recoveredConfig)
 
 		require.NoError(t, err)
@@ -384,7 +367,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		sigDataStr, err := sig.Data()
 		require.NoError(t, err)
 
-		anyAddressSubdigestStr := anyAddressSubdigestLeaf.Digest.Hash.Hex()
+		anyAddressSubdigestStr := anyAddressSubdigestLeaf.Digest.Hex()
 
 		// Verify the signature contains the any address digest
 		require.Contains(t, common.Bytes2Hex(sigDataStr), anyAddressSubdigestStr[2:], "signature should contain the any address digest")
