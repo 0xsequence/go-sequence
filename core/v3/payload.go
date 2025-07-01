@@ -201,6 +201,11 @@ func (p basePayload) withAddress(address common.Address) basePayload {
 	}
 }
 
+// ChainID returns the chain ID for the payload
+func (p basePayload) ChainID() *big.Int {
+	return p.chainID
+}
+
 var eip712Domain = []ethcoder.TypedDataArgument{
 	{Name: "name", Type: "string"},
 	{Name: "version", Type: "string"},
