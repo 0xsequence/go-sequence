@@ -6,6 +6,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -251,6 +252,30 @@ type ImageHash struct {
 
 func (h ImageHash) ImageHash() ImageHash {
 	return h
+}
+
+var imageHashApprovalSalt = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
+
+// Approval derives the digest that must be signed to approve the ImageHash for subsequent signatures.
+func (h ImageHash) Approval() Digest {
+	return NewDigest(imageHashApprovalSalt.Bytes(), h.Bytes())
+}
+
+type Digest struct {
+	common.Hash
+
+	// Preimage is the preimage of the digest, nil if unknown.
+	Preimage []byte
+}
+
+// NewDigest creates a Digest from a list of messages.
+func NewDigest(messages ...[]byte) Digest {
+	preimage := bytes.Join(messages, nil)
+
+	return Digest{
+		Hash:     crypto.Keccak256Hash(preimage),
+		Preimage: preimage,
+	}
 }
 
 func EthereumSignedMessage(message []byte) common.Hash {
