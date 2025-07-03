@@ -21,6 +21,14 @@ var (
 	AnypayRelaySapientSignerLiteAddress = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
 )
 
+// AddressOverrides provides configurable address overrides for skewness protection
+type AddressOverrides struct {
+	AnypayLiFiSapientSignerAddress      *common.Address
+	AnypayLifiSapientSignerLiteAddress  *common.Address
+	AnypayRelaySapientSignerAddress     *common.Address
+	AnypayRelaySapientSignerLiteAddress *common.Address
+}
+
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
 type OriginToken struct {
 	Address common.Address `abi:"address"`
@@ -251,7 +259,7 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 }
 
 // `CreateAnypayExecutionInfoSapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
-func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, anypayExecutionInfos []AnypayExecutionInfo, sapientType string) (v3.WalletConfigTree, error) {
+func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, anypayExecutionInfos []AnypayExecutionInfo, sapientType string, overrides ...*AddressOverrides) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
 	sapientImageHash, err := GetAnypayExecutionInfoHash(anypayExecutionInfos, attestationSigner)
 	if err != nil {
@@ -259,12 +267,23 @@ func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address
 	}
 	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
 
+	var override *AddressOverrides
+	if len(overrides) > 0 && overrides[0] != nil {
+		override = overrides[0]
+	}
+
 	var sapientSignerAddress common.Address
 	switch sapientType {
 	case "lifi":
 		sapientSignerAddress = AnypayLifiSapientSignerLiteAddress
+		if override != nil && override.AnypayLifiSapientSignerLiteAddress != nil {
+			sapientSignerAddress = *override.AnypayLifiSapientSignerLiteAddress
+		}
 	case "relay":
 		sapientSignerAddress = AnypayRelaySapientSignerAddress
+		if override != nil && override.AnypayRelaySapientSignerAddress != nil {
+			sapientSignerAddress = *override.AnypayRelaySapientSignerAddress
+		}
 	}
 
 	// Create the lifi info leaf.
@@ -331,12 +350,12 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 }
 
 // `CreateLifiIntentConfiguration` is a helper function to create a LiFi intent configuration.
-func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo, overrides ...*AddressOverrides) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
 	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "lifi")
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "lifi", overrides...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
 		}
@@ -346,12 +365,12 @@ func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address,
 }
 
 // `CreateRelayIntentConfiguration` is a helper function to create a relay intent configuration.
-func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo, overrides ...*AddressOverrides) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
 	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "relay")
+		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "relay", overrides...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
 		}
@@ -371,6 +390,7 @@ func GetIntentConfigurationSignature(
 	sapientType string, // "lifi" or "relay"
 	anypayExecutionInfos []AnypayExecutionInfo,
 	decodingStrategy *uint8,
+	overrides ...*AddressOverrides,
 ) ([]byte, error) {
 	var config *v3.WalletConfig
 	var err error
@@ -385,12 +405,12 @@ func GetIntentConfigurationSignature(
 
 	switch sapientType {
 	case "lifi":
-		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos, overrides...)
 		if err != nil {
 			return nil, err
 		}
 	case "relay":
-		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos, overrides...)
 		if err != nil {
 			return nil, err
 		}
@@ -408,10 +428,25 @@ func GetIntentConfigurationSignature(
 		config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
 	}
 
+	var override *AddressOverrides
+	if len(overrides) > 0 && overrides[0] != nil {
+		override = overrides[0]
+	}
+
+	anypayLifiSapientSignerLiteAddress := AnypayLifiSapientSignerLiteAddress
+	if override != nil && override.AnypayLifiSapientSignerLiteAddress != nil {
+		anypayLifiSapientSignerLiteAddress = *override.AnypayLifiSapientSignerLiteAddress
+	}
+
+	anypayRelaySapientSignerAddress := AnypayRelaySapientSignerAddress
+	if override != nil && override.AnypayRelaySapientSignerAddress != nil {
+		anypayRelaySapientSignerAddress = *override.AnypayRelaySapientSignerAddress
+	}
+
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
-		if signer == AnypayLifiSapientSignerLiteAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
+		if signer == anypayLifiSapientSignerLiteAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
 			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
 			var attestationBytes []byte
@@ -422,7 +457,7 @@ func GetIntentConfigurationSignature(
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
-		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
+		if signer == anypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
 			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
 			var attestationBytes []byte
 			attestationBytes, err = CreateAnypayRelayAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos)
