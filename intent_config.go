@@ -19,6 +19,7 @@ var (
 	TrailsLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
 	TrailsRelaySapientSignerAddress     = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
 	TrailsRelaySapientSignerLiteAddress = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
+	TrailsCCTPV2SapientSignerAddress    = common.HexToAddress("0x1111111111111111111111111111111111111111")
 )
 
 // AddressOverrides provides configurable address overrides for skewness protection
@@ -27,6 +28,7 @@ type AddressOverrides struct {
 	TrailsLifiSapientSignerLiteAddress  *common.Address
 	TrailsRelaySapientSignerAddress     *common.Address
 	TrailsRelaySapientSignerLiteAddress *common.Address
+	TrailsCCTPV2SapientSignerAddress    *common.Address
 }
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -232,7 +234,7 @@ func GetTrailsExecutionInfoHash(executionInfos []TrailsExecutionInfo, attestatio
 	return hash32, nil
 }
 
-// `CreateIntentDigestTree` iterates over each batch of payloads,
+// `CreateAnyAddressSubdigestTree` iterates over each batch of payloads,
 // validates that each call in the payload meets the following criteria:
 //   - GasLimit must be 0,
 //
@@ -283,6 +285,11 @@ func CreateTrailsExecutionInfoSapientSignerTree(attestationSigner common.Address
 		sapientSignerAddress = TrailsRelaySapientSignerAddress
 		if override != nil && override.TrailsRelaySapientSignerAddress != nil {
 			sapientSignerAddress = *override.TrailsRelaySapientSignerAddress
+		}
+	case "cctpv2":
+		sapientSignerAddress = TrailsCCTPV2SapientSignerAddress
+		if override != nil && override.TrailsCCTPV2SapientSignerAddress != nil {
+			sapientSignerAddress = *override.TrailsCCTPV2SapientSignerAddress
 		}
 	}
 
@@ -373,6 +380,21 @@ func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address
 		sapientSignerLeafNode, err = CreateTrailsExecutionInfoSapientSignerTree(attestationSigner, trailsExecutionInfos, "relay", overrides...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
+		}
+	}
+
+	return CreateIntentConfiguration(mainSigner, calls, sapientSignerLeafNode)
+}
+
+// `CreateCCTPV2IntentConfiguration` is a helper function to create a CCTP V2 intent configuration.
+func CreateCCTPV2IntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, trailsExecutionInfos []TrailsExecutionInfo, overrides ...*AddressOverrides) (*v3.WalletConfig, error) {
+	var sapientSignerLeafNode v3.WalletConfigTree
+	var err error
+
+	if attestationSigner != (common.Address{}) && len(trailsExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateTrailsExecutionInfoSapientSignerTree(attestationSigner, trailsExecutionInfos, "cctpv2", overrides...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cctp info leaf: %w", err)
 		}
 	}
 
@@ -638,6 +660,67 @@ func CreateTrailsRelayAttestation(
 	}
 
 	fmt.Printf("CreateTrailsRelayAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
+
+	// Pack trailsExecutionInfos, eoaSignatureBytes, and the signer's address
+	encodedAttestation, err := abi.Arguments{{Type: trailsInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(trailsExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
+	if err != nil {
+		return nil, fmt.Errorf("failed to ABI pack TrailsExecutionInfo[], signature and address: %w", err)
+	}
+
+	return encodedAttestation, nil
+}
+
+// CreateTrailsCCTPAttestation generates the ABI-encoded signature required by the TrailsCCTPV2SapientSigner contract.
+func CreateTrailsCCTPAttestation(
+	attestationSignerWallet *ethwallet.Wallet,
+	payload *v3.CallsPayload,
+	trailsExecutionInfos []TrailsExecutionInfo,
+) ([]byte, error) {
+	if attestationSignerWallet == nil {
+		return nil, fmt.Errorf("attestationSignerWallet is nil")
+	}
+	if payload == nil {
+		return nil, fmt.Errorf("payload is nil for attestation")
+	}
+	if len(trailsExecutionInfos) == 0 {
+		return nil, fmt.Errorf("trailsExecutionInfos is empty")
+	}
+
+	digestToSign := payload.Digest()
+	fmt.Printf("CreateTrailsCCTPAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
+	rawSignature, err := attestationSignerWallet.SignMessage(digestToSign.Hash[:])
+	fmt.Printf("CreateTrailsCCTPAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
+	}
+
+	if len(rawSignature) != 65 {
+		return nil, fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(rawSignature))
+	}
+	eoaSignatureBytes := rawSignature
+
+	// Define ABI types for abi.encode(TrailsExecutionInfo[] memory, bytes memory, address)
+	TrailsExecutionInfoComponents := []abi.ArgumentMarshaling{
+		{Name: "originToken", Type: "address"},
+		{Name: "amount", Type: "uint256"},
+		{Name: "originChainId", Type: "uint256"},
+		{Name: "destinationChainId", Type: "uint256"},
+	}
+	trailsInfoArrayType, err := abi.NewType("tuple[]", "TrailsExecutionInfo[]", TrailsExecutionInfoComponents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TrailsExecutionInfo[] ABI type: %w", err)
+	}
+	bytesType, err := abi.NewType("bytes", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bytes ABI type: %w", err)
+	}
+	addressType, err := abi.NewType("address", "", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
+	}
+
+	fmt.Printf("CreateTrailsCCTPAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
 
 	// Pack trailsExecutionInfos, eoaSignatureBytes, and the signer's address
 	encodedAttestation, err := abi.Arguments{{Type: trailsInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(trailsExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
