@@ -963,8 +963,8 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
 }
 
-func TestGetAnypayExecutionInfoHash_WithUserParams(t *testing.T) {
-	executionInfos := []sequence.AnypayExecutionInfo{
+func TestGetTrailsExecutionInfoHash_WithUserParams(t *testing.T) {
+	executionInfos := []sequence.TrailsExecutionInfo{
 		{
 			OriginToken:        common.HexToAddress("0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"),
 			Amount:             big.NewInt(1052844),
@@ -975,12 +975,12 @@ func TestGetAnypayExecutionInfoHash_WithUserParams(t *testing.T) {
 	attestationAddress := common.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
 	expectedHash := common.HexToHash("0x98f9389e78aafff240a62ffbfdd16c3beee1932f5b90e0cfaa90c74c004f4645")
 
-	hash, err := sequence.GetAnypayExecutionInfoHash(executionInfos, attestationAddress)
+	hash, err := sequence.GetTrailsExecutionInfoHash(executionInfos, attestationAddress)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedHash, common.BytesToHash(hash[:]), "AnypayExecutionInfo hash mismatch with user params")
+	assert.Equal(t, expectedHash, common.BytesToHash(hash[:]), "TrailsExecutionInfo hash mismatch with user params")
 }
 
-func TestGetAnypayExecutionInfoHash(t *testing.T) {
+func TestGetTrailsExecutionInfoHash(t *testing.T) {
 	t.Run("SingleInfo", func(t *testing.T) {
 		originTokenAddr := common.HexToAddress("0x1111111111111111111111111111111111111111")
 		amountVal := big.NewInt(100)
@@ -988,7 +988,7 @@ func TestGetAnypayExecutionInfoHash(t *testing.T) {
 		destinationChainIdVal := big.NewInt(10)
 		attestationAddrVal := common.HexToAddress("0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa")
 
-		lifiInfos := []sequence.AnypayExecutionInfo{
+		lifiInfos := []sequence.TrailsExecutionInfo{
 			{
 				OriginToken:        originTokenAddr,
 				Amount:             amountVal,
@@ -998,14 +998,14 @@ func TestGetAnypayExecutionInfoHash(t *testing.T) {
 		}
 
 		expectedHash := common.HexToHash("0x21872bd6b64711c4a5aecba95829c612f0b50c63f1a26991c2f76cf4a754aede")
-		actualHashBytes, err := sequence.GetAnypayExecutionInfoHash(lifiInfos, attestationAddrVal)
+		actualHashBytes, err := sequence.GetTrailsExecutionInfoHash(lifiInfos, attestationAddrVal)
 		require.NoError(t, err)
 
 		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "SingleInfo hash mismatch")
 	})
 
 	t.Run("MultipleInfo", func(t *testing.T) {
-		lifiInfos := []sequence.AnypayExecutionInfo{
+		lifiInfos := []sequence.TrailsExecutionInfo{
 			{
 				OriginToken:        common.HexToAddress("0x1111111111111111111111111111111111111111"),
 				Amount:             big.NewInt(100),
@@ -1022,14 +1022,14 @@ func TestGetAnypayExecutionInfoHash(t *testing.T) {
 		attestationAddrVal := common.HexToAddress("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
 
 		expectedHash := common.HexToHash("0xd18e54455db64ba31b9f9a447e181f83977cb70b136228d64ac85d64a6aefe71")
-		actualHashBytes, err := sequence.GetAnypayExecutionInfoHash(lifiInfos, attestationAddrVal)
+		actualHashBytes, err := sequence.GetTrailsExecutionInfoHash(lifiInfos, attestationAddrVal)
 		require.NoError(t, err)
 
 		assert.Equal(t, expectedHash, common.Hash(actualHashBytes), "MultipleInfo hash mismatch")
 	})
 }
 
-func TestCreateAnypayExecutionInfoAttestation(t *testing.T) {
+func TestCreateTrailsExecutionInfoAttestation(t *testing.T) {
 	// 1. Setup
 	attestationSignerWallet, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err, "Failed to create attestation signer wallet")
@@ -1048,7 +1048,7 @@ func TestCreateAnypayExecutionInfoAttestation(t *testing.T) {
 	// Using chain ID 1 for simplicity in this test context, can be any valid chain ID
 	payload := v3.NewCallsPayload(payloadAddress, big.NewInt(1), []v3.Call{call}, big.NewInt(0), big.NewInt(0))
 
-	lifiInfos := []sequence.AnypayExecutionInfo{
+	lifiInfos := []sequence.TrailsExecutionInfo{
 		{
 			OriginToken:        common.HexToAddress("0xOriginToken0000000000000000000000000000"),
 			Amount:             big.NewInt(1000),
@@ -1063,23 +1063,23 @@ func TestCreateAnypayExecutionInfoAttestation(t *testing.T) {
 		},
 	}
 
-	// 2. Call CreateAnypayLifiAttestation
-	encodedAttestation, err := sequence.CreateAnypayLifiAttestation(attestationSignerWallet, &payload, lifiInfos, 0)
-	require.NoError(t, err, "CreateAnypayLifiAttestation should not return an error for valid inputs")
+	// 2. Call CreateTrailsLifiAttestation
+	encodedAttestation, err := sequence.CreateTrailsLifiAttestation(attestationSignerWallet, &payload, lifiInfos, 0)
+	require.NoError(t, err, "CreateTrailsLifiAttestation should not return an error for valid inputs")
 	require.NotNil(t, encodedAttestation, "Encoded attestation should not be nil")
 	require.NotEmpty(t, encodedAttestation, "Encoded attestation should not be empty")
 
-	// 3. Decode the result (abi.encode(AnypayExecutionInfo[] memory, bytes memory))
-	// Define ABI type components for the AnypayExecutionInfo struct
-	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
+	// 3. Decode the result (abi.encode(TrailsExecutionInfo[] memory, bytes memory))
+	// Define ABI type components for the TrailsExecutionInfo struct
+	TrailsExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	// Define ABI type for a list of AnypayExecutionInfo structs (AnypayExecutionInfo[])
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
-	require.NoError(t, err, "Failed to create AnypayExecutionInfo[] ABI type")
+	// Define ABI type for a list of TrailsExecutionInfo structs (TrailsExecutionInfo[])
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "TrailsExecutionInfo[]", TrailsExecutionInfoComponents)
+	require.NoError(t, err, "Failed to create TrailsExecutionInfo[] ABI type")
 	bytesType, err := abi.NewType("bytes", "", nil)
 	require.NoError(t, err, "Failed to create bytes ABI type")
 

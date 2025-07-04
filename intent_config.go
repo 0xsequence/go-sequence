@@ -15,11 +15,19 @@ import (
 )
 
 var (
-	AnypayLiFiSapientSignerAddress      = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	AnypayLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
-	AnypayRelaySapientSignerAddress     = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
-	AnypayRelaySapientSignerLiteAddress = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
+	TrailsLiFiSapientSignerAddress      = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+	TrailsLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
+	TrailsRelaySapientSignerAddress     = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
+	TrailsRelaySapientSignerLiteAddress = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
 )
+
+// AddressOverrides provides configurable address overrides for skewness protection
+type AddressOverrides struct {
+	TrailsLiFiSapientSignerAddress      *common.Address
+	TrailsLifiSapientSignerLiteAddress  *common.Address
+	TrailsRelaySapientSignerAddress     *common.Address
+	TrailsRelaySapientSignerLiteAddress *common.Address
+}
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
 type OriginToken struct {
@@ -42,8 +50,8 @@ type IntentParams struct {
 	DestinationCalls  []*v3.CallsPayload
 }
 
-// AnypayExecutionInfo represents the information for a Lifi bridge or swap.
-type AnypayExecutionInfo struct {
+// TrailsExecutionInfo represents the information for a Lifi bridge or swap.
+type TrailsExecutionInfo struct {
 	OriginToken        common.Address `abi:"originToken"`
 	Amount             *big.Int       `abi:"amount"`
 	OriginChainId      *big.Int       `abi:"originChainId"`
@@ -175,8 +183,8 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	return hash32, nil
 }
 
-// GetAnypayExecutionInfoHash computes the Keccak256 hash of ABI-encoded AnypayExecutionInfo array and an attestation address.
-func GetAnypayExecutionInfoHash(executionInfos []AnypayExecutionInfo, attestationAddress common.Address) ([32]byte, error) {
+// GetTrailsExecutionInfoHash computes the Keccak256 hash of ABI-encoded TrailsExecutionInfo array and an attestation address.
+func GetTrailsExecutionInfoHash(executionInfos []TrailsExecutionInfo, attestationAddress common.Address) ([32]byte, error) {
 	if len(executionInfos) == 0 {
 		return [32]byte{}, fmt.Errorf("executionInfos is empty")
 	}
@@ -184,18 +192,18 @@ func GetAnypayExecutionInfoHash(executionInfos []AnypayExecutionInfo, attestatio
 	spew.Dump(executionInfos)
 	spew.Dump(attestationAddress)
 
-	// Define ABI type components for the AnypayExecutionInfo struct
-	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
+	// Define ABI type components for the TrailsExecutionInfo struct
+	TrailsExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
 
-	// Define ABI type for a list of AnypayExecutionInfo structs (AnypayExecutionInfo[])
-	AnypayExecutionInfoListType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
+	// Define ABI type for a list of TrailsExecutionInfo structs (TrailsExecutionInfo[])
+	TrailsExecutionInfoListType, err := abi.NewType("tuple[]", "TrailsExecutionInfo[]", TrailsExecutionInfoComponents)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to create anypay lifi info list ABI type: %w", err)
+		return [32]byte{}, fmt.Errorf("failed to create trails lifi info list ABI type: %w", err)
 	}
 
 	// Define ABI type for address
@@ -206,14 +214,14 @@ func GetAnypayExecutionInfoHash(executionInfos []AnypayExecutionInfo, attestatio
 
 	// Define the arguments for ABI encoding
 	arguments := abi.Arguments{
-		{Name: "executionInfos", Type: AnypayExecutionInfoListType},
+		{Name: "executionInfos", Type: TrailsExecutionInfoListType},
 		{Name: "attestationAddress", Type: addressType},
 	}
 
 	// ABI encode the arguments
 	encodedData, err := arguments.Pack(executionInfos, attestationAddress)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for AnypayExecutionInfo hash: %w", err)
+		return [32]byte{}, fmt.Errorf("failed to ABI pack arguments for TrailsExecutionInfo hash: %w", err)
 	}
 
 	// Compute Keccak256 hash
@@ -250,21 +258,32 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// `CreateAnypayExecutionInfoSapientSignerTree` creates a tree from a list of AnypayExecutionInfo and a main signer address.
-func CreateAnypayExecutionInfoSapientSignerTree(attestationSigner common.Address, anypayExecutionInfos []AnypayExecutionInfo, sapientType string) (v3.WalletConfigTree, error) {
+// `CreateTrailsExecutionInfoSapientSignerTree` creates a tree from a list of TrailsExecutionInfo and a main signer address.
+func CreateTrailsExecutionInfoSapientSignerTree(attestationSigner common.Address, trailsExecutionInfos []TrailsExecutionInfo, sapientType string, overrides ...*AddressOverrides) (v3.WalletConfigTree, error) {
 	// Get the image hash for the main signer.
-	sapientImageHash, err := GetAnypayExecutionInfoHash(anypayExecutionInfos, attestationSigner)
+	sapientImageHash, err := GetTrailsExecutionInfoHash(trailsExecutionInfos, attestationSigner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image hash for main signer: %w", err)
 	}
 	fmt.Printf("sapientImageHash: %s\n", common.Bytes2Hex(sapientImageHash[:]))
 
+	var override *AddressOverrides
+	if len(overrides) > 0 && overrides[0] != nil {
+		override = overrides[0]
+	}
+
 	var sapientSignerAddress common.Address
 	switch sapientType {
 	case "lifi":
-		sapientSignerAddress = AnypayLifiSapientSignerLiteAddress
+		sapientSignerAddress = TrailsLifiSapientSignerLiteAddress
+		if override != nil && override.TrailsLifiSapientSignerLiteAddress != nil {
+			sapientSignerAddress = *override.TrailsLifiSapientSignerLiteAddress
+		}
 	case "relay":
-		sapientSignerAddress = AnypayRelaySapientSignerAddress
+		sapientSignerAddress = TrailsRelaySapientSignerAddress
+		if override != nil && override.TrailsRelaySapientSignerAddress != nil {
+			sapientSignerAddress = *override.TrailsRelaySapientSignerAddress
+		}
 	}
 
 	// Create the lifi info leaf.
@@ -331,12 +350,12 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 }
 
 // `CreateLifiIntentConfiguration` is a helper function to create a LiFi intent configuration.
-func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, trailsExecutionInfos []TrailsExecutionInfo, overrides ...*AddressOverrides) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
-	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "lifi")
+	if attestationSigner != (common.Address{}) && len(trailsExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateTrailsExecutionInfoSapientSignerTree(attestationSigner, trailsExecutionInfos, "lifi", overrides...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create lifi info leaf: %w", err)
 		}
@@ -346,12 +365,12 @@ func CreateLifiIntentConfiguration(mainSigner, attestationSigner common.Address,
 }
 
 // `CreateRelayIntentConfiguration` is a helper function to create a relay intent configuration.
-func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, anypayExecutionInfos []AnypayExecutionInfo) (*v3.WalletConfig, error) {
+func CreateRelayIntentConfiguration(mainSigner, attestationSigner common.Address, calls []*v3.CallsPayload, trailsExecutionInfos []TrailsExecutionInfo, overrides ...*AddressOverrides) (*v3.WalletConfig, error) {
 	var sapientSignerLeafNode v3.WalletConfigTree
 	var err error
 
-	if attestationSigner != (common.Address{}) && len(anypayExecutionInfos) > 0 {
-		sapientSignerLeafNode, err = CreateAnypayExecutionInfoSapientSignerTree(attestationSigner, anypayExecutionInfos, "relay")
+	if attestationSigner != (common.Address{}) && len(trailsExecutionInfos) > 0 {
+		sapientSignerLeafNode, err = CreateTrailsExecutionInfoSapientSignerTree(attestationSigner, trailsExecutionInfos, "relay", overrides...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create relay info leaf: %w", err)
 		}
@@ -369,8 +388,9 @@ func GetIntentConfigurationSignature(
 	attestationSignerWallet *ethwallet.Wallet,
 	targetPayload *v3.CallsPayload,
 	sapientType string, // "lifi" or "relay"
-	anypayExecutionInfos []AnypayExecutionInfo,
+	trailsExecutionInfos []TrailsExecutionInfo,
 	decodingStrategy *uint8,
+	overrides ...*AddressOverrides,
 ) ([]byte, error) {
 	var config *v3.WalletConfig
 	var err error
@@ -385,12 +405,12 @@ func GetIntentConfigurationSignature(
 
 	switch sapientType {
 	case "lifi":
-		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		config, err = CreateLifiIntentConfiguration(mainSigner, attestationSigner, calls, trailsExecutionInfos, overrides...)
 		if err != nil {
 			return nil, err
 		}
 	case "relay":
-		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, anypayExecutionInfos)
+		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, trailsExecutionInfos, overrides...)
 		if err != nil {
 			return nil, err
 		}
@@ -408,24 +428,39 @@ func GetIntentConfigurationSignature(
 		config.Tree = replaceSapientSignerWithNodeInConfigTree(config.Tree)
 	}
 
+	var override *AddressOverrides
+	if len(overrides) > 0 && overrides[0] != nil {
+		override = overrides[0]
+	}
+
+	trailsLifiSapientSignerLiteAddress := TrailsLifiSapientSignerLiteAddress
+	if override != nil && override.TrailsLifiSapientSignerLiteAddress != nil {
+		trailsLifiSapientSignerLiteAddress = *override.TrailsLifiSapientSignerLiteAddress
+	}
+
+	trailsRelaySapientSignerAddress := TrailsRelaySapientSignerAddress
+	if override != nil && override.TrailsRelaySapientSignerAddress != nil {
+		trailsRelaySapientSignerAddress = *override.TrailsRelaySapientSignerAddress
+	}
+
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
-		if signer == AnypayLifiSapientSignerLiteAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
-			fmt.Printf("matched AnypayLifiSapientSignerLiteAddress\n")
-			fmt.Printf("signingFunc: anypayExecutionInfos: %v\n", anypayExecutionInfos)
+		if signer == trailsLifiSapientSignerLiteAddress && len(trailsExecutionInfos) > 0 && targetPayload != nil {
+			fmt.Printf("matched TrailsLifiSapientSignerLiteAddress\n")
+			fmt.Printf("signingFunc: trailsExecutionInfos: %v\n", trailsExecutionInfos)
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayLifiAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos, *decodingStrategy)
+			attestationBytes, err = CreateTrailsLifiAttestation(attestationSignerWallet, targetPayload, trailsExecutionInfos, *decodingStrategy)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create attestation: %w", err)
 			}
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
 
-		if signer == AnypayRelaySapientSignerAddress && len(anypayExecutionInfos) > 0 && targetPayload != nil {
-			fmt.Printf("matched AnypayRelaySapientSignerAddress\n")
+		if signer == trailsRelaySapientSignerAddress && len(trailsExecutionInfos) > 0 && targetPayload != nil {
+			fmt.Printf("matched TrailsRelaySapientSignerAddress\n")
 			var attestationBytes []byte
-			attestationBytes, err = CreateAnypayRelayAttestation(attestationSignerWallet, targetPayload, anypayExecutionInfos)
+			attestationBytes, err = CreateTrailsRelayAttestation(attestationSignerWallet, targetPayload, trailsExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
 			}
@@ -482,11 +517,11 @@ func GetIntentConfigurationSignature(
 	return data, nil
 }
 
-// CreateAnypayLifiAttestation generates the ABI-encoded signature required by the AnypayLifiSapientSigner contract.
-func CreateAnypayLifiAttestation(
+// CreateTrailsLifiAttestation generates the ABI-encoded signature required by the TrailsLifiSapientSigner contract.
+func CreateTrailsLifiAttestation(
 	attestationSignerWallet *ethwallet.Wallet,
 	payload *v3.CallsPayload,
-	executionInfos []AnypayExecutionInfo,
+	executionInfos []TrailsExecutionInfo,
 	decodingStrategy uint8,
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
@@ -502,9 +537,9 @@ func CreateAnypayLifiAttestation(
 	}
 
 	digestToSign := payload.Digest()
-	fmt.Printf("CreateAnypayLifiAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
+	fmt.Printf("CreateTrailsLifiAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
 	rawSignature, err := attestationSignerWallet.SignMessage(digestToSign.Hash[:])
-	fmt.Printf("CreateAnypayLifiAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
+	fmt.Printf("CreateTrailsLifiAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
@@ -517,16 +552,16 @@ func CreateAnypayLifiAttestation(
 	}
 	eoaSignatureBytes := rawSignature
 
-	// 4. Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory)
-	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
+	// 4. Define ABI types for abi.encode(TrailsExecutionInfo[] memory, bytes memory)
+	TrailsExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	lifiInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
+	lifiInfoArrayType, err := abi.NewType("tuple[]", "TrailsExecutionInfo[]", TrailsExecutionInfoComponents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
+		return nil, fmt.Errorf("failed to create TrailsExecutionInfo[] ABI type: %w", err)
 	}
 	uint8Type, err := abi.NewType("uint8", "", nil)
 	if err != nil {
@@ -541,22 +576,22 @@ func CreateAnypayLifiAttestation(
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
-	fmt.Printf("CreateAnypayLifiAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
+	fmt.Printf("CreateTrailsLifiAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
 
 	// 5. Pack executionInfos and eoaSignatureBytes
 	encodedAttestation, err := abi.Arguments{{Type: lifiInfoArrayType}, {Type: uint8Type}, {Type: bytesType}, {Type: addressType}}.Pack(executionInfos, decodingStrategy, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[] and eoaSignature: %w", err)
+		return nil, fmt.Errorf("failed to ABI pack TrailsExecutionInfo[] and eoaSignature: %w", err)
 	}
 
 	return encodedAttestation, nil
 }
 
-// CreateAnypayRelayAttestation generates the ABI-encoded signature required by the AnypayRelaySapientSigner contract.
-func CreateAnypayRelayAttestation(
+// CreateTrailsRelayAttestation generates the ABI-encoded signature required by the TrailsRelaySapientSigner contract.
+func CreateTrailsRelayAttestation(
 	attestationSignerWallet *ethwallet.Wallet,
 	payload *v3.CallsPayload,
-	anypayExecutionInfos []AnypayExecutionInfo,
+	trailsExecutionInfos []TrailsExecutionInfo,
 ) ([]byte, error) {
 	if attestationSignerWallet == nil {
 		return nil, fmt.Errorf("attestationSignerWallet is nil")
@@ -564,14 +599,14 @@ func CreateAnypayRelayAttestation(
 	if payload == nil {
 		return nil, fmt.Errorf("payload is nil for attestation")
 	}
-	if len(anypayExecutionInfos) == 0 {
-		return nil, fmt.Errorf("anypayExecutionInfos is empty")
+	if len(trailsExecutionInfos) == 0 {
+		return nil, fmt.Errorf("trailsExecutionInfos is empty")
 	}
 
 	digestToSign := payload.Digest()
-	fmt.Printf("CreateAnypayRelayAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
+	fmt.Printf("CreateTrailsRelayAttestation: digestToSign: %s\n", common.Bytes2Hex(digestToSign.Hash[:]))
 	rawSignature, err := attestationSignerWallet.SignMessage(digestToSign.Hash[:])
-	fmt.Printf("CreateAnypayRelayAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
+	fmt.Printf("CreateTrailsRelayAttestation: rawSignature: %s\n", common.Bytes2Hex(rawSignature))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign payload digest: %w", err)
@@ -582,16 +617,16 @@ func CreateAnypayRelayAttestation(
 	}
 	eoaSignatureBytes := rawSignature
 
-	// Define ABI types for abi.encode(AnypayExecutionInfo[] memory, bytes memory, address)
-	AnypayExecutionInfoComponents := []abi.ArgumentMarshaling{
+	// Define ABI types for abi.encode(TrailsExecutionInfo[] memory, bytes memory, address)
+	TrailsExecutionInfoComponents := []abi.ArgumentMarshaling{
 		{Name: "originToken", Type: "address"},
 		{Name: "amount", Type: "uint256"},
 		{Name: "originChainId", Type: "uint256"},
 		{Name: "destinationChainId", Type: "uint256"},
 	}
-	anypayInfoArrayType, err := abi.NewType("tuple[]", "AnypayExecutionInfo[]", AnypayExecutionInfoComponents)
+	trailsInfoArrayType, err := abi.NewType("tuple[]", "TrailsExecutionInfo[]", TrailsExecutionInfoComponents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AnypayExecutionInfo[] ABI type: %w", err)
+		return nil, fmt.Errorf("failed to create TrailsExecutionInfo[] ABI type: %w", err)
 	}
 	bytesType, err := abi.NewType("bytes", "", nil)
 	if err != nil {
@@ -602,12 +637,12 @@ func CreateAnypayRelayAttestation(
 		return nil, fmt.Errorf("failed to create address ABI type: %w", err)
 	}
 
-	fmt.Printf("CreateAnypayRelayAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
+	fmt.Printf("CreateTrailsRelayAttestation: attestationSignerWallet.Address(): %s\n", attestationSignerWallet.Address().Hex())
 
-	// Pack anypayExecutionInfos, eoaSignatureBytes, and the signer's address
-	encodedAttestation, err := abi.Arguments{{Type: anypayInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(anypayExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
+	// Pack trailsExecutionInfos, eoaSignatureBytes, and the signer's address
+	encodedAttestation, err := abi.Arguments{{Type: trailsInfoArrayType}, {Type: bytesType}, {Type: addressType}}.Pack(trailsExecutionInfos, eoaSignatureBytes, attestationSignerWallet.Address())
 	if err != nil {
-		return nil, fmt.Errorf("failed to ABI pack AnypayExecutionInfo[], signature and address: %w", err)
+		return nil, fmt.Errorf("failed to ABI pack TrailsExecutionInfo[], signature and address: %w", err)
 	}
 
 	return encodedAttestation, nil
