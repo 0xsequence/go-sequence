@@ -15,20 +15,16 @@ import (
 )
 
 var (
-	TrailsLiFiSapientSignerAddress      = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	TrailsLifiSapientSignerLiteAddress  = common.HexToAddress("0xaA3f6B332237aFb83789d3F5FBaD817EF3102648")
-	TrailsRelaySapientSignerAddress     = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
-	TrailsRelaySapientSignerLiteAddress = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
-	TrailsCCTPV2SapientSignerAddress    = common.HexToAddress("0x1111111111111111111111111111111111111111")
+	TrailsLiFiSapientSignerAddress   = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
+	TrailsRelaySapientSignerAddress  = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
+	TrailsCCTPV2SapientSignerAddress = common.HexToAddress("0x1111111111111111111111111111111111111111")
 )
 
 // AddressOverrides provides configurable address overrides for skewness protection
 type AddressOverrides struct {
-	TrailsLiFiSapientSignerAddress      *common.Address
-	TrailsLifiSapientSignerLiteAddress  *common.Address
-	TrailsRelaySapientSignerAddress     *common.Address
-	TrailsRelaySapientSignerLiteAddress *common.Address
-	TrailsCCTPV2SapientSignerAddress    *common.Address
+	TrailsLiFiSapientSignerAddress   *common.Address
+	TrailsRelaySapientSignerAddress  *common.Address
+	TrailsCCTPV2SapientSignerAddress *common.Address
 }
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -277,9 +273,9 @@ func CreateTrailsExecutionInfoSapientSignerTree(attestationSigner common.Address
 	var sapientSignerAddress common.Address
 	switch sapientType {
 	case "lifi":
-		sapientSignerAddress = TrailsLifiSapientSignerLiteAddress
-		if override != nil && override.TrailsLifiSapientSignerLiteAddress != nil {
-			sapientSignerAddress = *override.TrailsLifiSapientSignerLiteAddress
+		sapientSignerAddress = TrailsLiFiSapientSignerAddress
+		if override != nil && override.TrailsLiFiSapientSignerAddress != nil {
+			sapientSignerAddress = *override.TrailsLiFiSapientSignerAddress
 		}
 	case "relay":
 		sapientSignerAddress = TrailsRelaySapientSignerAddress
@@ -455,9 +451,9 @@ func GetIntentConfigurationSignature(
 		override = overrides[0]
 	}
 
-	trailsLifiSapientSignerLiteAddress := TrailsLifiSapientSignerLiteAddress
-	if override != nil && override.TrailsLifiSapientSignerLiteAddress != nil {
-		trailsLifiSapientSignerLiteAddress = *override.TrailsLifiSapientSignerLiteAddress
+	trailsLiFiSapientSignerAddress := TrailsLiFiSapientSignerAddress
+	if override != nil && override.TrailsLiFiSapientSignerAddress != nil {
+		trailsLiFiSapientSignerAddress = *override.TrailsLiFiSapientSignerAddress
 	}
 
 	trailsRelaySapientSignerAddress := TrailsRelaySapientSignerAddress
@@ -465,11 +461,16 @@ func GetIntentConfigurationSignature(
 		trailsRelaySapientSignerAddress = *override.TrailsRelaySapientSignerAddress
 	}
 
+	trailsCCTPV2SapientSignerAddress := TrailsCCTPV2SapientSignerAddress
+	if override != nil && override.TrailsCCTPV2SapientSignerAddress != nil {
+		trailsCCTPV2SapientSignerAddress = *override.TrailsCCTPV2SapientSignerAddress
+	}
+
 	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
 
-		if signer == trailsLifiSapientSignerLiteAddress && len(trailsExecutionInfos) > 0 && targetPayload != nil {
-			fmt.Printf("matched TrailsLifiSapientSignerLiteAddress\n")
+		if signer == trailsLiFiSapientSignerAddress && len(trailsExecutionInfos) > 0 && targetPayload != nil {
+			fmt.Printf("matched TrailsLifiSapientSignerAddress\n")
 			fmt.Printf("signingFunc: trailsExecutionInfos: %v\n", trailsExecutionInfos)
 			var attestationBytes []byte
 			attestationBytes, err = CreateTrailsLifiAttestation(attestationSignerWallet, targetPayload, trailsExecutionInfos, *decodingStrategy)
@@ -485,6 +486,16 @@ func GetIntentConfigurationSignature(
 			attestationBytes, err = CreateTrailsRelayAttestation(attestationSignerWallet, targetPayload, trailsExecutionInfos)
 			if err != nil {
 				return 0, nil, fmt.Errorf("failed to create relay attestation: %w", err)
+			}
+			return core.SignerSignatureTypeSapient, attestationBytes, nil
+		}
+
+		if signer == trailsCCTPV2SapientSignerAddress && len(trailsExecutionInfos) > 0 && targetPayload != nil {
+			fmt.Printf("matched TrailsCCTPV2SapientSignerAddress\n")
+			var attestationBytes []byte
+			attestationBytes, err = CreateTrailsCCTPAttestation(attestationSignerWallet, targetPayload, trailsExecutionInfos)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed to create cctp attestation: %w", err)
 			}
 			return core.SignerSignatureTypeSapient, attestationBytes, nil
 		}
