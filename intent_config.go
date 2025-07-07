@@ -17,7 +17,7 @@ import (
 var (
 	TrailsLiFiSapientSignerAddress   = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
 	TrailsRelaySapientSignerAddress  = common.HexToAddress("0xffb40760fb475f7d8f5a806b2e3535a642ec8752")
-	TrailsCCTPV2SapientSignerAddress = common.HexToAddress("0x1111111111111111111111111111111111111111")
+	TrailsCCTPV2SapientSignerAddress = common.HexToAddress("0xc1A9B197eBb31Fc2B613C59dAC3f3E5698A429D0")
 )
 
 // AddressOverrides provides configurable address overrides for skewness protection
