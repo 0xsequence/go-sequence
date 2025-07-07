@@ -598,7 +598,7 @@ func (s ChainedSignature) Recover(ctx context.Context, payload core.Payload, pro
 			return nil, nil, fmt.Errorf("recovered weight %v for subsignature %v does not meet required threshold %v", weight, i, config.Threshold())
 		}
 
-		payload = NewConfigUpdatePayload(payload.Digest().Address, nil, config.ImageHash().Hash)
+		payload = NewConfigUpdatePayload(payload.Address(), nil, config.ImageHash().Hash)
 	}
 
 	return config, weight, nil

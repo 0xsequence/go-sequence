@@ -193,17 +193,24 @@ type basePayload struct {
 	parentWallets []common.Address
 }
 
+func (p basePayload) Address() common.Address {
+	return p.address
+}
+
+func (p basePayload) ChainID() *big.Int {
+	if p.chainID != nil {
+		return new(big.Int).Set(p.chainID)
+	} else {
+		return new(big.Int)
+	}
+}
+
 func (p basePayload) withAddress(address common.Address) basePayload {
 	return basePayload{
 		address:       address,
 		chainID:       p.chainID,
 		parentWallets: p.parentWallets,
 	}
-}
-
-// ChainID returns the chain ID for the payload
-func (p basePayload) ChainID() *big.Int {
-	return p.chainID
 }
 
 var eip712Domain = []ethcoder.TypedDataArgument{
@@ -456,7 +463,7 @@ func (p CallsPayload) Digest() core.PayloadDigest {
 		panic(err)
 	}
 
-	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
 }
 
 func (p CallsPayload) Encode(address common.Address) []byte {
@@ -637,7 +644,7 @@ func (p MessagePayload) Digest() core.PayloadDigest {
 		panic(err)
 	}
 
-	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
 }
 
 func (p MessagePayload) Encode(address common.Address) []byte {
@@ -739,7 +746,7 @@ func (p ConfigUpdatePayload) Digest() core.PayloadDigest {
 		panic(err)
 	}
 
-	return core.PayloadDigest{Hash: common.Hash(digest), Address: p.address, ChainID: p.chainID, Payload: p}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
 }
 
 func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
@@ -848,7 +855,7 @@ func (p DigestPayload) Digest() core.PayloadDigest {
 		[]byte("\x19\x01"),
 		crypto.Keccak256(domain),
 		crypto.Keccak256(message),
-	), Address: p.address, ChainID: p.chainID, Payload: p}
+	), Address_: p.address, ChainID_: p.chainID, Payload: p}
 }
 
 func (p DigestPayload) Encode(address common.Address) []byte {

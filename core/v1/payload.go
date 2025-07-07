@@ -9,7 +9,7 @@ import (
 )
 
 func Approval(imageHash core.ImageHashable, address common.Address) ApprovalPayload {
-	return ApprovalPayload{ImageHashable: imageHash, Address: address}
+	return ApprovalPayload{ImageHashable: imageHash, address: address}
 }
 
 func Digest(digest common.Hash, address common.Address, chainID ...*big.Int) DigestPayload {
@@ -20,20 +20,40 @@ func Digest(digest common.Hash, address common.Address, chainID ...*big.Int) Dig
 		chainID[0] = new(big.Int)
 	}
 
-	return DigestPayload{Hash: digest, Address: address, ChainID: chainID[0]}
+	return DigestPayload{Hash: digest, address: address, chainID: chainID[0]}
 }
 
 type ApprovalPayload struct {
 	core.ImageHashable
 
-	Address common.Address
+	address common.Address
+}
+
+func (p ApprovalPayload) Address() common.Address {
+	return p.address
+}
+
+func (p ApprovalPayload) ChainID() *big.Int {
+	return new(big.Int)
 }
 
 type DigestPayload struct {
 	common.Hash
 
-	Address common.Address
-	ChainID *big.Int
+	address common.Address
+	chainID *big.Int
+}
+
+func (p DigestPayload) Address() common.Address {
+	return p.address
+}
+
+func (p DigestPayload) ChainID() *big.Int {
+	if p.chainID != nil {
+		return new(big.Int).Set(p.chainID)
+	} else {
+		return new(big.Int)
+	}
 }
 
 var approvalPrefix = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
@@ -43,26 +63,26 @@ func ApprovalDigest(imageHash core.ImageHashable) common.Hash {
 }
 
 func (p ApprovalPayload) Digest() core.PayloadDigest {
-	digest := Digest(ApprovalDigest(p.ImageHashable), p.Address).Digest()
+	digest := Digest(ApprovalDigest(p.ImageHashable), p.address).Digest()
 	digest.Payload = p
 	return digest
 }
 
 func (p DigestPayload) Digest() core.PayloadDigest {
 	chainID := new(big.Int)
-	if p.ChainID != nil {
-		chainID.Set(p.ChainID)
+	if p.chainID != nil {
+		chainID.Set(p.chainID)
 	}
 
 	return core.PayloadDigest{
 		Hash: crypto.Keccak256Hash(
 			[]byte{0x19, 0x01},
 			common.BigToHash(chainID).Bytes(),
-			p.Address.Bytes(),
+			p.address.Bytes(),
 			p.Bytes(),
 		),
-		Address: p.Address,
-		ChainID: chainID,
-		Payload: p,
+		Address_: p.address,
+		ChainID_: chainID,
+		Payload:  p,
 	}
 }

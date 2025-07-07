@@ -127,7 +127,7 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 		if err != nil {
 			return err
 		}
-		signature = signature.Reduce(core.PayloadDigest{Hash: subdigest, Address: t.To, ChainID: chainID}) // TODO: preimage
+		signature = signature.Reduce(core.PayloadDigest{Hash: subdigest, Address_: t.To, ChainID_: chainID}) // TODO: preimage
 
 		encoded, err := signature.Data()
 		if err != nil {
