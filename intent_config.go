@@ -16,7 +16,7 @@ import (
 
 var (
 	TrailsLiFiSapientSignerAddress   = common.HexToAddress("0xd7571bd1e3af468c3a49966c9a92a2e907cdfa52")
-	TrailsRelaySapientSignerAddress  = common.HexToAddress("0x41535c6cfeb0e4f154a4aa1a742bb017bbc4b191")
+	TrailsRelaySapientSignerAddress  = common.HexToAddress("0x9a013E7D186611aF36A918eF23D81886E8C256F8")
 	TrailsCCTPV2SapientSignerAddress = common.HexToAddress("0xc1A9B197eBb31Fc2B613C59dAC3f3E5698A429D0")
 )
 
