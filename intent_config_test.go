@@ -830,7 +830,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("Single Operation Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0x8577dFb93fE58cc8EE90DEA522555Fdf01Fd7429"))
+		assert.Equal(t, common.HexToAddress("0x3857F10693Aa54b39B640292CD5723ec97BEd285"), address)
 	})
 
 	t.Run("multiple operations", func(t *testing.T) {
@@ -880,7 +880,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("\nMultiple Operations Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, address, common.HexToAddress("0xBd820eD5b1E969eD6509E8EdE687DfC4c714438F"))
+		assert.Equal(t, common.HexToAddress("0x5784cF2b86eE8C930ee26279e7666241aC7e78B7"), address)
 	})
 }
 
@@ -890,8 +890,6 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 
 	// Context for the counterfactual address
 	context := sequence.V3SequenceContext()
-	context.FactoryAddress = common.HexToAddress("0xBd0F8abD58B4449B39C57Ac9D5C67433239aC447")
-	context.MainModuleAddress = common.HexToAddress("0x53bA242E7C2501839DF2972c75075dc693176Cd0")
 
 	// Create first operation on Arbitrum (chainId: 42161)
 	payload1 := v3.NewCallsPayload(common.Address{}, big.NewInt(42161), []v3.Call{
@@ -936,7 +934,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	fmt.Printf("Address: %s\n", address.Hex())
 
 	// The address should be deterministic based on the configuration
-	assert.Equal(t, common.HexToAddress("0x6221FDe05065E9D85D7aB59De225861D203705AF"), address)
+	assert.Equal(t, common.HexToAddress("0x57E22617540bbB704342032eDCB48365DcCE81aa"), address)
 }
 
 func TestCreateIntentCallsPayloadDigest(t *testing.T) {

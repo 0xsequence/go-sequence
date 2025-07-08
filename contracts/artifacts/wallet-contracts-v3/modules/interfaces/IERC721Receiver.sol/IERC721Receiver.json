@@ -1,28 +1,39 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IERC223Receiver",
-  "sourceName": "src/modules/Hooks.sol",
+  "contractName": "IERC721Receiver",
+  "sourceName": "src/modules/interfaces/IERC721Receiver.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "operator",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "from",
           "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "tokenId",
           "type": "uint256"
         },
         {
           "internalType": "bytes",
-          "name": "",
+          "name": "data",
           "type": "bytes"
         }
       ],
-      "name": "tokenReceived",
-      "outputs": [],
+      "name": "onERC721Received",
+      "outputs": [
+        {
+          "internalType": "bytes4",
+          "name": "magicValue",
+          "type": "bytes4"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     }

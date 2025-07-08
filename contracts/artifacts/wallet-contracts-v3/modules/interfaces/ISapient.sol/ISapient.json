@@ -91,12 +91,12 @@
             }
           ],
           "internalType": "struct Payload.Decoded",
-          "name": "_payload",
+          "name": "payload",
           "type": "tuple"
         },
         {
           "internalType": "bytes",
-          "name": "_signature",
+          "name": "signature",
           "type": "bytes"
         }
       ],
@@ -104,7 +104,7 @@
       "outputs": [
         {
           "internalType": "bytes32",
-          "name": "",
+          "name": "imageHash",
           "type": "bytes32"
         }
       ],

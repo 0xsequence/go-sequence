@@ -115,7 +115,7 @@ func init() {
 	V3.WalletGuestModule = artifact("WALLET_GUEST", v3Guest.WalletGuestABI, v3Guest.WalletGuestBin)
 	V3.WalletEstimator = artifact("WALLET_ESTIMATOR", v3Estimator.WalletEstimatorABI, v3Estimator.WalletEstimatorBin, v3Estimator.WalletEstimatorDeployedBin)
 	V3.WalletSimulator = artifact("WALLET_SIMULATOR", v3Simulator.WalletSimulatorABI, v3Simulator.WalletSimulatorBin, v3Simulator.WalletSimulatorDeployedBin)
-	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
+	V3.CreationCode = hexutil.MustDecode("0x6041600e3d396021805130553df33d3d36153402601f57363d3d373d363d30545af43d82803e903d91601f57fd5bf3")
 
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
 

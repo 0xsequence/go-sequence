@@ -1,33 +1,33 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IERC1155Receiver",
-  "sourceName": "src/modules/Hooks.sol",
+  "sourceName": "src/modules/interfaces/IERC1155Receiver.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "operator",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "",
+          "name": "from",
           "type": "address"
         },
         {
           "internalType": "uint256[]",
-          "name": "",
+          "name": "ids",
           "type": "uint256[]"
         },
         {
           "internalType": "uint256[]",
-          "name": "",
+          "name": "values",
           "type": "uint256[]"
         },
         {
           "internalType": "bytes",
-          "name": "",
+          "name": "data",
           "type": "bytes"
         }
       ],
@@ -35,7 +35,7 @@
       "outputs": [
         {
           "internalType": "bytes4",
-          "name": "",
+          "name": "magicValue",
           "type": "bytes4"
         }
       ],
@@ -46,27 +46,27 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "operator",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "",
+          "name": "from",
           "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "tokenId",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "value",
           "type": "uint256"
         },
         {
           "internalType": "bytes",
-          "name": "",
+          "name": "data",
           "type": "bytes"
         }
       ],
@@ -74,7 +74,7 @@
       "outputs": [
         {
           "internalType": "bytes4",
-          "name": "",
+          "name": "magicValue",
           "type": "bytes4"
         }
       ],

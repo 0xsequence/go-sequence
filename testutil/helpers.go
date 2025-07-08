@@ -41,11 +41,11 @@ var sequenceContextV2 = sequence.WalletContext{
 }
 
 var sequenceContextV3 = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0xBd0F8abD58B4449B39C57Ac9D5C67433239aC447"),
-	MainModuleAddress:           common.HexToAddress("0x53bA242E7C2501839DF2972c75075dc693176Cd0"),
-	MainModuleUpgradableAddress: common.HexToAddress("0xa29874c88b8Fd557e42219B04b0CeC693e1712f5"),
-	GuestModuleAddress:          common.HexToAddress("0x6aE2a1Bb476CF8C50ab09499b99Ec36056c53B6D"),
-	UtilsAddress:                common.HexToAddress("0x53bA242E7C2501839DF2972c75075dc693176Cd0"),
+	FactoryAddress:              common.HexToAddress("0xc13a0aFEF4590a2738694D541b6ee1085D1c00Fc"),
+	MainModuleAddress:           common.HexToAddress("0x63aa1460021d937A9c31E771ae73D1674Ebd43A0"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x008ECe44354E624392818dF3556419854358b92a"),
+	GuestModuleAddress:          common.HexToAddress("0x0eF67Be354Fb615D64A5f44850754ebfdAc1b58b"),
+	UtilsAddress:                common.HexToAddress("0x63aa1460021d937A9c31E771ae73D1674Ebd43A0"),
 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
 
