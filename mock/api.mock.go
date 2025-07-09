@@ -88,6 +88,51 @@ func (mr *APIMockRecorder) BlockNumberAtTime(ctx, chainId, timestamps any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockNumberAtTime", reflect.TypeOf((*API)(nil).BlockNumberAtTime), ctx, chainId, timestamps)
 }
 
+// CheckoutOptionsGetTransakContractID mocks base method.
+func (m *API) CheckoutOptionsGetTransakContractID(ctx context.Context, chainId uint64, contractAddress string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckoutOptionsGetTransakContractID", ctx, chainId, contractAddress)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckoutOptionsGetTransakContractID indicates an expected call of CheckoutOptionsGetTransakContractID.
+func (mr *APIMockRecorder) CheckoutOptionsGetTransakContractID(ctx, chainId, contractAddress any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckoutOptionsGetTransakContractID", reflect.TypeOf((*API)(nil).CheckoutOptionsGetTransakContractID), ctx, chainId, contractAddress)
+}
+
+// CheckoutOptionsPrimary mocks base method.
+func (m *API) CheckoutOptionsPrimary(ctx context.Context, chainId uint64, wallet, contractAddress, collectionAddress string, params []*api.CheckoutOptionsPrimaryParams) (*api.CheckoutOptions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckoutOptionsPrimary", ctx, chainId, wallet, contractAddress, collectionAddress, params)
+	ret0, _ := ret[0].(*api.CheckoutOptions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckoutOptionsPrimary indicates an expected call of CheckoutOptionsPrimary.
+func (mr *APIMockRecorder) CheckoutOptionsPrimary(ctx, chainId, wallet, contractAddress, collectionAddress, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckoutOptionsPrimary", reflect.TypeOf((*API)(nil).CheckoutOptionsPrimary), ctx, chainId, wallet, contractAddress, collectionAddress, params)
+}
+
+// CheckoutOptionsSecondary mocks base method.
+func (m *API) CheckoutOptionsSecondary(ctx context.Context, chainId uint64, wallet string, params []*api.CheckoutOptionsSecondaryParams) (*api.CheckoutOptions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckoutOptionsSecondary", ctx, chainId, wallet, params)
+	ret0, _ := ret[0].(*api.CheckoutOptions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckoutOptionsSecondary indicates an expected call of CheckoutOptionsSecondary.
+func (mr *APIMockRecorder) CheckoutOptionsSecondary(ctx, chainId, wallet, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckoutOptionsSecondary", reflect.TypeOf((*API)(nil).CheckoutOptionsSecondary), ctx, chainId, wallet, params)
+}
+
 // Clock mocks base method.
 func (m *API) Clock(ctx context.Context) (time.Time, error) {
 	m.ctrl.T.Helper()
@@ -307,6 +352,66 @@ func (mr *APIMockRecorder) GetInviteInfo(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInviteInfo", reflect.TypeOf((*API)(nil).GetInviteInfo), ctx)
 }
 
+// GetLifiChains mocks base method.
+func (m *API) GetLifiChains(ctx context.Context) ([]uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLifiChains", ctx)
+	ret0, _ := ret[0].([]uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLifiChains indicates an expected call of GetLifiChains.
+func (mr *APIMockRecorder) GetLifiChains(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiChains", reflect.TypeOf((*API)(nil).GetLifiChains), ctx)
+}
+
+// GetLifiSwapQuote mocks base method.
+func (m *API) GetLifiSwapQuote(ctx context.Context, params *api.GetLifiSwapQuoteParams) (*api.LifiSwapQuote, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLifiSwapQuote", ctx, params)
+	ret0, _ := ret[0].(*api.LifiSwapQuote)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLifiSwapQuote indicates an expected call of GetLifiSwapQuote.
+func (mr *APIMockRecorder) GetLifiSwapQuote(ctx, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapQuote", reflect.TypeOf((*API)(nil).GetLifiSwapQuote), ctx, params)
+}
+
+// GetLifiSwapRoutes mocks base method.
+func (m *API) GetLifiSwapRoutes(ctx context.Context, chainId uint64, toTokenAddress, toTokenAmount, walletAddress string) ([]*api.LifiSwapRoute, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLifiSwapRoutes", ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
+	ret0, _ := ret[0].([]*api.LifiSwapRoute)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLifiSwapRoutes indicates an expected call of GetLifiSwapRoutes.
+func (mr *APIMockRecorder) GetLifiSwapRoutes(ctx, chainId, toTokenAddress, toTokenAmount, walletAddress any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapRoutes", reflect.TypeOf((*API)(nil).GetLifiSwapRoutes), ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
+}
+
+// GetLifiTokens mocks base method.
+func (m *API) GetLifiTokens(ctx context.Context, chainIds []uint64) ([]*api.Token, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLifiTokens", ctx, chainIds)
+	ret0, _ := ret[0].([]*api.Token)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLifiTokens indicates an expected call of GetLifiTokens.
+func (mr *APIMockRecorder) GetLifiTokens(ctx, chainIds any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiTokens", reflect.TypeOf((*API)(nil).GetLifiTokens), ctx, chainIds)
+}
+
 // GetLinkedWallets mocks base method.
 func (m *API) GetLinkedWallets(ctx context.Context, parentWalletAddress, parentWalletMessage, parentWalletSignature, signatureChainId string) ([]*api.LinkedWallet, error) {
 	m.ctrl.T.Helper()
@@ -440,126 +545,6 @@ func (m *API) GetSequenceContext(ctx context.Context) (*api.SequenceContext, err
 func (mr *APIMockRecorder) GetSequenceContext(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSequenceContext", reflect.TypeOf((*API)(nil).GetSequenceContext), ctx)
-}
-
-// GetSwapPermit2Price mocks base method.
-func (m *API) GetSwapPermit2Price(ctx context.Context, buyCurrencyAddress, sellCurrencyAddress, buyAmount string, chainId uint64, slippagePercentage *uint64) (*api.SwapPermit2Price, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapPermit2Price", ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage)
-	ret0, _ := ret[0].(*api.SwapPermit2Price)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapPermit2Price indicates an expected call of GetSwapPermit2Price.
-func (mr *APIMockRecorder) GetSwapPermit2Price(ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapPermit2Price", reflect.TypeOf((*API)(nil).GetSwapPermit2Price), ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage)
-}
-
-// GetSwapPermit2Prices mocks base method.
-func (m *API) GetSwapPermit2Prices(ctx context.Context, userAddress, buyCurrencyAddress, buyAmount string, chainId uint64, slippagePercentage *uint64) ([]*api.SwapPermit2Price, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapPermit2Prices", ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage)
-	ret0, _ := ret[0].([]*api.SwapPermit2Price)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapPermit2Prices indicates an expected call of GetSwapPermit2Prices.
-func (mr *APIMockRecorder) GetSwapPermit2Prices(ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapPermit2Prices", reflect.TypeOf((*API)(nil).GetSwapPermit2Prices), ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage)
-}
-
-// GetSwapPermit2Quote mocks base method.
-func (m *API) GetSwapPermit2Quote(ctx context.Context, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount string, chainId uint64, includeApprove bool, slippagePercentage *uint64) (*api.SwapPermit2Quote, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapPermit2Quote", ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-	ret0, _ := ret[0].(*api.SwapPermit2Quote)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapPermit2Quote indicates an expected call of GetSwapPermit2Quote.
-func (mr *APIMockRecorder) GetSwapPermit2Quote(ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapPermit2Quote", reflect.TypeOf((*API)(nil).GetSwapPermit2Quote), ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-}
-
-// GetSwapPrice mocks base method.
-func (m *API) GetSwapPrice(ctx context.Context, buyCurrencyAddress, sellCurrencyAddress, buyAmount string, chainId uint64, slippagePercentage *uint64) (*api.SwapPrice, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapPrice", ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage)
-	ret0, _ := ret[0].(*api.SwapPrice)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapPrice indicates an expected call of GetSwapPrice.
-func (mr *APIMockRecorder) GetSwapPrice(ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapPrice", reflect.TypeOf((*API)(nil).GetSwapPrice), ctx, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, slippagePercentage)
-}
-
-// GetSwapPrices mocks base method.
-func (m *API) GetSwapPrices(ctx context.Context, userAddress, buyCurrencyAddress, buyAmount string, chainId uint64, slippagePercentage *uint64) ([]*api.SwapPrice, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapPrices", ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage)
-	ret0, _ := ret[0].([]*api.SwapPrice)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapPrices indicates an expected call of GetSwapPrices.
-func (mr *APIMockRecorder) GetSwapPrices(ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapPrices", reflect.TypeOf((*API)(nil).GetSwapPrices), ctx, userAddress, buyCurrencyAddress, buyAmount, chainId, slippagePercentage)
-}
-
-// GetSwapQuote mocks base method.
-func (m *API) GetSwapQuote(ctx context.Context, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount string, chainId uint64, includeApprove bool, slippagePercentage *uint64) (*api.SwapQuote, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapQuote", ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-	ret0, _ := ret[0].(*api.SwapQuote)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapQuote indicates an expected call of GetSwapQuote.
-func (mr *APIMockRecorder) GetSwapQuote(ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapQuote", reflect.TypeOf((*API)(nil).GetSwapQuote), ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-}
-
-// GetSwapQuoteV2 mocks base method.
-func (m *API) GetSwapQuoteV2(ctx context.Context, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount string, chainId uint64, includeApprove bool, slippagePercentage *uint64) (*api.SwapQuote, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSwapQuoteV2", ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-	ret0, _ := ret[0].(*api.SwapQuote)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetSwapQuoteV2 indicates an expected call of GetSwapQuoteV2.
-func (mr *APIMockRecorder) GetSwapQuoteV2(ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSwapQuoteV2", reflect.TypeOf((*API)(nil).GetSwapQuoteV2), ctx, userAddress, buyCurrencyAddress, sellCurrencyAddress, buyAmount, chainId, includeApprove, slippagePercentage)
-}
-
-// IntentQuery mocks base method.
-func (m *API) IntentQuery(ctx context.Context, wallet string, preconditions []*api.IntentPrecondition) ([]*api.IntentSolution, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IntentQuery", ctx, wallet, preconditions)
-	ret0, _ := ret[0].([]*api.IntentSolution)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IntentQuery indicates an expected call of IntentQuery.
-func (mr *APIMockRecorder) IntentQuery(ctx, wallet, preconditions any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IntentQuery", reflect.TypeOf((*API)(nil).IntentQuery), ctx, wallet, preconditions)
 }
 
 // InternalClaimAccessCode mocks base method.

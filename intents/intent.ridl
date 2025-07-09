@@ -398,6 +398,7 @@ enum IdentityType: string
   - Email
   - PlayFab
   - Stytch
+  - Twitter
 
 struct Account
   - id: string

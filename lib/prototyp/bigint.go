@@ -106,20 +106,23 @@ func (b BigInt) String() string {
 }
 
 func (b BigInt) Bytes() []byte {
-	return b.Int().Bytes()
+	bp := (*big.Int)(&b)
+	return bp.Bytes()
 }
 
 func (b BigInt) Int() *big.Int {
-	v := big.Int(b)
-	return &v
+	bp := (*big.Int)(&b)
+	return bp
 }
 
 func (b BigInt) Uint64() uint64 {
-	return b.Int().Uint64()
+	bp := (*big.Int)(&b)
+	return bp.Uint64()
 }
 
 func (b BigInt) Int64() int64 {
-	return b.Int().Int64()
+	bp := (*big.Int)(&b)
+	return bp.Int64()
 }
 
 func (b *BigInt) Add(n *big.Int) {
@@ -133,23 +136,33 @@ func (b *BigInt) Sub(n *big.Int) {
 }
 
 func (b BigInt) Equals(n *big.Int) bool {
-	return b.Int().Cmp(n) == 0
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n) == 0
 }
 
 func (b BigInt) Gt(n *big.Int) bool {
-	return b.Int().Cmp(n) == 1
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n) == 1
 }
 
 func (b BigInt) Gte(n *big.Int) bool {
-	return b.Int().Cmp(n) == 0 || b.Int().Cmp(n) == 1
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n) >= 0
 }
 
 func (b BigInt) Lt(n *big.Int) bool {
-	return b.Int().Cmp(n) == -1
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n) == -1
 }
 
 func (b BigInt) Lte(n *big.Int) bool {
-	return b.Int().Cmp(n) == 0 || b.Int().Cmp(n) == -1
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n) <= 0
+}
+
+func (b BigInt) Cmp(n *big.Int) int {
+	bp := (*big.Int)(&b)
+	return bp.Cmp(n)
 }
 
 var (
@@ -198,7 +211,7 @@ func (b *BigInt) UnmarshalJSON(text []byte) error {
 // MarshalBinary implements encoding.BinaryMarshaler. The first byte is the sign byte
 // to represent positive or negative numbers.
 func (b BigInt) MarshalBinary() ([]byte, error) {
-	bytes := b.Int().Bytes()
+	bytes := b.Bytes()
 	out := make([]byte, len(bytes)+1)
 	copy(out[1:], bytes)
 	if b.Int().Sign() < 0 {

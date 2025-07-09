@@ -5,12 +5,13 @@
   "license": "none",
   "scripts": {
     "gen": "pnpm artifacts",
-    "artifacts": "pnpm artifacts-copy:erc20 && pnpm artifacts-copy:erc721 && pnpm generate",
+    "artifacts": "pnpm artifacts-copy:erc20 && pnpm artifacts-copy:erc721 && pnpm artifacts-copy:erc6909 && pnpm generate",
     "artifacts-copy:erc20": "rm -rf ./artifacts/erc20 && mkdir ./artifacts/erc20 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC20*.json ./artifacts/erc20",
     "artifacts-copy:erc721": "rm -rf ./artifacts/erc721 && mkdir ./artifacts/erc721 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC721*.json ./artifacts/erc721",
+    "artifacts-copy:erc6909": "rm -rf ./artifacts/erc6909 && mkdir ./artifacts/erc6909 && cp -r ./node_modules/@openzeppelin/contracts/build/contracts/IERC6909*.json ./artifacts/erc6909",
     "generate": "go generate ./gen"
   },
   "devDependencies": {
-    "@openzeppelin/contracts": "5.2.0"
+    "@openzeppelin/contracts": "^5.3.0"
   }
 }

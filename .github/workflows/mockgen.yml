@@ -1,0 +1,42 @@
+name: Generate Mocks
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'api/api.gen.go'
+      - 'indexer/indexer.gen.go'
+      - 'marketplace/marketplace.gen.go'
+      - 'metadata/metadata.gen.go'
+      - 'relayer/relayer.gen.go'
+
+  workflow_dispatch:
+
+jobs:
+  generate-mocks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run make mock
+        run: make mock
+
+      - name: Commit back
+        uses: 0xsequence/actions/git-commit@v0.0.5
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.GH_TOKEN_GIT_COMMIT }}
+        with:
+          files: 'mock/'
+          branch: 'master'
+          commit_message: '[AUTOMATED] Generate mock clients'

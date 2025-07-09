@@ -143,6 +143,52 @@
             "stateMutability": "view"
         },
         {
+            "type": "function",
+            "name": "tokenSaleDetailsBatch",
+            "inputs": [
+                {
+                    "name": "tokenIds",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple[]",
+                    "internalType": "struct IERC1155SaleFunctions.SaleDetails[]",
+                    "components": [
+                        {
+                            "name": "cost",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "supplyCap",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "startTime",
+                            "type": "uint64",
+                            "internalType": "uint64"
+                        },
+                        {
+                            "name": "endTime",
+                            "type": "uint64",
+                            "internalType": "uint64"
+                        },
+                        {
+                            "name": "merkleRoot",
+                            "type": "bytes32",
+                            "internalType": "bytes32"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
             "type": "event",
             "name": "GlobalSaleDetailsUpdated",
             "inputs": [
@@ -175,6 +221,31 @@
                     "type": "bytes32",
                     "indexed": false,
                     "internalType": "bytes32"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "ItemsMinted",
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenIds",
+                    "type": "uint256[]",
+                    "indexed": false,
+                    "internalType": "uint256[]"
+                },
+                {
+                    "name": "amounts",
+                    "type": "uint256[]",
+                    "indexed": false,
+                    "internalType": "uint256[]"
                 }
             ],
             "anonymous": false
@@ -302,9 +373,10 @@
         "globalSaleDetails()": "119cd50c",
         "mint(address,uint256[],uint256[],bytes,address,uint256,bytes32[])": "60e606f6",
         "paymentToken()": "3013ce29",
-        "tokenSaleDetails(uint256)": "0869678c"
+        "tokenSaleDetails(uint256)": "0869678c",
+        "tokenSaleDetailsBatch(uint256[])": "ff81434e"
     },
-    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"GlobalSaleInactive\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"expected\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"actual\",\"type\":\"uint256\"}],\"name\":\"InsufficientPayment\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"currentSupply\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"requestedAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxSupply\",\"type\":\"uint256\"}],\"name\":\"InsufficientSupply\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidInitialization\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidSaleDetails\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidTokenIds\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"SaleInactive\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"name\":\"GlobalSaleDetailsUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"name\":\"TokenSaleDetailsUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"globalSaleDetails\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"internalType\":\"struct IERC1155SaleFunctions.SaleDetails\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"paymentToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"maxTotal\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"proof\",\"type\":\"bytes32[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paymentToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"tokenSaleDetails\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"internalType\":\"struct IERC1155SaleFunctions.SaleDetails\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"InsufficientPayment(address,uint256,uint256)\":[{\"params\":{\"actual\":\"Actual amount of tokens.\",\"currency\":\"Currency address. address(0) indicates ETH.\",\"expected\":\"Expected amount of tokens.\"}}],\"SaleInactive(uint256)\":[{\"params\":{\"tokenId\":\"Invalid Token ID.\"}}]},\"kind\":\"dev\",\"methods\":{\"globalSaleDetails()\":{\"returns\":{\"_0\":\"Sale details.\"}},\"mint(address,uint256[],uint256[],bytes,address,uint256,bytes32[])\":{\"details\":\"tokenIds must be sorted ascending without duplicates.An empty proof is supplied when no proof is required.\",\"params\":{\"amounts\":\"Amounts of tokens to mint.\",\"data\":\"Data to pass if receiver is contract.\",\"maxTotal\":\"Maximum amount of payment tokens.\",\"paymentToken\":\"ERC20 token address to accept payment in. address(0) indicates ETH.\",\"proof\":\"Merkle proof for allowlist minting.\",\"to\":\"Address to mint tokens to.\",\"tokenIds\":\"Token IDs to mint.\"}},\"paymentToken()\":{\"returns\":{\"_0\":\"Payment token address.\"}},\"tokenSaleDetails(uint256)\":{\"params\":{\"tokenId\":\"Token ID to get sale details for.\"},\"returns\":{\"_0\":\"Sale details.\"}}},\"version\":1},\"userdoc\":{\"errors\":{\"GlobalSaleInactive()\":[{\"notice\":\"Sale is not active globally.\"}],\"InsufficientPayment(address,uint256,uint256)\":[{\"notice\":\"Insufficient tokens for payment.\"}],\"InsufficientSupply(uint256,uint256,uint256)\":[{\"notice\":\"Insufficient supply of tokens.\"}],\"InvalidInitialization()\":[{\"notice\":\"Contract already initialized.\"}],\"InvalidSaleDetails()\":[{\"notice\":\"Sale details supplied are invalid.\"}],\"InvalidTokenIds()\":[{\"notice\":\"Invalid token IDs.\"}],\"SaleInactive(uint256)\":[{\"notice\":\"Sale is not active.\"}]},\"kind\":\"user\",\"methods\":{\"globalSaleDetails()\":{\"notice\":\"Get global sales details.Global sales details apply to all tokens.Global sales details are overriden when token sale is active.\"},\"mint(address,uint256[],uint256[],bytes,address,uint256,bytes32[])\":{\"notice\":\"Mint tokens.Sale must be active for all tokens.\"},\"paymentToken()\":{\"notice\":\"Get payment token.address(0) indicates payment in ETH.\"},\"tokenSaleDetails(uint256)\":{\"notice\":\"Get token sale details.Token sale details override global sale details.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/tokens/ERC1155/utility/sale/IERC1155Sale.sol\":\"IERC1155Sale\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":20000},\"remappings\":[\":0xsequence/=lib/0xsequence/\",\":@0xsequence/contracts-library/=src/\",\":@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/\",\":@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/\",\":@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin/=lib/openzeppelin/\",\":chiru-labs/=lib/chiru-labs/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":erc721a-upgradeable/=lib/chiru-labs/erc721a-upgradeable/\",\":erc721a/=lib/chiru-labs/erc721a/\",\":forge-std/=lib/forge-std/src/\",\":murky/=lib/murky/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/murky/lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin/\",\":solady/=lib/solady/src/\"],\"viaIR\":true},\"sources\":{\"src/tokens/ERC1155/utility/sale/IERC1155Sale.sol\":{\"keccak256\":\"0x153d0f88e91beedc685c1ceae856d69a0267c366e9eb0d6be0976244f921478e\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://8f5b2af7e2dafbba179286f1b5d78b42296d43275248b8bca37fc91af457dec2\",\"dweb:/ipfs/QmaKtmBN5JUm8vQCu75iUupsisLv1mcvG5ETZ2xsZxXGsk\"]}},\"version\":1}",
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"GlobalSaleInactive\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"expected\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"actual\",\"type\":\"uint256\"}],\"name\":\"InsufficientPayment\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"currentSupply\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"requestedAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxSupply\",\"type\":\"uint256\"}],\"name\":\"InsufficientSupply\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidInitialization\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidSaleDetails\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidTokenIds\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"SaleInactive\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"name\":\"GlobalSaleDetailsUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"}],\"name\":\"ItemsMinted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"name\":\"TokenSaleDetailsUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"globalSaleDetails\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"internalType\":\"struct IERC1155SaleFunctions.SaleDetails\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"paymentToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"maxTotal\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"proof\",\"type\":\"bytes32[]\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"paymentToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"tokenSaleDetails\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"internalType\":\"struct IERC1155SaleFunctions.SaleDetails\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"tokenIds\",\"type\":\"uint256[]\"}],\"name\":\"tokenSaleDetailsBatch\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supplyCap\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"startTime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"endTime\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"merkleRoot\",\"type\":\"bytes32\"}],\"internalType\":\"struct IERC1155SaleFunctions.SaleDetails[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"InsufficientPayment(address,uint256,uint256)\":[{\"params\":{\"actual\":\"Actual amount of tokens.\",\"currency\":\"Currency address. address(0) indicates ETH.\",\"expected\":\"Expected amount of tokens.\"}}],\"SaleInactive(uint256)\":[{\"params\":{\"tokenId\":\"Invalid Token ID.\"}}]},\"kind\":\"dev\",\"methods\":{\"globalSaleDetails()\":{\"returns\":{\"_0\":\"Sale details.\"}},\"mint(address,uint256[],uint256[],bytes,address,uint256,bytes32[])\":{\"details\":\"tokenIds must be sorted ascending without duplicates.An empty proof is supplied when no proof is required.\",\"params\":{\"amounts\":\"Amounts of tokens to mint.\",\"data\":\"Data to pass if receiver is contract.\",\"maxTotal\":\"Maximum amount of payment tokens.\",\"paymentToken\":\"ERC20 token address to accept payment in. address(0) indicates ETH.\",\"proof\":\"Merkle proof for allowlist minting.\",\"to\":\"Address to mint tokens to.\",\"tokenIds\":\"Token IDs to mint.\"}},\"paymentToken()\":{\"returns\":{\"_0\":\"Payment token address.\"}},\"tokenSaleDetails(uint256)\":{\"params\":{\"tokenId\":\"Token ID to get sale details for.\"},\"returns\":{\"_0\":\"Sale details.\"}},\"tokenSaleDetailsBatch(uint256[])\":{\"params\":{\"tokenIds\":\"Array of token IDs to retrieve sale details for.\"},\"returns\":{\"_0\":\"Array of sale details corresponding to each token ID.\"}}},\"version\":1},\"userdoc\":{\"errors\":{\"GlobalSaleInactive()\":[{\"notice\":\"Sale is not active globally.\"}],\"InsufficientPayment(address,uint256,uint256)\":[{\"notice\":\"Insufficient tokens for payment.\"}],\"InsufficientSupply(uint256,uint256,uint256)\":[{\"notice\":\"Insufficient supply of tokens.\"}],\"InvalidInitialization()\":[{\"notice\":\"Contract already initialized.\"}],\"InvalidSaleDetails()\":[{\"notice\":\"Sale details supplied are invalid.\"}],\"InvalidTokenIds()\":[{\"notice\":\"Invalid token IDs.\"}],\"SaleInactive(uint256)\":[{\"notice\":\"Sale is not active.\"}]},\"kind\":\"user\",\"methods\":{\"globalSaleDetails()\":{\"notice\":\"Get global sales details.Global sales details apply to all tokens.Global sales details are overriden when token sale is active.\"},\"mint(address,uint256[],uint256[],bytes,address,uint256,bytes32[])\":{\"notice\":\"Mint tokens.Sale must be active for all tokens.\"},\"paymentToken()\":{\"notice\":\"Get payment token.address(0) indicates payment in ETH.\"},\"tokenSaleDetails(uint256)\":{\"notice\":\"Get token sale details.Token sale details override global sale details.\"},\"tokenSaleDetailsBatch(uint256[])\":{\"notice\":\"Get sale details for multiple tokens.Each token's sale details override the global sale details if set.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/tokens/ERC1155/utility/sale/IERC1155Sale.sol\":\"IERC1155Sale\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":20000},\"remappings\":[\":0xsequence/=lib/0xsequence/\",\":@0xsequence/contracts-library/=src/\",\":@0xsequence/erc-1155/=lib/0xsequence/erc-1155/src/\",\":@0xsequence/erc20-meta-token/=lib/0xsequence/erc20-meta-token/src/\",\":@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin/=lib/openzeppelin/\",\":chiru-labs/=lib/chiru-labs/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/\",\":erc721a-upgradeable/=lib/chiru-labs/erc721a-upgradeable/\",\":erc721a/=lib/chiru-labs/erc721a/\",\":forge-std/=lib/forge-std/src/\",\":murky/=lib/murky/src/\",\":openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts/=lib/murky/lib/openzeppelin-contracts/\",\":openzeppelin/=lib/openzeppelin/\",\":solady/=lib/solady/src/\"],\"viaIR\":true},\"sources\":{\"src/tokens/ERC1155/utility/sale/IERC1155Sale.sol\":{\"content\":\"// SPDX-License-Identifier: Apache-2.0\\npragma solidity ^0.8.19;\\n\\ninterface IERC1155SaleFunctions {\\n\\n    struct SaleDetails {\\n        uint256 cost;\\n        uint256 supplyCap; // 0 supply cap indicates unlimited supply\\n        uint64 startTime;\\n        uint64 endTime; // 0 end time indicates sale inactive\\n        bytes32 merkleRoot; // Root of allowed addresses\\n    }\\n\\n    /**\\n     * Get global sales details.\\n     * @return Sale details.\\n     * @notice Global sales details apply to all tokens.\\n     * @notice Global sales details are overriden when token sale is active.\\n     */\\n    function globalSaleDetails() external view returns (SaleDetails memory);\\n\\n    /**\\n     * Get token sale details.\\n     * @param tokenId Token ID to get sale details for.\\n     * @return Sale details.\\n     * @notice Token sale details override global sale details.\\n     */\\n    function tokenSaleDetails(\\n        uint256 tokenId\\n    ) external view returns (SaleDetails memory);\\n\\n    /**\\n     * Get sale details for multiple tokens.\\n     * @param tokenIds Array of token IDs to retrieve sale details for.\\n     * @return Array of sale details corresponding to each token ID.\\n     * @notice Each token's sale details override the global sale details if set.\\n     */\\n    function tokenSaleDetailsBatch(\\n        uint256[] calldata tokenIds\\n    ) external view returns (SaleDetails[] memory);\\n\\n    /**\\n     * Get payment token.\\n     * @return Payment token address.\\n     * @notice address(0) indicates payment in ETH.\\n     */\\n    function paymentToken() external view returns (address);\\n\\n    /**\\n     * Mint tokens.\\n     * @param to Address to mint tokens to.\\n     * @param tokenIds Token IDs to mint.\\n     * @param amounts Amounts of tokens to mint.\\n     * @param data Data to pass if receiver is contract.\\n     * @param paymentToken ERC20 token address to accept payment in. address(0) indicates ETH.\\n     * @param maxTotal Maximum amount of payment tokens.\\n     * @param proof Merkle proof for allowlist minting.\\n     * @notice Sale must be active for all tokens.\\n     * @dev tokenIds must be sorted ascending without duplicates.\\n     * @dev An empty proof is supplied when no proof is required.\\n     */\\n    function mint(\\n        address to,\\n        uint256[] memory tokenIds,\\n        uint256[] memory amounts,\\n        bytes memory data,\\n        address paymentToken,\\n        uint256 maxTotal,\\n        bytes32[] calldata proof\\n    ) external payable;\\n\\n}\\n\\ninterface IERC1155SaleSignals {\\n\\n    event GlobalSaleDetailsUpdated(\\n        uint256 cost, uint256 supplyCap, uint64 startTime, uint64 endTime, bytes32 merkleRoot\\n    );\\n    event TokenSaleDetailsUpdated(\\n        uint256 tokenId, uint256 cost, uint256 supplyCap, uint64 startTime, uint64 endTime, bytes32 merkleRoot\\n    );\\n    event ItemsMinted(address to, uint256[] tokenIds, uint256[] amounts);\\n\\n    /**\\n     * Contract already initialized.\\n     */\\n    error InvalidInitialization();\\n\\n    /**\\n     * Sale details supplied are invalid.\\n     */\\n    error InvalidSaleDetails();\\n\\n    /**\\n     * Sale is not active globally.\\n     */\\n    error GlobalSaleInactive();\\n\\n    /**\\n     * Sale is not active.\\n     * @param tokenId Invalid Token ID.\\n     */\\n    error SaleInactive(uint256 tokenId);\\n\\n    /**\\n     * Insufficient tokens for payment.\\n     * @param currency Currency address. address(0) indicates ETH.\\n     * @param expected Expected amount of tokens.\\n     * @param actual Actual amount of tokens.\\n     */\\n    error InsufficientPayment(address currency, uint256 expected, uint256 actual);\\n\\n    /**\\n     * Invalid token IDs.\\n     */\\n    error InvalidTokenIds();\\n\\n    /**\\n     * Insufficient supply of tokens.\\n     */\\n    error InsufficientSupply(uint256 currentSupply, uint256 requestedAmount, uint256 maxSupply);\\n\\n}\\n\\ninterface IERC1155Sale is IERC1155SaleFunctions, IERC1155SaleSignals { }\\n\",\"keccak256\":\"0x67f2f21c53c4519fc85bf95bc4eabd4c0e2ebec3dd8f91d723711ef60e2153b6\",\"license\":\"Apache-2.0\"}},\"version\":1}",
     "metadata": {
         "compiler": {
             "version": "0.8.19+commit.7dd6d404"
@@ -420,6 +492,31 @@
                     ],
                     "type": "event",
                     "name": "GlobalSaleDetailsUpdated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "to",
+                            "type": "address",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "tokenIds",
+                            "type": "uint256[]",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "amounts",
+                            "type": "uint256[]",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "ItemsMinted",
                     "anonymous": false
                 },
                 {
@@ -605,6 +702,52 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256[]",
+                            "name": "tokenIds",
+                            "type": "uint256[]"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "tokenSaleDetailsBatch",
+                    "outputs": [
+                        {
+                            "internalType": "struct IERC1155SaleFunctions.SaleDetails[]",
+                            "name": "",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "uint256",
+                                    "name": "cost",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "supplyCap",
+                                    "type": "uint256"
+                                },
+                                {
+                                    "internalType": "uint64",
+                                    "name": "startTime",
+                                    "type": "uint64"
+                                },
+                                {
+                                    "internalType": "uint64",
+                                    "name": "endTime",
+                                    "type": "uint64"
+                                },
+                                {
+                                    "internalType": "bytes32",
+                                    "name": "merkleRoot",
+                                    "type": "bytes32"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             "devdoc": {
@@ -639,6 +782,14 @@
                         "returns": {
                             "_0": "Sale details."
                         }
+                    },
+                    "tokenSaleDetailsBatch(uint256[])": {
+                        "params": {
+                            "tokenIds": "Array of token IDs to retrieve sale details for."
+                        },
+                        "returns": {
+                            "_0": "Array of sale details corresponding to each token ID."
+                        }
                     }
                 },
                 "version": 1
@@ -657,6 +808,9 @@
                     },
                     "tokenSaleDetails(uint256)": {
                         "notice": "Get token sale details.Token sale details override global sale details."
+                    },
+                    "tokenSaleDetailsBatch(uint256[])": {
+                        "notice": "Get sale details for multiple tokens.Each token's sale details override the global sale details if set."
                     }
                 },
                 "version": 1
@@ -687,6 +841,7 @@
                 "runs": 20000
             },
             "metadata": {
+                "useLiteralContent": true,
                 "bytecodeHash": "ipfs"
             },
             "compilationTarget": {
@@ -698,15 +853,13 @@
         },
         "sources": {
             "src/tokens/ERC1155/utility/sale/IERC1155Sale.sol": {
-                "keccak256": "0x153d0f88e91beedc685c1ceae856d69a0267c366e9eb0d6be0976244f921478e",
-                "urls": [
-                    "bzz-raw://8f5b2af7e2dafbba179286f1b5d78b42296d43275248b8bca37fc91af457dec2",
-                    "dweb:/ipfs/QmaKtmBN5JUm8vQCu75iUupsisLv1mcvG5ETZ2xsZxXGsk"
-                ],
+                "keccak256": "0x67f2f21c53c4519fc85bf95bc4eabd4c0e2ebec3dd8f91d723711ef60e2153b6",
+                "urls": [],
+                "content": "// SPDX-License-Identifier: Apache-2.0\npragma solidity ^0.8.19;\n\ninterface IERC1155SaleFunctions {\n\n    struct SaleDetails {\n        uint256 cost;\n        uint256 supplyCap; // 0 supply cap indicates unlimited supply\n        uint64 startTime;\n        uint64 endTime; // 0 end time indicates sale inactive\n        bytes32 merkleRoot; // Root of allowed addresses\n    }\n\n    /**\n     * Get global sales details.\n     * @return Sale details.\n     * @notice Global sales details apply to all tokens.\n     * @notice Global sales details are overriden when token sale is active.\n     */\n    function globalSaleDetails() external view returns (SaleDetails memory);\n\n    /**\n     * Get token sale details.\n     * @param tokenId Token ID to get sale details for.\n     * @return Sale details.\n     * @notice Token sale details override global sale details.\n     */\n    function tokenSaleDetails(\n        uint256 tokenId\n    ) external view returns (SaleDetails memory);\n\n    /**\n     * Get sale details for multiple tokens.\n     * @param tokenIds Array of token IDs to retrieve sale details for.\n     * @return Array of sale details corresponding to each token ID.\n     * @notice Each token's sale details override the global sale details if set.\n     */\n    function tokenSaleDetailsBatch(\n        uint256[] calldata tokenIds\n    ) external view returns (SaleDetails[] memory);\n\n    /**\n     * Get payment token.\n     * @return Payment token address.\n     * @notice address(0) indicates payment in ETH.\n     */\n    function paymentToken() external view returns (address);\n\n    /**\n     * Mint tokens.\n     * @param to Address to mint tokens to.\n     * @param tokenIds Token IDs to mint.\n     * @param amounts Amounts of tokens to mint.\n     * @param data Data to pass if receiver is contract.\n     * @param paymentToken ERC20 token address to accept payment in. address(0) indicates ETH.\n     * @param maxTotal Maximum amount of payment tokens.\n     * @param proof Merkle proof for allowlist minting.\n     * @notice Sale must be active for all tokens.\n     * @dev tokenIds must be sorted ascending without duplicates.\n     * @dev An empty proof is supplied when no proof is required.\n     */\n    function mint(\n        address to,\n        uint256[] memory tokenIds,\n        uint256[] memory amounts,\n        bytes memory data,\n        address paymentToken,\n        uint256 maxTotal,\n        bytes32[] calldata proof\n    ) external payable;\n\n}\n\ninterface IERC1155SaleSignals {\n\n    event GlobalSaleDetailsUpdated(\n        uint256 cost, uint256 supplyCap, uint64 startTime, uint64 endTime, bytes32 merkleRoot\n    );\n    event TokenSaleDetailsUpdated(\n        uint256 tokenId, uint256 cost, uint256 supplyCap, uint64 startTime, uint64 endTime, bytes32 merkleRoot\n    );\n    event ItemsMinted(address to, uint256[] tokenIds, uint256[] amounts);\n\n    /**\n     * Contract already initialized.\n     */\n    error InvalidInitialization();\n\n    /**\n     * Sale details supplied are invalid.\n     */\n    error InvalidSaleDetails();\n\n    /**\n     * Sale is not active globally.\n     */\n    error GlobalSaleInactive();\n\n    /**\n     * Sale is not active.\n     * @param tokenId Invalid Token ID.\n     */\n    error SaleInactive(uint256 tokenId);\n\n    /**\n     * Insufficient tokens for payment.\n     * @param currency Currency address. address(0) indicates ETH.\n     * @param expected Expected amount of tokens.\n     * @param actual Actual amount of tokens.\n     */\n    error InsufficientPayment(address currency, uint256 expected, uint256 actual);\n\n    /**\n     * Invalid token IDs.\n     */\n    error InvalidTokenIds();\n\n    /**\n     * Insufficient supply of tokens.\n     */\n    error InsufficientSupply(uint256 currentSupply, uint256 requestedAmount, uint256 maxSupply);\n\n}\n\ninterface IERC1155Sale is IERC1155SaleFunctions, IERC1155SaleSignals { }\n",
                 "license": "Apache-2.0"
             }
         },
         "version": 1
     },
-    "id": 45
+    "id": 123
 }

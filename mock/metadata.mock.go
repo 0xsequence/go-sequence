@@ -41,67 +41,6 @@ func (m *Metadata) EXPECT() *MetadataMockRecorder {
 	return m.recorder
 }
 
-// AbortContractSync mocks base method.
-func (m *Metadata) AbortContractSync(ctx context.Context, taskID uint64) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AbortContractSync", ctx, taskID)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AbortContractSync indicates an expected call of AbortContractSync.
-func (mr *MetadataMockRecorder) AbortContractSync(ctx, taskID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortContractSync", reflect.TypeOf((*Metadata)(nil).AbortContractSync), ctx, taskID)
-}
-
-// AddContractToMintMonitor mocks base method.
-func (m *Metadata) AddContractToMintMonitor(ctx context.Context, chainID, contractAddress string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddContractToMintMonitor", ctx, chainID, contractAddress)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AddContractToMintMonitor indicates an expected call of AddContractToMintMonitor.
-func (mr *MetadataMockRecorder) AddContractToMintMonitor(ctx, chainID, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddContractToMintMonitor", reflect.TypeOf((*Metadata)(nil).AddContractToMintMonitor), ctx, chainID, contractAddress)
-}
-
-// CancelRefreshJob mocks base method.
-func (m *Metadata) CancelRefreshJob(ctx context.Context, taskId uint64) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelRefreshJob", ctx, taskId)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CancelRefreshJob indicates an expected call of CancelRefreshJob.
-func (mr *MetadataMockRecorder) CancelRefreshJob(ctx, taskId any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelRefreshJob", reflect.TypeOf((*Metadata)(nil).CancelRefreshJob), ctx, taskId)
-}
-
-// ContractSyncJobStatus mocks base method.
-func (m *Metadata) ContractSyncJobStatus(ctx context.Context, taskID uint64) (*metadata.Task, *metadata.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContractSyncJobStatus", ctx, taskID)
-	ret0, _ := ret[0].(*metadata.Task)
-	ret1, _ := ret[1].(*metadata.Task)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// ContractSyncJobStatus indicates an expected call of ContractSyncJobStatus.
-func (mr *MetadataMockRecorder) ContractSyncJobStatus(ctx, taskID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContractSyncJobStatus", reflect.TypeOf((*Metadata)(nil).ContractSyncJobStatus), ctx, taskID)
-}
-
 // DirectoryGetCollections mocks base method.
 func (m *Metadata) DirectoryGetCollections(ctx context.Context, chainId *uint64, includeTestnets, onlyFeatured *bool, page *metadata.Page) ([]*metadata.ContractInfo, *metadata.Page, error) {
 	m.ctrl.T.Helper()
@@ -149,19 +88,34 @@ func (mr *MetadataMockRecorder) DirectorySearchCollections(ctx, query, chainId, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DirectorySearchCollections", reflect.TypeOf((*Metadata)(nil).DirectorySearchCollections), ctx, query, chainId, includeTestnets, onlyFeatured, page)
 }
 
-// EnqueueTokensForRefresh mocks base method.
-func (m *Metadata) EnqueueTokensForRefresh(ctx context.Context, chainID, contractAddress string, tokenIDs []string, refreshAll *bool) (uint64, error) {
+// FindContractInfo mocks base method.
+func (m *Metadata) FindContractInfo(ctx context.Context, contractAddress string) ([]*metadata.ContractInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnqueueTokensForRefresh", ctx, chainID, contractAddress, tokenIDs, refreshAll)
-	ret0, _ := ret[0].(uint64)
+	ret := m.ctrl.Call(m, "FindContractInfo", ctx, contractAddress)
+	ret0, _ := ret[0].([]*metadata.ContractInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// EnqueueTokensForRefresh indicates an expected call of EnqueueTokensForRefresh.
-func (mr *MetadataMockRecorder) EnqueueTokensForRefresh(ctx, chainID, contractAddress, tokenIDs, refreshAll any) *gomock.Call {
+// FindContractInfo indicates an expected call of FindContractInfo.
+func (mr *MetadataMockRecorder) FindContractInfo(ctx, contractAddress any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueTokensForRefresh", reflect.TypeOf((*Metadata)(nil).EnqueueTokensForRefresh), ctx, chainID, contractAddress, tokenIDs, refreshAll)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindContractInfo", reflect.TypeOf((*Metadata)(nil).FindContractInfo), ctx, contractAddress)
+}
+
+// FindContractInfoBatch mocks base method.
+func (m *Metadata) FindContractInfoBatch(ctx context.Context, contractAddresses []string) (map[string][]*metadata.ContractInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindContractInfoBatch", ctx, contractAddresses)
+	ret0, _ := ret[0].(map[string][]*metadata.ContractInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindContractInfoBatch indicates an expected call of FindContractInfoBatch.
+func (mr *MetadataMockRecorder) FindContractInfoBatch(ctx, contractAddresses any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindContractInfoBatch", reflect.TypeOf((*Metadata)(nil).FindContractInfoBatch), ctx, contractAddresses)
 }
 
 // GetContractInfo mocks base method.
@@ -271,6 +225,38 @@ func (mr *MetadataMockRecorder) GetTaskStatus(ctx, taskId any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskStatus", reflect.TypeOf((*Metadata)(nil).GetTaskStatus), ctx, taskId)
 }
 
+// GetTokenDirectory mocks base method.
+func (m *Metadata) GetTokenDirectory(ctx context.Context, chainID *string, includeTestnets, onlyFeatured *bool, page *metadata.Page) ([]*metadata.ContractInfo, *metadata.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTokenDirectory", ctx, chainID, includeTestnets, onlyFeatured, page)
+	ret0, _ := ret[0].([]*metadata.ContractInfo)
+	ret1, _ := ret[1].(*metadata.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetTokenDirectory indicates an expected call of GetTokenDirectory.
+func (mr *MetadataMockRecorder) GetTokenDirectory(ctx, chainID, includeTestnets, onlyFeatured, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenDirectory", reflect.TypeOf((*Metadata)(nil).GetTokenDirectory), ctx, chainID, includeTestnets, onlyFeatured, page)
+}
+
+// GetTokenDirectoryNetworks mocks base method.
+func (m *Metadata) GetTokenDirectoryNetworks(ctx context.Context, includeTestnets, onlyFeatured *bool) ([]uint64, []string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTokenDirectoryNetworks", ctx, includeTestnets, onlyFeatured)
+	ret0, _ := ret[0].([]uint64)
+	ret1, _ := ret[1].([]string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetTokenDirectoryNetworks indicates an expected call of GetTokenDirectoryNetworks.
+func (mr *MetadataMockRecorder) GetTokenDirectoryNetworks(ctx, includeTestnets, onlyFeatured any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenDirectoryNetworks", reflect.TypeOf((*Metadata)(nil).GetTokenDirectoryNetworks), ctx, includeTestnets, onlyFeatured)
+}
+
 // GetTokenMetadata mocks base method.
 func (m *Metadata) GetTokenMetadata(ctx context.Context, chainID, contractAddress string, tokenIDs []string) ([]*metadata.TokenMetadata, *uint64, error) {
 	m.ctrl.T.Helper()
@@ -303,21 +289,19 @@ func (mr *MetadataMockRecorder) GetTokenMetadataBatch(ctx, chainID, contractToke
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenMetadataBatch", reflect.TypeOf((*Metadata)(nil).GetTokenMetadataBatch), ctx, chainID, contractTokenMap)
 }
 
-// GetTokenRefreshResult mocks base method.
-func (m *Metadata) GetTokenRefreshResult(ctx context.Context, taskId uint64) (*metadata.TaskStatus, map[string]bool, map[string]string, error) {
+// GetTokenMetadataPropertyFilters mocks base method.
+func (m *Metadata) GetTokenMetadataPropertyFilters(ctx context.Context, chainID, contractAddress string, excludeProperties []string, excludePropertyValues *bool) ([]*metadata.PropertyFilter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenRefreshResult", ctx, taskId)
-	ret0, _ := ret[0].(*metadata.TaskStatus)
-	ret1, _ := ret[1].(map[string]bool)
-	ret2, _ := ret[2].(map[string]string)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
+	ret := m.ctrl.Call(m, "GetTokenMetadataPropertyFilters", ctx, chainID, contractAddress, excludeProperties, excludePropertyValues)
+	ret0, _ := ret[0].([]*metadata.PropertyFilter)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetTokenRefreshResult indicates an expected call of GetTokenRefreshResult.
-func (mr *MetadataMockRecorder) GetTokenRefreshResult(ctx, taskId any) *gomock.Call {
+// GetTokenMetadataPropertyFilters indicates an expected call of GetTokenMetadataPropertyFilters.
+func (mr *MetadataMockRecorder) GetTokenMetadataPropertyFilters(ctx, chainID, contractAddress, excludeProperties, excludePropertyValues any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenRefreshResult", reflect.TypeOf((*Metadata)(nil).GetTokenRefreshResult), ctx, taskId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenMetadataPropertyFilters", reflect.TypeOf((*Metadata)(nil).GetTokenMetadataPropertyFilters), ctx, chainID, contractAddress, excludeProperties, excludePropertyValues)
 }
 
 // GetTokenRefreshStatus mocks base method.
@@ -333,36 +317,6 @@ func (m *Metadata) GetTokenRefreshStatus(ctx context.Context, taskId uint64) (*m
 func (mr *MetadataMockRecorder) GetTokenRefreshStatus(ctx, taskId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenRefreshStatus", reflect.TypeOf((*Metadata)(nil).GetTokenRefreshStatus), ctx, taskId)
-}
-
-// MintMonitorJobStatus mocks base method.
-func (m *Metadata) MintMonitorJobStatus(ctx context.Context, chainID, contractAddress string) (*metadata.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MintMonitorJobStatus", ctx, chainID, contractAddress)
-	ret0, _ := ret[0].(*metadata.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// MintMonitorJobStatus indicates an expected call of MintMonitorJobStatus.
-func (mr *MetadataMockRecorder) MintMonitorJobStatus(ctx, chainID, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MintMonitorJobStatus", reflect.TypeOf((*Metadata)(nil).MintMonitorJobStatus), ctx, chainID, contractAddress)
-}
-
-// MintMonitorTriggerJob mocks base method.
-func (m *Metadata) MintMonitorTriggerJob(ctx context.Context, chainID, contractAddress string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MintMonitorTriggerJob", ctx, chainID, contractAddress)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// MintMonitorTriggerJob indicates an expected call of MintMonitorTriggerJob.
-func (mr *MetadataMockRecorder) MintMonitorTriggerJob(ctx, chainID, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MintMonitorTriggerJob", reflect.TypeOf((*Metadata)(nil).MintMonitorTriggerJob), ctx, chainID, contractAddress)
 }
 
 // Ping mocks base method.
@@ -397,32 +351,33 @@ func (mr *MetadataMockRecorder) RefreshAllContractTokens(ctx, chainHandle, contr
 }
 
 // RefreshContractInfo mocks base method.
-func (m *Metadata) RefreshContractInfo(ctx context.Context, chainHandle, contractAddress string) error {
+func (m *Metadata) RefreshContractInfo(ctx context.Context, chainID, contractAddress string) (*uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshContractInfo", ctx, chainHandle, contractAddress)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RefreshContractInfo indicates an expected call of RefreshContractInfo.
-func (mr *MetadataMockRecorder) RefreshContractInfo(ctx, chainHandle, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshContractInfo", reflect.TypeOf((*Metadata)(nil).RefreshContractInfo), ctx, chainHandle, contractAddress)
-}
-
-// RefreshContractTokens mocks base method.
-func (m *Metadata) RefreshContractTokens(ctx context.Context, chainHandle, contractAddress string, tokenIDs []string) (*uint64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshContractTokens", ctx, chainHandle, contractAddress, tokenIDs)
+	ret := m.ctrl.Call(m, "RefreshContractInfo", ctx, chainID, contractAddress)
 	ret0, _ := ret[0].(*uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// RefreshContractTokens indicates an expected call of RefreshContractTokens.
-func (mr *MetadataMockRecorder) RefreshContractTokens(ctx, chainHandle, contractAddress, tokenIDs any) *gomock.Call {
+// RefreshContractInfo indicates an expected call of RefreshContractInfo.
+func (mr *MetadataMockRecorder) RefreshContractInfo(ctx, chainID, contractAddress any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshContractTokens", reflect.TypeOf((*Metadata)(nil).RefreshContractTokens), ctx, chainHandle, contractAddress, tokenIDs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshContractInfo", reflect.TypeOf((*Metadata)(nil).RefreshContractInfo), ctx, chainID, contractAddress)
+}
+
+// RefreshContractInfoBatch mocks base method.
+func (m *Metadata) RefreshContractInfoBatch(ctx context.Context, chainID string, contractAddresses []string) (*uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshContractInfoBatch", ctx, chainID, contractAddresses)
+	ret0, _ := ret[0].(*uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshContractInfoBatch indicates an expected call of RefreshContractInfoBatch.
+func (mr *MetadataMockRecorder) RefreshContractInfoBatch(ctx, chainID, contractAddresses any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshContractInfoBatch", reflect.TypeOf((*Metadata)(nil).RefreshContractInfoBatch), ctx, chainID, contractAddresses)
 }
 
 // RefreshTokenMetadata mocks base method.
@@ -438,21 +393,6 @@ func (m *Metadata) RefreshTokenMetadata(ctx context.Context, chainID, contractAd
 func (mr *MetadataMockRecorder) RefreshTokenMetadata(ctx, chainID, contractAddress, tokenIDs, refreshAll any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshTokenMetadata", reflect.TypeOf((*Metadata)(nil).RefreshTokenMetadata), ctx, chainID, contractAddress, tokenIDs, refreshAll)
-}
-
-// RemoveContractFromMintMonitor mocks base method.
-func (m *Metadata) RemoveContractFromMintMonitor(ctx context.Context, chainID, contractAddress string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveContractFromMintMonitor", ctx, chainID, contractAddress)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RemoveContractFromMintMonitor indicates an expected call of RemoveContractFromMintMonitor.
-func (mr *MetadataMockRecorder) RemoveContractFromMintMonitor(ctx, chainID, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveContractFromMintMonitor", reflect.TypeOf((*Metadata)(nil).RemoveContractFromMintMonitor), ctx, chainID, contractAddress)
 }
 
 // RuntimeStatus mocks base method.
@@ -516,6 +456,22 @@ func (mr *MetadataMockRecorder) SearchContracts(ctx, q, chainID, chainIDs, types
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchContracts", reflect.TypeOf((*Metadata)(nil).SearchContracts), ctx, q, chainID, chainIDs, types, page)
 }
 
+// SearchContractsByQuery mocks base method.
+func (m *Metadata) SearchContractsByQuery(ctx context.Context, q string, chainID *string, chainIDs []string, types []metadata.ContractType, page *metadata.Page) ([]*metadata.ContractInfo, *metadata.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchContractsByQuery", ctx, q, chainID, chainIDs, types, page)
+	ret0, _ := ret[0].([]*metadata.ContractInfo)
+	ret1, _ := ret[1].(*metadata.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchContractsByQuery indicates an expected call of SearchContractsByQuery.
+func (mr *MetadataMockRecorder) SearchContractsByQuery(ctx, q, chainID, chainIDs, types, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchContractsByQuery", reflect.TypeOf((*Metadata)(nil).SearchContractsByQuery), ctx, q, chainID, chainIDs, types, page)
+}
+
 // SearchMetadata mocks base method.
 func (m *Metadata) SearchMetadata(ctx context.Context, filter string, chainID *string, types []metadata.ContractType, excludeTokenMetadata *bool) ([]*metadata.TokenMetadata, []*metadata.ContractInfo, error) {
 	m.ctrl.T.Helper()
@@ -530,6 +486,22 @@ func (m *Metadata) SearchMetadata(ctx context.Context, filter string, chainID *s
 func (mr *MetadataMockRecorder) SearchMetadata(ctx, filter, chainID, types, excludeTokenMetadata any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchMetadata", reflect.TypeOf((*Metadata)(nil).SearchMetadata), ctx, filter, chainID, types, excludeTokenMetadata)
+}
+
+// SearchTokenDirectory mocks base method.
+func (m *Metadata) SearchTokenDirectory(ctx context.Context, query string, chainID *uint64, includeTestnets, onlyFeatured *bool, page *metadata.Page) ([]*metadata.ContractInfo, *metadata.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchTokenDirectory", ctx, query, chainID, includeTestnets, onlyFeatured, page)
+	ret0, _ := ret[0].([]*metadata.ContractInfo)
+	ret1, _ := ret[1].(*metadata.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchTokenDirectory indicates an expected call of SearchTokenDirectory.
+func (mr *MetadataMockRecorder) SearchTokenDirectory(ctx, query, chainID, includeTestnets, onlyFeatured, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenDirectory", reflect.TypeOf((*Metadata)(nil).SearchTokenDirectory), ctx, query, chainID, includeTestnets, onlyFeatured, page)
 }
 
 // SearchTokenIDs mocks base method.
@@ -564,6 +536,38 @@ func (mr *MetadataMockRecorder) SearchTokenMetadata(ctx, chainID, contractAddres
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenMetadata", reflect.TypeOf((*Metadata)(nil).SearchTokenMetadata), ctx, chainID, contractAddress, filter, page)
 }
 
+// SearchTokenMetadataByQuery mocks base method.
+func (m *Metadata) SearchTokenMetadataByQuery(ctx context.Context, q string, chainID, contractAddress *string, page *metadata.Page) ([]*metadata.TokenMetadata, *metadata.Page, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchTokenMetadataByQuery", ctx, q, chainID, contractAddress, page)
+	ret0, _ := ret[0].([]*metadata.TokenMetadata)
+	ret1, _ := ret[1].(*metadata.Page)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchTokenMetadataByQuery indicates an expected call of SearchTokenMetadataByQuery.
+func (mr *MetadataMockRecorder) SearchTokenMetadataByQuery(ctx, q, chainID, contractAddress, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenMetadataByQuery", reflect.TypeOf((*Metadata)(nil).SearchTokenMetadataByQuery), ctx, q, chainID, contractAddress, page)
+}
+
+// SearchTokenMetadataTokenIDs mocks base method.
+func (m *Metadata) SearchTokenMetadataTokenIDs(ctx context.Context, chainID, contractAddress string, filter *metadata.Filter, page *metadata.Page) (*metadata.Page, []string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchTokenMetadataTokenIDs", ctx, chainID, contractAddress, filter, page)
+	ret0, _ := ret[0].(*metadata.Page)
+	ret1, _ := ret[1].([]string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchTokenMetadataTokenIDs indicates an expected call of SearchTokenMetadataTokenIDs.
+func (mr *MetadataMockRecorder) SearchTokenMetadataTokenIDs(ctx, chainID, contractAddress, filter, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokenMetadataTokenIDs", reflect.TypeOf((*Metadata)(nil).SearchTokenMetadataTokenIDs), ctx, chainID, contractAddress, filter, page)
+}
+
 // SearchTokens mocks base method.
 func (m *Metadata) SearchTokens(ctx context.Context, q string, chainID *string, page *metadata.Page) ([]*metadata.TokenMetadata, *metadata.Page, error) {
 	m.ctrl.T.Helper()
@@ -578,21 +582,6 @@ func (m *Metadata) SearchTokens(ctx context.Context, q string, chainID *string, 
 func (mr *MetadataMockRecorder) SearchTokens(ctx, q, chainID, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTokens", reflect.TypeOf((*Metadata)(nil).SearchTokens), ctx, q, chainID, page)
-}
-
-// SyncContractTokens mocks base method.
-func (m *Metadata) SyncContractTokens(ctx context.Context, chainID, contractAddress string) (uint64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SyncContractTokens", ctx, chainID, contractAddress)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SyncContractTokens indicates an expected call of SyncContractTokens.
-func (mr *MetadataMockRecorder) SyncContractTokens(ctx, chainID, contractAddress any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncContractTokens", reflect.TypeOf((*Metadata)(nil).SyncContractTokens), ctx, chainID, contractAddress)
 }
 
 // TokenCollectionFilters mocks base method.
