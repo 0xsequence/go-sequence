@@ -12,6 +12,11 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 )
 
+var passkeySigners = map[common.Address]struct{}{
+	common.HexToAddress("0x8f26281dB84C18aAeEa8a53F94c835393229d296"): {},
+	common.HexToAddress("0x4491845806B757D67BE05BbD877Cab101B9bee5C"): {},
+}
+
 func RecoverSapientSignature(ctx context.Context, signer common.Address, payload core.Payload, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
 	if provider == nil {
 		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature without provider")
@@ -51,6 +56,19 @@ func RecoverSapientSignature(ctx context.Context, signer common.Address, payload
 }
 
 func RecoverSapientSignatureCompact(ctx context.Context, signer common.Address, payload core.Payload, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
+	if _, ok := passkeySigners[signer]; ok {
+		signature_, err := core.DecodePasskeySignature(signature)
+		if err != nil {
+			return core.ImageHash{}, fmt.Errorf("unable to decode passkey signature: %w", err)
+		}
+
+		if !signature_.IsValid(payload.Digest().Hash) {
+			return core.ImageHash{}, fmt.Errorf("invalid passkey signature")
+		}
+
+		return signature_.ImageHash(), nil
+	}
+
 	if provider == nil {
 		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature compact without provider")
 	}
