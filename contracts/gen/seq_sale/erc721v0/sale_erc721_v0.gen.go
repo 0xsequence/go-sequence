@@ -196,7 +196,6 @@ func (_Sale *SaleTransactorRaw) Transact(opts *bind.TransactOpts, method string,
 func (_Sale *SaleCaller) SaleDetails(opts *bind.CallOpts) (IERC721SaleFunctionsSaleDetails, error) {
 	var out []interface{}
 	err := _Sale.contract.Call(opts, &out, "saleDetails")
-
 	if err != nil {
 		return *new(IERC721SaleFunctionsSaleDetails), err
 	}
@@ -204,7 +203,6 @@ func (_Sale *SaleCaller) SaleDetails(opts *bind.CallOpts) (IERC721SaleFunctionsS
 	out0 := *abi.ConvertType(out[0], new(IERC721SaleFunctionsSaleDetails)).(*IERC721SaleFunctionsSaleDetails)
 
 	return out0, err
-
 }
 
 // SaleDetails is a free data retrieval call binding the contract method 0x3474a4a6.
@@ -345,7 +343,6 @@ type SaleSaleDetailsUpdated struct {
 //
 // Solidity: event SaleDetailsUpdated(uint256 supplyCap, uint256 cost, address paymentToken, uint64 startTime, uint64 endTime, bytes32 merkleRoot)
 func (_Sale *SaleFilterer) FilterSaleDetailsUpdated(opts *bind.FilterOpts) (*SaleSaleDetailsUpdatedIterator, error) {
-
 	logs, sub, err := _Sale.contract.FilterLogs(opts, "SaleDetailsUpdated")
 	if err != nil {
 		return nil, err
@@ -357,7 +354,6 @@ func (_Sale *SaleFilterer) FilterSaleDetailsUpdated(opts *bind.FilterOpts) (*Sal
 //
 // Solidity: event SaleDetailsUpdated(uint256 supplyCap, uint256 cost, address paymentToken, uint64 startTime, uint64 endTime, bytes32 merkleRoot)
 func (_Sale *SaleFilterer) WatchSaleDetailsUpdated(opts *bind.WatchOpts, sink chan<- *SaleSaleDetailsUpdated) (event.Subscription, error) {
-
 	logs, sub, err := _Sale.contract.WatchLogs(opts, "SaleDetailsUpdated")
 	if err != nil {
 		return nil, err
