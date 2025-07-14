@@ -405,7 +405,7 @@ func GetIntentConfigurationSignature(
 	calls []*v3.CallsPayload,
 	attestationSignerWallet *ethwallet.Wallet,
 	targetPayload *v3.CallsPayload,
-	sapientType string, // "lifi" or "relay"
+	sapientType string, // "lifi", "relay" or "cctp"
 	trailsExecutionInfos []TrailsExecutionInfo,
 	decodingStrategy *uint8,
 	overrides ...*AddressOverrides,
@@ -429,6 +429,11 @@ func GetIntentConfigurationSignature(
 		}
 	case "relay":
 		config, err = CreateRelayIntentConfiguration(mainSigner, attestationSigner, calls, trailsExecutionInfos, overrides...)
+		if err != nil {
+			return nil, err
+		}
+	case "cctp":
+		config, err = CreateCCTPV2IntentConfiguration(mainSigner, attestationSigner, calls, trailsExecutionInfos, overrides...)
 		if err != nil {
 			return nil, err
 		}
