@@ -241,7 +241,6 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 // The signature is based on the transaction bundle digests only.
 func GetIntentConfigurationSignature(
 	mainSigner common.Address,
-	attestationSigner common.Address,
 	calls []*v3.CallsPayload,
 ) ([]byte, error) {
 	// Default case without any sapient signer
