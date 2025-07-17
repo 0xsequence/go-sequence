@@ -392,7 +392,7 @@ func (s PasskeySignature) IsValid(digest common.Hash) bool {
 
 	// ---- 4) P‑256 signature verification (+ low‑S) ----
 	hashClient := sha256.Sum256(s.clientDataJSON)
-	msgHash := sha256.Sum256(append(s.authenticatorData, hashClient[:]...))
+	msgHash := sha256.Sum256(bytes.Join([][]byte{s.authenticatorData, hashClient[:]}, nil))
 
 	r := new(big.Int).SetBytes(s.r.Bytes())
 	ss := new(big.Int).SetBytes(s.s.Bytes())
