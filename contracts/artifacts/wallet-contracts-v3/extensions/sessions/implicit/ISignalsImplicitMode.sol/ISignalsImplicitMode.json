@@ -43,11 +43,6 @@
                   "internalType": "string",
                   "name": "redirectUrl",
                   "type": "string"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "issuedAt",
-                  "type": "uint64"
                 }
               ],
               "internalType": "struct AuthData",
@@ -106,7 +101,7 @@
       "outputs": [
         {
           "internalType": "bytes32",
-          "name": "magic",
+          "name": "",
           "type": "bytes32"
         }
       ],
