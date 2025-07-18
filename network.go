@@ -73,12 +73,13 @@ var sequenceContextV2 = WalletContext{
 }
 
 var sequenceContextV3 = WalletContext{
-	FactoryAddress:              common.HexToAddress("0xFE14B91dE3c5Ca74c4D24608EBcD4B2848aA6010"),
-	MainModuleAddress:           common.HexToAddress("0xC906F90A51705d57F3b924ca4563c0C5E138AaB6"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x43c572027dc17277fd2561f25d16f351adea5ee6"),
-	GuestModuleAddress:          common.HexToAddress("0xf3c7175460BeD3340A1c4dc700fD6C8Cd3F56250"),
-	UtilsAddress:                common.HexToAddress("0x63aa1460021d937A9c31E771ae73D1674Ebd43A0"),
-	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
+	FactoryAddress:              common.HexToAddress("0xc13a0aFEF4590a2738694D541b6ee1085D1c00Fc"),
+	MainModuleAddress:           common.HexToAddress("0x63aa1460021d937A9c31E771ae73D1674Ebd43A0"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x008ECe44354E624392818dF3556419854358b92a"),
+	GuestModuleAddress:          common.HexToAddress("0x0eF67Be354Fb615D64A5f44850754ebfdAc1b58b"),
+	// SessionManagerAddress:       common.HexToAddress("0xDfB66323C6485eE10d81A0fa60BaEbbbA732Ba0a"),
+	UtilsAddress: common.HexToAddress("0x63aa1460021d937A9c31E771ae73D1674Ebd43A0"),
+	CreationCode: hexutil.Encode(contracts.V3.CreationCode),
 }
 
 // V1SequenceContext returns copy of the package-level internal variable, to prevent change
