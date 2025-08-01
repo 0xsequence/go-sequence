@@ -253,6 +253,13 @@ func (h ImageHash) ImageHash() ImageHash {
 	return h
 }
 
+var imageHashApprovalSalt = crypto.Keccak256Hash([]byte("SetImageHash(bytes32 imageHash)"))
+
+// Approval derives the digest that must be signed to approve the ImageHash for subsequent signatures.
+func (h ImageHash) Approval() common.Hash {
+	return crypto.Keccak256Hash(imageHashApprovalSalt.Bytes(), h.Bytes())
+}
+
 func EthereumSignedMessage(message []byte) common.Hash {
 	return common.Hash(accounts.TextHash(message))
 }
