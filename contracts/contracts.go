@@ -34,6 +34,7 @@ import (
 	v3Simulator "github.com/0xsequence/go-sequence/contracts/gen/v3/walletsimulator"
 	v3Stage1 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage1"
 	v3Stage2 "github.com/0xsequence/go-sequence/contracts/gen/v3/walletstage2"
+	"github.com/0xsequence/go-sequence/contracts/gen/valueforwarder"
 )
 
 var GasEstimator,
@@ -53,6 +54,7 @@ var GasEstimator,
 	SeqMarketplace,
 	SeqSale721,
 	SeqSale1155,
+	ValueForwarder,
 	_ ethartifact.Artifact
 
 var V1 struct {
@@ -118,6 +120,8 @@ func init() {
 	V3.CreationCode = hexutil.MustDecode("0x603e600e3d39601e805130553df33d3d34601c57363d3d373d363d30545af43d82803e903d91601c57fd5bf3")
 
 	GasEstimator = artifact("GAS_ESTIMATOR", gasestimator.GasEstimatorABI, gasestimator.GasEstimatorBin, gasestimator.GasEstimatorDeployedBin)
+
+	ValueForwarder = artifact("VALUE_FORWARDER", valueforwarder.ValueForwarderABI, valueforwarder.ValueForwarderBin)
 
 	IERC1271 = artifact("IERC1271", ierc1271.IERC1271ABI, "")
 
