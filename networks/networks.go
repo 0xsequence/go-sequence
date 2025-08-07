@@ -13,7 +13,6 @@ type Network struct {
 	Type       NetworkType `toml:"type"        json:"type,omitempty"`
 	LogoURL    string      `toml:"logo_url"    json:"logoUrl,omitempty"`
 	ENSAddress string      `toml:"ens_address" json:"ensAddress,omitempty"`
-	AuthChain  bool        `toml:"auth_chain"  json:"authChain,omitempty"`
 	Deprecated bool        `toml:"deprecated"  json:"deprecated,omitempty"`
 	Disabled   bool        `toml:"disabled"    json:"disabled,omitempty"`
 	WSEnabled  bool        `toml:"ws_enabled"  json:"wsEnabled,omitempty"`
@@ -147,7 +146,6 @@ func (n Networks) EthProvidersConfig() ethproviders.Config {
 			URL:       network.NodeURL,
 			WSEnabled: network.WSEnabled,
 			WSURL:     network.WSURL,
-			AuthChain: network.AuthChain,
 			Testnet:   network.IsTesnet(),
 			Disabled:  network.Disabled,
 		}
