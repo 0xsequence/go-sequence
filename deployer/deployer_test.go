@@ -2,6 +2,8 @@ package deployer_test
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/0xsequence/go-sequence/contracts"
@@ -16,7 +18,9 @@ var (
 
 func init() {
 	var err error
-	testChain, err = testutil.NewTestChain()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	testChain, err = testutil.NewTestChain(logger)
 	if err != nil {
 		panic(err)
 	}

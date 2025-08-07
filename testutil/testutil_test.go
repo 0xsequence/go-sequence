@@ -1,6 +1,7 @@
 package testutil_test
 
 import (
+	"log/slog"
 	"math/big"
 	"os"
 	"testing"
@@ -19,7 +20,9 @@ var (
 
 func init() {
 	var err error
-	testChain, err = testutil.NewTestChain()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	testChain, err = testutil.NewTestChain(logger)
 	if err != nil {
 		panic(err)
 	}
@@ -82,13 +85,14 @@ func TestContractHelpers(t *testing.T) {
 }
 
 func TestNewTestChainWithOptions(t *testing.T) {
-	opt := testutil.DefaultTestChainOptions
+	opts := testutil.DefaultTestChainOptions
 	if nodeURL, ok := os.LookupEnv("CHAIN_NODE_URL"); ok {
-		opt = testutil.TestChainOptions{
+		opts = testutil.TestChainOptions{
 			NodeURL: nodeURL,
 		}
 	}
-	testChain, err := testutil.NewTestChain(opt)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	testChain, err := testutil.NewTestChain(logger, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
