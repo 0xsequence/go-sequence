@@ -2,6 +2,7 @@ package testutil_test
 
 import (
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethcoder"
@@ -78,4 +79,20 @@ func TestContractHelpers(t *testing.T) {
 	_, err = testutil.ContractCall(testChain.Provider, callmockContract.Address, callmockContract.ABI, &result, "lastValA")
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(143), result.Uint64())
+}
+
+func TestNewTestChainWithOptions(t *testing.T) {
+	opt := testutil.DefaultTestChainOptions
+	if nodeURL, ok := os.LookupEnv("CHAIN_NODE_URL"); ok {
+		opt = testutil.TestChainOptions{
+			NodeURL: nodeURL,
+		}
+	}
+	testChain, err := testutil.NewTestChain(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := testChain.Connect(); err != nil {
+		t.Fatal(err)
+	}
 }
