@@ -1,0 +1,3 @@
+*.gen.go linguist-generated
+go.sum linguist-generated
+go.work.sum linguist-generated
