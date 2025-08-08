@@ -56,6 +56,7 @@ var GasEstimator,
 	SeqSale721V0,
 	SeqSale1155V0,
 	SeqSale1155V1,
+	ValueForwarder,
 	_ ethartifact.Artifact
 
 var V1 struct {
