@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"math/big"
 	"testing"
 	"time"
@@ -26,7 +27,6 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
-	"github.com/goware/logger"
 )
 
 type TestChain struct {
@@ -53,7 +53,11 @@ var DefaultTestChainOptions = TestChainOptions{
 	NodeURL: "http://localhost:8545",
 }
 
-func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
+func NewTestChain(logger *slog.Logger, opts ...TestChainOptions) (*TestChain, error) {
+	if logger == nil {
+		return nil, fmt.Errorf("logger is required")
+	}
+
 	var err error
 	tc := &TestChain{}
 
@@ -73,7 +77,7 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	// monitor
 	var monitor *ethmonitor.Monitor
 	monitorOptions := ethmonitor.DefaultOptions
-	// monitorOptions.Logger = logger.NewLogger(logger.LogLevel_INFO)
+	monitorOptions.Logger = logger
 	monitorOptions.StartBlockNumber = nil                                   // track the head
 	monitorOptions.PollingInterval = time.Duration(1000 * time.Millisecond) // default poll for new block once per second
 	monitorOptions.BlockRetentionLimit = 400                                // keep high number of blocks to query history
@@ -90,7 +94,7 @@ func NewTestChain(opts ...TestChainOptions) (*TestChain, error) {
 	receiptsOptions.NumBlocksToFinality = 10
 	receiptsOptions.FilterMaxWaitNumBlocks = 15
 
-	receipts, err := ethreceipts.NewReceiptsListener(logger.NewLogger(logger.LogLevel_INFO), tc.Provider, monitor, receiptsOptions)
+	receipts, err := ethreceipts.NewReceiptsListener(logger, tc.Provider, monitor, receiptsOptions)
 	if err != nil {
 		return nil, err
 	}
