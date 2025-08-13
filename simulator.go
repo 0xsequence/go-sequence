@@ -30,7 +30,49 @@ const (
 	SimulatorResultStatusNotEnoughGas
 )
 
+func v3Calldata(to common.Address, chainID *big.Int, transaction *Transaction) []byte {
+	if len(transaction.Data) != 0 {
+		return transaction.Data
+	}
+
+	if len(transaction.Transactions) != 0 {
+		calls := make([]v3.Call, 0, len(transaction.Transactions))
+		for _, transaction_ := range transaction.Transactions {
+			var behaviorOnError v3.BehaviorOnError
+			if transaction_.RevertOnError {
+				behaviorOnError = v3.BehaviorOnErrorRevert
+			}
+
+			calls = append(calls, v3.Call{
+				To:              transaction_.To,
+				Value:           transaction_.Value,
+				Data:            v3Calldata(transaction.To, chainID, transaction_),
+				GasLimit:        transaction_.GasLimit,
+				DelegateCall:    transaction_.DelegateCall,
+				BehaviorOnError: behaviorOnError,
+			})
+		}
+
+		packed := v3.NewCallsPayload(to, chainID, calls, big.NewInt(123456789), nil, nil).Encode(to)
+
+		if len(transaction.Signature) != 0 {
+			calldata, _ := contracts.V3.WalletStage1Module.Encode("execute", packed, transaction.Signature)
+			return calldata
+		} else {
+			calldata, _ := contracts.V3.WalletStage1Module.Encode("selfExecute", packed)
+			return calldata
+		}
+	}
+
+	return nil
+}
+
 func Simulate(ctx context.Context, wallet common.Address, transactions Transactions, provider *ethrpc.Provider) ([]SimulatorResult, error) {
+	chainID, err := provider.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get chain id: %v", err)
+	}
+
 	calls := make([]walletsimulator.PayloadCall, 0, len(transactions))
 	for _, transaction := range transactions {
 		behaviorOnError := new(big.Int).SetInt64(int64(v3.BehaviorOnErrorIgnore))
@@ -40,7 +82,7 @@ func Simulate(ctx context.Context, wallet common.Address, transactions Transacti
 		calls = append(calls, walletsimulator.PayloadCall{
 			To:              transaction.To,
 			Value:           transaction.Value,
-			Data:            transaction.Data,
+			Data:            v3Calldata(wallet, chainID, transaction),
 			GasLimit:        transaction.GasLimit,
 			DelegateCall:    transaction.DelegateCall,
 			BehaviorOnError: behaviorOnError,
