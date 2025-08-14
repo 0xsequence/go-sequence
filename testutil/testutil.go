@@ -397,7 +397,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (factory deploy): %w", err)
 	}
 
-	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, 0, nil, 10000000, walletFactoryAddress)
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, 0, nil, 10000000, walletFactoryAddress, common.Address{})
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}

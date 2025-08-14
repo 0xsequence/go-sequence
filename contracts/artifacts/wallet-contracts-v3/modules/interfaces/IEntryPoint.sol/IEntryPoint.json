@@ -1,18 +1,20 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "SelfAuth",
-  "sourceName": "src/modules/auth/SelfAuth.sol",
+  "contractName": "IEntryPoint",
+  "sourceName": "src/modules/interfaces/IEntryPoint.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_sender",
+          "name": "account",
           "type": "address"
         }
       ],
-      "name": "OnlySelf",
-      "type": "error"
+      "name": "depositTo",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
     }
   ],
   "bytecode": "0x",

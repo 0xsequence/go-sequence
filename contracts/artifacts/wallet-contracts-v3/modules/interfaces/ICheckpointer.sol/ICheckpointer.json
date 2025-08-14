@@ -32,7 +32,7 @@
             }
           ],
           "internalType": "struct Snapshot",
-          "name": "",
+          "name": "snapshot",
           "type": "tuple"
         }
       ],

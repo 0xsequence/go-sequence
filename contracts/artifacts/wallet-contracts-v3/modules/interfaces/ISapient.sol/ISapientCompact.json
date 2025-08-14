@@ -7,12 +7,12 @@
       "inputs": [
         {
           "internalType": "bytes32",
-          "name": "_digest",
+          "name": "digest",
           "type": "bytes32"
         },
         {
           "internalType": "bytes",
-          "name": "_signature",
+          "name": "signature",
           "type": "bytes"
         }
       ],
@@ -20,7 +20,7 @@
       "outputs": [
         {
           "internalType": "bytes32",
-          "name": "",
+          "name": "imageHash",
           "type": "bytes32"
         }
       ],

@@ -828,7 +828,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("Single Operation Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, common.HexToAddress("0x8577dFb93fE58cc8EE90DEA522555Fdf01Fd7429"), address)
+		assert.Equal(t, common.HexToAddress("0x3857F10693Aa54b39B640292CD5723ec97BEd285"), address)
 	})
 
 	t.Run("multiple operations", func(t *testing.T) {
@@ -878,7 +878,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		fmt.Printf("\nMultiple Operations Test:\n")
 		fmt.Printf("Address: %s\n", address.Hex())
 
-		assert.Equal(t, common.HexToAddress("0xBd820eD5b1E969eD6509E8EdE687DfC4c714438F"), address)
+		assert.Equal(t, common.HexToAddress("0x5784cF2b86eE8C930ee26279e7666241aC7e78B7"), address)
 	})
 }
 
@@ -932,7 +932,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	fmt.Printf("Address: %s\n", address.Hex())
 
 	// The address should be deterministic based on the configuration
-	assert.Equal(t, common.HexToAddress("0x6221FDe05065E9D85D7aB59De225861D203705AF"), address)
+	assert.Equal(t, common.HexToAddress("0xd4723e6e75FE0C8880cc21d1640D2A74dB7bB122"), address)
 }
 
 func TestCreateIntentCallsPayloadDigest(t *testing.T) {
