@@ -7,7 +7,7 @@ toolchain go1.24.2
 // replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.38.0
+	github.com/0xsequence/ethkit v1.38.1
 	github.com/0xsequence/go-ethauth v0.14.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
@@ -15,8 +15,10 @@ require (
 	github.com/goware/cachestore v0.9.0
 	github.com/goware/logger v0.3.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/mock v0.5.0
+	golang.org/x/crypto v0.38.0
 )
 
 require (
@@ -46,14 +48,15 @@ require (
 	github.com/goware/superr v0.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supranational/blst v0.3.14 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect

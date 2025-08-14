@@ -17,12 +17,14 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi/bind"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
 )
@@ -163,6 +165,10 @@ func (c *TestChain) V1SequenceContext() sequence.WalletContext {
 
 func (c *TestChain) V2SequenceContext() sequence.WalletContext {
 	return V2SequenceContext()
+}
+
+func (c *TestChain) V3SequenceContext() sequence.WalletContext {
+	return V3SequenceContext()
 }
 
 func (c *TestChain) SetRpcRelayer(relayerURL string) error {
@@ -331,11 +337,12 @@ func (c *TestChain) V1DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
+		CreationCode:                hexutil.Encode(contracts.V1.CreationCode),
 	}, nil
 }
 
 func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
-	ud, err := deployer.NewEIP2740Deployer(c.GetDeployWallet())
+	ud, err := deployer.NewEIP2470Deployer(c.GetDeployWallet())
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
@@ -373,6 +380,46 @@ func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleUpgradableAddress: mainModuleUpgradableAddress,
 		GuestModuleAddress:          guestModuleAddress,
 		UtilsAddress:                utilsAddress,
+		CreationCode:                hexutil.Encode(contracts.V2.CreationCode),
+	}, nil
+}
+
+func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
+	ud, err := deployer.NewEIP2470Deployer(c.GetDeployWallet())
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext: %w", err)
+	}
+
+	ctx := context.Background()
+
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, 0, nil, 10000000)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (factory deploy): %w", err)
+	}
+
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, 0, nil, 10000000, walletFactoryAddress, common.Address{})
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
+	}
+
+	stage2Module := ethcontract.NewContractCaller(stage1ModuleAddress, contracts.V3.WalletStage1Module.ABI, c.Provider)
+	var stage2ModuleAddress common.Address
+	if err := stage2Module.Call(&bind.CallOpts{Context: ctx}, &[]any{&stage2ModuleAddress}, "STAGE_2_IMPLEMENTATION"); err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
+	}
+
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 10000000)
+	if err != nil {
+		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
+	}
+
+	return sequence.WalletContext{
+		FactoryAddress:              walletFactoryAddress,
+		MainModuleAddress:           stage1ModuleAddress,
+		MainModuleUpgradableAddress: stage2ModuleAddress,
+		GuestModuleAddress:          guestModuleAddress,
+		UtilsAddress:                stage1ModuleAddress,
+		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 	}, nil
 }
 
@@ -391,6 +438,11 @@ func (c *TestChain) MustDeploySequenceContexts() map[uint8]sequence.WalletContex
 		panic(err)
 	}
 
+	sc3, err := c.V3DeploySequenceContext()
+	if err != nil {
+		panic(err)
+	}
+
 	if sc != sequenceContext {
 		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContext")
 	}
@@ -399,9 +451,14 @@ func (c *TestChain) MustDeploySequenceContexts() map[uint8]sequence.WalletContex
 		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContextV2")
 	}
 
+	if sc3 != sequenceContextV3 {
+		panic("MustDeploySequenceContext failed, deployed context does not match testutil.sequenceContextV3")
+	}
+
 	return map[uint8]sequence.WalletContext{
 		1: sc,
 		2: sc2,
+		3: sc3,
 	}
 }
 
@@ -505,6 +562,20 @@ func (c *TestChain) V2DummySequenceWallets(nWallets uint64, startingSeed uint64)
 	return wallets, nil
 }
 
+func (c *TestChain) V3DummySequenceWallets(nWallets uint64, startingSeed uint64) ([]*sequence.Wallet[core.WalletConfig], error) {
+	var wallets []*sequence.Wallet[core.WalletConfig]
+
+	for i := uint64(0); i < nWallets; i++ {
+		wallet, err := c.V3DummySequenceWallet(startingSeed + i*1000)
+		if err != nil {
+			return nil, err
+		}
+		wallets = append(wallets, wallet)
+	}
+
+	return wallets, nil
+}
+
 func (c *TestChain) RandomNonce() *big.Int {
 	space := big.NewInt(int64(time.Now().Nanosecond()))
 
@@ -516,6 +587,7 @@ func (c *TestChain) RandomNonce() *big.Int {
 	return encoded
 }
 
+// ... existing code ...
 func (c *TestChain) V1DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
 	// Generate a single-owner sequence wallet based on a private key generated from seed above
 	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
@@ -586,6 +658,104 @@ func (c *TestChain) V2DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*
 	}
 
 	genericWallet := sequence.GenericNewWalletWithCoreWalletConfig[*v2.WalletConfig](wallet)
+
+	// Skip deploying the dummy wallet if specified
+	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {
+		return genericWallet, nil
+	}
+
+	err = c.DeploySequenceWallet(genericWallet)
+	if err != nil {
+		return nil, err
+	}
+
+	return genericWallet, nil
+}
+
+func (c *TestChain) V3DummySequenceWallet(seed uint64, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
+	// Generate a single-owner sequence wallet based on a private key generated from seed above
+	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
+	if err != nil {
+		return nil, err
+	}
+	wallet, err := sequence.GenericNewWalletSingleOwner[*v3.WalletConfig](owner, V3SequenceContext())
+	if err != nil {
+		return nil, err
+	}
+
+	// Set provider on sequence wallet
+	err = wallet.SetProvider(c.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set relayer on sequence wallet, which is used when the wallet sends transactions
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptsListener)
+	if err != nil {
+		return nil, err
+	}
+	err = wallet.SetRelayer(localRelayer)
+	if err != nil {
+		return nil, err
+	}
+
+	genericWallet := sequence.GenericNewWalletWithCoreWalletConfig[*v3.WalletConfig](wallet)
+
+	// Skip deploying the dummy wallet if specified
+	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {
+		return genericWallet, nil
+	}
+
+	err = c.DeploySequenceWallet(genericWallet)
+	if err != nil {
+		return nil, err
+	}
+
+	return genericWallet, nil
+}
+
+func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, calls []*v3.CallsPayload, optSkipDeploy ...bool) (*sequence.Wallet[core.WalletConfig], error) {
+	// Generate a single-owner sequence wallet based on a private key generated from seed above
+	owner, err := ethwallet.NewWalletFromPrivateKey(DummyPrivateKey(seed))
+	if err != nil {
+		return nil, err
+	}
+
+	// Create an intent config
+	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), calls, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new wallet using the intentConfig v3.WalletConfig.
+	wallet, err := sequence.V3NewWallet(sequence.WalletOptions[*v3.WalletConfig]{
+		Config: intentConfig,
+		Context: func() *sequence.WalletContext {
+			ctx := V3SequenceContext()
+			return &ctx
+		}(),
+	}, owner)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set provider on sequence wallet
+	err = wallet.SetProvider(c.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set relayer on sequence wallet, which is used when the wallet sends transactions
+	localRelayer, err := relayer.NewLocalRelayer(c.GetRelayerWallet(), c.ReceiptsListener)
+	if err != nil {
+		return nil, err
+	}
+	err = wallet.SetRelayer(localRelayer)
+	if err != nil {
+		return nil, err
+	}
+
+	genericWallet := sequence.GenericNewWalletWithCoreWalletConfig[*v3.WalletConfig](wallet)
 
 	// Skip deploying the dummy wallet if specified
 	if len(optSkipDeploy) > 0 && optSkipDeploy[0] {

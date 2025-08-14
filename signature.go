@@ -19,6 +19,7 @@ import (
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/eip6492"
 	"github.com/goware/logger"
 )
@@ -56,6 +57,10 @@ func V2DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfi
 	return GenericDecodeSignature[*v2.WalletConfig](sequenceSignature)
 }
 
+func V3DecodeSignature(sequenceSignature []byte) (core.Signature[*v3.WalletConfig], error) {
+	return GenericDecodeSignature[*v3.WalletConfig](sequenceSignature)
+}
+
 func DecodeSignature(sequenceSignature []byte) (core.Signature[*v2.WalletConfig], error) {
 	return V2DecodeSignature(sequenceSignature)
 }
@@ -72,7 +77,17 @@ func GenericRecoverWalletConfigFromDigest[C core.WalletConfig](digest, seqSig []
 		return wc, weight, err
 	}
 
-	wc, weight, err = decoded.Recover(context.Background(), core.Digest{Hash: common.BytesToHash(digest)}, walletAddress, chainID, provider)
+	var payload core.Payload
+	switch decoded.(type) {
+	case core.Signature[*v1.WalletConfig]:
+		payload = v1.Digest(common.Hash(digest), walletAddress, chainID)
+	case core.Signature[*v2.WalletConfig]:
+		payload = v2.Digest(common.Hash(digest), walletAddress, chainID)
+	case core.Signature[*v3.WalletConfig]:
+		payload = core.PayloadDigest{Hash: common.Hash(digest), Address_: walletAddress, ChainID_: chainID}
+	}
+
+	wc, weight, err = decoded.Recover(context.Background(), payload, provider)
 	if err != nil {
 		return wc, weight, err
 	}
@@ -86,6 +101,10 @@ func V1RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common
 
 func V2RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
 	return GenericRecoverWalletConfigFromDigest[*v2.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
+}
+
+func V3RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v3.WalletConfig, *big.Int, error) {
+	return GenericRecoverWalletConfigFromDigest[*v3.WalletConfig](digest, seqSig, walletAddress, walletContext, chainID, provider)
 }
 
 func RecoverWalletConfigFromDigest(digest, seqSig []byte, walletAddress common.Address, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (*v2.WalletConfig, *big.Int, error) {
@@ -144,14 +163,23 @@ func V2IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig
 	return GenericIsValidSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
+func V3IsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidSignature[*v3.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
 func GeneralIsValidSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContexts WalletContexts, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
-	isValid, err := V2IsValidSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
-	if err == nil {
+	isValid, err3 := V3IsValidSignature(walletAddress, digest, seqSig, walletContexts[3], chainID, provider)
+	if err3 == nil {
 		return isValid, nil
 	}
 
-	isValid, err2 := V1IsValidSignature(walletAddress, digest, seqSig, walletContexts[1], chainID, provider)
-	if err2 != nil {
+	isValid, err2 := V2IsValidSignature(walletAddress, digest, seqSig, walletContexts[2], chainID, provider)
+	if err2 == nil {
+		return isValid, nil
+	}
+
+	isValid, err := V1IsValidSignature(walletAddress, digest, seqSig, walletContexts[1], chainID, provider)
+	if err != nil {
 		return false, fmt.Errorf("failed to validate: %v, %v", err, err2)
 	}
 
@@ -226,13 +254,12 @@ func GenericIsValidUndeployedSignature[C core.WalletConfig](walletAddress common
 		return false, err
 	}
 
-	recovered, weight, err := decoded.Recover(context.Background(), core.Digest{Hash: digest}, walletAddress, chainID, provider)
+	recovered, weight, err := decoded.Recover(context.Background(), v2.Digest(digest, walletAddress, chainID), provider) // TODO: v3
 	if err != nil {
 		return false, err
 	}
 
-	imageHash := recovered.ImageHash()
-	address, err := AddressFromImageHash(imageHash.Hex(), walletContext)
+	address, err := AddressFromWalletConfig(recovered, walletContext)
 	if err != nil {
 		return false, err
 	}
@@ -252,7 +279,16 @@ func V2IsValidUndeployedSignature(walletAddress common.Address, digest common.Ha
 	return GenericIsValidUndeployedSignature[*v2.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
+func V3IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	return GenericIsValidUndeployedSignature[*v3.WalletConfig](walletAddress, digest, seqSig, walletContext, chainID, provider)
+}
+
 func IsValidUndeployedSignature(walletAddress common.Address, digest common.Hash, seqSig []byte, walletContext WalletContext, chainID *big.Int, provider *ethrpc.Provider) (bool, error) {
+	isValid, err := V3IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
+	if err == nil {
+		return isValid, nil
+	}
+
 	return V2IsValidUndeployedSignature(walletAddress, digest, seqSig, walletContext, chainID, provider)
 }
 
@@ -278,7 +314,7 @@ func EIP6492Signature(signature []byte, config core.WalletConfig) ([]byte, error
 		return nil, fmt.Errorf("unable to encode deploy call: %w", err)
 	}
 
-	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{factory, deploy, signature})
+	signature, err = ethcoder.ABIPackArguments([]string{"address", "bytes", "bytes"}, []any{factory, deploy, signature})
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
 	}
@@ -323,7 +359,7 @@ func EIP6492SignatureWithMultipleDeployments(signature []byte, configs []core.Wa
 		return nil, err
 	}
 
-	signature, err = ethcoder.AbiCoder([]string{"address", "bytes", "bytes"}, []interface{}{sequenceContextV2.GuestModuleAddress, execdata, signature})
+	signature, err = ethcoder.ABIPackArguments([]string{"address", "bytes", "bytes"}, []any{sequenceContextV2.GuestModuleAddress, execdata, signature})
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode eip-6492 signature: %w", err)
 	}
@@ -343,7 +379,7 @@ func UnwrapEIP6492Signature(signature []byte) ([]byte, error) {
 		signature_ []byte
 	)
 
-	err := ethcoder.AbiDecoder([]string{"address", "bytes", "bytes"}, signature, []any{&to, &data, &signature_})
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"address", "bytes", "bytes"}, signature, []any{&to, &data, &signature_})
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode eip-6492 signature: %w", err)
 	}
