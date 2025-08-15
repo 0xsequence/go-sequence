@@ -635,9 +635,17 @@ func (w *Wallet[C]) SignTransactions(ctx context.Context, txns Transactions) (*S
 		}
 	}
 	if estimateGas {
-		txns, err = w.relayer.EstimateGasLimits(ctx, w.config, w.context, txns)
+		results, err := w.relayer.Simulate(ctx, common.Address{}, txns)
 		if err != nil {
-			return nil, fmt.Errorf("estimateGas failed for sequence transactions: %w", err)
+			return nil, fmt.Errorf("unable to simulate for gas limits: %w", err)
+		}
+		if len(results) != len(txns) {
+			return nil, fmt.Errorf("%v simulation results, but %v transactions", len(results), len(txns))
+		}
+		for i, transaction := range txns {
+			if transaction.GasLimit == nil {
+				transaction.GasLimit = big.NewInt(int64(results[i].GasLimit))
+			}
 		}
 	}
 
