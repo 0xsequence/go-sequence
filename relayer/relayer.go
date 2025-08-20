@@ -13,7 +13,7 @@ type Options struct {
 	JWTAuthToken string
 }
 
-// NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
+// NewRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
 func NewRelayer(relayerURL string, projectAccessKey string, options ...Options) proto.RelayerClient {
 	opts := Options{}
