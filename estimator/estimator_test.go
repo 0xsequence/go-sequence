@@ -17,7 +17,7 @@ import (
 func TestEstimator(t *testing.T) {
 	ctx := context.Background()
 
-	provider, err := ethrpc.NewProvider("https://nodes.sequence.app/mainnet")
+	provider, err := ethrpc.NewProvider("https://dev-nodes.sequence.app/mainnet")
 	assert.NoError(t, err)
 
 	var sender, receiver common.Address
