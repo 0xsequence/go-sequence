@@ -603,19 +603,34 @@ func V2Simulate(provider *ethrpc.Provider, wallet common.Address, transactions T
 		Data: hexutil.Encode(callData),
 	}
 
+	addrToOverride := wallet
+
+	var storageValue string
+	rpcCall := ethrpc.NewCallBuilder[string]("eth_getStorageAt", nil, wallet.Hex(), common.BytesToHash(common.LeftPadBytes(wallet.Bytes(), 32)).Hex(), block)
+	_, err = provider.Do(context.Background(), rpcCall.Into(&storageValue))
+	if err != nil {
+		return nil, err
+	}
+
+	impAddr := common.BytesToAddress(common.FromHex(storageValue)[12:])
+
+	if impAddr != (common.Address{}) {
+		addrToOverride = impAddr
+	}
+
 	allOverrides := map[common.Address]*CallOverride{
-		wallet: {Code: walletGasEstimatorCodeV2},
+		addrToOverride: {Code: walletGasEstimatorCodeV2},
 	}
 	for address, override := range overrides {
-		if address == wallet {
-			return nil, fmt.Errorf("cannot override wallet address %v", wallet.Hex())
+		if address == addrToOverride || address == wallet {
+			return nil, fmt.Errorf("cannot override wallet or implementation address %v", addrToOverride.Hex())
 		}
 
 		allOverrides[address] = override
 	}
 
 	var response string
-	rpcCall := ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
+	rpcCall = ethrpc.NewCallBuilder[string]("eth_call", nil, params, block, allOverrides)
 	_, err = provider.Do(context.Background(), rpcCall.Into(&response))
 	if err != nil {
 		return nil, err
