@@ -194,7 +194,7 @@ func TestWalletAddressFromWalletConfig(t *testing.T) {
 			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
 		}
 
-		expected := common.HexToAddress("0xe6b7B59e6ABf35069D895022b427BfabE4C9Fd7f")
+		expected := common.HexToAddress("0x5A11b2c2b9fD4D7E1FcFd541d3367297E9DCD5d0")
 
 		address, err := sequence.AddressFromWalletConfig(wc, context)
 		assert.NoError(t, err)

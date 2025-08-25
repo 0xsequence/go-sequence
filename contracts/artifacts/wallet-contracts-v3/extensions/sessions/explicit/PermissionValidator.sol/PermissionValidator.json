@@ -4,31 +4,6 @@
   "sourceName": "src/extensions/sessions/explicit/PermissionValidator.sol",
   "abi": [
     {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "wallet",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bytes32",
-          "name": "usageHash",
-          "type": "bytes32"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "usageAmount",
-          "type": "uint256"
-        }
-      ],
-      "name": "LimitUsageUpdated",
-      "type": "event"
-    },
-    {
       "inputs": [
         {
           "internalType": "address",
