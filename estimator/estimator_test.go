@@ -34,6 +34,8 @@ func TestEstimator(t *testing.T) {
 	assert.Error(t, err)
 	assert.Zero(t, gas)
 
+	fmt.Println("error without preconditions:", err)
+
 	preconditions := map[common.Address]estimator.AddressPreconditions{
 		sender: {
 			ERC20: map[common.Address]estimator.ERC20Preconditions{

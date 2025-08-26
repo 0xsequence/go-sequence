@@ -98,9 +98,9 @@ func Estimate(
 	if !result.Success {
 		message, err := abi.UnpackRevert(result.Result)
 		if err == nil {
-			return 0, fmt.Errorf("simulation with preconditions failed: %v", message)
+			return 0, fmt.Errorf("simulation with preconditions failed: %v (gas: %v)", message, result.Gas)
 		} else {
-			return 0, fmt.Errorf("simulation with preconditions failed: %v", hexutil.Encode(result.Result))
+			return 0, fmt.Errorf("simulation with preconditions failed: %v (gas: %v)", hexutil.Encode(result.Result), result.Gas)
 		}
 	}
 
@@ -230,7 +230,15 @@ func accessList(
 		overrides,
 	).Into(&list))
 	if err != nil {
-		return nil, fmt.Errorf("unable to create access list: %w", err)
+		_, err := provider.Do(ctx, ethrpc.NewCallBuilder(
+			"eth_createAccessList",
+			into,
+			map[string]any{"to": to, "input": hexutil.Encode(data)},
+			"latest",
+		).Into(&list))
+		if err != nil {
+			return nil, fmt.Errorf("unable to create access list: %w", err)
+		}
 	}
 
 	return list, nil
