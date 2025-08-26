@@ -16,13 +16,6 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 )
 
-const (
-	// Base transaction cost includes:
-	// - 21,000 gas for basic transaction overhead
-	// - Additional overhead for contract calls
-	BaseTransactionCost = 23000
-)
-
 type AddressPreconditions struct {
 	Balance *big.Int
 	ERC20   map[common.Address]ERC20Preconditions
@@ -111,10 +104,7 @@ func Estimate(
 		}
 	}
 
-	// Add base transaction cost to the estimated gas
-	// The estimator contract only measures execution cost, but transactions need base overhead
-	estimatedGas := result.Gas.Uint64() + BaseTransactionCost
-	return estimatedGas, nil
+	return result.Gas.Uint64(), nil
 }
 
 func override(
