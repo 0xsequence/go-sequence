@@ -32,7 +32,7 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage2 --type=WalletStage2 --outFile=./v3/walletstage2/wallet_stage2.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./v3/walletguest/wallet_guest.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Guest.sol/Guest.json
 
-//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=passkeys --type=Passkeys --outFile=./v3/passkeys/passkeys.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/extensions/passkeys/Passkeys.sol/Passkeys.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=passkeys --type=Passkeys --outFile=./v3/passkeys/passkeys.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Passkeys.sol/Passkeys.json
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployedBin
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployedBin

@@ -932,7 +932,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	fmt.Printf("Address: %s\n", address.Hex())
 
 	// The address should be deterministic based on the configuration
-	assert.Equal(t, common.HexToAddress("0xd4723e6e75FE0C8880cc21d1640D2A74dB7bB122"), address)
+	assert.Equal(t, common.HexToAddress("0x2582750ed4B47D86D909b4ad4fC204F27187DE6E"), address)
 }
 
 func TestCreateIntentCallsPayloadDigest(t *testing.T) {
