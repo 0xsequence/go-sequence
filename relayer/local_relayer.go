@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
@@ -21,6 +22,7 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -122,9 +124,49 @@ func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig core.WalletCon
 	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 
-func (r *LocalRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *LocalRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.RelayerSimulateResult, error) {
+	provider := r.GetProvider()
+	if provider == nil {
+		return nil, sequence.ErrProviderNotSet
+	}
+
+	payload, err := transactions.Payload(wallet, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := simulator.SimulateV3(ctx, wallet, payload.Calls, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	results_ := make([]*sequence.RelayerSimulateResult, 0, len(results))
+	for _, result := range results {
+		var result_ *string
+		if len(result.Result) != 0 {
+			result_ = new(string)
+			*result_ = hexutil.Encode(result.Result)
+		}
+
+		var reason *string
+		if result.Error != nil {
+			reason = new(string)
+			*reason = result.Error.Error()
+		}
+
+		results_ = append(results_, &sequence.RelayerSimulateResult{
+			Executed:  result.Status != simulator.StatusSkipped,
+			Succeeded: result.Status == simulator.StatusSucceeded,
+			Result:    result_,
+			Reason:    reason,
+			GasUsed:   uint(result.GasUsed),
+			// Assuming max call depth 16, a unit of gas at that depth
+			// requires ~ceil((64/63)^16) < 4/3 units at the top level.
+			GasLimit: uint((result.GasUsed*4 + 2) / 3),
+		})
+	}
+
+	return results_, nil
 }
 
 func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {

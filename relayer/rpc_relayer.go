@@ -110,38 +110,29 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
-func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		txs.WalletAddress,
-		txs.WalletConfig,
-		txs.WalletContext,
-		txs.Transactions,
-		txs.Nonce,
-		txs.Signature,
-	)
-
+func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.RelayerSimulateResult, error) {
+	payload, err := transactions.Payload(wallet, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+	results, err := r.Service.SimulateV3(ctx, wallet.String(), hexutil.Encode(payload.Encode(wallet)))
 	if err != nil {
 		return nil, err
 	}
 
-	var results []*sequence.RelayerSimulateResult
-	for _, r := range res {
-		results = append(results, &sequence.RelayerSimulateResult{
-			Executed:  r.Executed,
-			Succeeded: r.Succeeded,
-			Result:    r.Result,
-			Reason:    r.Reason,
-			GasUsed:   r.GasUsed,
-			GasLimit:  r.GasLimit,
+	var results_ []*sequence.RelayerSimulateResult
+	for _, result := range results {
+		results_ = append(results_, &sequence.RelayerSimulateResult{
+			Executed:  result.Status != proto.SimulateStatus_SKIPPED,
+			Succeeded: result.Status == proto.SimulateStatus_SUCCEEDED,
+			Result:    result.Result,
+			Reason:    result.Error,
+			GasUsed:   uint(result.GasUsed),
+			GasLimit:  uint(result.GasLimit),
 		})
 	}
-	return results, nil
+	return results_, nil
 }
 
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
