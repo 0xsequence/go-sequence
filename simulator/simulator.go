@@ -39,6 +39,15 @@ func SimulateV2(ctx context.Context, wallet common.Address, transactions []walle
 		wallet: {Code: contracts.V2.WalletGasEstimator.DeployedBin},
 	}
 
+	for i := range transactions {
+		if transactions[i].Value == nil {
+			transactions[i].Value = new(big.Int)
+		}
+		if transactions[i].GasLimit == nil {
+			transactions[i].GasLimit = new(big.Int)
+		}
+	}
+
 	input, err := contracts.V2.WalletGasEstimator.Encode("simulateExecute", transactions)
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode simulateExecute call: %w", err)
@@ -106,11 +115,21 @@ func SimulateV3(ctx context.Context, wallet common.Address, calls []v3.Call, pro
 
 	calls_ := make([]walletsimulator.PayloadCall, 0, len(calls))
 	for _, call := range calls {
+		value := call.Value
+		if value == nil {
+			value = new(big.Int)
+		}
+
+		gasLimit := call.GasLimit
+		if gasLimit == nil {
+			gasLimit = new(big.Int)
+		}
+
 		calls_ = append(calls_, walletsimulator.PayloadCall{
 			To:              call.To,
-			Value:           call.Value,
+			Value:           value,
 			Data:            call.Data,
-			GasLimit:        call.GasLimit,
+			GasLimit:        gasLimit,
 			DelegateCall:    call.DelegateCall,
 			OnlyFallback:    call.OnlyFallback,
 			BehaviorOnError: big.NewInt(int64(call.BehaviorOnError)),
