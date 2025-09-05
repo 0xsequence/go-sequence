@@ -57,30 +57,6 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return nil, err
-	}
-
-	requestData, err := txns.EncodeRaw()
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), walletConfig, hexutil.Encode(requestData))
-	if err != nil {
-		return nil, err
-	}
-
-	responseData, err := hexutil.Decode(response)
-	if err != nil {
-		return nil, err
-	}
-
-	return sequence.DecodeRawTransactions(responseData)
-}
-
 // NOTE: nonce space is 160 bits wide
 func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	if blockNum != nil {
