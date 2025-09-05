@@ -21,6 +21,7 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
 type RpcRelayer struct {
@@ -110,7 +111,7 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
-func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.RelayerSimulateResult, error) {
+func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.SimulateResult, error) {
 	payload, err := transactions.Payload(wallet, nil, nil, nil)
 	if err != nil {
 		return nil, err
@@ -121,15 +122,30 @@ func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transa
 		return nil, err
 	}
 
-	var results_ []*sequence.RelayerSimulateResult
+	var results_ []*sequence.SimulateResult
 	for _, result := range results {
-		results_ = append(results_, &sequence.RelayerSimulateResult{
-			Executed:  result.Status != proto.SimulateStatus_SKIPPED,
-			Succeeded: result.Status == proto.SimulateStatus_SUCCEEDED,
-			Result:    result.Result,
-			Reason:    result.Error,
-			GasUsed:   uint(result.GasUsed),
-			GasLimit:  uint(result.GasLimit),
+		var result_ []byte
+		if result.Result != nil {
+			var err error
+			result_, err = hexutil.Decode(*result.Result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid /SimulateV3 result: %w", err)
+			}
+		}
+
+		var err error
+		if result.Error != nil {
+			err = fmt.Errorf("%s", *result.Error)
+		}
+
+		results_ = append(results_, &sequence.SimulateResult{
+			Result: simulator.Result{
+				Status:  simulator.Status(result.Status),
+				Result:  result_,
+				Error:   err,
+				GasUsed: result.GasUsed,
+			},
+			GasLimit: result.GasLimit,
 		})
 	}
 	return results_, nil

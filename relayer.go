@@ -13,15 +13,12 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
-type RelayerSimulateResult struct {
-	Executed  bool
-	Succeeded bool
-	Result    *string
-	Reason    *string
-	GasUsed   uint
-	GasLimit  uint
+type SimulateResult struct {
+	simulator.Result
+	GasLimit uint64
 }
 
 type RelayerFeeTokenType uint32
@@ -60,7 +57,7 @@ type Relayer interface {
 	EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
 
 	// ..
-	Simulate(ctx context.Context, wallet common.Address, transactions Transactions) ([]*RelayerSimulateResult, error)
+	Simulate(ctx context.Context, wallet common.Address, transactions Transactions) ([]*SimulateResult, error)
 
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
