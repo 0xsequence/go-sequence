@@ -148,35 +148,66 @@ func (mr *IndexerMockRecorder) GetEtherBalance(ctx, accountAddress any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEtherBalance", reflect.TypeOf((*Indexer)(nil).GetEtherBalance), ctx, accountAddress)
 }
 
-// GetNativeTokenBalance mocks base method.
-func (m *Indexer) GetNativeTokenBalance(ctx context.Context, accountAddress *string) (*indexer.NativeTokenBalance, error) {
+// GetMarketplaceOrders mocks base method.
+func (m *Indexer) GetMarketplaceOrders(ctx context.Context, marketplaceContractAddress, collectionAddress string, filter *indexer.MarketplaceOrderFilter, page *indexer.Page) (*indexer.Page, []*indexer.MarketplaceOrder, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, accountAddress)
+	ret := m.ctrl.Call(m, "GetMarketplaceOrders", ctx, marketplaceContractAddress, collectionAddress, filter, page)
+	ret0, _ := ret[0].(*indexer.Page)
+	ret1, _ := ret[1].([]*indexer.MarketplaceOrder)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetMarketplaceOrders indicates an expected call of GetMarketplaceOrders.
+func (mr *IndexerMockRecorder) GetMarketplaceOrders(ctx, marketplaceContractAddress, collectionAddress, filter, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketplaceOrders", reflect.TypeOf((*Indexer)(nil).GetMarketplaceOrders), ctx, marketplaceContractAddress, collectionAddress, filter, page)
+}
+
+// GetMarketplaceTopOrders mocks base method.
+func (m *Indexer) GetMarketplaceTopOrders(ctx context.Context, marketplaceContractAddress, collectionAddress string, filter *indexer.MarketplaceTopOrdersFilter) ([]*indexer.MarketplaceOrder, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMarketplaceTopOrders", ctx, marketplaceContractAddress, collectionAddress, filter)
+	ret0, _ := ret[0].([]*indexer.MarketplaceOrder)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketplaceTopOrders indicates an expected call of GetMarketplaceTopOrders.
+func (mr *IndexerMockRecorder) GetMarketplaceTopOrders(ctx, marketplaceContractAddress, collectionAddress, filter any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketplaceTopOrders", reflect.TypeOf((*Indexer)(nil).GetMarketplaceTopOrders), ctx, marketplaceContractAddress, collectionAddress, filter)
+}
+
+// GetNativeTokenBalance mocks base method.
+func (m *Indexer) GetNativeTokenBalance(ctx context.Context, accountAddress *string, omitPrices *bool) (*indexer.NativeTokenBalance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, accountAddress, omitPrices)
 	ret0, _ := ret[0].(*indexer.NativeTokenBalance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNativeTokenBalance indicates an expected call of GetNativeTokenBalance.
-func (mr *IndexerMockRecorder) GetNativeTokenBalance(ctx, accountAddress any) *gomock.Call {
+func (mr *IndexerMockRecorder) GetNativeTokenBalance(ctx, accountAddress, omitPrices any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*Indexer)(nil).GetNativeTokenBalance), ctx, accountAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*Indexer)(nil).GetNativeTokenBalance), ctx, accountAddress, omitPrices)
 }
 
-// GetOrderbookOrders mocks base method.
-func (m *Indexer) GetOrderbookOrders(ctx context.Context, page *indexer.Page, orderbookContractAddress, collectionAddress string, currencyAddresses []string, filter *indexer.OrderbookOrderFilter, orderStatuses []indexer.OrderStatus, filters []*indexer.OrderbookOrderFilter, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter int64) (*indexer.Page, []*indexer.OrderbookOrder, error) {
+// GetPrices mocks base method.
+func (m *Indexer) GetPrices(ctx context.Context, page *indexer.Page) (*indexer.Page, []*indexer.Price, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrderbookOrders", ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter)
+	ret := m.ctrl.Call(m, "GetPrices", ctx, page)
 	ret0, _ := ret[0].(*indexer.Page)
-	ret1, _ := ret[1].([]*indexer.OrderbookOrder)
+	ret1, _ := ret[1].([]*indexer.Price)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// GetOrderbookOrders indicates an expected call of GetOrderbookOrders.
-func (mr *IndexerMockRecorder) GetOrderbookOrders(ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter any) *gomock.Call {
+// GetPrices indicates an expected call of GetPrices.
+func (mr *IndexerMockRecorder) GetPrices(ctx, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderbookOrders", reflect.TypeOf((*Indexer)(nil).GetOrderbookOrders), ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrices", reflect.TypeOf((*Indexer)(nil).GetPrices), ctx, page)
 }
 
 // GetTokenBalances mocks base method.
@@ -309,21 +340,6 @@ func (m *Indexer) GetTokenSuppliesMap(ctx context.Context, tokenMap map[string][
 func (mr *IndexerMockRecorder) GetTokenSuppliesMap(ctx, tokenMap, includeMetadata, metadataOptions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenSuppliesMap", reflect.TypeOf((*Indexer)(nil).GetTokenSuppliesMap), ctx, tokenMap, includeMetadata, metadataOptions)
-}
-
-// GetTopOrders mocks base method.
-func (m *Indexer) GetTopOrders(ctx context.Context, orderbookContractAddress, collectionAddress string, currencyAddresses, tokenIDs []string, isListing bool, priceSort indexer.SortOrder, excludeUser *string) ([]*indexer.OrderbookOrder, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTopOrders", ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser)
-	ret0, _ := ret[0].([]*indexer.OrderbookOrder)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTopOrders indicates an expected call of GetTopOrders.
-func (mr *IndexerMockRecorder) GetTopOrders(ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTopOrders", reflect.TypeOf((*Indexer)(nil).GetTopOrders), ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser)
 }
 
 // GetTransactionHistory mocks base method.
@@ -679,35 +695,66 @@ func (mr *IndexerClientMockRecorder) GetEtherBalance(ctx, accountAddress any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEtherBalance", reflect.TypeOf((*IndexerClient)(nil).GetEtherBalance), ctx, accountAddress)
 }
 
-// GetNativeTokenBalance mocks base method.
-func (m *IndexerClient) GetNativeTokenBalance(ctx context.Context, accountAddress *string) (*indexer.NativeTokenBalance, error) {
+// GetMarketplaceOrders mocks base method.
+func (m *IndexerClient) GetMarketplaceOrders(ctx context.Context, marketplaceContractAddress, collectionAddress string, filter *indexer.MarketplaceOrderFilter, page *indexer.Page) (*indexer.Page, []*indexer.MarketplaceOrder, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, accountAddress)
+	ret := m.ctrl.Call(m, "GetMarketplaceOrders", ctx, marketplaceContractAddress, collectionAddress, filter, page)
+	ret0, _ := ret[0].(*indexer.Page)
+	ret1, _ := ret[1].([]*indexer.MarketplaceOrder)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetMarketplaceOrders indicates an expected call of GetMarketplaceOrders.
+func (mr *IndexerClientMockRecorder) GetMarketplaceOrders(ctx, marketplaceContractAddress, collectionAddress, filter, page any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketplaceOrders", reflect.TypeOf((*IndexerClient)(nil).GetMarketplaceOrders), ctx, marketplaceContractAddress, collectionAddress, filter, page)
+}
+
+// GetMarketplaceTopOrders mocks base method.
+func (m *IndexerClient) GetMarketplaceTopOrders(ctx context.Context, marketplaceContractAddress, collectionAddress string, filter *indexer.MarketplaceTopOrdersFilter) ([]*indexer.MarketplaceOrder, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMarketplaceTopOrders", ctx, marketplaceContractAddress, collectionAddress, filter)
+	ret0, _ := ret[0].([]*indexer.MarketplaceOrder)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMarketplaceTopOrders indicates an expected call of GetMarketplaceTopOrders.
+func (mr *IndexerClientMockRecorder) GetMarketplaceTopOrders(ctx, marketplaceContractAddress, collectionAddress, filter any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMarketplaceTopOrders", reflect.TypeOf((*IndexerClient)(nil).GetMarketplaceTopOrders), ctx, marketplaceContractAddress, collectionAddress, filter)
+}
+
+// GetNativeTokenBalance mocks base method.
+func (m *IndexerClient) GetNativeTokenBalance(ctx context.Context, accountAddress *string, omitPrices *bool) (*indexer.NativeTokenBalance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, accountAddress, omitPrices)
 	ret0, _ := ret[0].(*indexer.NativeTokenBalance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNativeTokenBalance indicates an expected call of GetNativeTokenBalance.
-func (mr *IndexerClientMockRecorder) GetNativeTokenBalance(ctx, accountAddress any) *gomock.Call {
+func (mr *IndexerClientMockRecorder) GetNativeTokenBalance(ctx, accountAddress, omitPrices any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerClient)(nil).GetNativeTokenBalance), ctx, accountAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerClient)(nil).GetNativeTokenBalance), ctx, accountAddress, omitPrices)
 }
 
-// GetOrderbookOrders mocks base method.
-func (m *IndexerClient) GetOrderbookOrders(ctx context.Context, page *indexer.Page, orderbookContractAddress, collectionAddress string, currencyAddresses []string, filter *indexer.OrderbookOrderFilter, orderStatuses []indexer.OrderStatus, filters []*indexer.OrderbookOrderFilter, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter int64) (*indexer.Page, []*indexer.OrderbookOrder, error) {
+// GetPrices mocks base method.
+func (m *IndexerClient) GetPrices(ctx context.Context, page *indexer.Page) (*indexer.Page, []*indexer.Price, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrderbookOrders", ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter)
+	ret := m.ctrl.Call(m, "GetPrices", ctx, page)
 	ret0, _ := ret[0].(*indexer.Page)
-	ret1, _ := ret[1].([]*indexer.OrderbookOrder)
+	ret1, _ := ret[1].([]*indexer.Price)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// GetOrderbookOrders indicates an expected call of GetOrderbookOrders.
-func (mr *IndexerClientMockRecorder) GetOrderbookOrders(ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter any) *gomock.Call {
+// GetPrices indicates an expected call of GetPrices.
+func (mr *IndexerClientMockRecorder) GetPrices(ctx, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderbookOrders", reflect.TypeOf((*IndexerClient)(nil).GetOrderbookOrders), ctx, page, orderbookContractAddress, collectionAddress, currencyAddresses, filter, orderStatuses, filters, beforeExpiryTimestamp, blockNumberAfter, createdAtAfter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrices", reflect.TypeOf((*IndexerClient)(nil).GetPrices), ctx, page)
 }
 
 // GetTokenBalances mocks base method.
@@ -840,21 +887,6 @@ func (m *IndexerClient) GetTokenSuppliesMap(ctx context.Context, tokenMap map[st
 func (mr *IndexerClientMockRecorder) GetTokenSuppliesMap(ctx, tokenMap, includeMetadata, metadataOptions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenSuppliesMap", reflect.TypeOf((*IndexerClient)(nil).GetTokenSuppliesMap), ctx, tokenMap, includeMetadata, metadataOptions)
-}
-
-// GetTopOrders mocks base method.
-func (m *IndexerClient) GetTopOrders(ctx context.Context, orderbookContractAddress, collectionAddress string, currencyAddresses, tokenIDs []string, isListing bool, priceSort indexer.SortOrder, excludeUser *string) ([]*indexer.OrderbookOrder, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTopOrders", ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser)
-	ret0, _ := ret[0].([]*indexer.OrderbookOrder)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTopOrders indicates an expected call of GetTopOrders.
-func (mr *IndexerClientMockRecorder) GetTopOrders(ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTopOrders", reflect.TypeOf((*IndexerClient)(nil).GetTopOrders), ctx, orderbookContractAddress, collectionAddress, currencyAddresses, tokenIDs, isListing, priceSort, excludeUser)
 }
 
 // GetTransactionHistory mocks base method.
@@ -1107,9 +1139,9 @@ func (m *IndexerGateway) EXPECT() *IndexerGatewayMockRecorder {
 }
 
 // GetBalanceUpdates mocks base method.
-func (m *IndexerGateway) GetBalanceUpdates(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, contractAddress string, lastBlockNumber uint64, lastBlockHash *string, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGateway) GetBalanceUpdates(ctx context.Context, chainIds []uint64, networks []string, contractAddress string, lastBlockNumber uint64, lastBlockHash *string, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBalanceUpdates", ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page)
+	ret := m.ctrl.Call(m, "GetBalanceUpdates", ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1117,45 +1149,30 @@ func (m *IndexerGateway) GetBalanceUpdates(ctx context.Context, chainIds []uint6
 }
 
 // GetBalanceUpdates indicates an expected call of GetBalanceUpdates.
-func (mr *IndexerGatewayMockRecorder) GetBalanceUpdates(ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetBalanceUpdates(ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceUpdates", reflect.TypeOf((*IndexerGateway)(nil).GetBalanceUpdates), ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page)
-}
-
-// GetChains mocks base method.
-func (m *IndexerGateway) GetChains(ctx context.Context, networkType *indexer.NetworkType) ([]*indexer.ChainInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetChains", ctx, networkType)
-	ret0, _ := ret[0].([]*indexer.ChainInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetChains indicates an expected call of GetChains.
-func (mr *IndexerGatewayMockRecorder) GetChains(ctx, networkType any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChains", reflect.TypeOf((*IndexerGateway)(nil).GetChains), ctx, networkType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceUpdates", reflect.TypeOf((*IndexerGateway)(nil).GetBalanceUpdates), ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page)
 }
 
 // GetNativeTokenBalance mocks base method.
-func (m *IndexerGateway) GetNativeTokenBalance(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, accountAddress *string) ([]*indexer.GatewayNativeTokenBalance, error) {
+func (m *IndexerGateway) GetNativeTokenBalance(ctx context.Context, chainIds []uint64, networks []string, accountAddress *string, omitPrices *bool) ([]*indexer.GatewayNativeTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, chainIds, networks, networkType, accountAddress)
+	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, chainIds, networks, accountAddress, omitPrices)
 	ret0, _ := ret[0].([]*indexer.GatewayNativeTokenBalance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNativeTokenBalance indicates an expected call of GetNativeTokenBalance.
-func (mr *IndexerGatewayMockRecorder) GetNativeTokenBalance(ctx, chainIds, networks, networkType, accountAddress any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetNativeTokenBalance(ctx, chainIds, networks, accountAddress, omitPrices any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerGateway)(nil).GetNativeTokenBalance), ctx, chainIds, networks, networkType, accountAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerGateway)(nil).GetNativeTokenBalance), ctx, chainIds, networks, accountAddress, omitPrices)
 }
 
 // GetTokenBalances mocks base method.
-func (m *IndexerGateway) GetTokenBalances(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, accountAddress, contractAddress, tokenID *string, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, includeCollectionTokens *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGateway) GetTokenBalances(ctx context.Context, chainIds []uint64, networks []string, accountAddress, contractAddress, tokenID *string, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, includeCollectionTokens *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalances", ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
+	ret := m.ctrl.Call(m, "GetTokenBalances", ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1163,15 +1180,15 @@ func (m *IndexerGateway) GetTokenBalances(ctx context.Context, chainIds []uint64
 }
 
 // GetTokenBalances indicates an expected call of GetTokenBalances.
-func (mr *IndexerGatewayMockRecorder) GetTokenBalances(ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetTokenBalances(ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalances", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalances), ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalances", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalances), ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
 }
 
 // GetTokenBalancesByContract mocks base method.
-func (m *IndexerGateway) GetTokenBalancesByContract(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesByContractFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGateway) GetTokenBalancesByContract(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesByContractFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesByContract", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesByContract", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1179,15 +1196,15 @@ func (m *IndexerGateway) GetTokenBalancesByContract(ctx context.Context, chainId
 }
 
 // GetTokenBalancesByContract indicates an expected call of GetTokenBalancesByContract.
-func (mr *IndexerGatewayMockRecorder) GetTokenBalancesByContract(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetTokenBalancesByContract(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesByContract", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesByContract), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesByContract", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesByContract), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // GetTokenBalancesDetails mocks base method.
-func (m *IndexerGateway) GetTokenBalancesDetails(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGateway) GetTokenBalancesDetails(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesDetails", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesDetails", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayNativeTokenBalances)
 	ret2, _ := ret[2].([]*indexer.GatewayTokenBalance)
@@ -1196,15 +1213,15 @@ func (m *IndexerGateway) GetTokenBalancesDetails(ctx context.Context, chainIds [
 }
 
 // GetTokenBalancesDetails indicates an expected call of GetTokenBalancesDetails.
-func (mr *IndexerGatewayMockRecorder) GetTokenBalancesDetails(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetTokenBalancesDetails(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesDetails", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesDetails), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesDetails", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesDetails), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // GetTokenBalancesSummary mocks base method.
-func (m *IndexerGateway) GetTokenBalancesSummary(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGateway) GetTokenBalancesSummary(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesSummary", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesSummary", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayNativeTokenBalances)
 	ret2, _ := ret[2].([]*indexer.GatewayTokenBalance)
@@ -1213,25 +1230,9 @@ func (m *IndexerGateway) GetTokenBalancesSummary(ctx context.Context, chainIds [
 }
 
 // GetTokenBalancesSummary indicates an expected call of GetTokenBalancesSummary.
-func (mr *IndexerGatewayMockRecorder) GetTokenBalancesSummary(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayMockRecorder) GetTokenBalancesSummary(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
-}
-
-// GetTransactionHistory mocks base method.
-func (m *IndexerGateway) GetTransactionHistory(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TransactionHistoryFilter, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTransaction, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTransactionHistory", ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
-	ret0, _ := ret[0].(*indexer.Page)
-	ret1, _ := ret[1].([]*indexer.GatewayTransaction)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetTransactionHistory indicates an expected call of GetTransactionHistory.
-func (mr *IndexerGatewayMockRecorder) GetTransactionHistory(ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionHistory", reflect.TypeOf((*IndexerGateway)(nil).GetTransactionHistory), ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGateway)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // Ping mocks base method.
@@ -1304,9 +1305,9 @@ func (m *IndexerGatewayClient) EXPECT() *IndexerGatewayClientMockRecorder {
 }
 
 // GetBalanceUpdates mocks base method.
-func (m *IndexerGatewayClient) GetBalanceUpdates(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, contractAddress string, lastBlockNumber uint64, lastBlockHash *string, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGatewayClient) GetBalanceUpdates(ctx context.Context, chainIds []uint64, networks []string, contractAddress string, lastBlockNumber uint64, lastBlockHash *string, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBalanceUpdates", ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page)
+	ret := m.ctrl.Call(m, "GetBalanceUpdates", ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1314,45 +1315,30 @@ func (m *IndexerGatewayClient) GetBalanceUpdates(ctx context.Context, chainIds [
 }
 
 // GetBalanceUpdates indicates an expected call of GetBalanceUpdates.
-func (mr *IndexerGatewayClientMockRecorder) GetBalanceUpdates(ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetBalanceUpdates(ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceUpdates", reflect.TypeOf((*IndexerGatewayClient)(nil).GetBalanceUpdates), ctx, chainIds, networks, networkType, contractAddress, lastBlockNumber, lastBlockHash, page)
-}
-
-// GetChains mocks base method.
-func (m *IndexerGatewayClient) GetChains(ctx context.Context, networkType *indexer.NetworkType) ([]*indexer.ChainInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetChains", ctx, networkType)
-	ret0, _ := ret[0].([]*indexer.ChainInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetChains indicates an expected call of GetChains.
-func (mr *IndexerGatewayClientMockRecorder) GetChains(ctx, networkType any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChains", reflect.TypeOf((*IndexerGatewayClient)(nil).GetChains), ctx, networkType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceUpdates", reflect.TypeOf((*IndexerGatewayClient)(nil).GetBalanceUpdates), ctx, chainIds, networks, contractAddress, lastBlockNumber, lastBlockHash, page)
 }
 
 // GetNativeTokenBalance mocks base method.
-func (m *IndexerGatewayClient) GetNativeTokenBalance(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, accountAddress *string) ([]*indexer.GatewayNativeTokenBalance, error) {
+func (m *IndexerGatewayClient) GetNativeTokenBalance(ctx context.Context, chainIds []uint64, networks []string, accountAddress *string, omitPrices *bool) ([]*indexer.GatewayNativeTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, chainIds, networks, networkType, accountAddress)
+	ret := m.ctrl.Call(m, "GetNativeTokenBalance", ctx, chainIds, networks, accountAddress, omitPrices)
 	ret0, _ := ret[0].([]*indexer.GatewayNativeTokenBalance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNativeTokenBalance indicates an expected call of GetNativeTokenBalance.
-func (mr *IndexerGatewayClientMockRecorder) GetNativeTokenBalance(ctx, chainIds, networks, networkType, accountAddress any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetNativeTokenBalance(ctx, chainIds, networks, accountAddress, omitPrices any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerGatewayClient)(nil).GetNativeTokenBalance), ctx, chainIds, networks, networkType, accountAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativeTokenBalance", reflect.TypeOf((*IndexerGatewayClient)(nil).GetNativeTokenBalance), ctx, chainIds, networks, accountAddress, omitPrices)
 }
 
 // GetTokenBalances mocks base method.
-func (m *IndexerGatewayClient) GetTokenBalances(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, accountAddress, contractAddress, tokenID *string, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, includeCollectionTokens *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGatewayClient) GetTokenBalances(ctx context.Context, chainIds []uint64, networks []string, accountAddress, contractAddress, tokenID *string, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, includeCollectionTokens *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalances", ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
+	ret := m.ctrl.Call(m, "GetTokenBalances", ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1360,15 +1346,15 @@ func (m *IndexerGatewayClient) GetTokenBalances(ctx context.Context, chainIds []
 }
 
 // GetTokenBalances indicates an expected call of GetTokenBalances.
-func (mr *IndexerGatewayClientMockRecorder) GetTokenBalances(ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetTokenBalances(ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalances", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalances), ctx, chainIds, networks, networkType, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalances", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalances), ctx, chainIds, networks, accountAddress, contractAddress, tokenID, includeMetadata, metadataOptions, includeCollectionTokens, page)
 }
 
 // GetTokenBalancesByContract mocks base method.
-func (m *IndexerGatewayClient) GetTokenBalancesByContract(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesByContractFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGatewayClient) GetTokenBalancesByContract(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesByContractFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesByContract", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesByContract", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayTokenBalance)
 	ret2, _ := ret[2].(error)
@@ -1376,15 +1362,15 @@ func (m *IndexerGatewayClient) GetTokenBalancesByContract(ctx context.Context, c
 }
 
 // GetTokenBalancesByContract indicates an expected call of GetTokenBalancesByContract.
-func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesByContract(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesByContract(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesByContract", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesByContract), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesByContract", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesByContract), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // GetTokenBalancesDetails mocks base method.
-func (m *IndexerGatewayClient) GetTokenBalancesDetails(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGatewayClient) GetTokenBalancesDetails(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesDetails", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesDetails", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayNativeTokenBalances)
 	ret2, _ := ret[2].([]*indexer.GatewayTokenBalance)
@@ -1393,15 +1379,15 @@ func (m *IndexerGatewayClient) GetTokenBalancesDetails(ctx context.Context, chai
 }
 
 // GetTokenBalancesDetails indicates an expected call of GetTokenBalancesDetails.
-func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesDetails(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesDetails(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesDetails", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesDetails), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesDetails", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesDetails), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // GetTokenBalancesSummary mocks base method.
-func (m *IndexerGatewayClient) GetTokenBalancesSummary(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
+func (m *IndexerGatewayClient) GetTokenBalancesSummary(ctx context.Context, chainIds []uint64, networks []string, filter *indexer.TokenBalancesFilter, omitMetadata *bool, page *indexer.Page) (*indexer.Page, []*indexer.GatewayNativeTokenBalances, []*indexer.GatewayTokenBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTokenBalancesSummary", ctx, chainIds, networks, networkType, filter, omitMetadata, page)
+	ret := m.ctrl.Call(m, "GetTokenBalancesSummary", ctx, chainIds, networks, filter, omitMetadata, page)
 	ret0, _ := ret[0].(*indexer.Page)
 	ret1, _ := ret[1].([]*indexer.GatewayNativeTokenBalances)
 	ret2, _ := ret[2].([]*indexer.GatewayTokenBalance)
@@ -1410,25 +1396,9 @@ func (m *IndexerGatewayClient) GetTokenBalancesSummary(ctx context.Context, chai
 }
 
 // GetTokenBalancesSummary indicates an expected call of GetTokenBalancesSummary.
-func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesSummary(ctx, chainIds, networks, networkType, filter, omitMetadata, page any) *gomock.Call {
+func (mr *IndexerGatewayClientMockRecorder) GetTokenBalancesSummary(ctx, chainIds, networks, filter, omitMetadata, page any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, networkType, filter, omitMetadata, page)
-}
-
-// GetTransactionHistory mocks base method.
-func (m *IndexerGatewayClient) GetTransactionHistory(ctx context.Context, chainIds []uint64, networks []string, networkType *indexer.NetworkType, filter *indexer.TransactionHistoryFilter, includeMetadata *bool, metadataOptions *indexer.MetadataOptions, page *indexer.Page) (*indexer.Page, []*indexer.GatewayTransaction, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTransactionHistory", ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
-	ret0, _ := ret[0].(*indexer.Page)
-	ret1, _ := ret[1].([]*indexer.GatewayTransaction)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetTransactionHistory indicates an expected call of GetTransactionHistory.
-func (mr *IndexerGatewayClientMockRecorder) GetTransactionHistory(ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransactionHistory", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTransactionHistory), ctx, chainIds, networks, networkType, filter, includeMetadata, metadataOptions, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTokenBalancesSummary", reflect.TypeOf((*IndexerGatewayClient)(nil).GetTokenBalancesSummary), ctx, chainIds, networks, filter, omitMetadata, page)
 }
 
 // Ping mocks base method.
