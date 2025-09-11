@@ -105,6 +105,9 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 		if len(code) == 0 {
 			return common.Address{}, fmt.Errorf("can't deploy universal deployer")
 		}
+		if err != nil {
+			return common.Address{}, fmt.Errorf("deployer: %w", err)
+		}
 	}
 
 	// Deploying contract
@@ -135,6 +138,9 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 		Data:     input,
 		GasLimit: uint64(gasLimit),
 	})
+	if err != nil {
+		return common.Address{}, fmt.Errorf("deployer: deploy new transaction: %w", err)
+	}
 
 	_, waitTx, err := u.Wallet.SendTransaction(ctx, tx)
 	if err != nil {
@@ -152,6 +158,9 @@ func (u *UniversalDeployer) Deploy(ctx context.Context, contractABI abi.ABI, con
 	code, err = u.provider.CodeAt(ctx, contractAddress, nil)
 	if len(code) == 0 {
 		return common.Address{}, fmt.Errorf("can't deploy contract")
+	}
+	if err != nil {
+		return common.Address{}, fmt.Errorf("deployer: deploy contract codeAt: %w", err)
 	}
 
 	return contractAddress, nil
@@ -251,7 +260,7 @@ func (u *UniversalDeployer) deployUniversalDeployer1(ctx context.Context, txPara
 	if err != nil {
 		return fmt.Errorf("deployer: %w", err)
 	}
-	if universalDeployerCodeCheck == nil || len(universalDeployerCodeCheck) == 0 {
+	if universalDeployerCodeCheck == nil {
 		return fmt.Errorf("deployer (deployUniversalDeployer1): failed to deploy stage 1 deployer")
 	}
 

@@ -13,15 +13,12 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
-type RelayerSimulateResult struct {
-	Executed  bool
-	Succeeded bool
-	Result    *string
-	Reason    *string
-	GasUsed   uint
-	GasLimit  uint
+type SimulateResult struct {
+	simulator.Result
+	GasLimit uint64
 }
 
 type RelayerFeeTokenType uint32
@@ -56,11 +53,7 @@ type Relayer interface {
 	// ..
 	GetProvider() *ethrpc.Provider
 
-	// ..
-	EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions) (Transactions, error)
-
-	// ..
-	Simulate(ctx context.Context, txs *SignedTransactions) ([]*RelayerSimulateResult, error)
+	Simulate(ctx context.Context, wallet common.Address, transactions Transactions) ([]*SimulateResult, error)
 
 	// NOTE: nonce space is 160 bits wide
 	GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error)
@@ -122,6 +115,24 @@ func EncodeTransactionsForRelaying(relayer Relayer, walletAddress common.Address
 	}
 
 	execdata, err := contracts.V1.WalletMainModule.Encode("execute", encodedTxns, nonce, seqSig)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	return walletAddress, execdata, nil
+}
+
+func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Address, chainID *big.Int, walletConfig core.WalletConfig, walletContext WalletContext, txns Transactions, space *big.Int, nonce *big.Int, seqSig []byte) (common.Address, []byte, error) {
+	if len(txns) == 0 {
+		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
+	}
+
+	payload, err := txns.Payload(walletAddress, chainID, space, nonce)
+	if err != nil {
+		return common.Address{}, nil, err
+	}
+
+	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

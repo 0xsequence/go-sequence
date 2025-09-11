@@ -17,7 +17,11 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
 type RpcRelayer struct {
@@ -53,30 +57,6 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-func (r *RpcRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return nil, err
-	}
-
-	requestData, err := txns.EncodeRaw()
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := r.Service.UpdateMetaTxnGasLimits(ctx, walletAddress.Hex(), walletConfig, hexutil.Encode(requestData))
-	if err != nil {
-		return nil, err
-	}
-
-	responseData, err := hexutil.Decode(response)
-	if err != nil {
-		return nil, err
-	}
-
-	return sequence.DecodeRawTransactions(responseData)
-}
-
 // NOTE: nonce space is 160 bits wide
 func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	if blockNum != nil {
@@ -107,38 +87,44 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 	return &nonce, nil
 }
 
-func (r *RpcRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		txs.WalletAddress,
-		txs.WalletConfig,
-		txs.WalletContext,
-		txs.Transactions,
-		txs.Nonce,
-		txs.Signature,
-	)
-
+func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.SimulateResult, error) {
+	payload, err := transactions.Payload(wallet, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := r.Service.Simulate(ctx, to.String(), "0x"+common.Bytes2Hex(execdata))
+	results, err := r.Service.SimulateV3(ctx, wallet.String(), hexutil.Encode(payload.Encode(wallet)))
 	if err != nil {
 		return nil, err
 	}
 
-	var results []*sequence.RelayerSimulateResult
-	for _, r := range res {
-		results = append(results, &sequence.RelayerSimulateResult{
-			Executed:  r.Executed,
-			Succeeded: r.Succeeded,
-			Result:    r.Result,
-			Reason:    r.Reason,
-			GasUsed:   r.GasUsed,
-			GasLimit:  r.GasLimit,
+	var results_ []*sequence.SimulateResult
+	for _, result := range results {
+		var result_ []byte
+		if result.Result != nil {
+			var err error
+			result_, err = hexutil.Decode(*result.Result)
+			if err != nil {
+				return nil, fmt.Errorf("invalid /SimulateV3 result: %w", err)
+			}
+		}
+
+		var err error
+		if result.Error != nil {
+			err = fmt.Errorf("%s", *result.Error)
+		}
+
+		results_ = append(results_, &sequence.SimulateResult{
+			Result: simulator.Result{
+				Status:  simulator.Status(result.Status),
+				Result:  result_,
+				Error:   err,
+				GasUsed: result.GasUsed,
+			},
+			GasLimit: result.GasLimit,
 		})
 	}
-	return results, nil
+	return results_, nil
 }
 
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
@@ -155,15 +141,32 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 		}
 	}
 
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		signedTxs.WalletAddress,
-		signedTxs.WalletConfig,
-		signedTxs.WalletContext,
-		signedTxs.Transactions,
-		signedTxs.Nonce,
-		signedTxs.Signature,
-	)
+	var to common.Address
+	var execdata []byte
+	switch signedTxs.WalletConfig.(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelaying(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	case *v3.WalletConfig:
+		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.ChainID,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Space,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	}
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -185,7 +188,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote, nil)
+	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote, nil, nil)
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}

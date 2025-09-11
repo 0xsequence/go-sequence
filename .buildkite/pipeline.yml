@@ -1,0 +1,75 @@
+agents:
+  queue: normal
+steps:
+  - label: ":foundry: Test Sequence V3 with Go RPC Server"
+    key: "test-v3-rpc"
+    commands:
+      - |
+        # Check if GITHUB_SSH_KEY is set
+        if [ -z "$GITHUB_SSH_KEY" ]; then
+          echo "Error: GITHUB_SSH_KEY is not set"
+          exit 1
+        fi
+
+        # Install required packages
+        apt-get update
+        apt-get install -y curl git ssh build-essential
+
+        # Setup SSH key
+        mkdir -p ~/.ssh
+        echo "$GITHUB_SSH_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+        GO_VERSION="1.20"
+        curl -L "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -xz -C /usr/local
+        export PATH=$PATH:/usr/local/go/bin
+        go version
+
+        # Install Foundry
+        curl -L https://foundry.paradigm.xyz | bash
+        source ~/.bashrc
+        foundryup
+        
+        # The go-sequence repository is already mounted at the current working directory
+        ls -la
+        
+        # Clone the sequence-v3 repository
+        git clone git@github.com:0xsequence/sequence-v3.git
+        
+        # Start the RPC server
+        echo "Starting Go RPC server..."
+        go run ./cmd/sequence/ server &
+        
+        # Wait a moment for the server to start
+        sleep 5
+        
+        # Install dependencies for sequence-v3
+        cd sequence-v3
+        forge install
+        
+        # Run specific tests in the v3 module
+        echo "Running BaseSig.t.sol tests..."
+        forge test --mp test/modules/BaseSig.t.sol -vvv
+        
+        echo "Running Calls.t.sol tests..."
+        forge test --mp test/modules/Calls.t.sol -vvv
+        
+        echo "Running Payload.t.sol tests..."
+        forge test --mp test/modules/Payload.t.sol -vvv
+        
+        echo "Running Stage1Module.t.sol tests..."
+        forge test --mp test/Stage1Module.t.sol -vvv
+
+        # Cleanup SSH key
+        rm -f ~/.ssh/id_rsa
+    plugins:
+      - docker#v5.3.0:
+          image: "ubuntu:22.04"
+          environment:
+            - "GITHUB_SSH_KEY"
+            - "FOUNDRY_PROFILE=default"
+            - "GO_VERSION=1.20"
+          workdir: "/workdir/go-sequence"
+          volumes:
+            - ".:/workdir/go-sequence"

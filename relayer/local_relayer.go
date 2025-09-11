@@ -2,6 +2,7 @@ package relayer
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -10,13 +11,16 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/ethtxn"
 	"github.com/0xsequence/ethkit/ethwallet"
-	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/relayer/proto"
+	"github.com/0xsequence/go-sequence/simulator"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch
@@ -46,81 +50,37 @@ func (r *LocalRelayer) GetProvider() *ethrpc.Provider {
 	return r.Sender.GetProvider()
 }
 
-func (r *LocalRelayer) EstimateGasLimits(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, txns sequence.Transactions) (sequence.Transactions, error) {
-	walletAddress, err := sequence.AddressFromWalletConfig(walletConfig, walletContext)
-	if err != nil {
-		return nil, err
-	}
-
-	provider := r.GetProvider()
-
-	isWalletDeployed, err := sequence.IsWalletDeployed(provider, walletAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	defaultGasLimit := int64(800_000)
-
-	encodedTxns, err := txns.EncodedTransactions()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range encodedTxns {
-		txn := &encodedTxns[i]
-
-		// Respect gasLimit request of the transaction (as long as its not 0)
-		if txn.GasLimit != nil && txn.GasLimit.Cmp(big.NewInt(0)) > 0 {
-			continue
-		}
-
-		// Fee can't be estimated locally for delegateCalls
-		if txn.DelegateCall {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
-			continue
-		}
-
-		// Fee can't be estimated for self-called if wallet hasn't been deployed
-		if txn.To == walletAddress && !isWalletDeployed {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
-			continue
-		}
-
-		// Estimate with eth_estimate call
-		callMsg := ethereum.CallMsg{
-			From:  walletAddress,
-			Gas:   0, // estimating this value
-			Value: txn.Value,
-			Data:  txn.Data,
-		}
-		zeroAddress := common.Address{}
-		if txn.To != zeroAddress {
-			callMsg.To = &txn.To
-		}
-
-		gasLimit, err := provider.EstimateGas(ctx, callMsg)
-		if err != nil {
-			txn.GasLimit = big.NewInt(int64(defaultGasLimit))
-			continue
-		}
-		txn.GasLimit = big.NewInt(0).SetUint64(gasLimit)
-	}
-
-	// update gasLimit on original transactions
-	for i, txn := range txns {
-		txn.GasLimit = encodedTxns[i].GasLimit
-	}
-
-	return txns, nil
-}
-
 func (r *LocalRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 }
 
-func (r *LocalRelayer) Simulate(ctx context.Context, txs *sequence.SignedTransactions) ([]*sequence.RelayerSimulateResult, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *LocalRelayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.SimulateResult, error) {
+	provider := r.GetProvider()
+	if provider == nil {
+		return nil, sequence.ErrProviderNotSet
+	}
+
+	payload, err := transactions.Payload(wallet, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := simulator.SimulateV3(ctx, wallet, payload.Calls, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	results_ := make([]*sequence.SimulateResult, 0, len(results))
+	for _, result := range results {
+		results_ = append(results_, &sequence.SimulateResult{
+			Result: result,
+			// Assuming max call depth 16, a unit of gas at that depth
+			// requires ~ceil((64/63)^16) < 4/3 units at the top level.
+			GasLimit: (result.GasUsed*4 + 2) / 3,
+		})
+	}
+
+	return results_, nil
 }
 
 func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
@@ -130,17 +90,55 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 	// TODO: lets update LocalRelayer so it'll do auto-bundle creation.. to prepend, and send to guestModule, etc..
 	// its more consistent, and easier for tests..
 
+	var version int
+	switch signedTxs.WalletConfig.(type) {
+	case *v1.WalletConfig:
+		version = 1
+	case *v2.WalletConfig:
+		version = 2
+	case *v3.WalletConfig:
+		version = 3
+	default:
+		return "", nil, nil, fmt.Errorf(`unknown version %T`, signedTxs.WalletConfig)
+	}
+
 	sender := r.Sender
 
-	to, execdata, err := sequence.EncodeTransactionsForRelaying(
-		r,
-		signedTxs.WalletAddress,
-		signedTxs.WalletConfig,
-		signedTxs.WalletContext,
-		signedTxs.Transactions,
-		signedTxs.Nonce,
-		signedTxs.Signature,
-	)
+	var to common.Address
+	var execdata []byte
+	var err error
+	switch version {
+	case 1, 2:
+		to, execdata, err = sequence.EncodeTransactionsForRelaying(
+			r,
+			signedTxs.WalletAddress,
+			signedTxs.WalletConfig,
+			signedTxs.WalletContext,
+			signedTxs.Transactions,
+			signedTxs.Nonce,
+			signedTxs.Signature,
+		)
+	case 3:
+		if r.IsDeployTransaction(signedTxs) {
+			payload, err := signedTxs.Payload()
+			if err != nil {
+				return "", nil, nil, err
+			}
+			execdata = payload.Encode(signedTxs.WalletContext.GuestModuleAddress)
+		} else {
+			to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+				r,
+				signedTxs.WalletAddress,
+				signedTxs.ChainID,
+				signedTxs.WalletConfig,
+				signedTxs.WalletContext,
+				signedTxs.Transactions,
+				signedTxs.Space,
+				signedTxs.Nonce,
+				signedTxs.Signature,
+			)
+		}
+	}
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -172,19 +170,27 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 				},
 			}
 
-			encodedTxns, err := txns.EncodedTransactions()
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			// TODO: v1 ...? what about others..? I guess since its just for testing locally,
-			// we can just use v1. But I'd suggest we use v3 format once its ready.
-			execdata, err = contracts.V1.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
-			if err != nil {
-				return "", nil, nil, err
-			}
-
 			to = signedTxs.WalletContext.GuestModuleAddress
+
+			switch version {
+			case 1, 2:
+				encodedTxns, err := txns.EncodedTransactions()
+				if err != nil {
+					return "", nil, nil, err
+				}
+
+				execdata, err = contracts.V1.WalletMainModule.Encode("execute", encodedTxns, big.NewInt(0), []byte{})
+				if err != nil {
+					return "", nil, nil, err
+				}
+
+			case 3:
+				payload, err := signedTxs.Payload()
+				if err != nil {
+					return "", nil, nil, err
+				}
+				execdata = payload.Encode(to)
+			}
 		}
 	}
 
@@ -193,9 +199,15 @@ func (r *LocalRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTran
 		return "", nil, nil, err
 	}
 
-	metaTxnID, _, err := sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
-	if err != nil {
-		return "", nil, nil, err
+	var metaTxnID sequence.MetaTxnID
+	switch version {
+	case 1, 2:
+		metaTxnID, _, err = sequence.ComputeMetaTxnID(signedTxs.ChainID, walletAddress, signedTxs.Transactions, signedTxs.Nonce, sequence.MetaTxnWalletExec)
+		if err != nil {
+			return "", nil, nil, err
+		}
+	case 3:
+		metaTxnID = sequence.MetaTxnID(hex.EncodeToString(signedTxs.Digest.Bytes()))
 	}
 
 	ntx, err := sender.NewTransaction(ctx, &ethtxn.TransactionRequest{

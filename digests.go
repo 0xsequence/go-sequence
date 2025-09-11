@@ -6,6 +6,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 /*
@@ -101,6 +102,11 @@ func ComputeMetaTxnID(chainID *big.Int, address common.Address, txns Transaction
 	}
 
 	return ComputeMetaTxnIDFromDigest(chainID, address, digest)
+}
+
+func ComputeMetaTxnIDFromCallsPayload(payload *v3.CallsPayload) (MetaTxnID, common.Hash, error) {
+	digest := payload.Digest()
+	return MetaTxnID(digest.String()[2:]), digest.Hash, nil
 }
 
 func ComputeMetaTxnIDFromDigest(chainID *big.Int, address common.Address, digest common.Hash) (MetaTxnID, common.Hash, error) {

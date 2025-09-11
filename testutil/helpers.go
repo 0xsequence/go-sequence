@@ -14,8 +14,10 @@ import (
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +28,7 @@ var sequenceContext = sequence.WalletContext{
 	MainModuleUpgradableAddress: common.HexToAddress("0x7EFE6cE415956c5f80C6530cC6cc81b4808F6118"),
 	GuestModuleAddress:          common.HexToAddress("0x02390F3E6E5FD1C6786CB78FD3027C117a9955A7"),
 	UtilsAddress:                common.HexToAddress("0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E"),
+	CreationCode:                hexutil.Encode(contracts.V1.CreationCode),
 }
 
 var sequenceContextV2 = sequence.WalletContext{
@@ -34,6 +37,16 @@ var sequenceContextV2 = sequence.WalletContext{
 	MainModuleUpgradableAddress: common.HexToAddress("0x4222dcA3974E39A8b41c411FeDDE9b09Ae14b911"),
 	GuestModuleAddress:          common.HexToAddress("0xfea230Ee243f88BC698dD8f1aE93F8301B6cdfaE"),
 	UtilsAddress:                common.HexToAddress("0xdbbFa3cB3B087B64F4ef5E3D20Dda2488AA244e6"),
+	CreationCode:                hexutil.Encode(contracts.V2.CreationCode),
+}
+
+var sequenceContextV3 = sequence.WalletContext{
+	FactoryAddress:              common.HexToAddress("0x7aaaD48b90Ea2c1DaE03cb68ea1Ed8E1DD26dB38"),
+	MainModuleAddress:           common.HexToAddress("0x4d7c112790F03caFc7287b1a29Aa03da1Bb00C10"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x7C96ff440BCE51EEF0C9f748D69246B4b3F28173"),
+	GuestModuleAddress:          common.HexToAddress("0x252968348A07DDe07C13c9A67e31e3C429d8966D"),
+	UtilsAddress:                common.HexToAddress("0x4d7c112790F03caFc7287b1a29Aa03da1Bb00C10"),
+	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
 
 func SequenceContext() sequence.WalletContext {
@@ -48,10 +61,15 @@ func V2SequenceContext() sequence.WalletContext {
 	return sequenceContextV2
 }
 
+func V3SequenceContext() sequence.WalletContext {
+	return sequenceContextV3
+}
+
 func SequenceContexts() map[uint8]sequence.WalletContext {
 	return map[uint8]sequence.WalletContext{
 		1: sequenceContext,
 		2: sequenceContextV2,
+		3: sequenceContextV3,
 	}
 }
 

@@ -55,7 +55,44 @@ jobs:
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
 
       - name: Boot testchain
-        run: make start-testchain-verbose &
+        run: make start-testchain-geth-verbose &
+
+      - name: Wait for testchain to initialize
+        run: |
+          echo "Waiting for testchain to initialize..."
+          sleep 15
+          curl -s http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' || (echo "Testchain not ready"; exit 1)
+          echo "Testchain is ready"
 
       - name: Test
         run: make test
+
+  v3-workflow:
+    name: Workflow for V3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Commit SHA
+        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}"
+      - name: Trigger Private Workflow
+        uses: actions/github-script@v6
+        # TODO: remove this once the private workflow is fixed
+        continue-on-error: true
+        with:
+          script: |
+            const { owner, repo } = context;
+            const privateOwner = '0xsequence';
+            const privateRepo = 'sequence-v3';
+            const workflowId = 13719302078;
+            const token = ${{ secrets.GITHUB_TOKEN }};
+            const octokit = new Octokit({ auth: token });
+            await octokit.rest.repos.createDispatchEvent({
+              owner: privateOwner,
+              repo: privateRepo,
+              workflow_id: workflowId,
+              ref: 'main',
+              inputs: {
+                sdk_type: 'go',
+                commit_hash: process.env.COMMIT_SHA
+              }
+            });

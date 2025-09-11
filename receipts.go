@@ -11,7 +11,9 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/core"
 )
 
 type Receipt struct {
@@ -95,7 +97,7 @@ func TryDecodeCalldata(
 	provider *ethrpc.Provider,
 	transaction *types.Transaction,
 ) (common.Address, Transactions, *big.Int, []byte, error) {
-	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data())
+	decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transaction.Data(), common.Address{}, nil)
 	if err == nil {
 		return *transaction.To(), decodedTransactions, decodedNonce, decodedSignature, nil
 	}
@@ -107,7 +109,7 @@ func TryDecodeCalldata(
 		return common.Address{}, nil, nil, nil, err
 	}
 
-	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed)
+	decodedTransactions, decodedNonce, decodedSignature, err = DecodeExecdata(decompressed, common.Address{}, nil)
 	if err != nil {
 		return common.Address{}, nil, nil, nil, err
 	}
@@ -157,18 +159,104 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
-func IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
-	return V2IsTxExecutedEvent(log, hash)
+func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSucceeded {
+		return false
+	}
+	transaction, _, err := V3DecodeCallSuccessEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3IsCallFailedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallFailed {
+		return false
+	}
+	transaction, _, _, err := V3DecodeCallFailedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3IsCallAbortedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallAborted {
+		return false
+	}
+	transaction, _, _, err := V3DecodeCallAbortedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3IsCallSkippedEvent(log *types.Log, hash common.Hash) bool {
+	if len(log.Topics) != 1 || log.Topics[0] != V3CallSkipped {
+		return false
+	}
+	transaction, _, err := V3DecodeCallSkippedEvent(log)
+	if err != nil {
+		return false
+	}
+	return transaction == hash
+}
+
+func V3DecodeCallSuccessEvent(log *types.Log) (common.Hash, *big.Int, error) {
+	var transaction common.Hash
+	var index *big.Int
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
+	if err != nil {
+		return common.Hash{}, nil, err
+	}
+	return transaction, index, nil
+}
+
+func V3DecodeCallFailedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
+	var transaction common.Hash
+	var index *big.Int
+	var result []byte
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallFailed event: %w", err)
+	}
+	revert, err := abi.UnpackRevert(result)
+	if err != nil {
+		return transaction, index, hexutil.Encode(result), nil
+	}
+	return transaction, index, revert, nil
+}
+
+func V3DecodeCallAbortedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
+	var transaction common.Hash
+	var index *big.Int
+	var result []byte
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
+	if err != nil {
+		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallAborted event: %w", err)
+	}
+	revert, err := abi.UnpackRevert(result)
+	if err != nil {
+		return transaction, index, hexutil.Encode(result), nil
+	}
+	return transaction, index, revert, nil
+}
+
+func V3DecodeCallSkippedEvent(log *types.Log) (common.Hash, *big.Int, error) {
+	var transaction common.Hash
+	var index *big.Int
+	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
+	if err != nil {
+		return common.Hash{}, nil, err
+	}
+	return transaction, index, nil
 }
 
 func V2IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
 	return len(log.Topics) == 2 &&
 		log.Topics[0] == V2TxFailedEventSig &&
 		bytes.Equal(log.Topics[1][:], hash[:])
-}
-
-func IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
-	return V2IsTxFailedEvent(log, hash)
 }
 
 func V1DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
@@ -178,7 +266,7 @@ func V1DecodeTxFailedEvent(log *types.Log) (common.Hash, string, error) {
 
 	var hash common.Hash
 	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "bytes"}, log.Data, []interface{}{&hash, &revert}); err != nil {
 		return common.Hash{}, "", err
 	}
 
@@ -199,7 +287,7 @@ func V2DecodeTxFailedEvent(log *types.Log) (common.Hash, string, uint, error) {
 
 	var index uint
 	var revert []byte
-	if err := ethcoder.AbiDecoder([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"uint256", "bytes"}, log.Data, []interface{}{&index, &revert}); err != nil {
 		return common.Hash{}, "", 0, err
 	}
 
@@ -221,7 +309,7 @@ func DecodeNonceChangeEvent(log *types.Log) (*big.Int, *big.Int, error) {
 	}
 
 	var space, nonce *big.Int
-	if err := ethcoder.AbiDecoder([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
+	if err := ethcoder.ABIUnpackArgumentsByRef([]string{"uint256", "uint256"}, log.Data, []interface{}{&space, &nonce}); err != nil {
 		return nil, nil, err
 	}
 
@@ -238,10 +326,16 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 		digestType = MetaTxnGuestExec
 	}
 
-	// compute the logged transaction hash
-	metaTxnID, hash, err := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
-	if err != nil {
-		return nil, nil, err
+	metaTxnID, hash, _ := ComputeMetaTxnID(chainID, address, transactions, nonce, digestType)
+
+	var digest core.PayloadDigest
+	if nonce != nil {
+		space, nonce := DecodeNonce(nonce)
+		payload, err := transactions.Payload(address, chainID, space, nonce)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to convert transactions to payload: %w", err)
+		}
+		digest = payload.Digest()
 	}
 
 	var topLevelLogs []*types.Log
@@ -273,13 +367,42 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			var log *types.Log
 			log, logs = logs[0], logs[1:]
 
-			isTxExecuted := V1IsTxExecutedEvent(log, hash) || IsTxExecutedEvent(log, hash)
-			failedHash, failedReason, err := V1DecodeTxFailedEvent(log)
-			if err != nil {
-				failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
+			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash)
+			if V3IsCallSuccessEvent(log, digest.Hash) {
+				isTxExecuted = true
+				receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 			}
 
-			isTxFailed := err == nil && failedHash == hash
+			var isTxFailed bool
+			var failedReason string
+			if !isTxExecuted {
+				var failedHash common.Hash
+				var err error
+				failedHash, failedReason, err = V1DecodeTxFailedEvent(log)
+				if err != nil {
+					failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
+				}
+				if err != nil {
+					failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
+					}
+				}
+				if err != nil {
+					failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
+					}
+				}
+				if err != nil {
+					failedHash, _, err = V3DecodeCallSkippedEvent(log)
+					if err == nil {
+						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
+					}
+				}
+
+				isTxFailed = err == nil && (failedHash == hash || failedHash == digest.Hash)
+			}
 
 			if isTxExecuted || isTxFailed {
 				if isTxExecuted {

@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
 // Transaction type for Sequence meta-transaction, with encoded calldata.
@@ -126,7 +127,7 @@ func (t *Transaction) ReduceSignatures(chainID *big.Int) error {
 		if err != nil {
 			return err
 		}
-		signature = signature.Reduce(core.Subdigest{Hash: subdigest})
+		signature = signature.Reduce(core.PayloadDigest{Hash: subdigest, Address_: t.To, ChainID_: chainID}) // TODO: preimage
 
 		encoded, err := signature.Data()
 		if err != nil {
@@ -212,6 +213,56 @@ func NewTransactionsFromValues(values []Transaction) Transactions {
 	return transactions
 }
 
+func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce *big.Int) (v3.CallsPayload, error) {
+	calls := make([]v3.Call, len(t))
+	for i, tx := range t {
+		// Convert from Transaction.RevertOnError to v3.BehaviorOnError
+		var behaviorOnError v3.BehaviorOnError
+		if tx.RevertOnError {
+			behaviorOnError = v3.BehaviorOnErrorRevert
+		} else {
+			behaviorOnError = v3.BehaviorOnErrorIgnore
+		}
+
+		// Handle nested transactions by recursively encoding them
+		data := tx.Data
+		if tx.IsBundle() {
+			var space_, nonce_ *big.Int
+			if tx.Nonce != nil {
+				space, nonce = DecodeNonce(tx.Nonce)
+			}
+
+			subPayload, err := tx.Transactions.Payload(tx.To, chainID, space_, nonce_)
+			if err != nil {
+				return v3.CallsPayload{}, fmt.Errorf("unable to convert nested transactions to v3 payload: %w", err)
+			}
+
+			if len(tx.Signature) != 0 {
+				data, err = contracts.V3.WalletStage1Module.Encode("execute", subPayload.Encode(tx.To), tx.Signature)
+				if err != nil {
+					return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload execute call: %w", err)
+				}
+			} else {
+				data, err = contracts.V3.WalletStage1Module.Encode("selfExecute", subPayload.Encode(tx.To))
+				if err != nil {
+					return v3.CallsPayload{}, fmt.Errorf("unable to encode nested v3 payload selfExecute call: %w", err)
+				}
+			}
+		}
+
+		calls[i] = v3.Call{
+			To:              tx.To,
+			Value:           tx.Value,
+			Data:            data,
+			GasLimit:        tx.GasLimit,
+			DelegateCall:    tx.DelegateCall,
+			BehaviorOnError: behaviorOnError,
+		}
+	}
+
+	return v3.NewCallsPayload(to, chainID, calls, space, nonce), nil
+}
+
 func (t Transactions) EncodeRaw() ([]byte, error) {
 	encoded, err := t.EncodedTransactions()
 	if err != nil {
@@ -221,26 +272,154 @@ func (t Transactions) EncodeRaw() ([]byte, error) {
 	return encoder.Pack(encoded)
 }
 
-func DecodeRawTransactions(data []byte) (Transactions, error) {
-	decoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
-	values, err := decoder.Unpack(data)
-	if err != nil {
-		return nil, err
+func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int) (Transactions, *big.Int, []byte, error) {
+	if len(data) < 4 {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 	}
+
 	var transactions []Transaction
-	if err = decoder.Copy(&transactions, values); err != nil {
-		return nil, err
-	}
-	for i := range transactions {
-		children, nonce, signature, err := DecodeExecdata(transactions[i].Data)
+	var nonce *big.Int
+	var signature []byte
+	var err error
+
+	// Check for V1 methods
+	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
+	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
+
+	// Check for V3 methods
+	v3ExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["execute"]
+	v3SelfExecuteMethod := contracts.V3.WalletStage1Module.ABI.Methods["selfExecute"]
+
+	if bytes.Equal(data[:4], executeMethod.ID) {
+		// V1 execute method
+		var values []interface{}
+		values, err = executeMethod.Inputs.Unpack(data[4:])
 		if err == nil {
-			transactions[i].Data = nil
-			transactions[i].Transactions = children
-			transactions[i].Nonce = nonce
-			transactions[i].Signature = signature
+			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
+		}
+	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
+		// V1 selfExecute method
+		var values []interface{}
+		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
+		if err == nil {
+			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
+		}
+	} else if bytes.Equal(data[:4], v3ExecuteMethod.ID) {
+		// V3 execute method takes (bytes calldata _payload, bytes calldata _signature)
+		var values []interface{}
+		values, err = v3ExecuteMethod.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		var payload []byte
+		err = v3ExecuteMethod.Inputs.Copy(&[]interface{}{&payload, &signature}, values)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Decode the V3 payload
+		decoded, err := v3.DecodeCalls(walletAddress, chainID, payload)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Convert V3 payload to Transactions
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else if bytes.Equal(data[:4], v3SelfExecuteMethod.ID) {
+		// V3 selfExecute method takes (bytes calldata _payload)
+		var values []interface{}
+		values, err = v3SelfExecuteMethod.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		var payload []byte
+		err = v3SelfExecuteMethod.Inputs.Copy(&[]interface{}{&payload}, values)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Decode the V3 payload
+		decoded, err := v3.DecodeCalls(walletAddress, chainID, payload)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
+		// V3 guest module allows sending just the packed calls payload without solidity abi encoding
+		decoded, err := v3.DecodeCalls(walletAddress, chainID, data)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
+		}
+
+		transactions = make([]Transaction, len(decoded.Calls))
+		for i, call := range decoded.Calls {
+			transactions[i] = Transaction{
+				To:            call.To,
+				Value:         call.Value,
+				Data:          call.Data,
+				GasLimit:      call.GasLimit,
+				DelegateCall:  call.DelegateCall,
+				RevertOnError: call.BehaviorOnError == v3.BehaviorOnErrorRevert,
+			}
+		}
+
+		nonce, err = EncodeNonce(decoded.Space, decoded.Nonce)
+		if err != nil {
+			return nil, nil, nil, err
 		}
 	}
-	return NewTransactionsFromValues(transactions), nil
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Recursively decode nested transactions
+	for i := 0; i < len(transactions); i++ {
+		if len(transactions[i].Data) > 0 {
+			decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data, walletAddress, chainID)
+			if err == nil {
+				transactions[i].Data = nil
+				transactions[i].Transactions = decodedTransactions
+				transactions[i].Nonce = decodedNonce
+				transactions[i].Signature = decodedSignature
+			}
+		}
+	}
+
+	return NewTransactionsFromValues(transactions), nonce, signature, nil
 }
 
 // Append will append the passed txns to the `t` array (as separate Transaction elements).
@@ -328,9 +507,22 @@ type SignedTransactions struct {
 	WalletContext WalletContext
 
 	Transactions Transactions // The meta-transactions
+	Space        *big.Int     // Nonce space of the transactions
 	Nonce        *big.Int     // Nonce of the transactions
 	Digest       common.Hash  // Digest of the transactions
 	Signature    []byte       // Signature (encoded as bytes from *Signature) of the txn digest
+}
+
+func (t *SignedTransactions) Payload() (v3.CallsPayload, error) {
+	return t.Transactions.Payload(t.WalletAddress, t.ChainID, t.Space, t.Nonce)
+}
+
+func (t *SignedTransactions) ExecuteV3() ([]byte, error) {
+	payload, err := t.Payload()
+	if err != nil {
+		return nil, err
+	}
+	return contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(t.WalletAddress), t.Signature)
 }
 
 func (t *SignedTransactions) Execdata() ([]byte, error) {
@@ -354,12 +546,21 @@ var (
 	// TxExecutedEventSig is the signature event emitted in a successful smart-wallet meta-transaction batch (for v2)
 	// 0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7
 	// TxExecuted(bytes32 indexed _tx, uint256 _index)
-	V2TxExecutedEventSig = common.HexToHash("0x5c4eeb02dabf8976016ab414d617f9a162936dcace3cdef8c69ef6e262ad5ae7")
+	V2TxExecutedEventSig = MustEncodeSig("TxExecuted(bytes32,uint256)")
 
 	// TxFailedEventSig is the signature event emitted in a failed smart-wallet meta-transaction batch (for v2)
 	// 0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419
 	// TxFailed(bytes32 indexed _tx, uint256 _index, bytes _reason)
-	V2TxFailedEventSig = common.HexToHash("0xab46c69f7f32e1bf09b0725853da82a211e5402a0600296ab499a2fb5ea3b419")
+	V2TxFailedEventSig = MustEncodeSig("TxFailed(bytes32,uint256,bytes)")
+
+	// 0x5a589b1d8062f33451d29cae3dabd9b2e36c62aee644178c600977ca8dda661a
+	V3CallSucceeded = MustEncodeSig("CallSucceeded(bytes32,uint256)")
+	// 0x115f347c00e69f252cd6b63c4f81022a9564c6befe8aa719cb74640a4a306f0d
+	V3CallFailed = MustEncodeSig("CallFailed(bytes32,uint256,bytes)")
+	// 0xc2c704302430fe0dc8d95f272e2f4e54bbbc51a3327fd5d75ab41f9fc8fd129b
+	V3CallAborted = MustEncodeSig("CallAborted(bytes32,uint256,bytes)")
+	// 0x9ae934bf8a986157c889a24c3b3fa85e74b7e4ee4b1f8fc6e7362cb4c1d19d8b
+	V3CallSkipped = MustEncodeSig("CallSkipped(bytes32,uint256)")
 )
 
 // EncodeNonce with space
@@ -445,7 +646,7 @@ func GetWalletNonce(provider *ethrpc.Provider, walletConfig core.WalletConfig, w
 }
 
 func ReduceExecdataSignatures(chainID *big.Int, data []byte) ([]byte, error) {
-	transactions, nonce, signature, err := DecodeExecdata(data)
+	transactions, nonce, signature, err := DecodeExecdata(data, common.Address{}, chainID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode execdata: %w", err)
 	}
@@ -464,47 +665,24 @@ func ReduceExecdataSignatures(chainID *big.Int, data []byte) ([]byte, error) {
 	return transaction.Execdata()
 }
 
-func DecodeExecdata(data []byte) (Transactions, *big.Int, []byte, error) {
-	if len(data) < 4 {
-		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
-	}
-
-	var transactions []Transaction
-	var nonce *big.Int
-	var signature []byte
-	var err error
-
-	executeMethod := contracts.V1.WalletMainModule.ABI.Methods["execute"]
-	selfExecuteMethod := contracts.V1.WalletMainModule.ABI.Methods["selfExecute"]
-
-	if bytes.Equal(data[:4], executeMethod.ID) {
-		var values []interface{}
-		values, err = executeMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			err = executeMethod.Inputs.Copy(&[]interface{}{&transactions, &nonce, &signature}, values)
-		}
-	} else if bytes.Equal(data[:4], selfExecuteMethod.ID) {
-		var values []interface{}
-		values, err = selfExecuteMethod.Inputs.Unpack(data[4:])
-		if err == nil {
-			err = selfExecuteMethod.Inputs.Copy(&transactions, values)
-		}
-	} else {
-		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
-	}
+func DecodeRawTransactions(data []byte) (Transactions, error) {
+	decoder := abi.Arguments{abi.Argument{Type: abiTransactionsType}}
+	values, err := decoder.Unpack(data)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-
-	for i := 0; i < len(transactions); i++ {
-		decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data)
+	var transactions []Transaction
+	if err = decoder.Copy(&transactions, values); err != nil {
+		return nil, err
+	}
+	for i := range transactions {
+		children, nonce, signature, err := DecodeExecdata(transactions[i].Data, common.Address{}, nil)
 		if err == nil {
 			transactions[i].Data = nil
-			transactions[i].Transactions = decodedTransactions
-			transactions[i].Nonce = decodedNonce
-			transactions[i].Signature = decodedSignature
+			transactions[i].Transactions = children
+			transactions[i].Nonce = nonce
+			transactions[i].Signature = signature
 		}
 	}
-
-	return NewTransactionsFromValues(transactions), nonce, signature, nil
+	return NewTransactionsFromValues(transactions), nil
 }

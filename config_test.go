@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/contracts"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
+	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,6 +39,21 @@ func TestWalletConfig(t *testing.T) {
 				&v2.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("def")},
 				&v2.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("abc")},
 				&v2.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("456")},
+			),
+		}
+
+		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("def")]))
+		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("abc")]))
+		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("456")]))
+	})
+
+	t.Run("v3", func(t *testing.T) {
+		wc := &v3.WalletConfig{
+			Threshold_: 4, //big.NewInt(4),
+			Tree: v3.WalletConfigTreeNodes(
+				&v3.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("def")},
+				&v3.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("abc")},
+				&v3.WalletConfigTreeAddressLeaf{Weight: 2, Address: common.HexToAddress("456")},
 			),
 		}
 
@@ -104,6 +122,19 @@ func TestWalletConfigImageHash(t *testing.T) {
 
 		assert.Equal(t, expected, wc.ImageHash().Hex())
 	})
+
+	t.Run("v3", func(t *testing.T) {
+		wc := &v3.WalletConfig{
+			Threshold_: 1, //big.NewInt(1),
+			Tree: v3.WalletConfigTreeNodes(
+				&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.Address{}},
+			),
+		}
+
+		expected := "0x2e933435748a0b51a395e77bfc6690e8d541c4b9b0b6b507e109d8db15344907"
+
+		assert.Equal(t, expected, wc.ImageHash().Hex())
+	})
 }
 
 func TestWalletAddressFromWalletConfig(t *testing.T) {
@@ -118,6 +149,7 @@ func TestWalletAddressFromWalletConfig(t *testing.T) {
 		context := sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
+			CreationCode:      hexutil.Encode(contracts.V1.CreationCode),
 		}
 
 		expected := common.HexToAddress("0xF0BA65550F2d1DCCf4B131B774844DC3d801D886")
@@ -138,9 +170,31 @@ func TestWalletAddressFromWalletConfig(t *testing.T) {
 		context := sequence.WalletContext{
 			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
 			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
+			CreationCode:      hexutil.Encode(contracts.V2.CreationCode),
 		}
 
 		expected := common.HexToAddress("0x8AD6cbc016f72971d317f281497aa080DF87a013")
+
+		address, err := sequence.AddressFromWalletConfig(wc, context)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, address)
+	})
+
+	t.Run("v3", func(t *testing.T) {
+		wc := &v3.WalletConfig{
+			Threshold_: 1, //big.NewInt(1),
+			Tree: v3.WalletConfigTreeNodes(
+				&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.Address{}},
+			),
+		}
+
+		context := sequence.WalletContext{
+			FactoryAddress:    common.HexToAddress("0x7c2C195CD6D34B8F845992d380aADB2730bB9C6F"),
+			MainModuleAddress: common.HexToAddress("0x8858eeB3DfffA017D4BCE9801D340D36Cf895CCf"),
+			CreationCode:      hexutil.Encode(contracts.V3.CreationCode),
+		}
+
+		expected := common.HexToAddress("0xe6b7B59e6ABf35069D895022b427BfabE4C9Fd7f")
 
 		address, err := sequence.AddressFromWalletConfig(wc, context)
 		assert.NoError(t, err)
@@ -208,6 +262,39 @@ func TestWalletIsWalletConfigUsable(t *testing.T) {
 				Threshold_: 2, //big.NewInt(2),
 				Tree: v2.WalletConfigTreeNodes(
 					&v2.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
+				),
+			}
+
+			assert.Error(t, wcBad.IsUsable())
+		}
+	})
+
+	t.Run("v3", func(t *testing.T) {
+		{
+			wcGood := &v3.WalletConfig{
+				Threshold_: 1, //big.NewInt(1),
+				Tree: v3.WalletConfigTreeNodes(
+					&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
+				),
+			}
+
+			assert.NoError(t, wcGood.IsUsable())
+		}
+		{
+			wcBad := &v3.WalletConfig{
+				Threshold_: 0, //big.NewInt(0),
+				Tree: v3.WalletConfigTreeNodes(
+					&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
+				),
+			}
+
+			assert.Error(t, wcBad.IsUsable())
+		}
+		{
+			wcBad := &v3.WalletConfig{
+				Threshold_: 2, //big.NewInt(2),
+				Tree: v3.WalletConfigTreeNodes(
+					&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0xd63A09C47FDc03e2Cff620446b37f205A7D0679D")},
 				),
 			}
 
