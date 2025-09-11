@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math/big"
 	"sort"
 	"time"
 
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/lib/binaryutil"
 )
 
 type FeeQuote struct {
@@ -85,27 +85,27 @@ func (q *FeeQuote) message() ([]byte, error) {
 		return nil, err
 	}
 
-	err = writeOptionalUint64(&message, q.GasSponsor)
+	err = binaryutil.WriteOptionalUint64(&message, q.GasSponsor)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeOptionalUint64(&message, q.GasTank)
+	err = binaryutil.WriteOptionalUint64(&message, q.GasTank)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeOptionalUint64(&message, q.GasUsage)
+	err = binaryutil.WriteOptionalUint64(&message, q.GasUsage)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeOptionalBigInt(&message, q.GasPrice)
+	err = binaryutil.WriteOptionalBigInt(&message, q.GasPrice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeOptionalBigInt(&message, q.NativePrice)
+	err = binaryutil.WriteOptionalBigInt(&message, q.NativePrice)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (q *FeeQuote) message() ([]byte, error) {
 			return nil, err
 		}
 
-		err = writeBigInt(&message, q.TokenPrices[token])
+		err = binaryutil.WriteBigInt(&message, q.TokenPrices[token])
 		if err != nil {
 			return nil, err
 		}
@@ -133,50 +133,4 @@ func (q *FeeQuote) message() ([]byte, error) {
 	}
 
 	return message.Bytes(), nil
-}
-
-func writeOptionalUint64(w io.Writer, n *uint64) error {
-	err := binary.Write(w, binary.LittleEndian, n != nil)
-	if err != nil {
-		return err
-	}
-
-	if n != nil {
-		err = binary.Write(w, binary.LittleEndian, *n)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func writeOptionalBigInt(w io.Writer, n *big.Int) error {
-	err := binary.Write(w, binary.LittleEndian, n != nil)
-	if err != nil {
-		return err
-	}
-
-	if n != nil {
-		err = writeBigInt(w, n)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func writeBigInt(w io.Writer, n *big.Int) error {
-	err := binary.Write(w, binary.LittleEndian, int8(n.Sign()))
-	if err != nil {
-		return err
-	}
-
-	_, err = w.Write(n.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
