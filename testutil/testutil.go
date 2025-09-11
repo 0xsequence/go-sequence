@@ -392,12 +392,12 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, nil, nil, 10000000)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, V3FactorySalt.Big(), nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (factory deploy): %w", err)
 	}
 
-	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, nil, nil, 10000000, walletFactoryAddress, common.Address{})
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, V3Stage1ModuleSalt.Big(), nil, 10000000, walletFactoryAddress, common.Address{})
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
@@ -408,7 +408,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, nil, nil, 10000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, V3GuestModuleSalt.Big(), nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
 	}
@@ -418,7 +418,6 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleAddress:           stage1ModuleAddress,
 		MainModuleUpgradableAddress: stage2ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
-		UtilsAddress:                stage1ModuleAddress,
 		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 	}, nil
 }
