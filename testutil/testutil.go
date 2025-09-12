@@ -349,27 +349,27 @@ func (c *TestChain) V2DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, 0, nil, 7000000)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V2.WalletFactory.ABI, contracts.V2.WalletFactory.Bin, nil, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
-	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModuleUpgradable.ABI, contracts.V2.WalletMainModuleUpgradable.Bin, 0, nil, 7000000)
+	mainModuleUpgradableAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModuleUpgradable.ABI, contracts.V2.WalletMainModuleUpgradable.Bin, nil, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
-	mainModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModule.ABI, contracts.V2.WalletMainModule.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleUpgradableAddress)
+	mainModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletMainModule.ABI, contracts.V2.WalletMainModule.Bin, nil, nil, 7000000, walletFactoryAddress, mainModuleUpgradableAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletGuestModule.ABI, contracts.V2.WalletGuestModule.Bin, 0, nil, 7000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V2.WalletGuestModule.ABI, contracts.V2.WalletGuestModule.Bin, nil, nil, 7000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
 
-	utilsAddress, err := ud.Deploy(ctx, contracts.V2.WalletUtils.ABI, contracts.V2.WalletUtils.Bin, 0, nil, 7000000, walletFactoryAddress, mainModuleAddress)
+	utilsAddress, err := ud.Deploy(ctx, contracts.V2.WalletUtils.ABI, contracts.V2.WalletUtils.Bin, nil, nil, 7000000, walletFactoryAddress, mainModuleAddress)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V2DeploySequenceContext: %w", err)
 	}
@@ -392,12 +392,12 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 
 	ctx := context.Background()
 
-	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, 0, nil, 10000000)
+	walletFactoryAddress, err := ud.Deploy(ctx, contracts.V3.WalletFactory.ABI, contracts.V3.WalletFactory.Bin, V3FactorySalt.Big(), nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (factory deploy): %w", err)
 	}
 
-	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, 0, nil, 10000000, walletFactoryAddress, common.Address{})
+	stage1ModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletStage1Module.ABI, contracts.V3.WalletStage1Module.Bin, V3Stage1ModuleSalt.Big(), nil, 10000000, walletFactoryAddress, common.Address{})
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage1 deploy): %w", err)
 	}
@@ -408,7 +408,7 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (stage2 deploy): %w", err)
 	}
 
-	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, 0, nil, 10000000)
+	guestModuleAddress, err := ud.Deploy(ctx, contracts.V3.WalletGuestModule.ABI, contracts.V3.WalletGuestModule.Bin, V3GuestModuleSalt.Big(), nil, 10000000)
 	if err != nil {
 		return sequence.WalletContext{}, fmt.Errorf("testutil, V3DeploySequenceContext (guest deploy): %w", err)
 	}
@@ -418,7 +418,6 @@ func (c *TestChain) V3DeploySequenceContext() (sequence.WalletContext, error) {
 		MainModuleAddress:           stage1ModuleAddress,
 		MainModuleUpgradableAddress: stage2ModuleAddress,
 		GuestModuleAddress:          guestModuleAddress,
-		UtilsAddress:                stage1ModuleAddress,
 		CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 	}, nil
 }

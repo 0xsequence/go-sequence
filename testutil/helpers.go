@@ -41,13 +41,18 @@ var sequenceContextV2 = sequence.WalletContext{
 }
 
 var sequenceContextV3 = sequence.WalletContext{
-	FactoryAddress:              common.HexToAddress("0x7aaaD48b90Ea2c1DaE03cb68ea1Ed8E1DD26dB38"),
-	MainModuleAddress:           common.HexToAddress("0x4d7c112790F03caFc7287b1a29Aa03da1Bb00C10"),
-	MainModuleUpgradableAddress: common.HexToAddress("0x7C96ff440BCE51EEF0C9f748D69246B4b3F28173"),
-	GuestModuleAddress:          common.HexToAddress("0x252968348A07DDe07C13c9A67e31e3C429d8966D"),
-	UtilsAddress:                common.HexToAddress("0x4d7c112790F03caFc7287b1a29Aa03da1Bb00C10"),
+	FactoryAddress:              common.HexToAddress("0x00000000000018A77519fcCCa060c2537c9D6d3F"),
+	MainModuleAddress:           common.HexToAddress("0x00000000000084fA81809Dd337311297C5594d62"),
+	MainModuleUpgradableAddress: common.HexToAddress("0x7438718F9E4b9B834e305A620EEeCf2B9E6eBE79"),
+	GuestModuleAddress:          common.HexToAddress("0x0000000000601fcA38f0cCA649453F6739436d6C"),
 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
+
+var (
+	V3FactorySalt      = common.HexToHash("0xd4d338c5d1f6a77bd065d147e9cacd6ac7ed4c6e361a26baf7896a465ed661b4")
+	V3Stage1ModuleSalt = common.HexToHash("0x4c25b4c26fd796e4d664148ab98d8a3ce15d9f48efcacc770f9275702bc1afae")
+	V3GuestModuleSalt  = common.HexToHash("0x5c11a7895a309fa08b06f53784721316f1c7615a976337cd3b9b6251cd25ab9f")
+)
 
 func SequenceContext() sequence.WalletContext {
 	return sequenceContextV2

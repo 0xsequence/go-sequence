@@ -70,7 +70,11 @@ func NewEIP2470Deployer(wallet *ethwallet.Wallet) (*EIP2470Deployer, error) {
 	return e, nil
 }
 
-func (e *EIP2470Deployer) Deploy(ctx context.Context, contractABI abi.ABI, contractBin []byte, contractInstance uint, txParams interface{}, gasLimit uint, contractArgs ...interface{}) (common.Address, error) {
+func (e *EIP2470Deployer) Deploy(ctx context.Context, contractABI abi.ABI, contractBin []byte, contractInstance *big.Int, txParams any, gasLimit uint, contractArgs ...any) (common.Address, error) {
+	if contractInstance == nil {
+		contractInstance = new(big.Int)
+	}
+
 	// Deploy universal deployer 2 if not yet deployed
 	code, err := e.provider.CodeAt(ctx, EIP2470_DEPLOYER_ADDRESS, nil)
 	if err != nil {
@@ -109,9 +113,7 @@ func (e *EIP2470Deployer) Deploy(ctx context.Context, contractABI abi.ABI, contr
 	}
 
 	// Deploy the contract via EIP2470Deployer by calling the deploy contract method
-	var salt [32]byte
-	big.NewInt(int64(contractInstance)).SetBytes(salt[:])
-	input, err := EIP2470_DEPLOYER_ABI.Pack("deploy", deployData, salt)
+	input, err := EIP2470_DEPLOYER_ABI.Pack("deploy", deployData, common.BigToHash(contractInstance))
 	if err != nil {
 		return common.Address{}, fmt.Errorf("deployer: deploy pack: %w", err)
 	}
@@ -149,7 +151,7 @@ func (e *EIP2470Deployer) Deploy(ctx context.Context, contractABI abi.ABI, contr
 	return contractAddress, nil
 }
 
-func (e *EIP2470Deployer) deployEIP2470Deployer(ctx context.Context, txParams interface{}) error {
+func (e *EIP2470Deployer) deployEIP2470Deployer(ctx context.Context, txParams any) error {
 	deployerBalance, err := e.provider.BalanceAt(ctx, EIP2470_EOA_DEPLOYER_ADDRESS, nil)
 	if err != nil {
 		return fmt.Errorf("deployer (deployUniversalDeployer1): %w", err)
@@ -205,7 +207,11 @@ func (e *EIP2470Deployer) deployEIP2470Deployer(ctx context.Context, txParams in
 	return nil
 }
 
-func (e *EIP2470Deployer) ComputeCreate2Address(contractABI abi.ABI, contractBin []byte, contractInstance uint, contractArgs ...interface{}) (common.Address, []byte, error) {
+func (e *EIP2470Deployer) ComputeCreate2Address(contractABI abi.ABI, contractBin []byte, contractInstance *big.Int, contractArgs ...any) (common.Address, []byte, error) {
+	if contractInstance == nil {
+		contractInstance = new(big.Int)
+	}
+
 	var input []byte
 	var err error
 
@@ -221,14 +227,14 @@ func (e *EIP2470Deployer) ComputeCreate2Address(contractABI abi.ABI, contractBin
 	deployData := append(contractBin, input...)
 	codeHash := crypto.Keccak256(deployData)
 
-	salt, err := ethcoder.SolidityPack([]string{"uint256"}, []interface{}{big.NewInt(int64(contractInstance))})
+	salt, err := ethcoder.SolidityPack([]string{"uint256"}, []any{contractInstance})
 	if err != nil {
 		return common.Address{}, nil, fmt.Errorf("ComputeCreate2Address salt: %w", err)
 	}
 
 	hashPack, err := ethcoder.SolidityPack(
 		[]string{"bytes1", "address", "bytes32", "bytes32"},
-		[]interface{}{[1]byte{255}, EIP2470_DEPLOYER_ADDRESS, salt, codeHash},
+		[]any{[1]byte{255}, EIP2470_DEPLOYER_ADDRESS, salt, codeHash},
 	)
 	if err != nil {
 		return common.Address{}, nil, fmt.Errorf("ComputeCreate2Address hashPack: %w", err)
