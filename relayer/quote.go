@@ -68,7 +68,7 @@ func (q *FeeQuote) VerifySignedBy(expectedAddresses ...common.Address) error {
 	return fmt.Errorf("quote signed by unexpected address %s", address.Hex())
 }
 
-func (q *FeeQuote) message() ([]byte, error) {
+func (q *FeeQuote) Message() ([]byte, error) {
 	if q.ExpiresAt == nil {
 		return nil, fmt.Errorf("missing expiration date")
 	}
