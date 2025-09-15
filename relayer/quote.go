@@ -30,7 +30,7 @@ func (q *FeeQuote) Sign(wallet *ethwallet.Wallet, validFor time.Duration) error 
 	expiresAt := time.Now().Add(validFor)
 	q.ExpiresAt = &expiresAt
 
-	message, err := q.message()
+	message, err := q.Message()
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (q *FeeQuote) VerifySignedBy(expectedAddresses ...common.Address) error {
 		return fmt.Errorf("quote expired")
 	}
 
-	message, err := q.message()
+	message, err := q.Message()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (q *FeeQuote) VerifySignedBy(expectedAddresses ...common.Address) error {
 	return fmt.Errorf("quote signed by unexpected address %s", address.Hex())
 }
 
-func (q *FeeQuote) message() ([]byte, error) {
+func (q *FeeQuote) Message() ([]byte, error) {
 	if q.ExpiresAt == nil {
 		return nil, fmt.Errorf("missing expiration date")
 	}
