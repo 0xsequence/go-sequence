@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -627,19 +628,23 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 
 	spew.Dump(config)
 
-	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		return 0, nil, core.ErrSigningNoSigner
-	}, false)
+	signature, err := config.BuildNoChainIDSignature(
+		context.Background(),
+		func(ctx context.Context, signer core.Signer, signerSignatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			return 0, nil, core.ErrSigningNoSigner
+		},
+		false,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to build signature: %w", err)
 	}
 
-	data, err := sig.Data()
+	data, err := signature.Data()
 	if err != nil {
 		return "", fmt.Errorf("failed to encode signature: %w", err)
 	}
 
-	return "0x" + common.Bytes2Hex(data), nil
+	return hexutil.Encode(data), nil
 }
 
 func newConfigCmd() *cobra.Command {

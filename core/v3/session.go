@@ -975,7 +975,8 @@ type ImplicitSessionCallSignature struct {
 	SessionSignature  RSY
 }
 
-func (ImplicitSessionCallSignature) isSessionCallSignature() {}
+func (ImplicitSessionCallSignature) isSessionCallSignature() {
+}
 
 // ExplicitSessionCallSignature represents a call signature that carries a permission index and a session signature.
 type ExplicitSessionCallSignature struct {
@@ -983,7 +984,8 @@ type ExplicitSessionCallSignature struct {
 	SessionSignature RSY
 }
 
-func (ExplicitSessionCallSignature) isSessionCallSignature() {}
+func (ExplicitSessionCallSignature) isSessionCallSignature() {
+}
 
 // SessionCallSignature is a union interface for both kinds.
 type SessionCallSignature interface {

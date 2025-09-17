@@ -207,101 +207,111 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 
 	var signature core.Signature[*v3.WalletConfig]
 	if p.ChainId {
-		signature, err = config.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			for _, sig := range signatures {
-				if strings.EqualFold(sig.Address, signer.Hex()) {
-					switch sig.Type {
-					case "eth_sign":
-						if len(sig.Values) != 3 {
+		signature, err = config.BuildRegularSignature(
+			context.Background(),
+			func(ctx context.Context, signer core.Signer, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+				for _, sig := range signatures {
+					if strings.EqualFold(sig.Address, signer.Hex()) {
+						switch sig.Type {
+						case "eth_sign":
+							if len(sig.Values) != 3 {
+								continue
+							}
+							r := common.HexToHash(sig.Values[0]).Bytes()
+							s := common.HexToHash(sig.Values[1]).Bytes()
+							v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+							return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
+						case "hash":
+							if len(sig.Values) != 3 {
+								continue
+							}
+							r := common.HexToHash(sig.Values[0]).Bytes()
+							s := common.HexToHash(sig.Values[1]).Bytes()
+							v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+							return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
+						case "erc1271":
+							if len(sig.Values) != 1 {
+								continue
+							}
+
+							return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+						case "sapient", "sapient_compact":
+							if len(sig.Values) != 1 {
+								continue
+							}
+
+							if sig.Type == "sapient" {
+								return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
+							} else {
+								return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
+							}
+						default:
+							log.Printf("Unsupported signature type: %s", sig.Type)
 							continue
 						}
-						r := common.HexToHash(sig.Values[0]).Bytes()
-						s := common.HexToHash(sig.Values[1]).Bytes()
-						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
-
-						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
-					case "hash":
-						if len(sig.Values) != 3 {
-							continue
-						}
-						r := common.HexToHash(sig.Values[0]).Bytes()
-						s := common.HexToHash(sig.Values[1]).Bytes()
-						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
-
-						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
-					case "erc1271":
-						if len(sig.Values) != 1 {
-							continue
-						}
-
-						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
-					case "sapient", "sapient_compact":
-						if len(sig.Values) != 1 {
-							continue
-						}
-
-						if sig.Type == "sapient" {
-							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
-						} else {
-							return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
-						}
-					default:
-						log.Printf("Unsupported signature type: %s", sig.Type)
-						continue
 					}
 				}
-			}
 
-			return 0, nil, core.ErrSigningNoSigner
-		}, false, checkpointerDataBytes)
+				return 0, nil, core.ErrSigningNoSigner
+			},
+			false,
+			checkpointerDataBytes,
+		)
 	} else {
-		signature, err = config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			for _, sig := range signatures {
-				if strings.EqualFold(sig.Address, signer.Hex()) {
-					switch sig.Type {
-					case "eth_sign":
-						if len(sig.Values) != 3 {
+		signature, err = config.BuildNoChainIDSignature(
+			context.Background(),
+			func(ctx context.Context, signer core.Signer, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+				for _, sig := range signatures {
+					if strings.EqualFold(sig.Address, signer.Hex()) {
+						switch sig.Type {
+						case "eth_sign":
+							if len(sig.Values) != 3 {
+								continue
+							}
+							r := common.HexToHash(sig.Values[0]).Bytes()
+							s := common.HexToHash(sig.Values[1]).Bytes()
+							v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+							return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
+						case "hash":
+							if len(sig.Values) != 3 {
+								continue
+							}
+							r := common.HexToHash(sig.Values[0]).Bytes()
+							s := common.HexToHash(sig.Values[1]).Bytes()
+							v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
+
+							return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
+						case "erc1271":
+							if len(sig.Values) != 1 {
+								continue
+							}
+
+							return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
+						case "sapient", "sapient_compact":
+							if len(sig.Values) != 1 {
+								continue
+							}
+
+							if sig.Type == "sapient" {
+								return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
+							} else {
+								return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
+							}
+						default:
+							log.Printf("Unsupported signature type: %s", sig.Type)
 							continue
 						}
-						r := common.HexToHash(sig.Values[0]).Bytes()
-						s := common.HexToHash(sig.Values[1]).Bytes()
-						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
-
-						return core.SignerSignatureTypeEthSign, append(append(r, s...), v), nil
-					case "hash":
-						if len(sig.Values) != 3 {
-							continue
-						}
-						r := common.HexToHash(sig.Values[0]).Bytes()
-						s := common.HexToHash(sig.Values[1]).Bytes()
-						v := byte(common.HexToHash(sig.Values[2]).Big().Uint64())
-
-						return core.SignerSignatureTypeEIP712, append(append(r, s...), v), nil
-					case "erc1271":
-						if len(sig.Values) != 1 {
-							continue
-						}
-
-						return core.SignerSignatureTypeEIP1271, common.FromHex(sig.Values[0]), nil
-					case "sapient", "sapient_compact":
-						if len(sig.Values) != 1 {
-							continue
-						}
-
-						if sig.Type == "sapient" {
-							return core.SignerSignatureTypeSapient, common.FromHex(sig.Values[0]), nil
-						} else {
-							return core.SignerSignatureTypeSapientCompact, common.FromHex(sig.Values[0]), nil
-						}
-					default:
-						log.Printf("Unsupported signature type: %s", sig.Type)
-						continue
 					}
 				}
-			}
 
-			return 0, nil, core.ErrSigningNoSigner
-		}, false, checkpointerDataBytes)
+				return 0, nil, core.ErrSigningNoSigner
+			},
+			false,
+			checkpointerDataBytes,
+		)
 	}
 
 	if err != nil {
