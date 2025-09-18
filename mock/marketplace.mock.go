@@ -117,33 +117,33 @@ func (mr *MarketplaceMockRecorder) GenerateCancelTransaction(ctx, chainId, colle
 }
 
 // GenerateListingTransaction mocks base method.
-func (m *Marketplace) GenerateListingTransaction(ctx context.Context, chainId, collectionAddress, owner string, contractType marketplace.ContractType, orderbook marketplace.OrderbookKind, listing *marketplace.CreateReq, walletType *marketplace.WalletKind) ([]*marketplace.Step, error) {
+func (m *Marketplace) GenerateListingTransaction(ctx context.Context, chainId, collectionAddress, owner string, contractType marketplace.ContractType, orderbook marketplace.OrderbookKind, listing *marketplace.CreateReq, additionalFees []*marketplace.AdditionalFee, walletType *marketplace.WalletKind) ([]*marketplace.Step, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateListingTransaction", ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, walletType)
+	ret := m.ctrl.Call(m, "GenerateListingTransaction", ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, additionalFees, walletType)
 	ret0, _ := ret[0].([]*marketplace.Step)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateListingTransaction indicates an expected call of GenerateListingTransaction.
-func (mr *MarketplaceMockRecorder) GenerateListingTransaction(ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, walletType any) *gomock.Call {
+func (mr *MarketplaceMockRecorder) GenerateListingTransaction(ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, additionalFees, walletType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateListingTransaction", reflect.TypeOf((*Marketplace)(nil).GenerateListingTransaction), ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, walletType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateListingTransaction", reflect.TypeOf((*Marketplace)(nil).GenerateListingTransaction), ctx, chainId, collectionAddress, owner, contractType, orderbook, listing, additionalFees, walletType)
 }
 
 // GenerateOfferTransaction mocks base method.
-func (m *Marketplace) GenerateOfferTransaction(ctx context.Context, chainId, collectionAddress, maker string, contractType marketplace.ContractType, orderbook marketplace.OrderbookKind, offer *marketplace.CreateReq, walletType *marketplace.WalletKind) ([]*marketplace.Step, error) {
+func (m *Marketplace) GenerateOfferTransaction(ctx context.Context, chainId, collectionAddress, maker string, contractType marketplace.ContractType, orderbook marketplace.OrderbookKind, offer *marketplace.CreateReq, additionalFees []*marketplace.AdditionalFee, walletType *marketplace.WalletKind, offerType marketplace.OfferType) ([]*marketplace.Step, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateOfferTransaction", ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, walletType)
+	ret := m.ctrl.Call(m, "GenerateOfferTransaction", ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, additionalFees, walletType, offerType)
 	ret0, _ := ret[0].([]*marketplace.Step)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateOfferTransaction indicates an expected call of GenerateOfferTransaction.
-func (mr *MarketplaceMockRecorder) GenerateOfferTransaction(ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, walletType any) *gomock.Call {
+func (mr *MarketplaceMockRecorder) GenerateOfferTransaction(ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, additionalFees, walletType, offerType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateOfferTransaction", reflect.TypeOf((*Marketplace)(nil).GenerateOfferTransaction), ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, walletType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateOfferTransaction", reflect.TypeOf((*Marketplace)(nil).GenerateOfferTransaction), ctx, chainId, collectionAddress, maker, contractType, orderbook, offer, additionalFees, walletType, offerType)
 }
 
 // GenerateSellTransaction mocks base method.

@@ -429,9 +429,9 @@ func (mr *RelayerMockRecorder) RuntimeStatus(ctx any) *gomock.Call {
 }
 
 // SendMetaTxn mocks base method.
-func (m *Relayer) SendMetaTxn(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64) (bool, string, error) {
+func (m *Relayer) SendMetaTxn(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64, preconditions []*proto.IntentPrecondition) (bool, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMetaTxn", ctx, call, quote, projectID)
+	ret := m.ctrl.Call(m, "SendMetaTxn", ctx, call, quote, projectID, preconditions)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -439,9 +439,9 @@ func (m *Relayer) SendMetaTxn(ctx context.Context, call *proto.MetaTxn, quote *s
 }
 
 // SendMetaTxn indicates an expected call of SendMetaTxn.
-func (mr *RelayerMockRecorder) SendMetaTxn(ctx, call, quote, projectID any) *gomock.Call {
+func (mr *RelayerMockRecorder) SendMetaTxn(ctx, call, quote, projectID, preconditions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxn", reflect.TypeOf((*Relayer)(nil).SendMetaTxn), ctx, call, quote, projectID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxn", reflect.TypeOf((*Relayer)(nil).SendMetaTxn), ctx, call, quote, projectID, preconditions)
 }
 
 // SentTransactions mocks base method.
@@ -473,6 +473,21 @@ func (m *Relayer) Simulate(ctx context.Context, wallet, transactions string) ([]
 func (mr *RelayerMockRecorder) Simulate(ctx, wallet, transactions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Simulate", reflect.TypeOf((*Relayer)(nil).Simulate), ctx, wallet, transactions)
+}
+
+// SimulateV3 mocks base method.
+func (m *Relayer) SimulateV3(ctx context.Context, wallet, calls string) ([]*proto.SimulateV3Result, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SimulateV3", ctx, wallet, calls)
+	ret0, _ := ret[0].([]*proto.SimulateV3Result)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SimulateV3 indicates an expected call of SimulateV3.
+func (mr *RelayerMockRecorder) SimulateV3(ctx, wallet, calls any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SimulateV3", reflect.TypeOf((*Relayer)(nil).SimulateV3), ctx, wallet, calls)
 }
 
 // UpdateGasSponsor mocks base method.
