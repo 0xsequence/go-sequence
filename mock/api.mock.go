@@ -148,6 +148,21 @@ func (mr *APIMockRecorder) Clock(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clock", reflect.TypeOf((*API)(nil).Clock), ctx)
 }
 
+// CommitIntentConfig mocks base method.
+func (m *API) CommitIntentConfig(ctx context.Context, originIntentAddress, destinationIntentAddress, mainSigner string, calls []*api.IntentCallsPayload, preconditions []*api.IntentPrecondition, addressOverrides *api.AddressOverrides) (*api.IntentConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommitIntentConfig", ctx, originIntentAddress, destinationIntentAddress, mainSigner, calls, preconditions, addressOverrides)
+	ret0, _ := ret[0].(*api.IntentConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CommitIntentConfig indicates an expected call of CommitIntentConfig.
+func (mr *APIMockRecorder) CommitIntentConfig(ctx, originIntentAddress, destinationIntentAddress, mainSigner, calls, preconditions, addressOverrides any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitIntentConfig", reflect.TypeOf((*API)(nil).CommitIntentConfig), ctx, originIntentAddress, destinationIntentAddress, mainSigner, calls, preconditions, addressOverrides)
+}
+
 // ContractCall mocks base method.
 func (m *API) ContractCall(ctx context.Context, chainID, contract, inputExpr, outputExpr string, args []string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -194,18 +209,48 @@ func (mr *APIMockRecorder) DeleteOffchainInventory(ctx, inventoryId any) *gomock
 }
 
 // DeletePack mocks base method.
-func (m *API) DeletePack(ctx context.Context, contractAddress string, chainId uint64) (bool, error) {
+func (m *API) DeletePack(ctx context.Context, contractAddress, packId string, chainId uint64) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePack", ctx, contractAddress, chainId)
+	ret := m.ctrl.Call(m, "DeletePack", ctx, contractAddress, packId, chainId)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeletePack indicates an expected call of DeletePack.
-func (mr *APIMockRecorder) DeletePack(ctx, contractAddress, chainId any) *gomock.Call {
+func (mr *APIMockRecorder) DeletePack(ctx, contractAddress, packId, chainId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePack", reflect.TypeOf((*API)(nil).DeletePack), ctx, contractAddress, chainId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePack", reflect.TypeOf((*API)(nil).DeletePack), ctx, contractAddress, packId, chainId)
+}
+
+// FortePayCreateIntent mocks base method.
+func (m *API) FortePayCreateIntent(ctx context.Context, intent *api.FortePayCreateIntent) (*api.FortePayIntent, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FortePayCreateIntent", ctx, intent)
+	ret0, _ := ret[0].(*api.FortePayIntent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FortePayCreateIntent indicates an expected call of FortePayCreateIntent.
+func (mr *APIMockRecorder) FortePayCreateIntent(ctx, intent any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FortePayCreateIntent", reflect.TypeOf((*API)(nil).FortePayCreateIntent), ctx, intent)
+}
+
+// FortePayGetPaymentStatuses mocks base method.
+func (m *API) FortePayGetPaymentStatuses(ctx context.Context, paymentIntentIds []string) ([]*api.FortePaymentStatus, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FortePayGetPaymentStatuses", ctx, paymentIntentIds)
+	ret0, _ := ret[0].([]*api.FortePaymentStatus)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FortePayGetPaymentStatuses indicates an expected call of FortePayGetPaymentStatuses.
+func (mr *APIMockRecorder) FortePayGetPaymentStatuses(ctx, paymentIntentIds any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FortePayGetPaymentStatuses", reflect.TypeOf((*API)(nil).FortePayGetPaymentStatuses), ctx, paymentIntentIds)
 }
 
 // FriendList mocks base method.
@@ -276,6 +321,21 @@ func (mr *APIMockRecorder) GetAuthToken2(ctx, ewtString, chainID any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthToken2", reflect.TypeOf((*API)(nil).GetAuthToken2), ctx, ewtString, chainID)
 }
 
+// GetCCTPTransfer mocks base method.
+func (m *API) GetCCTPTransfer(ctx context.Context, id string) (*api.CCTPTransfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCCTPTransfer", ctx, id)
+	ret0, _ := ret[0].(*api.CCTPTransfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCCTPTransfer indicates an expected call of GetCCTPTransfer.
+func (mr *APIMockRecorder) GetCCTPTransfer(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCCTPTransfer", reflect.TypeOf((*API)(nil).GetCCTPTransfer), ctx, id)
+}
+
 // GetCoinPrices mocks base method.
 func (m *API) GetCoinPrices(ctx context.Context, tokens []*api.Token) ([]*api.TokenPrice, error) {
 	m.ctrl.T.Helper()
@@ -337,6 +397,58 @@ func (mr *APIMockRecorder) GetFriendByAddress(ctx, friendAddress any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFriendByAddress", reflect.TypeOf((*API)(nil).GetFriendByAddress), ctx, friendAddress)
 }
 
+// GetIntentCallsPayloads mocks base method.
+func (m *API) GetIntentCallsPayloads(ctx context.Context, userAddress string, destinationChainId uint64, destinationTokenAddress, destinationTokenAmount, destinationToAddress string, originChainId uint64, originTokenAddress, originTokenAmount string, destinationCallData, destinationCallValue, provider *string, addressOverrides *api.AddressOverrides, destinationSalt *string, takerFee *api.TakerFee, slippageTolerance *float64, tradeType *api.TradeType) ([]*api.IntentCallsPayload, []*api.IntentPrecondition, []*api.MetaTxn, *api.TrailsFee, *api.IntentQuote, map[string]string, string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIntentCallsPayloads", ctx, userAddress, destinationChainId, destinationTokenAddress, destinationTokenAmount, destinationToAddress, originChainId, originTokenAddress, originTokenAmount, destinationCallData, destinationCallValue, provider, addressOverrides, destinationSalt, takerFee, slippageTolerance, tradeType)
+	ret0, _ := ret[0].([]*api.IntentCallsPayload)
+	ret1, _ := ret[1].([]*api.IntentPrecondition)
+	ret2, _ := ret[2].([]*api.MetaTxn)
+	ret3, _ := ret[3].(*api.TrailsFee)
+	ret4, _ := ret[4].(*api.IntentQuote)
+	ret5, _ := ret[5].(map[string]string)
+	ret6, _ := ret[6].(string)
+	ret7, _ := ret[7].(string)
+	ret8, _ := ret[8].(error)
+	return ret0, ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8
+}
+
+// GetIntentCallsPayloads indicates an expected call of GetIntentCallsPayloads.
+func (mr *APIMockRecorder) GetIntentCallsPayloads(ctx, userAddress, destinationChainId, destinationTokenAddress, destinationTokenAmount, destinationToAddress, originChainId, originTokenAddress, originTokenAmount, destinationCallData, destinationCallValue, provider, addressOverrides, destinationSalt, takerFee, slippageTolerance, tradeType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIntentCallsPayloads", reflect.TypeOf((*API)(nil).GetIntentCallsPayloads), ctx, userAddress, destinationChainId, destinationTokenAddress, destinationTokenAmount, destinationToAddress, originChainId, originTokenAddress, originTokenAmount, destinationCallData, destinationCallValue, provider, addressOverrides, destinationSalt, takerFee, slippageTolerance, tradeType)
+}
+
+// GetIntentConfig mocks base method.
+func (m *API) GetIntentConfig(ctx context.Context, intentAddress string) (*api.IntentConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIntentConfig", ctx, intentAddress)
+	ret0, _ := ret[0].(*api.IntentConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIntentConfig indicates an expected call of GetIntentConfig.
+func (mr *APIMockRecorder) GetIntentConfig(ctx, intentAddress any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIntentConfig", reflect.TypeOf((*API)(nil).GetIntentConfig), ctx, intentAddress)
+}
+
+// GetIntentConfigExecutionStatus mocks base method.
+func (m *API) GetIntentConfigExecutionStatus(ctx context.Context, intentConfigId uint64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIntentConfigExecutionStatus", ctx, intentConfigId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIntentConfigExecutionStatus indicates an expected call of GetIntentConfigExecutionStatus.
+func (mr *APIMockRecorder) GetIntentConfigExecutionStatus(ctx, intentConfigId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIntentConfigExecutionStatus", reflect.TypeOf((*API)(nil).GetIntentConfigExecutionStatus), ctx, intentConfigId)
+}
+
 // GetInviteInfo mocks base method.
 func (m *API) GetInviteInfo(ctx context.Context) (*api.InviteInfo, error) {
 	m.ctrl.T.Helper()
@@ -383,18 +495,18 @@ func (mr *APIMockRecorder) GetLifiSwapQuote(ctx, params any) *gomock.Call {
 }
 
 // GetLifiSwapRoutes mocks base method.
-func (m *API) GetLifiSwapRoutes(ctx context.Context, chainId uint64, toTokenAddress, toTokenAmount, walletAddress string) ([]*api.LifiSwapRoute, error) {
+func (m *API) GetLifiSwapRoutes(ctx context.Context, params *api.GetLifiSwapRouteParams, chainId uint64, toTokenAddress, toTokenAmount, walletAddress string) ([]*api.LifiSwapRoute, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLifiSwapRoutes", ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
+	ret := m.ctrl.Call(m, "GetLifiSwapRoutes", ctx, params, chainId, toTokenAddress, toTokenAmount, walletAddress)
 	ret0, _ := ret[0].([]*api.LifiSwapRoute)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLifiSwapRoutes indicates an expected call of GetLifiSwapRoutes.
-func (mr *APIMockRecorder) GetLifiSwapRoutes(ctx, chainId, toTokenAddress, toTokenAmount, walletAddress any) *gomock.Call {
+func (mr *APIMockRecorder) GetLifiSwapRoutes(ctx, params, chainId, toTokenAddress, toTokenAmount, walletAddress any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapRoutes", reflect.TypeOf((*API)(nil).GetLifiSwapRoutes), ctx, chainId, toTokenAddress, toTokenAmount, walletAddress)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifiSwapRoutes", reflect.TypeOf((*API)(nil).GetLifiSwapRoutes), ctx, params, chainId, toTokenAddress, toTokenAmount, walletAddress)
 }
 
 // GetLifiTokens mocks base method.
@@ -457,19 +569,49 @@ func (mr *APIMockRecorder) GetOffchainInventory(ctx, inventoryId any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOffchainInventory", reflect.TypeOf((*API)(nil).GetOffchainInventory), ctx, inventoryId)
 }
 
-// GetPack mocks base method.
-func (m *API) GetPack(ctx context.Context, contractAddress string, chainId uint64) (*api.Pack, error) {
+// GetOnRampURL mocks base method.
+func (m *API) GetOnRampURL(ctx context.Context, chainId string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPack", ctx, contractAddress, chainId)
+	ret := m.ctrl.Call(m, "GetOnRampURL", ctx, chainId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOnRampURL indicates an expected call of GetOnRampURL.
+func (mr *APIMockRecorder) GetOnRampURL(ctx, chainId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOnRampURL", reflect.TypeOf((*API)(nil).GetOnRampURL), ctx, chainId)
+}
+
+// GetPack mocks base method.
+func (m *API) GetPack(ctx context.Context, contractAddress, packId string, chainId uint64) (*api.Pack, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPack", ctx, contractAddress, packId, chainId)
 	ret0, _ := ret[0].(*api.Pack)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPack indicates an expected call of GetPack.
-func (mr *APIMockRecorder) GetPack(ctx, contractAddress, chainId any) *gomock.Call {
+func (mr *APIMockRecorder) GetPack(ctx, contractAddress, packId, chainId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPack", reflect.TypeOf((*API)(nil).GetPack), ctx, contractAddress, chainId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPack", reflect.TypeOf((*API)(nil).GetPack), ctx, contractAddress, packId, chainId)
+}
+
+// GetPackIds mocks base method.
+func (m *API) GetPackIds(ctx context.Context, contractAddress string, chainId uint64) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPackIds", ctx, contractAddress, chainId)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPackIds indicates an expected call of GetPackIds.
+func (mr *APIMockRecorder) GetPackIds(ctx, contractAddress, chainId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPackIds", reflect.TypeOf((*API)(nil).GetPackIds), ctx, contractAddress, chainId)
 }
 
 // GetPublicKey mocks base method.
@@ -485,6 +627,21 @@ func (m *API) GetPublicKey(ctx context.Context, id string) (*api.PublicKey, erro
 func (mr *APIMockRecorder) GetPublicKey(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicKey", reflect.TypeOf((*API)(nil).GetPublicKey), ctx, id)
+}
+
+// GetRevealTxData mocks base method.
+func (m *API) GetRevealTxData(ctx context.Context, contractAddress, packId string, chainId uint64, userAddress string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRevealTxData", ctx, contractAddress, packId, chainId, userAddress)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRevealTxData indicates an expected call of GetRevealTxData.
+func (mr *APIMockRecorder) GetRevealTxData(ctx, contractAddress, packId, chainId, userAddress any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRevealTxData", reflect.TypeOf((*API)(nil).GetRevealTxData), ctx, contractAddress, packId, chainId, userAddress)
 }
 
 // GetSardineClientToken mocks base method.
@@ -683,6 +840,22 @@ func (mr *APIMockRecorder) ListCurrencyGroups(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCurrencyGroups", reflect.TypeOf((*API)(nil).ListCurrencyGroups), ctx)
 }
 
+// ListIntentConfigs mocks base method.
+func (m *API) ListIntentConfigs(ctx context.Context, page *api.Page, executionStatus *string) (*api.Page, []*api.IntentConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListIntentConfigs", ctx, page, executionStatus)
+	ret0, _ := ret[0].(*api.Page)
+	ret1, _ := ret[1].([]*api.IntentConfig)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListIntentConfigs indicates an expected call of ListIntentConfigs.
+func (mr *APIMockRecorder) ListIntentConfigs(ctx, page, executionStatus any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIntentConfigs", reflect.TypeOf((*API)(nil).ListIntentConfigs), ctx, page, executionStatus)
+}
+
 // ListOffchainInventories mocks base method.
 func (m *API) ListOffchainInventories(ctx context.Context, projectId uint64) ([]*api.OffchainInventory, error) {
 	m.ctrl.T.Helper()
@@ -802,6 +975,51 @@ func (m *API) Ping(ctx context.Context) (bool, error) {
 func (mr *APIMockRecorder) Ping(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*API)(nil).Ping), ctx)
+}
+
+// QueueCCTPTransfer mocks base method.
+func (m *API) QueueCCTPTransfer(ctx context.Context, sourceTxHash, metaTxHash *string, sourceChainId, destinationChainId uint64) (*api.CCTPTransfer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueCCTPTransfer", ctx, sourceTxHash, metaTxHash, sourceChainId, destinationChainId)
+	ret0, _ := ret[0].(*api.CCTPTransfer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueCCTPTransfer indicates an expected call of QueueCCTPTransfer.
+func (mr *APIMockRecorder) QueueCCTPTransfer(ctx, sourceTxHash, metaTxHash, sourceChainId, destinationChainId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueCCTPTransfer", reflect.TypeOf((*API)(nil).QueueCCTPTransfer), ctx, sourceTxHash, metaTxHash, sourceChainId, destinationChainId)
+}
+
+// QueueIntentConfigExecution mocks base method.
+func (m *API) QueueIntentConfigExecution(ctx context.Context, intentConfigId uint64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueIntentConfigExecution", ctx, intentConfigId)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueIntentConfigExecution indicates an expected call of QueueIntentConfigExecution.
+func (mr *APIMockRecorder) QueueIntentConfigExecution(ctx, intentConfigId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueIntentConfigExecution", reflect.TypeOf((*API)(nil).QueueIntentConfigExecution), ctx, intentConfigId)
+}
+
+// QueueMetaTxnReceipt mocks base method.
+func (m *API) QueueMetaTxnReceipt(ctx context.Context, metaTxID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueMetaTxnReceipt", ctx, metaTxID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueMetaTxnReceipt indicates an expected call of QueueMetaTxnReceipt.
+func (mr *APIMockRecorder) QueueMetaTxnReceipt(ctx, metaTxID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueMetaTxnReceipt", reflect.TypeOf((*API)(nil).QueueMetaTxnReceipt), ctx, metaTxID)
 }
 
 // RegisterPublicKey mocks base method.
