@@ -1,7 +1,10 @@
 TEST_FLAGS       ?= -p 1 -v
 
 all:
-	@echo "See Makefile contents for details."
+	@echo "make <cmd>:"
+	@echo ""
+	@echo "commands:"
+	@awk -F'[ :]' '/^#+/ {comment=$$0; gsub(/^#+[ ]*/, "", comment)} !/^(_|all:)/ && /^([A-Za-z_-]+):/ && !seen[$$1]++ {printf "  %-24s %s\n", $$1, (comment ? "- " comment : ""); comment=""} !/^#+/ {comment=""}' Makefile
 
 bootstrap:
 	cd ./testutil/chain && pnpm install
