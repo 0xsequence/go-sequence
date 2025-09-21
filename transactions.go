@@ -229,7 +229,7 @@ func (t Transactions) Payload(to common.Address, chainID *big.Int, space, nonce 
 		if tx.IsBundle() {
 			var space_, nonce_ *big.Int
 			if tx.Nonce != nil {
-				space, nonce = DecodeNonce(tx.Nonce)
+				space_, nonce_ = DecodeNonce(tx.Nonce)
 			}
 
 			subPayload, err := tx.Transactions.Payload(tx.To, chainID, space_, nonce_)

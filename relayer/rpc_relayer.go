@@ -166,6 +166,8 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 			signedTxs.Nonce,
 			signedTxs.Signature,
 		)
+	default:
+		return "", nil, nil, fmt.Errorf("unknown wallet config type: %T", signedTxs.WalletConfig)
 	}
 	if err != nil {
 		return "", nil, nil, err
