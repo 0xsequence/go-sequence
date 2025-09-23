@@ -128,6 +128,8 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 		return nil, nil, err
 	}
 
+	receipt.Logs = removeZKSyncLogs(receipt.Logs)
+
 	isGuestExecute := decodedNonce != nil && len(decodedSignature) == 0
 	logs, receipts, err := decodeReceipt(receipt.Logs, decodedTransactions, decodedNonce, wallet, transaction.ChainId(), isGuestExecute)
 	if err != nil {
@@ -139,6 +141,22 @@ func DecodeReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc
 	}
 
 	return receipts, logs, nil
+}
+
+var zkSyncAddresses = map[common.Address]struct{}{
+	common.HexToAddress("0x0000000000000000000000000000000000008006"): {},
+	common.HexToAddress("0x000000000000000000000000000000000000800A"): {},
+}
+
+func removeZKSyncLogs(logs []*types.Log) []*types.Log {
+	logs_ := make([]*types.Log, 0, len(logs))
+	for _, log := range logs {
+		if _, ok := zkSyncAddresses[log.Address]; !ok {
+			logs_ = append(logs_, log)
+		}
+	}
+
+	return logs_
 }
 
 func V1IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {

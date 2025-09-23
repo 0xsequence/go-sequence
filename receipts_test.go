@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
@@ -244,4 +245,19 @@ func areIsomorphic(receipt *sequence.Receipt, transaction *sequence.Transaction)
 	}
 
 	return nil
+}
+
+func TestZKSyncReceipts(t *testing.T) {
+	ctx := context.Background()
+
+	provider, err := ethrpc.NewProvider("https://nodes.sequence.app/sandbox-testnet")
+	assert.NoError(t, err)
+
+	hash := common.HexToHash("0x6ddb43ddf29ed48f302c6b7b6dc9bb47b33dd5099540fb0793f239edb406fa5d")
+
+	receipt, err := provider.TransactionReceipt(ctx, hash)
+	assert.NoError(t, err)
+
+	_, _, err = sequence.DecodeReceipt(ctx, receipt, provider)
+	assert.NoError(t, err)
 }
