@@ -211,8 +211,8 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	return gas, nil
 }
 
-func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig core.WalletConfig) (map[common.Address]bool, error) {
-	res := make(map[common.Address]bool, len(walletConfig.Signers()))
+func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, walletConfig core.WalletConfig) (map[core.Signer]bool, error) {
+	res := make(map[core.Signer]bool, len(walletConfig.Signers()))
 
 	// Get non-eoa signers
 	// required for computing worse case scenario
@@ -222,7 +222,7 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 	workersCh := make(chan struct{}, areEOAsMaxConcurrentTasks)
 
 	var mutex sync.Mutex
-	for address := range walletConfig.Signers() {
+	for signer := range walletConfig.Signers() {
 		wg.Add(1)
 
 		select {
@@ -233,23 +233,29 @@ func (e *Estimator) AreEOAs(ctx context.Context, provider *ethrpc.Provider, wall
 		case workersCh <- struct{}{}: // wait until a worker slot becomes available to continue
 		}
 
-		go func(ctx context.Context, address common.Address) {
+		go func(ctx context.Context, signer core.Signer) {
 			defer func() {
 				wg.Done()
 				<-workersCh // release the worker
 			}()
 
-			var err error
-			isEOA, err := e.isEOA(ctx, provider, address)
-			if err != nil {
-				errCh <- err
-				return
-			}
+			if signer.IsSapient {
+				mutex.Lock()
+				res[signer] = false
+				mutex.Unlock()
+			} else {
+				var err error
+				isEOA, err := e.isEOA(ctx, provider, signer.Address)
+				if err != nil {
+					errCh <- err
+					return
+				}
 
-			mutex.Lock()
-			res[address] = isEOA
-			mutex.Unlock()
-		}(ctx, address)
+				mutex.Lock()
+				res[signer] = isEOA
+				mutex.Unlock()
+			}
+		}(ctx, signer)
 	}
 	wg.Wait()
 
@@ -287,7 +293,7 @@ func (e *Estimator) isEOA(ctx context.Context, provider *ethrpc.Provider, addres
 	return false, nil
 }
 
-func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletConfig, isEoa map[common.Address]bool) (map[common.Address]bool, error) {
+func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletConfig, isEoa map[core.Signer]bool) (map[core.Signer]bool, error) {
 	// type SortedSigner struct {
 	// 	s *v1.WalletConfigSigner
 	// 	i int
@@ -298,16 +304,18 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletCon
 	signersMap := walletConfig.Signers()
 	sortedSigners := make([]*v1.WalletConfigSigner, 0, len(signersMap))
 	for signer, weight := range signersMap {
-		sortedSigners = append(sortedSigners, &v1.WalletConfigSigner{
-			Weight:  uint8(weight),
-			Address: signer,
-		})
+		if !signer.IsSapient {
+			sortedSigners = append(sortedSigners, &v1.WalletConfigSigner{
+				Weight:  uint8(weight),
+				Address: signer.Address,
+			})
+		}
 	}
 
 	sort.SliceStable(sortedSigners, func(a, b int) bool {
-		if !isEoa[sortedSigners[a].Address] && isEoa[sortedSigners[b].Address] {
+		if !isEoa[core.Signer{Address: sortedSigners[a].Address}] && isEoa[core.Signer{Address: sortedSigners[b].Address}] {
 			return true
-		} else if isEoa[sortedSigners[a].Address] && !isEoa[sortedSigners[b].Address] {
+		} else if isEoa[core.Signer{Address: sortedSigners[a].Address}] && !isEoa[core.Signer{Address: sortedSigners[b].Address}] {
 			return false
 		}
 
@@ -318,17 +326,17 @@ func (e *Estimator) PickSigners(ctx context.Context, walletConfig core.WalletCon
 
 	// Define what signers are goint go be signing
 	// it should construct a worse case scenario for the signature
-	willSign := make(map[common.Address]bool, len(walletConfig.Signers()))
+	willSign := make(map[core.Signer]bool, len(walletConfig.Signers()))
 	threshold := int(walletConfig.Threshold())
 
 	// Pick signers until we reach the threshold we stop
 	// We use the sorted signers to get the ones with the non EOA and with lowest weight first
 	for _, s := range sortedSigners {
 		if weightSum >= threshold {
-			willSign[s.Address] = false
+			willSign[core.Signer{Address: s.Address}] = false
 		} else {
 			weightSum += int(s.Weight)
-			willSign[s.Address] = true
+			willSign[core.Signer{Address: s.Address}] = true
 		}
 	}
 
@@ -341,13 +349,12 @@ func stubAddress() common.Address {
 	return common.BytesToAddress(raw)
 }
 
-func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign, isEoa map[common.Address]bool) []byte {
-
+func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign, isEoa map[core.Signer]bool) []byte {
 	// pre-determined signature, tailored for worse-case scenario in gas costs
 	// TODO: Compute average siganture and present a more likely scenario for a more close estimation
 	sig := common.Hex2Bytes("1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a01b02")
 
-	stubSigner := func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+	stubSigner := func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		if willSign[signer] {
 			if isEoa[signer] {
 				return core.SignerSignatureTypeEthSign, sig, nil
@@ -358,65 +365,95 @@ func (e *Estimator) BuildStubSignature(walletConfig core.WalletConfig, willSign,
 
 				var sig []byte
 				if _, ok := walletConfig.(*v1.WalletConfig); ok {
-					sig = e.BuildStubSignature(&v1.WalletConfig{
-						Threshold_: 2,
-						Signers_: v1.WalletConfigSigners{
-							{
-								Address: address1,
-								Weight:  1,
-							},
-							{
-								Address: address2,
-								Weight:  1,
-							},
-							{
-								Address: address3,
-								Weight:  1,
+					sig = e.BuildStubSignature(
+						&v1.WalletConfig{
+							Threshold_: 2,
+							Signers_: v1.WalletConfigSigners{
+								{
+									Address: address1,
+									Weight:  1,
+								},
+								{
+									Address: address2,
+									Weight:  1,
+								},
+								{
+									Address: address3,
+									Weight:  1,
+								},
 							},
 						},
-					},
-						map[common.Address]bool{address1: false, address2: true, address3: true},
-						map[common.Address]bool{address1: true, address2: true, address3: true})
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: false,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: true,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+					)
 				} else if _, ok := walletConfig.(*v2.WalletConfig); ok {
-					sig = e.BuildStubSignature(&v2.WalletConfig{
-						Threshold_: 2,
-						Tree: v2.WalletConfigTreeNodes(
-							&v2.WalletConfigTreeAddressLeaf{
-								Address: address1,
-								Weight:  1,
-							},
-							&v2.WalletConfigTreeAddressLeaf{
-								Address: address2,
-								Weight:  1,
-							},
-							&v2.WalletConfigTreeAddressLeaf{
-								Address: address3,
-								Weight:  1,
-							},
-						),
-					},
-						map[common.Address]bool{address1: false, address2: true, address3: true},
-						map[common.Address]bool{address1: true, address2: true, address3: true})
+					sig = e.BuildStubSignature(
+						&v2.WalletConfig{
+							Threshold_: 2,
+							Tree: v2.WalletConfigTreeNodes(
+								&v2.WalletConfigTreeAddressLeaf{
+									Address: address1,
+									Weight:  1,
+								},
+								&v2.WalletConfigTreeAddressLeaf{
+									Address: address2,
+									Weight:  1,
+								},
+								&v2.WalletConfigTreeAddressLeaf{
+									Address: address3,
+									Weight:  1,
+								},
+							),
+						},
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: false,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: true,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+					)
 				} else if _, ok := walletConfig.(*v3.WalletConfig); ok {
-					sig = e.BuildStubSignature(&v3.WalletConfig{
-						Threshold_: 2,
-						Tree: v3.WalletConfigTreeNodes(
-							&v3.WalletConfigTreeAddressLeaf{
-								Address: address1,
-								Weight:  1,
-							},
-							&v3.WalletConfigTreeAddressLeaf{
-								Address: address2,
-								Weight:  1,
-							},
-							&v3.WalletConfigTreeAddressLeaf{
-								Address: address3,
-								Weight:  1,
-							},
-						),
-					},
-						map[common.Address]bool{address1: false, address2: true, address3: true},
-						map[common.Address]bool{address1: true, address2: true, address3: true})
+					sig = e.BuildStubSignature(
+						&v3.WalletConfig{
+							Threshold_: 2,
+							Tree: v3.WalletConfigTreeNodes(
+								&v3.WalletConfigTreeAddressLeaf{
+									Address: address1,
+									Weight:  1,
+								},
+								&v3.WalletConfigTreeAddressLeaf{
+									Address: address2,
+									Weight:  1,
+								},
+								&v3.WalletConfigTreeAddressLeaf{
+									Address: address3,
+									Weight:  1,
+								},
+							),
+						},
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: false,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+						map[core.Signer]bool{
+							core.Signer{Address: address1}: true,
+							core.Signer{Address: address2}: true,
+							core.Signer{Address: address3}: true,
+						},
+					)
 				}
 
 				return core.SignerSignatureTypeEIP1271, sig, nil

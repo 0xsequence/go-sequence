@@ -521,8 +521,8 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
-	for addr := range signers {
-		mainSigner = addr
+	for signer := range signers {
+		mainSigner = signer.Address
 		break
 	}
 	require.NotNil(t, mainSigner)
@@ -679,8 +679,8 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
-	for addr := range signers {
-		mainSigner = addr
+	for signer := range signers {
+		mainSigner = signer.Address
 		break
 	}
 	require.NotNil(t, mainSigner)

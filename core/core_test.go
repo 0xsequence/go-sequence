@@ -9,10 +9,10 @@ import (
 )
 
 func TestSigningOrchestrator(t *testing.T) {
-	signers := map[common.Address]uint16{
-		common.HexToAddress("0x00"): 1,
-		common.HexToAddress("0x01"): 1,
-		common.HexToAddress("0x02"): 1,
+	signers := map[Signer]uint16{
+		{Address: common.HexToAddress("0x00")}: 1,
+		{Address: common.HexToAddress("0x01")}: 1,
+		{Address: common.HexToAddress("0x02")}: 1,
 	}
 
 	mockSignatures := map[common.Address]struct {
@@ -34,13 +34,13 @@ func TestSigningOrchestrator(t *testing.T) {
 	}
 
 	signer0Retried := false
-	signingFunction := func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error) {
-		if signer == common.HexToAddress("0x00") && !signer0Retried {
+	signingFunction := func(ctx context.Context, signer Signer, signatures []SignerSignature) (SignerSignatureType, []byte, error) {
+		if signer.Address == common.HexToAddress("0x00") && !signer0Retried {
 			signer0Retried = true
 			return 0, nil, ErrSigningFunctionNotReady
 		}
 
-		return mockSignatures[signer].sigType, mockSignatures[signer].sig, nil
+		return mockSignatures[signer.Address].sigType, mockSignatures[signer.Address].sig, nil
 	}
 
 	signaturesChan := SigningOrchestrator(context.Background(), signers, signingFunction)
@@ -53,7 +53,7 @@ func TestSigningOrchestrator(t *testing.T) {
 
 	assert.True(t, signer0Retried)
 	for _, signature := range signatures {
-		assert.Equal(t, mockSignatures[signature.Signer].sigType, signature.Type)
-		assert.Equal(t, mockSignatures[signature.Signer].sig, signature.Signature)
+		assert.Equal(t, mockSignatures[signature.Signer.Address].sigType, signature.Type)
+		assert.Equal(t, mockSignatures[signature.Signer.Address].sig, signature.Signature)
 	}
 }
