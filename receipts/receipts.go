@@ -480,7 +480,7 @@ func decodeNonceChange(log *types.Log) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("unable to decode NonceChange: %w", err)
 	}
 	if len(args) != 2 {
-		return nil, nil, fmt.Errorf("%v NonceChange arguments, expected two: %w", len(args), err)
+		return nil, nil, fmt.Errorf("%v NonceChange arguments, expected two", len(args))
 	}
 
 	space, ok := args[0].(*big.Int)
@@ -512,7 +512,7 @@ func decodeCallSucceeded(log *types.Log) (common.Hash, *big.Int, error) {
 		return common.Hash{}, nil, fmt.Errorf("unable to decode CallSucceeded: %w", err)
 	}
 	if len(args) != 2 {
-		return common.Hash{}, nil, fmt.Errorf("%v CallSucceeded arguments, expected two: %w", len(args), err)
+		return common.Hash{}, nil, fmt.Errorf("%v CallSucceeded arguments, expected two", len(args))
 	}
 
 	digest, ok := args[0].([common.HashLength]byte)
@@ -544,7 +544,7 @@ func decodeCallFailed(log *types.Log) (common.Hash, *big.Int, error, error) {
 		return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallFailed: %w", err)
 	}
 	if len(args) != 3 {
-		return common.Hash{}, nil, nil, fmt.Errorf("%v CallFailed arguments, expected three: %w", len(args), err)
+		return common.Hash{}, nil, nil, fmt.Errorf("%v CallFailed arguments, expected three", len(args))
 	}
 
 	digest, ok := args[0].([common.HashLength]byte)
@@ -588,7 +588,7 @@ func decodeCallAborted(log *types.Log) (common.Hash, *big.Int, error, error) {
 		return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallAborted: %w", err)
 	}
 	if len(args) != 3 {
-		return common.Hash{}, nil, nil, fmt.Errorf("%v CallAborted arguments, expected three: %w", len(args), err)
+		return common.Hash{}, nil, nil, fmt.Errorf("%v CallAborted arguments, expected three", len(args))
 	}
 
 	digest, ok := args[0].([common.HashLength]byte)
@@ -632,7 +632,7 @@ func decodeCallSkipped(log *types.Log) (common.Hash, *big.Int, error) {
 		return common.Hash{}, nil, fmt.Errorf("unable to decode CallSkipped: %w", err)
 	}
 	if len(args) != 2 {
-		return common.Hash{}, nil, fmt.Errorf("%v CallSkipped arguments, expected two: %w", len(args), err)
+		return common.Hash{}, nil, fmt.Errorf("%v CallSkipped arguments, expected two", len(args))
 	}
 
 	digest, ok := args[0].([common.HashLength]byte)
@@ -666,7 +666,7 @@ func decodeTxExecutedV2(log *types.Log) (common.Hash, *big.Int, error) {
 		return common.Hash{}, nil, fmt.Errorf("unable to decode v2 TxExecuted: %w", err)
 	}
 	if len(args) != 1 {
-		return common.Hash{}, nil, fmt.Errorf("%v v2 TxExecuted arguments, expected one: %w", len(args), err)
+		return common.Hash{}, nil, fmt.Errorf("%v v2 TxExecuted arguments, expected one", len(args))
 	}
 
 	index, ok := args[0].(*big.Int)
@@ -695,7 +695,7 @@ func decodeTxFailedV2(log *types.Log) (common.Hash, *big.Int, error, error) {
 		return common.Hash{}, nil, nil, fmt.Errorf("unable to decode v2 TxFailed: %w", err)
 	}
 	if len(args) != 2 {
-		return common.Hash{}, nil, nil, fmt.Errorf("%v v2 TxFailed arguments, expected two: %w", len(args), err)
+		return common.Hash{}, nil, nil, fmt.Errorf("%v v2 TxFailed arguments, expected two", len(args))
 	}
 
 	index, ok := args[0].(*big.Int)
@@ -746,7 +746,7 @@ func decodeTxFailedV1(log *types.Log) (common.Hash, error, error) {
 		return common.Hash{}, nil, fmt.Errorf("unable to decode v1 TxFailed: %w", err)
 	}
 	if len(args) != 2 {
-		return common.Hash{}, nil, fmt.Errorf("%v v1 TxFailed arguments, expected two: %w", len(args), err)
+		return common.Hash{}, nil, fmt.Errorf("%v v1 TxFailed arguments, expected two", len(args))
 	}
 
 	subdigest, ok := args[0].([common.HashLength]byte)
