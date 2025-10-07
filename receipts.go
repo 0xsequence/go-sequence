@@ -58,9 +58,7 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 
 // This method is duplicated code from: `compressor/contract.go`
 // can't be used directly, because it would create a circular dependency
-func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transaction *types.Transaction) (common.Address, []byte, error) {
-	data := transaction.Data()
-
+func DecompressCalldata(ctx context.Context, to *common.Address, data []byte, provider *ethrpc.Provider) (common.Address, []byte, error) {
 	if len(data) == 0 {
 		return common.Address{}, nil, fmt.Errorf("empty transaction data")
 	}
@@ -75,11 +73,7 @@ func DecompressCalldata(ctx context.Context, provider *ethrpc.Provider, transact
 	copy(c2, data)
 	c2[0] = byte(0x06)
 
-	res, err := provider.CallContract(ctx, ethereum.CallMsg{
-		To:   transaction.To(),
-		Data: c2,
-	}, nil)
-
+	res, err := provider.CallContract(ctx, ethereum.CallMsg{To: to, Data: c2}, nil)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -103,7 +97,7 @@ func TryDecodeCalldata(
 	}
 
 	// Try decoding it decompressed
-	addr, decompressed, err2 := DecompressCalldata(ctx, provider, transaction)
+	addr, decompressed, err2 := DecompressCalldata(ctx, transaction.To(), transaction.Data(), provider)
 	if err2 != nil {
 		// Don't bubble up the decompression error, as it might not be a decompression error
 		return common.Address{}, nil, nil, nil, err
