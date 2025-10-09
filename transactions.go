@@ -409,7 +409,7 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 	// Recursively decode nested transactions
 	for i := 0; i < len(transactions); i++ {
 		if len(transactions[i].Data) > 0 {
-			decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data, walletAddress, chainID)
+			decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data, transactions[i].To, chainID)
 			if err == nil {
 				transactions[i].Data = nil
 				transactions[i].Transactions = decodedTransactions
