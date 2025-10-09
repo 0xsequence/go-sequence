@@ -377,7 +377,7 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-	} else {
+	} else if walletAddress == sequenceContextV3.GuestModuleAddress {
 		// V3 guest module allows sending just the packed calls payload without solidity abi encoding
 		decoded, err := v3.DecodeCalls(walletAddress, chainID, data)
 		if err != nil {
@@ -400,6 +400,8 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 		if err != nil {
 			return nil, nil, nil, err
 		}
+	} else {
+		return nil, nil, nil, fmt.Errorf("not an execute or selfExecute call")
 	}
 
 	if err != nil {
