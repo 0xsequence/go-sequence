@@ -258,7 +258,7 @@ func (r *LocalRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransaction
 	return false
 }
 
-func (r *LocalRelayer) Client() proto.Relayer {
+func (r *LocalRelayer) Client() proto.RelayerClient {
 	// no relayer used
 	return nil
 }

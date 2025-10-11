@@ -25,16 +25,17 @@ import (
 )
 
 type RpcRelayer struct {
+	proto.Relayer
 	provider        *ethrpc.Provider
 	receiptListener *ethreceipts.ReceiptsListener
-	Service         proto.Relayer
 }
 
 var _ sequence.Relayer = &RpcRelayer{}
 
 // NewRpcRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
-func NewRpcRelayer(relayerURL string, projectAccessKey string, provider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, options ...Options) (*RpcRelayer, error) {
+// TODOXXX: move receiptListener to Options, as it is optional
+func NewRpcRelayer(relayerURL string, projectAccessKey string, rpcProvider *ethrpc.Provider, receiptListener *ethreceipts.ReceiptsListener, options ...Options) (*RpcRelayer, error) {
 	// TODO: move receiptListener to Options, and if unspecified, use the Sequence Indexer
 	// for the receipts listener instead. Or, we can also have the receipts filter method
 	// on the relayer service too.
@@ -47,9 +48,10 @@ func NewRpcRelayer(relayerURL string, projectAccessKey string, provider *ethrpc.
 	service := NewRelayer(relayerURL, projectAccessKey, options...)
 
 	return &RpcRelayer{
-		provider:        provider,
+		Relayer:         service,
+		provider:        rpcProvider,
 		receiptListener: receiptListener,
-		Service:         service,
+		// Service:         service,
 	}, nil
 }
 
@@ -60,6 +62,9 @@ func (r *RpcRelayer) GetProvider() *ethrpc.Provider {
 // NOTE: nonce space is 160 bits wide
 func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	if blockNum != nil {
+		if r.provider == nil {
+			return nil, sequence.ErrProviderNotSet
+		}
 		return sequence.GetWalletNonce(r.GetProvider(), walletConfig, walletContext, space, blockNum)
 	}
 
@@ -74,7 +79,7 @@ func (r *RpcRelayer) GetNonce(ctx context.Context, walletConfig core.WalletConfi
 		*encodedSpace = fmt.Sprintf("0x%x", space)
 	}
 
-	encodedNonce, err := r.Service.GetMetaTxnNonce(ctx, walletAddress.Hex(), encodedSpace)
+	encodedNonce, err := r.GetMetaTxnNonce(ctx, walletAddress.Hex(), encodedSpace)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +98,7 @@ func (r *RpcRelayer) Simulate(ctx context.Context, wallet common.Address, transa
 		return nil, err
 	}
 
-	results, err := r.Service.SimulateV3(ctx, wallet.String(), hexutil.Encode(payload.Encode(wallet)))
+	results, err := r.SimulateV3(ctx, wallet.String(), hexutil.Encode(payload.Encode(wallet)))
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +195,7 @@ func (r *RpcRelayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransa
 
 	// TODO: check contents of Contract and input, if empty, lets not even bother asking the server..
 
-	ok, metaTxnID, err := r.Service.SendMetaTxn(ctx, call, txQuote, nil, nil)
+	ok, metaTxnID, err := r.SendMetaTxn(ctx, call, txQuote, nil, nil)
 	if err != nil {
 		return sequence.MetaTxnID(metaTxnID), nil, nil, err
 	}
@@ -217,7 +222,7 @@ func (r *RpcRelayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedT
 		return nil, nil, err
 	}
 
-	options, _, quote, err := r.Service.FeeOptions(
+	options, _, quote, err := r.Relayer.FeeOptions(
 		ctx,
 		signedTxs.WalletAddress.String(),
 		signedTxs.WalletAddress.String(),
@@ -275,7 +280,7 @@ func (r *RpcRelayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.
 		default:
 		}
 
-		metaTxnReceipt, err := r.Service.GetMetaTxnReceipt(ctx, metaTxnID.String())
+		metaTxnReceipt, err := r.GetMetaTxnReceipt(ctx, metaTxnID.String())
 		if metaTxnReceipt == nil && err == nil {
 			// currently we assume that if the receipt is nil, and error is nil, then
 			// we're still searching for the transaction. This is a hack, and we should
@@ -304,8 +309,8 @@ func (r *RpcRelayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions)
 	return false
 }
 
-func (r *RpcRelayer) Client() proto.Relayer {
-	return r.Service
+func (r *RpcRelayer) Client() proto.RelayerClient {
+	return r.Relayer
 }
 
 func convFeeTokenToRelayerFeeToken(token *proto.FeeToken) sequence.RelayerFeeToken {

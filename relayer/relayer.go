@@ -11,10 +11,12 @@ import (
 type Options struct {
 	HTTPClient   proto.HTTPClient
 	JWTAuthToken string
+	// TODO: move from RpcRelayer to here.. ChainID, ProjectAccessKey, ReceiptListener
 }
 
 // NewRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
 // relayer urls, and please see https://sequence.build to get a `projectAccessKey`.
+// TODO: rename this to NewRelayerClient ?
 func NewRelayer(relayerURL string, projectAccessKey string, options ...Options) proto.RelayerClient {
 	opts := Options{}
 	if len(options) > 0 {

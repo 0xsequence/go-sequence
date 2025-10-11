@@ -70,10 +70,7 @@ type Relayer interface {
 	Wait(ctx context.Context, metaTxnID MetaTxnID, optTimeout ...time.Duration) (MetaTxnStatus, *types.Receipt, error)
 
 	// ..
-	Client() proto.Relayer
-
-	// TODO, in future when needed..
-	// GasRefundOptions()
+	Client() proto.RelayerClient
 }
 
 type MetaTxnID string
