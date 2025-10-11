@@ -62,7 +62,7 @@ var (
 	_  encoding.TextUnmarshaler   = &_h
 )
 
-// UnmarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler.
 func (h Hash) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }

@@ -35,7 +35,7 @@ func (h HashText) ToHash() common.Hash {
 	return common.HexToHash(string(h))
 }
 
-// UnmarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler.
 func (h *HashText) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }
