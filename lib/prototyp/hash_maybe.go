@@ -35,7 +35,7 @@ func (h *HashMaybe) SetNil() {
 	h.IsAssigned = false
 }
 
-// UnmarshalText implements encoding.TextMarshaler.
+// MarshalText implements encoding.TextMarshaler.
 func (h HashMaybe) MarshalText() ([]byte, error) {
 	return []byte(h.String()), nil
 }
