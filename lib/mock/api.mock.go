@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	api "github.com/0xsequence/go-sequence/api"
+	api "github.com/0xsequence/go-sequence/services/api"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -19,8 +19,8 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/lib/simulator"
 	"github.com/0xsequence/go-sequence/relayer/proto"
-	"github.com/0xsequence/go-sequence/simulator"
 )
 
 // LocalRelayer is a simple implementation of a relayer which will dispatch

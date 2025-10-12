@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	metadata "github.com/0xsequence/go-sequence/metadata"
+	metadata "github.com/0xsequence/go-sequence/services/metadata"
 	gomock "go.uber.org/mock/gomock"
 )
 

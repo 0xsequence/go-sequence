@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/deployer"
+	"github.com/0xsequence/go-sequence/lib/deployer"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

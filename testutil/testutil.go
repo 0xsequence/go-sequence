@@ -25,7 +25,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/deployer"
+	"github.com/0xsequence/go-sequence/lib/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
 )
 

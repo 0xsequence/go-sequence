@@ -14,8 +14,10 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/sessions/proto"
+	proto "github.com/0xsequence/go-sequence/services/keymachine"
 )
+
+// TODOXXX: rename "proto" to keymachine in referneces below..
 
 type WalletOptions[C core.WalletConfig] struct {
 	// Config is the wallet multi-sig configuration. Note: the first config of any wallet
