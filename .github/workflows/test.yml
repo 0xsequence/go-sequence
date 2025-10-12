@@ -46,12 +46,12 @@ jobs:
         id: pnpm-cache
         with:
           path: |
-            ./testutil/chain/node_modules
-            ./testutil/chain/*/*/node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('./testutil/chain/**/package.json', './testutil/chain/**/pnpm-lock.yaml') }}
+            ./testutil/testchain/node_modules
+            ./testutil/testchain/*/*/node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('./testutil/testchain/**/package.json', './testutil/testchain/**/pnpm-lock.yaml') }}
 
       - name: pnpm install
-        run: cd ./testutil/chain && pnpm install
+        run: cd ./testutil/testchain && pnpm install
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
 
       - name: Boot testchain
