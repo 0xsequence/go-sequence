@@ -3,19 +3,38 @@ package indexer
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Options struct {
-	HTTPClient   HTTPClient
+	// JWTAuthToken is an optional JWT token to authenticate with the indexer service.
 	JWTAuthToken string
+
+	// HTTPClient is an optional custom HTTP client to use for communicating with the
+	// indexer service.
+	HTTPClient HTTPClient
 }
 
-// NewIndexer creates a new Sequence Indexer client instance. See https://docs.sequence.xyz for a list of
-// indexer urls, and please see https://sequence.build to get a `projectAccessKey`.
-func NewIndexer(indexerURL string, projectAccessKey string, options ...Options) IndexerClient {
+// NewClient creates a new Sequence Indexer client instance for a specific chain.
+// Please see https://sequence.build to get a `projectAccessKey`, which is your
+// project's access key used to communicate with Sequence services.
+//
+// NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
+// passed in via the `clientOptions`.
+//
+// The `indexerURL` is the URL of the indexer service to connect to, for example:
+// https://mainnet-indexer.sequence.app for Ethereum mainnet and https://polygon-indexer.sequence.app
+// for Polygon mainnet. See https://docs.sequence.xyz for a complete list of indexer urls.
+//
+// Additionally, you may be interested in the `NewGatewayClient` which is a single
+// client that connects to multiple indexers for many different chains at once.
+//
+// Finally, you may pass in optional `clientOptions` to configure the indexer client
+// with jwt-based authentication, a receipts listener, and a custom HTTP client.
+func NewClient(indexerURL string, projectAccessKey string, clientOptions ...Options) IndexerClient {
 	opts := Options{}
-	if len(options) > 0 {
-		opts = options[0]
+	if len(clientOptions) > 0 {
+		opts = clientOptions[0]
 	}
 
 	client := &httpclient{
@@ -29,7 +48,7 @@ func NewIndexer(indexerURL string, projectAccessKey string, options ...Options) 
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	return NewIndexerClient(indexerURL, client)
+	return NewIndexerClient(strings.TrimSuffix(indexerURL, "/"), client)
 }
 
 type httpclient struct {

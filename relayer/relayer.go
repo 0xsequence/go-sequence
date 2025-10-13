@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/0xsequence/ethkit"
@@ -26,10 +27,6 @@ import (
 )
 
 type Options struct {
-	// Project Access Key is your project's access key to communicate with Sequence services.
-	// Please visit https://sequence.build to get your project's access key.
-	ProjectAccessKey string
-
 	// JWTAuthToken is an optional JWT token to authenticate with the relayer service.
 	JWTAuthToken string
 
@@ -43,17 +40,33 @@ type Options struct {
 	HTTPClient proto.HTTPClient
 }
 
-type Relayer struct {
+type Client struct {
 	proto.Relayer
 	provider        *ethrpc.Provider
 	receiptListener *ethreceipts.ReceiptsListener
 }
 
-var _ sequence.Relayer = &Relayer{}
+var _ sequence.Relayer = &Client{}
 
-// NewRelayer creates a new Sequence Relayer client instance. See https://docs.sequence.xyz for a list of
-// relayer urls, and please see https://sequence.build to get a `ProjectAccessKey`.
-func NewRelayer(relayerURL string, rpcProvider *ethrpc.Provider, options ...Options) (*Relayer, error) {
+// NewClient creates a new Sequence Relayer client instance for a specific chain.
+// Please see https://sequence.build to get a `projectAccessKey`, which is your
+// project's access key used to communicate with Sequence services.
+//
+// NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
+// passed in via the `clientOptions`.
+//
+// The `relayerURL` is the URL of the relayer service to connect to, for example:
+// https://mainnet-relayer.sequence.app for Ethereum mainnet and https://polygon-relayer.sequence.app
+// for Polygon mainnet. See https://docs.sequence.xyz for a complete list of relayer urls.
+//
+// The `rpcProvider` is an instance of ethrpc.Provider that is used to communicate with
+// the underlying blockchain network. This is required for certain operations, such as
+// fetching the chain ID and wallet nonces. You may pass in `nil` if you don't need
+// those methods.
+//
+// Finally, you may pass in optional `clientOptions` to configure the relayer client
+// with jwt-based authentication, a receipts listener, and a custom HTTP client.
+func NewClient(relayerURL string, projectAccessKey string, rpcProvider *ethrpc.Provider, clientOptions ...Options) (*Client, error) {
 	// TODO: move receiptListener to Options, and if unspecified, use the Sequence Indexer
 	// for the receipts listener instead. Or, we can also have the receipts filter method
 	// on the relayer service too.
@@ -64,13 +77,13 @@ func NewRelayer(relayerURL string, rpcProvider *ethrpc.Provider, options ...Opti
 	}
 
 	opts := Options{}
-	if len(options) > 0 {
-		opts = options[0]
+	if len(clientOptions) > 0 {
+		opts = clientOptions[0]
 	}
 
 	c := &httpClient{
 		client:           opts.HTTPClient,
-		projectAccessKey: opts.ProjectAccessKey,
+		projectAccessKey: projectAccessKey,
 	}
 	if opts.HTTPClient == nil {
 		c.client = http.DefaultClient
@@ -79,20 +92,20 @@ func NewRelayer(relayerURL string, rpcProvider *ethrpc.Provider, options ...Opti
 		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	serviceClient := proto.NewRelayerClient(relayerURL, c)
+	serviceClient := proto.NewRelayerClient(strings.TrimSuffix(relayerURL, "/"), c)
 
-	return &Relayer{
+	return &Client{
 		Relayer:         serviceClient,
 		provider:        rpcProvider,
 		receiptListener: opts.ReceiptsListener,
 	}, nil
 }
 
-func (r *Relayer) GetProvider() *ethrpc.Provider {
+func (r *Client) GetProvider() *ethrpc.Provider {
 	return r.provider
 }
 
-func (r *Relayer) GetChainID(ctx context.Context) (*big.Int, error) {
+func (r *Client) GetChainID(ctx context.Context) (*big.Int, error) {
 	if r.provider == nil {
 		return nil, sequence.ErrProviderNotSet
 	}
@@ -100,7 +113,7 @@ func (r *Relayer) GetChainID(ctx context.Context) (*big.Int, error) {
 }
 
 // NOTE: nonce space is 160 bits wide
-func (r *Relayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
+func (r *Client) GetNonce(ctx context.Context, walletConfig core.WalletConfig, walletContext sequence.WalletContext, space *big.Int, blockNum *big.Int) (*big.Int, error) {
 	if blockNum != nil {
 		if r.provider == nil {
 			return nil, sequence.ErrProviderNotSet
@@ -132,7 +145,7 @@ func (r *Relayer) GetNonce(ctx context.Context, walletConfig core.WalletConfig, 
 	return &nonce, nil
 }
 
-func (r *Relayer) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.SimulateResult, error) {
+func (r *Client) Simulate(ctx context.Context, wallet common.Address, transactions sequence.Transactions) ([]*sequence.SimulateResult, error) {
 	payload, err := transactions.Payload(wallet, nil, nil, nil)
 	if err != nil {
 		return nil, err
@@ -175,7 +188,7 @@ func (r *Relayer) Simulate(ctx context.Context, wallet common.Address, transacti
 // Relay will submit the Sequence signed meta transaction to the relayer. The method will block until the relayer
 // responds with the native transaction hash (*types.Transaction), which means the relayer has submitted the transaction
 // request to the network. Clients can use WaitReceipt to wait until the metaTxnID has been mined.
-func (r *Relayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactions, quote ...*sequence.RelayerFeeQuote) (sequence.MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	walletAddress := signedTxs.WalletAddress
 	var err error
 
@@ -256,7 +269,7 @@ func (r *Relayer) Relay(ctx context.Context, signedTxs *sequence.SignedTransacti
 	return sequence.MetaTxnID(metaTxnID), nil, waitReceipt, nil
 }
 
-func (r *Relayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTransactions) ([]*sequence.RelayerFeeOption, *sequence.RelayerFeeQuote, error) {
+func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTransactions) ([]*sequence.RelayerFeeOption, *sequence.RelayerFeeQuote, error) {
 	data, err := signedTxs.Execdata()
 	if err != nil {
 		return nil, nil, err
@@ -282,7 +295,7 @@ func (r *Relayer) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTran
 }
 
 // ....
-func (r *Relayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *Client) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	// Fetch the meta transaction receipt from the relayer service
 	if r.receiptListener == nil {
 		return r.waitMetaTxnReceipt(ctx, metaTxnID, optTimeout...)
@@ -300,7 +313,7 @@ func (r *Relayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTim
 	return status, receipt.Receipt(), nil
 }
 
-func (r *Relayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
+func (r *Client) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.MetaTxnID, optTimeout ...time.Duration) (sequence.MetaTxnStatus, *types.Receipt, error) {
 	// TODO: in future GetMetaTxnReceipt() will be renamed to WaitTransactionReceipt()
 
 	var clear context.CancelFunc
@@ -340,7 +353,7 @@ func (r *Relayer) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.Met
 	}
 }
 
-func (r *Relayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions) bool {
+func (r *Client) IsDeployTransaction(signedTxs *sequence.SignedTransactions) bool {
 	for _, txn := range signedTxs.Transactions {
 		if txn.To == signedTxs.WalletContext.FactoryAddress {
 			return true
@@ -349,41 +362,6 @@ func (r *Relayer) IsDeployTransaction(signedTxs *sequence.SignedTransactions) bo
 	return false
 }
 
-func (r *Relayer) Client() proto.RelayerClient {
+func (r *Client) Client() proto.RelayerClient {
 	return r.Relayer
-}
-
-func convFeeTokenToRelayerFeeToken(token *proto.FeeToken) sequence.RelayerFeeToken {
-	var contractAddress *common.Address
-	if token.ContractAddress != nil {
-		contractAddress = ethkit.ToPtr(common.HexToAddress(*token.ContractAddress))
-	}
-
-	return sequence.RelayerFeeToken{
-		ChainID:         big.NewInt(0).SetUint64(token.ChainId),
-		Name:            token.Name,
-		Symbol:          token.Symbol,
-		Type:            sequence.RelayerFeeTokenType(token.Type),
-		Decimals:        token.Decimals,
-		LogoURL:         token.LogoURL,
-		ContractAddress: contractAddress,
-	}
-}
-
-func convFeeOptionToRelayerFeeOption(option *proto.FeeOption) *sequence.RelayerFeeOption {
-	value, _ := big.NewInt(0).SetString(option.Value, 10)
-	return &sequence.RelayerFeeOption{
-		Token:    convFeeTokenToRelayerFeeToken(option.Token),
-		To:       common.HexToAddress(option.To),
-		Value:    value,
-		GasLimit: big.NewInt(0).SetUint64(uint64(option.GasLimit)),
-	}
-}
-
-func convFeeOptionsToRelayerFeeOptions(options []*proto.FeeOption) []*sequence.RelayerFeeOption {
-	var feeOptions []*sequence.RelayerFeeOption
-	for _, option := range options {
-		feeOptions = append(feeOptions, convFeeOptionToRelayerFeeOption(option))
-	}
-	return feeOptions
 }

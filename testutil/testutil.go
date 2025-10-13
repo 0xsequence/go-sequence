@@ -39,7 +39,7 @@ type TestChain struct {
 	Monitor          *ethmonitor.Monitor
 	ReceiptsListener *ethreceipts.ReceiptsListener
 
-	Relayer *relayer.Relayer // helper to track RpcRelayer client
+	Relayer *relayer.Client // helper to track RpcRelayer client
 
 	runCtx     context.Context
 	runCtxStop context.CancelFunc
@@ -172,7 +172,7 @@ func (c *TestChain) V3SequenceContext() sequence.WalletContext {
 }
 
 func (c *TestChain) SetRelayer(relayerURL string) error {
-	rpcRelayer, err := relayer.NewRelayer(relayerURL, c.Provider, relayer.Options{ReceiptsListener: c.ReceiptsListener})
+	rpcRelayer, err := relayer.NewClient(relayerURL, "", c.Provider, relayer.Options{ReceiptsListener: c.ReceiptsListener})
 	if err != nil {
 		return err
 	}

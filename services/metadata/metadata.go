@@ -3,23 +3,37 @@ package metadata
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Options struct {
-	HTTPClient         HTTPClient
-	JWTAuthToken       string
+	// JWTAuthToken is an optional JWT token to authenticate with the metadata service.
+	JWTAuthToken string
+
+	// MetadataServiceURL is an optional custom URL for the Sequence Metadata service.
+	// If not provided, the default URL in `DefaultMetadataServiceURL` will be used.
 	MetadataServiceURL string
+
+	// HTTPClient is an optional custom HTTP client to use for communicating with the
+	// metadata service.
+	HTTPClient HTTPClient
 }
 
-// NewMetadata creates a new Sequence Metadata client instance. Please see
-// https://sequence.build to get a `projectAccessKey`.
-func NewMetadata(projectAccessKey string, options ...Options) MetadataClient {
+const DefaultMetadataServiceURL = "https://metadata.sequence.app"
+
+// NewClient creates a new Sequence Metadata client instance. Please see https://sequence.build to
+// get a `projectAccessKey`, which is your project's access key used to communicate
+// with Sequence services.
+//
+// NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
+// passed in via the `clientOptions`.
+func NewMetadata(projectAccessKey string, clientOptions ...Options) MetadataClient {
 	opts := Options{}
-	if len(options) > 0 {
-		opts = options[0]
+	if len(clientOptions) > 0 {
+		opts = clientOptions[0]
 	}
 
-	client := &httpclient{
+	client := &httpClient{
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
@@ -30,20 +44,20 @@ func NewMetadata(projectAccessKey string, options ...Options) MetadataClient {
 		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	metadataServiceURL := "https://metadata.sequence.app"
+	serviceURL := DefaultMetadataServiceURL
 	if opts.MetadataServiceURL != "" {
-		metadataServiceURL = opts.MetadataServiceURL
+		serviceURL = opts.MetadataServiceURL
 	}
-	return NewMetadataClient(metadataServiceURL, client)
+	return NewMetadataClient(strings.TrimSuffix(serviceURL, "/"), client)
 }
 
-type httpclient struct {
+type httpClient struct {
 	client           HTTPClient
 	jwtAuthHeader    string
 	projectAccessKey string
 }
 
-func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
+func (c *httpClient) Do(req *http.Request) (*http.Response, error) {
 	if c.projectAccessKey != "" {
 		req.Header.Set("X-Access-Key", c.projectAccessKey)
 	}

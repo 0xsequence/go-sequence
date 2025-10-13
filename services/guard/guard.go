@@ -1,4 +1,4 @@
-package api
+package guard
 
 import (
 	"fmt"
@@ -7,27 +7,27 @@ import (
 )
 
 type Options struct {
-	// JWTAuthToken is an optional JWT token to authenticate with the api service.
+	// JWTAuthToken is an optional JWT token to authenticate with the guard service.
 	JWTAuthToken string
 
-	// APIServiceURL is an optional custom URL for the Sequence API service.
-	// If not provided, the default URL in `DefaultAPIServiceURL` will be used.
-	APIServiceURL string
+	// GuardServiceURL is an optional custom URL for the Sequence Guard service.
+	// If not provided, the default URL in `DefaultGuardServiceURL` will be used.
+	GuardServiceURL string
 
 	// HTTPClient is an optional custom HTTP client to use for communicating with the
-	// api service.
+	// guard service.
 	HTTPClient HTTPClient
 }
 
-const DefaultAPIServiceURL = "https://api.sequence.app"
+const DefaultGuardServiceURL = "https://guard.sequence.app"
 
-// NewClient creates a new Sequence API client instance. Please see https://sequence.build to
+// NewClient creates a new Sequence Guard client instance. Please see https://sequence.build to
 // get a `projectAccessKey`, which is your project's access key used to communicate
 // with Sequence services.
 //
 // NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
 // passed in via the `clientOptions`.
-func NewClient(projectAccessKey string, clientOptions ...Options) APIClient {
+func NewClient(projectAccessKey string, clientOptions ...Options) GuardClient {
 	opts := Options{}
 	if len(clientOptions) > 0 {
 		opts = clientOptions[0]
@@ -44,11 +44,11 @@ func NewClient(projectAccessKey string, clientOptions ...Options) APIClient {
 		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	serviceURL := DefaultAPIServiceURL
-	if opts.APIServiceURL != "" {
-		serviceURL = opts.APIServiceURL
+	serviceURL := DefaultGuardServiceURL
+	if opts.GuardServiceURL != "" {
+		serviceURL = opts.GuardServiceURL
 	}
-	return NewAPIClient(strings.TrimSuffix(serviceURL, "/"), c)
+	return NewGuardClient(strings.TrimSuffix(serviceURL, "/"), c)
 }
 
 type httpClient struct {
