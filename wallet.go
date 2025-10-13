@@ -14,7 +14,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/sessions/proto"
+	"github.com/0xsequence/go-sequence/services/keymachine"
 )
 
 type WalletOptions[C core.WalletConfig] struct {
@@ -239,7 +239,7 @@ type Wallet[C core.WalletConfig] struct {
 	provider  *ethrpc.Provider
 	estimator *Estimator
 	relayer   Relayer
-	sessions  proto.Sessions
+	sessions  keymachine.Sessions
 	address   common.Address
 
 	skipSortSigners bool
@@ -340,7 +340,7 @@ func (w *Wallet[C]) SetRelayer(relayer Relayer) error {
 	return nil
 }
 
-func (w *Wallet[C]) SetSessions(sessions proto.Sessions) error {
+func (w *Wallet[C]) SetSessions(sessions keymachine.Sessions) error {
 	w.sessions = sessions
 	return nil
 }

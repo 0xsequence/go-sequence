@@ -10,7 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/contracts"
-	"github.com/0xsequence/go-sequence/estimator"
+	"github.com/0xsequence/go-sequence/lib/estimator"
 	"github.com/stretchr/testify/assert"
 )
 

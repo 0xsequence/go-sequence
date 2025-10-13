@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	indexer "github.com/0xsequence/go-sequence/indexer"
+	indexer "github.com/0xsequence/go-sequence/services/indexer"
 	gomock "go.uber.org/mock/gomock"
 )
 

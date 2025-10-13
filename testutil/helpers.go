@@ -84,7 +84,7 @@ func parseTestWalletMnemonic() (string, error) {
 	_, filename, _, _ := runtime.Caller(0)
 	cwd := filepath.Dir(filename)
 
-	packageJSONFile := filepath.Join(cwd, "./chain/package.json")
+	packageJSONFile := filepath.Join(cwd, "./testchain/package.json")
 	data, err := ioutil.ReadFile(packageJSONFile)
 	if err != nil {
 		return "", fmt.Errorf("ParseTestWalletMnemonic, read: %w", err)

@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	marketplace "github.com/0xsequence/go-sequence/marketplace"
+	marketplace "github.com/0xsequence/go-sequence/services/marketplace"
 	gomock "go.uber.org/mock/gomock"
 )
 

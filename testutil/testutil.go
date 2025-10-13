@@ -25,7 +25,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/deployer"
+	"github.com/0xsequence/go-sequence/lib/deployer"
 	"github.com/0xsequence/go-sequence/relayer"
 )
 
@@ -212,7 +212,7 @@ func (c *TestChain) MustWallet(optAccountIndex ...uint32) *ethwallet.Wallet {
 		panic(err)
 	}
 	if len(optAccountIndex) > 0 {
-		_, err = wallet.SelfDeriveAccountIndex(optAccountIndex[0])
+		wallet, _, err = wallet.DeriveFromAccountIndex(optAccountIndex[0])
 		if err != nil {
 			panic(err)
 		}

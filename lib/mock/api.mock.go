@@ -9,12 +9,13 @@
 // Package mock is a generated GoMock package.
 package mock
 
+//.................?
 import (
 	context "context"
 	reflect "reflect"
 	time "time"
 
-	api "github.com/0xsequence/go-sequence/api"
+	api "github.com/0xsequence/go-sequence/services/api"
 	gomock "go.uber.org/mock/gomock"
 )
 

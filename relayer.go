@@ -12,8 +12,8 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
+	"github.com/0xsequence/go-sequence/lib/simulator"
 	"github.com/0xsequence/go-sequence/relayer/proto"
-	"github.com/0xsequence/go-sequence/simulator"
 )
 
 type SimulateResult struct {

@@ -6,9 +6,6 @@ all:
 	@echo "commands:"
 	@awk -F'[ :]' '/^#+/ {comment=$$0; gsub(/^#+[ ]*/, "", comment)} !/^(_|all:)/ && /^([A-Za-z_-]+):/ && !seen[$$1]++ {printf "  %-24s %s\n", $$1, (comment ? "- " comment : ""); comment=""} !/^#+/ {comment=""}' Makefile
 
-bootstrap:
-	cd ./testutil/chain && pnpm install
-
 build:
 	go build ./...
 
@@ -24,34 +21,34 @@ clean:
 mock:
 	go generate ./mock
 
-test-concurrently:
-	cd ./testutil/chain && pnpm test
-
 
 #
 # Testchain
 #
+init-testchain:
+	cd ./testutil/testchain && pnpm install
+
 start-testchain:
-	cd ./testutil/chain && pnpm start:hardhat
+	cd ./testutil/testchain && pnpm start:hardhat
 
 start-testchain-verbose:
-	cd ./testutil/chain && pnpm start:hardhat:verbose
+	cd ./testutil/testchain && pnpm start:hardhat:verbose
 
 start-testchain-geth:
-	cd ./testutil/chain && pnpm start:geth
+	cd ./testutil/testchain && pnpm start:geth
 
 start-testchain-geth-verbose:
-	cd ./testutil/chain && pnpm start:geth:verbose
+	cd ./testutil/testchain && pnpm start:geth:verbose
 
 start-testchain-anvil:
-	cd ./testutil/chain && pnpm start:anvil
+	cd ./testutil/testchain && pnpm start:anvil
 
 start-testchain-anvil-verbose:
-	cd ./testutil/chain && pnpm start:anvil:verbose
+	cd ./testutil/testchain && pnpm start:anvil:verbose
 
 check-testchain-running:
 	@curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' --write-out '%{http_code}' --silent --output /dev/null | grep 200 > /dev/null \
-	|| { echo "*****"; echo "Oops! testchain is not running. Please run 'make start-testchain' in another terminal or use 'test-concurrently'."; echo "*****"; exit 1; }
+	|| { echo "*****"; echo "Oops! testchain is not running. Please run 'make start-testchain' in another terminal."; echo "*****"; exit 1; }
 
 wait-on-chain:
-	cd ./testutil/chain && pnpm wait:server
+	cd ./testutil/testchain && pnpm wait:server
