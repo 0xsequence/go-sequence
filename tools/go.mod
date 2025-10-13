@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.1
 
-// replace github.com/0xsequence/ethkit => /Users/peter/Dev/0xsequence/ethkit
+// replace github.com/0xsequence/ethkit => ../../ethkit
 
 require (
 	github.com/0xsequence/ethkit v1.38.5
