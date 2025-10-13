@@ -19,7 +19,7 @@ clean:
 
 .PHONY: mock
 mock:
-	go generate ./mock
+	go generate ./lib/mock
 
 
 #
