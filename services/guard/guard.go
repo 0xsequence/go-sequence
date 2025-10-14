@@ -1,4 +1,4 @@
-package metadata
+package guard
 
 import (
 	"fmt"
@@ -7,48 +7,48 @@ import (
 )
 
 type Options struct {
-	// JWTAuthToken is an optional JWT token to authenticate with the metadata service.
+	// JWTAuthToken is an optional JWT token to authenticate with the guard service.
 	JWTAuthToken string
 
-	// MetadataServiceURL is an optional custom URL for the Sequence Metadata service.
-	// If not provided, the default URL in `DefaultMetadataServiceURL` will be used.
-	MetadataServiceURL string
+	// GuardServiceURL is an optional custom URL for the Sequence Guard service.
+	// If not provided, the default URL in `DefaultGuardServiceURL` will be used.
+	GuardServiceURL string
 
 	// HTTPClient is an optional custom HTTP client to use for communicating with the
-	// metadata service.
+	// guard service.
 	HTTPClient HTTPClient
 }
 
-const DefaultMetadataServiceURL = "https://metadata.sequence.app"
+const DefaultGuardServiceURL = "https://guard.sequence.app"
 
-// NewClient creates a new Sequence Metadata client instance. Please see https://sequence.build to
+// NewClient creates a new Sequence Guard client instance. Please see https://sequence.build to
 // get a `projectAccessKey`, which is your project's access key used to communicate
 // with Sequence services.
 //
 // NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
 // passed in via the `clientOptions`.
-func NewClient(projectAccessKey string, clientOptions ...Options) MetadataClient {
+func NewClient(projectAccessKey string, clientOptions ...Options) GuardClient {
 	opts := Options{}
 	if len(clientOptions) > 0 {
 		opts = clientOptions[0]
 	}
 
-	client := &httpClient{
+	c := &httpClient{
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
 	if opts.HTTPClient == nil {
-		client.client = http.DefaultClient
+		c.client = http.DefaultClient
 	}
 	if opts.JWTAuthToken != "" {
-		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
+		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	serviceURL := DefaultMetadataServiceURL
-	if opts.MetadataServiceURL != "" {
-		serviceURL = opts.MetadataServiceURL
+	serviceURL := DefaultGuardServiceURL
+	if opts.GuardServiceURL != "" {
+		serviceURL = opts.GuardServiceURL
 	}
-	return NewMetadataClient(strings.TrimSuffix(serviceURL, "/"), client)
+	return NewGuardClient(strings.TrimSuffix(serviceURL, "/"), c)
 }
 
 type httpClient struct {

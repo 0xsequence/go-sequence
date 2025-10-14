@@ -71,6 +71,11 @@ type Relayer interface {
 
 	// ..
 	Client() proto.RelayerClient
+
+	// TODO: consider removing this altogether and moving it to
+	// the services/relayer package, or alternatively move some of the types
+	// from this file to services/relayer.go and remove dependency of 'sequence'
+	// package from the 'relayer' package.
 }
 
 type MetaTxnID string

@@ -3,47 +3,61 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Options struct {
-	HTTPClient    HTTPClient
-	JWTAuthToken  string
+	// JWTAuthToken is an optional JWT token to authenticate with the api service.
+	JWTAuthToken string
+
+	// APIServiceURL is an optional custom URL for the Sequence API service.
+	// If not provided, the default URL in `DefaultAPIServiceURL` will be used.
 	APIServiceURL string
+
+	// HTTPClient is an optional custom HTTP client to use for communicating with the
+	// api service.
+	HTTPClient HTTPClient
 }
 
-// NewAPI creates a new Sequence API client instance. Please see https://sequence.build to
-// get a `projectAccessKey`.
-func NewAPI(projectAccessKey string, options ...Options) API {
+const DefaultAPIServiceURL = "https://api.sequence.app"
+
+// NewClient creates a new Sequence API client instance. Please see https://sequence.build to
+// get a `projectAccessKey`, which is your project's access key used to communicate
+// with Sequence services.
+//
+// NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
+// passed in via the `clientOptions`.
+func NewClient(projectAccessKey string, clientOptions ...Options) APIClient {
 	opts := Options{}
-	if len(options) > 0 {
-		opts = options[0]
+	if len(clientOptions) > 0 {
+		opts = clientOptions[0]
 	}
 
-	client := &httpclient{
+	c := &httpClient{
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
 	if opts.HTTPClient == nil {
-		client.client = http.DefaultClient
+		c.client = http.DefaultClient
 	}
 	if opts.JWTAuthToken != "" {
-		client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
+		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	apiServiceURL := "https://api.sequence.app"
+	serviceURL := DefaultAPIServiceURL
 	if opts.APIServiceURL != "" {
-		apiServiceURL = opts.APIServiceURL
+		serviceURL = opts.APIServiceURL
 	}
-	return NewAPIClient(apiServiceURL, client)
+	return NewAPIClient(strings.TrimSuffix(serviceURL, "/"), c)
 }
 
-type httpclient struct {
+type httpClient struct {
 	client           HTTPClient
 	jwtAuthHeader    string
 	projectAccessKey string
 }
 
-func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
+func (c *httpClient) Do(req *http.Request) (*http.Response, error) {
 	if c.projectAccessKey != "" {
 		req.Header.Set("X-Access-Key", c.projectAccessKey)
 	}

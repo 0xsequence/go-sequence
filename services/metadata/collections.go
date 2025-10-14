@@ -8,44 +8,43 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 )
 
 type CollectionsService struct {
 	Collections
 	options    Options
-	httpclient HTTPClient
+	httpClient HTTPClient
 }
 
 // NewCollections creates a new Sequence Metadata Collections client instance. Please see
 // https://sequence.build to get a `projectServiceJWTToken` service-level account jwt token.
-func NewCollections(projectServiceJWTToken string, options ...Options) CollectionsService {
+func NewCollections(projectServiceJWTToken string, clientOptions ...Options) CollectionsService {
 	opts := Options{}
-	if len(options) > 0 {
-		opts = options[0]
+	if len(clientOptions) > 0 {
+		opts = clientOptions[0]
 	}
 
-	client := &httpclient{client: opts.HTTPClient}
+	c := &httpClient{client: opts.HTTPClient}
 	if opts.HTTPClient == nil {
-		client.client = http.DefaultClient
+		c.client = http.DefaultClient
 	}
 	if opts.JWTAuthToken == "" {
 		opts.JWTAuthToken = projectServiceJWTToken
 	}
-	client.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
+	c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 
-	metadataServiceURL := "https://metadata.sequence.app"
+	serviceURL := DefaultMetadataServiceURL
 	if opts.MetadataServiceURL != "" {
-		metadataServiceURL = opts.MetadataServiceURL
-	} else {
-		opts.MetadataServiceURL = metadataServiceURL
+		serviceURL = opts.MetadataServiceURL
 	}
 
-	serviceClient := NewCollectionsClient(metadataServiceURL, client)
+	serviceClient := NewCollectionsClient(strings.TrimSuffix(serviceURL, "/"), c)
 
 	return CollectionsService{
 		Collections: serviceClient,
 		options:     opts,
-		httpclient:  client,
+		httpClient:  c,
 	}
 }
 
@@ -73,7 +72,7 @@ func (c *CollectionsService) UploadAsset(ctx context.Context, projectID, collect
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := c.httpclient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("do: %w", err)
 	}
