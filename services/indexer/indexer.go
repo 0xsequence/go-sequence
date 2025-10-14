@@ -37,7 +37,7 @@ func NewClient(indexerURL string, projectAccessKey string, clientOptions ...Opti
 		opts = clientOptions[0]
 	}
 
-	client := &httpclient{
+	client := &httpClient{
 		client:           opts.HTTPClient,
 		projectAccessKey: projectAccessKey,
 	}
@@ -51,13 +51,13 @@ func NewClient(indexerURL string, projectAccessKey string, clientOptions ...Opti
 	return NewIndexerClient(strings.TrimSuffix(indexerURL, "/"), client)
 }
 
-type httpclient struct {
+type httpClient struct {
 	client           HTTPClient
 	jwtAuthHeader    string
 	projectAccessKey string
 }
 
-func (c *httpclient) Do(req *http.Request) (*http.Response, error) {
+func (c *httpClient) Do(req *http.Request) (*http.Response, error) {
 	if c.projectAccessKey != "" {
 		req.Header.Set("X-Access-Key", c.projectAccessKey)
 	}

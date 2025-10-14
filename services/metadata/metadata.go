@@ -27,7 +27,7 @@ const DefaultMetadataServiceURL = "https://metadata.sequence.app"
 //
 // NOTE: the `projectAccessKey` may be optional if you're using a JWT auth token
 // passed in via the `clientOptions`.
-func NewMetadata(projectAccessKey string, clientOptions ...Options) MetadataClient {
+func NewClient(projectAccessKey string, clientOptions ...Options) MetadataClient {
 	opts := Options{}
 	if len(clientOptions) > 0 {
 		opts = clientOptions[0]
