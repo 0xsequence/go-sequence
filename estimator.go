@@ -54,6 +54,7 @@ type EstimateTransaction struct {
 	From common.Address
 	To   common.Address
 	Data []byte
+	Gas  *big.Int
 }
 
 type Estimator struct {
@@ -170,11 +171,15 @@ func (e *Estimator) EstimateCall(ctx context.Context, provider *ethrpc.Provider,
 	type Call struct {
 		To   common.Address `json:"to"`
 		Data string         `json:"data"`
+		Gas  string         `json:"gas,omitempty"`
 	}
 
 	estimateCall := &Call{
 		To:   from,
 		Data: "0x" + common.Bytes2Hex(callData),
+	}
+	if call.Gas != nil {
+		estimateCall.Gas = fmt.Sprintf("0x%v", call.Gas.Text(16))
 	}
 
 	var res string
