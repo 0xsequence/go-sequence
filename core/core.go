@@ -16,6 +16,7 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 )
 
@@ -56,7 +57,7 @@ type Signature[C WalletConfig] interface {
 	// If provider is not provided and the signature contains sapient signer signatures, recovery will fail.
 	// If payload is a digest without preimage and the signature contains non-compact sapient signer signatures, recovery will fail.
 	// If signerSignatures is provided, it will be populated with the valid signer signatures of this signature.
-	Recover(ctx context.Context, payload Payload, provider *ethrpc.Provider, signerSignatures ...SignerSignatures) (C, *big.Int, error)
+	Recover(ctx context.Context, payload Payload, provider *ethrpc.Provider, signerSignatures ...map[Signer]SignerSignature) (C, *big.Int, error)
 
 	// Reduce returns an equivalent optimized signature.
 	Reduce(payload Payload) Signature[C]
@@ -82,10 +83,10 @@ type WalletConfig interface {
 	Checkpoint() uint64
 
 	// Signers is the set of signers in the wallet configuration.
-	Signers() map[common.Address]uint16
+	Signers() map[Signer]uint16
 
 	// SignersWeight is the total weight of the signers passed to the function according to the wallet configuration.
-	SignersWeight(signers []common.Address) uint16
+	SignersWeight(signers map[Signer]uint16) uint16
 
 	// IsComplete checks if the wallet configuration doesn't have pruned subtrees.
 	IsComplete() bool
@@ -94,43 +95,50 @@ type WalletConfig interface {
 	IsUsable() error
 }
 
-type SignerSignatures map[common.Address]struct {
-	Signature         *SignerSignature
-	SapientSignatures map[common.Hash]SignerSignature
+type Signer struct {
+	Address   common.Address
+	IsSapient bool
+	ImageHash common.Hash
 }
 
-func (s SignerSignatures) Insert(signer common.Address, signature SignerSignature) {
-	if s == nil {
-		return
-	}
-
-	if signatures, ok := s[signer]; ok {
-		signatures.Signature = &signature
-		s[signer] = signatures
-	} else {
-		s[signer] = struct {
-			Signature         *SignerSignature
-			SapientSignatures map[common.Hash]SignerSignature
-		}{Signature: &signature}
-	}
+func SapientSigner(address common.Address, imageHash common.Hash) Signer {
+	return Signer{Address: address, IsSapient: true, ImageHash: imageHash}
 }
 
-func (s SignerSignatures) InsertSapient(signer common.Address, imageHash common.Hash, signature SignerSignature) {
-	if s == nil {
-		return
-	}
+func SignerFromString(s string) (Signer, error) {
+	signerLength := 2 + 2*common.AddressLength
+	sapientSignerLength := signerLength + 1 + 2 + 2*common.HashLength
 
-	if signatures, ok := s[signer]; ok {
-		if signatures.SapientSignatures == nil {
-			signatures.SapientSignatures = map[common.Hash]SignerSignature{}
+	switch len(s) {
+	case signerLength:
+		if !common.IsHexAddress(s) {
+			return Signer{}, fmt.Errorf(`"%v" is not a signer`, s)
 		}
-		signatures.SapientSignatures[imageHash] = signature
-		s[signer] = signatures
+		return Signer{Address: common.HexToAddress(s)}, nil
+
+	case sapientSignerLength:
+		if !common.IsHexAddress(s[:signerLength]) {
+			return Signer{}, fmt.Errorf(`"%v" is not a signer`, s)
+		}
+		if s[signerLength] != ':' {
+			return Signer{}, fmt.Errorf(`"%v" is not a signer`, s)
+		}
+		imageHash, err := hexutil.Decode(s[signerLength+1:])
+		if err != nil {
+			return Signer{}, fmt.Errorf(`"%v" is not a signer`, s)
+		}
+		return SapientSigner(common.HexToAddress(s[:signerLength]), common.BytesToHash(imageHash)), nil
+
+	default:
+		return Signer{}, fmt.Errorf(`"%v" is not a signer`, s)
+	}
+}
+
+func (s Signer) String() string {
+	if s.IsSapient {
+		return fmt.Sprintf("%v:%v", s.Address, s.ImageHash)
 	} else {
-		s[signer] = struct {
-			Signature         *SignerSignature
-			SapientSignatures map[common.Hash]SignerSignature
-		}{SapientSignatures: map[common.Hash]SignerSignature{imageHash: signature}}
+		return s.Address.String()
 	}
 }
 
@@ -145,7 +153,7 @@ const (
 )
 
 type SignerSignature struct {
-	Signer    common.Address
+	Signer    Signer
 	Type      SignerSignatureType
 	Signature []byte
 	Error     error
@@ -155,9 +163,9 @@ type SignerSignature struct {
 var ErrSigningFunctionNotReady = fmt.Errorf("signing function not ready")
 var ErrSigningNoSigner = fmt.Errorf("no signer")
 
-type SigningFunction func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error)
+type SigningFunction func(ctx context.Context, signer Signer, signatures []SignerSignature) (SignerSignatureType, []byte, error)
 
-func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16, sign SigningFunction) chan SignerSignature {
+func SigningOrchestrator(ctx context.Context, signers map[Signer]uint16, sign SigningFunction) chan SignerSignature {
 	signaturesChan := make(chan SignerSignature)
 	go func() {
 		defer close(signaturesChan)
@@ -168,10 +176,8 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 		var signatures = make([]SignerSignature, 0, len(signers))
 		var signaturesExpected = len(signers)
 		for signer := range signers {
-			rSigner := signer
-
 			wg.Add(1)
-			go func(signer common.Address) {
+			go func(signer Signer) {
 				defer wg.Done()
 
 				go func() {
@@ -211,8 +217,8 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 					}
 
 					signerSignature := SignerSignature{
-						Type:      signatureType,
 						Signer:    signer,
+						Type:      signatureType,
 						Signature: signature,
 						Error:     err,
 					}
@@ -225,7 +231,7 @@ func SigningOrchestrator(ctx context.Context, signers map[common.Address]uint16,
 					cond.Broadcast()
 					break
 				}
-			}(rSigner)
+			}(signer)
 		}
 
 		wg.Wait()

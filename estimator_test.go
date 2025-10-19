@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -1196,21 +1197,21 @@ func TestPickLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): true,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: true,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v2", func(t *testing.T) {
@@ -1256,21 +1257,21 @@ func TestPickLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): true,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: true,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v3", func(t *testing.T) {
@@ -1316,21 +1317,21 @@ func TestPickLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): true,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: true,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 }
 
@@ -1378,19 +1379,18 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): false,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa4.Address()], true)
-
-		assert.Equal(t, pick[eoa2.Address()] || pick[eoa1.Address()] || pick[eoa5.Address()] || pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}] || pick[core.Signer{Address: eoa1.Address()}] || pick[core.Signer{Address: eoa5.Address()}] || pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v2", func(t *testing.T) {
@@ -1436,19 +1436,18 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): false,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa4.Address()], true)
-
-		assert.Equal(t, pick[eoa2.Address()] || pick[eoa1.Address()] || pick[eoa5.Address()] || pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}] || pick[core.Signer{Address: eoa1.Address()}] || pick[core.Signer{Address: eoa5.Address()}] || pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v3", func(t *testing.T) {
@@ -1494,19 +1493,18 @@ func TestPickNonEOAsForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): true,
-				eoa1.Address(): true,
-				eoa5.Address(): true,
-				eoa4.Address(): false,
-				eoa3.Address(): true,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: true,
+				{Address: eoa1.Address()}: true,
+				{Address: eoa5.Address()}: true,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: true,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa4.Address()], true)
-
-		assert.Equal(t, pick[eoa2.Address()] || pick[eoa1.Address()] || pick[eoa5.Address()] || pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}] || pick[core.Signer{Address: eoa1.Address()}] || pick[core.Signer{Address: eoa5.Address()}] || pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 }
 
@@ -1554,21 +1552,21 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): false,
-				eoa1.Address(): false,
-				eoa5.Address(): false,
-				eoa4.Address(): false,
-				eoa3.Address(): false,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: false,
+				{Address: eoa1.Address()}: false,
+				{Address: eoa5.Address()}: false,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: false,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v2", func(t *testing.T) {
@@ -1614,21 +1612,21 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): false,
-				eoa1.Address(): false,
-				eoa5.Address(): false,
-				eoa4.Address(): false,
-				eoa3.Address(): false,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: false,
+				{Address: eoa1.Address()}: false,
+				{Address: eoa5.Address()}: false,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: false,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 
 	t.Run("v3", func(t *testing.T) {
@@ -1674,21 +1672,21 @@ func TestPickNonEOAsLowestWeightForEstimation(t *testing.T) {
 		}
 
 		pick, err := sequence.NewEstimator().PickSigners(context.Background(), config,
-			map[common.Address]bool{
-				eoa2.Address(): false,
-				eoa1.Address(): false,
-				eoa5.Address(): false,
-				eoa4.Address(): false,
-				eoa3.Address(): false,
+			map[core.Signer]bool{
+				{Address: eoa2.Address()}: false,
+				{Address: eoa1.Address()}: false,
+				{Address: eoa5.Address()}: false,
+				{Address: eoa4.Address()}: false,
+				{Address: eoa3.Address()}: false,
 			})
 		assert.NoError(t, err)
 
 		assert.Equal(t, len(pick), 5)
-		assert.Equal(t, pick[eoa2.Address()], true)
-		assert.Equal(t, pick[eoa1.Address()], true)
-		assert.Equal(t, pick[eoa5.Address()], false)
-		assert.Equal(t, pick[eoa4.Address()], false)
-		assert.Equal(t, pick[eoa3.Address()], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa2.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa1.Address()}], true)
+		assert.Equal(t, pick[core.Signer{Address: eoa5.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa4.Address()}], false)
+		assert.Equal(t, pick[core.Signer{Address: eoa3.Address()}], true)
 	})
 }
 

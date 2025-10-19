@@ -252,10 +252,7 @@ func GetIntentConfigurationSignature(
 	spew.Dump(config)
 	spew.Dump(config.Tree)
 
-	signingFunc := func(ctx context.Context, signer common.Address, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		fmt.Printf("signingFunc: signer: %s\n", signer.Hex())
-
-		fmt.Printf("signingFunc: returning nil signature for signer: %s\n", signer.Hex())
+	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		// For mainSigner or other signers, we don't provide a signature here.
 		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
 		return 0, nil, nil

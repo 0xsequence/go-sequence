@@ -1,51 +1,52 @@
-package core
+package core_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSigningOrchestrator(t *testing.T) {
-	signers := map[common.Address]uint16{
-		common.HexToAddress("0x00"): 1,
-		common.HexToAddress("0x01"): 1,
-		common.HexToAddress("0x02"): 1,
+	signers := map[core.Signer]uint16{
+		{Address: common.HexToAddress("0x00")}: 1,
+		{Address: common.HexToAddress("0x01")}: 1,
+		{Address: common.HexToAddress("0x02")}: 1,
 	}
 
-	mockSignatures := map[common.Address]struct {
-		sigType SignerSignatureType
+	mockSignatures := map[core.Signer]struct {
+		sigType core.SignerSignatureType
 		sig     []byte
 	}{
-		common.HexToAddress("0x00"): {
-			sigType: SignerSignatureTypeEthSign,
+		{Address: common.HexToAddress("0x00")}: {
+			sigType: core.SignerSignatureTypeEthSign,
 			sig:     []byte("signature"),
 		},
-		common.HexToAddress("0x01"): {
-			sigType: SignerSignatureTypeEthSign,
+		{Address: common.HexToAddress("0x01")}: {
+			sigType: core.SignerSignatureTypeEthSign,
 			sig:     []byte("signature2"),
 		},
-		common.HexToAddress("0x02"): {
-			sigType: SignerSignatureTypeEIP1271,
+		{Address: common.HexToAddress("0x02")}: {
+			sigType: core.SignerSignatureTypeEIP1271,
 			sig:     []byte("signature3"),
 		},
 	}
 
 	signer0Retried := false
-	signingFunction := func(ctx context.Context, signer common.Address, signatures []SignerSignature) (SignerSignatureType, []byte, error) {
-		if signer == common.HexToAddress("0x00") && !signer0Retried {
+	signingFunction := func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		if signer == (core.Signer{Address: common.HexToAddress("0x00")}) && !signer0Retried {
 			signer0Retried = true
-			return 0, nil, ErrSigningFunctionNotReady
+			return 0, nil, core.ErrSigningFunctionNotReady
 		}
 
 		return mockSignatures[signer].sigType, mockSignatures[signer].sig, nil
 	}
 
-	signaturesChan := SigningOrchestrator(context.Background(), signers, signingFunction)
+	signaturesChan := core.SigningOrchestrator(context.Background(), signers, signingFunction)
 
-	signatures := make([]SignerSignature, 0, len(signers))
+	signatures := make([]core.SignerSignature, 0, len(signers))
 	for i := 0; i < len(signers); i++ {
 		signature := <-signaturesChan
 		signatures = append(signatures, signature)

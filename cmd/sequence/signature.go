@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
@@ -122,7 +123,7 @@ func signatureConcat(params *SignatureConcatParams) (string, error) {
 		return "", fmt.Errorf("failed to encode chained signature: %w", err)
 	}
 
-	return "0x" + common.Bytes2Hex(encodedSig), nil
+	return hexutil.Encode(encodedSig), nil
 }
 
 func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
@@ -207,9 +208,9 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 
 	var signature core.Signature[*v3.WalletConfig]
 	if p.ChainId {
-		signature, err = config.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		signature, err = config.BuildRegularSignature(context.Background(), func(ctx context.Context, signer core.Signer, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			for _, sig := range signatures {
-				if strings.EqualFold(sig.Address, signer.Hex()) {
+				if strings.EqualFold(sig.Address, signer.Address.String()) {
 					switch sig.Type {
 					case "eth_sign":
 						if len(sig.Values) != 3 {
@@ -255,9 +256,9 @@ func signatureEncode(p *SignatureEncodeParams) (interface{}, error) {
 			return 0, nil, core.ErrSigningNoSigner
 		}, false, checkpointerDataBytes)
 	} else {
-		signature, err = config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		signature, err = config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 			for _, sig := range signatures {
-				if strings.EqualFold(sig.Address, signer.Hex()) {
+				if strings.EqualFold(sig.Address, signer.Address.String()) {
 					switch sig.Type {
 					case "eth_sign":
 						if len(sig.Values) != 3 {

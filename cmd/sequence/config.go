@@ -609,8 +609,7 @@ func calculateImageHash(params *ConfigImageHashParams) (string, error) {
 	log.Printf("Decoded config: %+v", config)
 	spew.Dump(config)
 
-	imageHash := config.ImageHash()
-	return "0x" + common.Bytes2Hex(imageHash.Bytes()), nil
+	return config.ImageHash().String(), nil
 }
 
 // encodeConfig encodes a configuration into a signature format
@@ -627,7 +626,7 @@ func encodeConfig(params *ConfigEncodeParams) (string, error) {
 
 	spew.Dump(config)
 
-	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+	sig, err := config.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, sigs []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		return 0, nil, core.ErrSigningNoSigner
 	}, false)
 	if err != nil {

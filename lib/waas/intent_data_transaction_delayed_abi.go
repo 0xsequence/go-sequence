@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/0xsequence/ethkit/ethcoder"
-	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 )
 
 // Deprecated: use EncodeContractCall instead
@@ -64,7 +64,7 @@ func EncodeDelayedABI(data *delayedEncodeType) (string, error) {
 			return "", err
 		}
 
-		return "0x" + common.Bytes2Hex(res), nil
+		return hexutil.Encode(res), nil
 	}
 
 	// Try decode args as object
