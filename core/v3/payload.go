@@ -669,6 +669,8 @@ func (p MessagePayload) ABIEncode() walletstage1.PayloadDecoded {
 	return walletstage1.PayloadDecoded{
 		Kind:          KindMessage,
 		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Space:         new(big.Int),
+		Nonce:         new(big.Int),
 		Message:       p.Message,
 		ParentWallets: p.parentWallets,
 	}
@@ -765,6 +767,8 @@ func (p ConfigUpdatePayload) ABIEncode() walletstage1.PayloadDecoded {
 	return walletstage1.PayloadDecoded{
 		Kind:          KindConfigUpdate,
 		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Space:         new(big.Int),
+		Nonce:         new(big.Int),
 		ImageHash:     p.ImageHash.ImageHash().Hash,
 		ParentWallets: p.parentWallets,
 	}
@@ -874,6 +878,8 @@ func (p DigestPayload) ABIEncode() walletstage1.PayloadDecoded {
 	return walletstage1.PayloadDecoded{
 		Kind:          KindDigest,
 		NoChainId:     p.chainID == nil || p.chainID.Sign() == 0,
+		Space:         new(big.Int),
+		Nonce:         new(big.Int),
 		Digest:        p.MessageDigest,
 		ParentWallets: p.parentWallets,
 	}
