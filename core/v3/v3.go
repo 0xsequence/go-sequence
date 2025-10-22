@@ -2096,6 +2096,10 @@ type WalletConfigTree interface {
 }
 
 func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
+	if object == nil {
+		return nil, fmt.Errorf("wallet config tree cannot be nil")
+	}
+
 	var object_ map[string]any
 
 	if reflect.TypeOf(object).Kind() == reflect.Slice {
