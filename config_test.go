@@ -7,6 +7,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
@@ -42,9 +43,9 @@ func TestWalletConfig(t *testing.T) {
 			),
 		}
 
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("def")]))
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("abc")]))
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("456")]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("def")}]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("abc")}]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("456")}]))
 	})
 
 	t.Run("v3", func(t *testing.T) {
@@ -57,9 +58,9 @@ func TestWalletConfig(t *testing.T) {
 			),
 		}
 
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("def")]))
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("abc")]))
-		assert.Equal(t, 2, int(wc.Signers()[common.HexToAddress("456")]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("def")}]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("abc")}]))
+		assert.Equal(t, 2, int(wc.Signers()[core.Signer{Address: common.HexToAddress("456")}]))
 	})
 }
 

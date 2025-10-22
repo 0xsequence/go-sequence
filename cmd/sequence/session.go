@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ func handleEncodeTopology(p *EncodeTopologyParams) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session topology: %w", err)
 	}
-	return "0x" + common.Bytes2Hex(encoded), nil
+	return hexutil.Encode(encoded), nil
 }
 
 func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (string, error) {
@@ -108,7 +109,7 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 	if err != nil {
 		return "", fmt.Errorf("failed to encode session call signatures: %w", err)
 	}
-	return "0x" + common.Bytes2Hex(encoded), nil
+	return hexutil.Encode(encoded), nil
 }
 
 func handleImageHash(p *ImageHashParams) (string, error) {

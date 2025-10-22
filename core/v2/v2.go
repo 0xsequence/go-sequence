@@ -141,12 +141,6 @@ func decodeRegularSignature(data []byte) (*regularSignature, error) {
 	return &regularSignature{isRegular, threshold, checkpoint, tree}, nil
 }
 
-type signerSignature struct {
-	signer    common.Address
-	type_     core.SignerSignatureType
-	signature []byte
-}
-
 func (s *regularSignature) Threshold() uint16 {
 	return s.threshold
 }
@@ -155,9 +149,9 @@ func (s *regularSignature) Checkpoint() uint64 {
 	return uint64(s.checkpoint)
 }
 
-func (s *regularSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *regularSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...map[core.Signer]core.SignerSignature) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
+		signerSignatures = []map[core.Signer]core.SignerSignature{nil}
 	}
 
 	tree, weight, err := s.tree.recover(ctx, payload, provider, signerSignatures[0])
@@ -294,9 +288,9 @@ func (s *noChainIDSignature) Checkpoint() uint64 {
 	return uint64(s.checkpoint)
 }
 
-func (s *noChainIDSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s *noChainIDSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...map[core.Signer]core.SignerSignature) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
+		signerSignatures = []map[core.Signer]core.SignerSignature{nil}
 	}
 
 	tree, weight, err := s.tree.recover(ctx, payload, provider, signerSignatures[0])
@@ -448,9 +442,9 @@ func (s chainedSignature) Checkpoint() uint64 {
 	return s[len(s)-1].Checkpoint()
 }
 
-func (s chainedSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...core.SignerSignatures) (*WalletConfig, *big.Int, error) {
+func (s chainedSignature) Recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures ...map[core.Signer]core.SignerSignature) (*WalletConfig, *big.Int, error) {
 	if len(signerSignatures) == 0 {
-		signerSignatures = []core.SignerSignatures{nil}
+		signerSignatures = []map[core.Signer]core.SignerSignature{nil}
 	}
 
 	var config *WalletConfig
@@ -529,7 +523,7 @@ func (s chainedSignature) String() string {
 }
 
 type signatureTree interface {
-	recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error)
+	recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error)
 	reduce() signatureTree
 	join(other signatureTree) (signatureTree, error)
 	reduceImageHash() (core.ImageHash, error)
@@ -604,7 +598,7 @@ type signatureTreeNode struct {
 	left, right signatureTree
 }
 
-func (n *signatureTreeNode) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (n *signatureTreeNode) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	left, leftWeight, err := n.left.recover(ctx, payload, provider, signerSignatures)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover left subtree: %w", err)
@@ -783,7 +777,7 @@ func decodeSignatureTreeECDSASignatureLeaf(data *[]byte) (*signatureTreeECDSASig
 	return &leaf, nil
 }
 
-func (l *signatureTreeECDSASignatureLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l *signatureTreeECDSASignatureLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	var address common.Address
 	var err error
 	switch l.type_ {
@@ -798,10 +792,14 @@ func (l *signatureTreeECDSASignatureLeaf) recover(ctx context.Context, payload c
 		return nil, nil, fmt.Errorf("unable to recover ecdsa signature leaf: %w", err)
 	}
 
-	signerSignatures.Insert(address, core.SignerSignature{
-		Type:      l.type_.signerSignatureType(),
-		Signature: l.signature[:],
-	})
+	if signerSignatures != nil {
+		signer := core.Signer{Address: address}
+		signerSignatures[signer] = core.SignerSignature{
+			Signer:    signer,
+			Type:      l.type_.signerSignatureType(),
+			Signature: l.signature[:],
+		}
+	}
 
 	return &WalletConfigTreeAddressLeaf{
 		Weight:  l.weight,
@@ -874,7 +872,7 @@ func decodeSignatureTreeAddressLeaf(data *[]byte) (*signatureTreeAddressLeaf, er
 	}, nil
 }
 
-func (l *signatureTreeAddressLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l *signatureTreeAddressLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	return &WalletConfigTreeAddressLeaf{
 		Weight:  l.weight,
 		Address: l.address,
@@ -998,7 +996,7 @@ func decodeSignatureTreeDynamicSignatureLeaf(data *[]byte) (*signatureTreeDynami
 	}, nil
 }
 
-func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	switch l.type_ {
 	case dynamicSignatureTypeEIP712, dynamicSignatureTypeEthSign:
 		var address common.Address
@@ -1019,10 +1017,14 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload
 			return nil, nil, fmt.Errorf("expected dynamic signature by %v, got dynamic signature by %v", l.address, address)
 		}
 
-		signerSignatures.Insert(l.address, core.SignerSignature{
-			Type:      l.type_.signerSignatureType(),
-			Signature: l.signature,
-		})
+		if signerSignatures != nil {
+			signer := core.Signer{Address: l.address}
+			signerSignatures[signer] = core.SignerSignature{
+				Signer:    signer,
+				Type:      l.type_.signerSignatureType(),
+				Signature: l.signature,
+			}
+		}
 
 		return &WalletConfigTreeAddressLeaf{
 			Weight:  l.weight,
@@ -1055,10 +1057,14 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload
 			effectiveWeight = 0
 		}
 
-		signerSignatures.Insert(l.address, core.SignerSignature{
-			Type:      l.type_.signerSignatureType(),
-			Signature: signature,
-		})
+		if signerSignatures != nil {
+			signer := core.Signer{Address: l.address}
+			signerSignatures[signer] = core.SignerSignature{
+				Signer:    signer,
+				Type:      l.type_.signerSignatureType(),
+				Signature: signature,
+			}
+		}
 
 		return &WalletConfigTreeAddressLeaf{
 			Weight:  l.weight,
@@ -1150,7 +1156,7 @@ func decodeSignatureTreeNodeLeaf(data *[]byte) (signatureTreeNodeLeaf, error) {
 	return signatureTreeNodeLeaf{core.ImageHash{Hash: common.BytesToHash(hash)}}, nil
 }
 
-func (l signatureTreeNodeLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l signatureTreeNodeLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	leaf := WalletConfigTreeNodeLeaf{core.ImageHash{Hash: l.ImageHash.Hash}}
 	leaf.Node.Preimage = &leaf
 	return leaf, new(big.Int), nil
@@ -1244,7 +1250,7 @@ func decodeSignatureTreeSubdigestLeaf(data *[]byte) (signatureTreeSubdigestLeaf,
 	return signatureTreeSubdigestLeaf{common.BytesToHash(hash)}, nil
 }
 
-func (l signatureTreeSubdigestLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l signatureTreeSubdigestLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	if payload.Digest().Hash == l.Hash {
 		return WalletConfigTreeSubdigestLeaf{l.Hash}, new(big.Int).Set(maxUint256), nil
 	} else {
@@ -1328,7 +1334,7 @@ func decodeSignatureTreeNestedLeaf(data *[]byte) (*signatureTreeNestedLeaf, erro
 	return &signatureTreeNestedLeaf{weight, threshold, tree}, nil
 }
 
-func (l *signatureTreeNestedLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures core.SignerSignatures) (WalletConfigTree, *big.Int, error) {
+func (l *signatureTreeNestedLeaf) recover(ctx context.Context, payload core.Payload, provider *ethrpc.Provider, signerSignatures map[core.Signer]core.SignerSignature) (WalletConfigTree, *big.Int, error) {
 	tree, weight, err := l.tree.recover(ctx, payload, provider, signerSignatures)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to recover nested leaf: %w", err)
@@ -1436,20 +1442,14 @@ func (c *WalletConfig) Checkpoint() uint64 {
 	return uint64(c.Checkpoint_)
 }
 
-func (c *WalletConfig) Signers() map[common.Address]uint16 {
-	signers := map[common.Address]uint16{}
+func (c *WalletConfig) Signers() map[core.Signer]uint16 {
+	signers := map[core.Signer]uint16{}
 	c.Tree.readSignersIntoMap(signers)
 	return signers
 }
 
-func (c *WalletConfig) SignersWeight(signers []common.Address) uint16 {
-	var signersMap = make(map[common.Address]uint16)
-	for _, signer := range signers {
-		signersMap[signer] = 0
-	}
-
-	weight := c.Tree.unverifiedWeight(signersMap)
-	return uint16(weight.Uint64())
+func (c *WalletConfig) SignersWeight(signers map[core.Signer]uint16) uint16 {
+	return uint16(c.Tree.signersWeight(signers).Uint64())
 }
 
 func (c *WalletConfig) IsComplete() bool {
@@ -1500,22 +1500,21 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 
 	signerSignatureCh := core.SigningOrchestrator(signCtx, configSigners, sign)
 
-	signerSignatures := map[common.Address]signerSignature{}
-	signedSigners := map[common.Address]uint16{}
+	signerSignatures := map[core.Signer]core.SignerSignature{}
+	signedSigners := map[core.Signer]uint16{}
 
 	for range configSigners {
-		signerSig := <-signerSignatureCh
-		if signerSig.Error != nil {
+		signerSignature := <-signerSignatureCh
+		if signerSignature.Error != nil {
 			signCancel()
-			return nil, fmt.Errorf("signer %s signing error: %w", signerSig.Signer.Hex(), signerSig.Error)
+			return nil, fmt.Errorf("signer %v signing error: %w", signerSignature.Signer, signerSignature.Error)
 		}
 
-		if signerSig.Signature != nil {
-			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,
-				signerSig.Type, signerSig.Signature}
-			signedSigners[signerSig.Signer] = 0
+		if signerSignature.Signature != nil {
+			signerSignatures[signerSignature.Signer] = signerSignature
+			signedSigners[signerSignature.Signer] = configSigners[signerSignature.Signer]
 
-			weight := c.Tree.unverifiedWeight(signedSigners)
+			weight := c.Tree.signersWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
 				signCancel()
 				isValid = true
@@ -1548,22 +1547,21 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 
 	signerSignatureCh := core.SigningOrchestrator(signCtx, configSigners, sign)
 
-	signerSignatures := map[common.Address]signerSignature{}
-	signedSigners := map[common.Address]uint16{}
+	signerSignatures := map[core.Signer]core.SignerSignature{}
+	signedSigners := map[core.Signer]uint16{}
 
 	for range configSigners {
-		signerSig := <-signerSignatureCh
-		if signerSig.Error != nil {
+		signerSignature := <-signerSignatureCh
+		if signerSignature.Error != nil {
 			signCancel()
-			return nil, fmt.Errorf("signer %s signing error: %w", signerSig.Signer.Hex(), signerSig.Error)
+			return nil, fmt.Errorf("signer %v signing error: %w", signerSignature.Signer, signerSignature.Error)
 		}
 
-		if signerSig.Signature != nil {
-			signerSignatures[signerSig.Signer] = signerSignature{signerSig.Signer,
-				signerSig.Type, signerSig.Signature}
-			signedSigners[signerSig.Signer] = 0
+		if signerSignature.Signature != nil {
+			signerSignatures[signerSignature.Signer] = signerSignature
+			signedSigners[signerSignature.Signer] = configSigners[signerSignature.Signer]
 
-			weight := c.Tree.unverifiedWeight(signedSigners)
+			weight := c.Tree.signersWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
 				signCancel()
 				isValid = true
@@ -1587,9 +1585,9 @@ type WalletConfigTree interface {
 
 	isComplete() bool
 	maxWeight() *big.Int
-	readSignersIntoMap(signers map[common.Address]uint16)
-	unverifiedWeight(signers map[common.Address]uint16) *big.Int
-	buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree
+	signersWeight(signers map[core.Signer]uint16) *big.Int
+	readSignersIntoMap(signers map[core.Signer]uint16)
+	buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree
 }
 
 func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
@@ -1703,17 +1701,17 @@ func (n *WalletConfigTreeNode) maxWeight() *big.Int {
 	return new(big.Int).Add(left, right)
 }
 
-func (n *WalletConfigTreeNode) readSignersIntoMap(signers map[common.Address]uint16) {
+func (n *WalletConfigTreeNode) signersWeight(signers map[core.Signer]uint16) *big.Int {
+	left, right := n.Left.signersWeight(signers), n.Right.signersWeight(signers)
+	return new(big.Int).Add(left, right)
+}
+
+func (n *WalletConfigTreeNode) readSignersIntoMap(signers map[core.Signer]uint16) {
 	n.Left.readSignersIntoMap(signers)
 	n.Right.readSignersIntoMap(signers)
 }
 
-func (n *WalletConfigTreeNode) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
-	left, right := n.Left.unverifiedWeight(signers), n.Right.unverifiedWeight(signers)
-	return new(big.Int).Add(left, right)
-}
-
-func (n *WalletConfigTreeNode) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+func (n *WalletConfigTreeNode) buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree {
 	return &signatureTreeNode{
 		left:  n.Left.buildSignatureTree(signerSignatures),
 		right: n.Right.buildSignatureTree(signerSignatures),
@@ -1773,29 +1771,28 @@ func (l *WalletConfigTreeAddressLeaf) maxWeight() *big.Int {
 	return new(big.Int).SetUint64(uint64(l.Weight))
 }
 
-func (l *WalletConfigTreeAddressLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
-	signers[l.Address] = uint16(l.Weight)
-}
-
-func (l *WalletConfigTreeAddressLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
-	_, ok := signers[l.Address]
-	if ok {
+func (l *WalletConfigTreeAddressLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
+	if _, ok := signers[core.Signer{Address: l.Address}]; ok {
 		return new(big.Int).SetUint64(uint64(l.Weight))
 	} else {
 		return new(big.Int)
 	}
 }
 
-func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
-	signature, ok := signerSignatures[l.Address]
+func (l *WalletConfigTreeAddressLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
+	signers[core.Signer{Address: l.Address}] = uint16(l.Weight)
+}
+
+func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree {
+	signature, ok := signerSignatures[core.Signer{Address: l.Address}]
 	if ok {
-		switch signature.type_ {
+		switch signature.Type {
 		case core.SignerSignatureTypeEIP712:
 			leaf := signatureTreeECDSASignatureLeaf{
 				weight: l.Weight,
 				type_:  eCDSASignatureTypeEIP712,
 			}
-			copy(leaf.signature[:], signature.signature)
+			copy(leaf.signature[:], signature.Signature)
 			return &leaf
 
 		case core.SignerSignatureTypeEthSign:
@@ -1803,7 +1800,7 @@ func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[co
 				weight: l.Weight,
 				type_:  eCDSASignatureTypeEthSign,
 			}
-			copy(leaf.signature[:], signature.signature)
+			copy(leaf.signature[:], signature.Signature)
 			return &leaf
 
 		case core.SignerSignatureTypeEIP1271:
@@ -1811,11 +1808,11 @@ func (l *WalletConfigTreeAddressLeaf) buildSignatureTree(signerSignatures map[co
 				weight:    l.Weight,
 				address:   l.Address,
 				type_:     dynamicSignatureTypeEIP1271,
-				signature: signature.signature,
+				signature: signature.Signature,
 			}
 
 		default:
-			panic(fmt.Sprintf("unknown signer signature type %v", signature.type_))
+			panic(fmt.Sprintf("unknown signer signature type %v", signature.Type))
 		}
 	} else {
 		return &signatureTreeAddressLeaf{
@@ -1875,14 +1872,14 @@ func (l WalletConfigTreeNodeLeaf) maxWeight() *big.Int {
 	return new(big.Int)
 }
 
-func (l WalletConfigTreeNodeLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
-}
-
-func (l WalletConfigTreeNodeLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
+func (l WalletConfigTreeNodeLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
 	return new(big.Int)
 }
 
-func (l WalletConfigTreeNodeLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+func (l WalletConfigTreeNodeLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
+}
+
+func (l WalletConfigTreeNodeLeaf) buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree {
 	return signatureTreeNodeLeaf{l.Node}
 }
 
@@ -1960,19 +1957,19 @@ func (l *WalletConfigTreeNestedLeaf) maxWeight() *big.Int {
 	}
 }
 
-func (l *WalletConfigTreeNestedLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
-	l.Tree.readSignersIntoMap(signers)
-}
-
-func (l *WalletConfigTreeNestedLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
-	if l.Tree.unverifiedWeight(signers).Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
+func (l *WalletConfigTreeNestedLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
+	if l.Tree.signersWeight(signers).Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
 		return new(big.Int).SetUint64(uint64(l.Weight))
 	} else {
 		return new(big.Int)
 	}
 }
 
-func (l *WalletConfigTreeNestedLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+func (l *WalletConfigTreeNestedLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
+	l.Tree.readSignersIntoMap(signers)
+}
+
+func (l *WalletConfigTreeNestedLeaf) buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree {
 	return &signatureTreeNestedLeaf{
 		weight:    l.Weight,
 		threshold: l.Threshold,
@@ -2027,14 +2024,14 @@ func (l WalletConfigTreeSubdigestLeaf) maxWeight() *big.Int {
 	return new(big.Int).Set(maxUint256)
 }
 
-func (l WalletConfigTreeSubdigestLeaf) readSignersIntoMap(signers map[common.Address]uint16) {
-}
-
-func (l WalletConfigTreeSubdigestLeaf) unverifiedWeight(signers map[common.Address]uint16) *big.Int {
+func (l WalletConfigTreeSubdigestLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
 	return new(big.Int).Set(maxUint256)
 }
 
-func (l WalletConfigTreeSubdigestLeaf) buildSignatureTree(signerSignatures map[common.Address]signerSignature) signatureTree {
+func (l WalletConfigTreeSubdigestLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
+}
+
+func (l WalletConfigTreeSubdigestLeaf) buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree {
 	return signatureTreeSubdigestLeaf{l.Subdigest}
 }
 

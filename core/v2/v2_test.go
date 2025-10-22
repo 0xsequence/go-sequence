@@ -97,8 +97,8 @@ func TestSignatureJoin(t *testing.T) {
 		msg := []byte("hello")
 		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
-		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa1.Address() {
+		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa1.Address()}) {
 				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -107,8 +107,8 @@ func TestSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa2.Address() {
+		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa2.Address()}) {
 				sig, _ := eoa2.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -163,8 +163,8 @@ func TestSignatureJoin(t *testing.T) {
 		msg := []byte("hello")
 		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
-		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa1.Address() {
+		sig1, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa1.Address()}) {
 				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -175,8 +175,8 @@ func TestSignatureJoin(t *testing.T) {
 
 		sig1 = sig1.Reduce(payload)
 
-		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa6.Address() {
+		sig2, err := wc.BuildRegularSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa6.Address()}) {
 				sig, _ := eoa6.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -253,8 +253,8 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		msg := []byte("hello")
 		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
-		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa1.Address() {
+		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa1.Address()}) {
 				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -263,8 +263,8 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 
-		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa2.Address() {
+		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa2.Address()}) {
 				sig, _ := eoa2.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -319,8 +319,8 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 		msg := []byte("hello")
 		payload := Digest(crypto.Keccak256Hash(msg), common.Address{})
 
-		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa1.Address() {
+		sig1, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa1.Address()}) {
 				sig, _ := eoa1.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {
@@ -331,8 +331,8 @@ func TestNoChainIDSignatureJoin(t *testing.T) {
 
 		sig1 = sig1.Reduce(payload)
 
-		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer common.Address, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-			if signer == eoa6.Address() {
+		sig2, err := wc.BuildNoChainIDSignature(context.Background(), func(ctx context.Context, signer core.Signer, signatures []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+			if signer == (core.Signer{Address: eoa6.Address()}) {
 				sig, _ := eoa6.SignMessage(payload.Digest().Bytes())
 				return core.SignerSignatureTypeEthSign, sig, nil
 			} else {

@@ -521,11 +521,11 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
-	for addr := range signers {
-		mainSigner = addr
+	for signer := range signers {
+		mainSigner = signer.Address
 		break
 	}
-	require.NotNil(t, mainSigner)
+	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
 	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
@@ -679,11 +679,11 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	// Get the main signer
 	signers := wallet.GetWalletConfig().Signers()
 	var mainSigner common.Address
-	for addr := range signers {
-		mainSigner = addr
+	for signer := range signers {
+		mainSigner = signer.Address
 		break
 	}
-	require.NotNil(t, mainSigner)
+	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for both batches
 	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads)
