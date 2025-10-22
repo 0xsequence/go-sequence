@@ -38,9 +38,33 @@ const configTOML = `
 	address = "0x5555555555555555555555555555555555555555"
 `
 
+const configTOML2 = `
+	threshold = 5
+	checkpoint = 1
+
+	[[tree]]
+	weight = 3
+	address = "0x1111111111111111111111111111111111111111"
+
+	[[tree]]
+	weight = 3
+	address = "0x2222222222222222222222222222222222222222"
+`
+
 func TestWalletConfigTOML(t *testing.T) {
 	var config map[string]any
 	_, err := toml.Decode(configTOML, &config)
+	assert.NoError(t, err)
+
+	config_, err := v3.Core.DecodeWalletConfig(config)
+	assert.NoError(t, err)
+
+	spew.Dump(config_)
+}
+
+func TestWalletConfigTOML2(t *testing.T) {
+	var config map[string]any
+	_, err := toml.Decode(configTOML2, &config)
 	assert.NoError(t, err)
 
 	config_, err := v3.Core.DecodeWalletConfig(config)
