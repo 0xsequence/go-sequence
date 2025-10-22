@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"math/bits"
+	"reflect"
 	"strconv"
 
 	"github.com/0xsequence/ethkit/ethrpc"
@@ -2103,9 +2104,25 @@ type WalletConfigTree interface {
 }
 
 func DecodeWalletConfigTree(object any) (WalletConfigTree, error) {
-	object_, ok := object.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("wallet config tree must be an object")
+	if object == nil {
+		return nil, fmt.Errorf("wallet config tree cannot be nil")
+	}
+
+	var object_ map[string]any
+
+	if reflect.TypeOf(object).Kind() == reflect.Slice {
+		sliceValue := reflect.ValueOf(object)
+		if sliceValue.Len() != 2 {
+			return nil, fmt.Errorf("expected 2 elements in array, got %v", sliceValue.Len())
+		}
+		object_ = map[string]any{
+			"left":  sliceValue.Index(0).Interface(),
+			"right": sliceValue.Index(1).Interface(),
+		}
+	} else if temp, ok := object.(map[string]any); ok {
+		object_ = temp
+	} else {
+		return nil, fmt.Errorf("wallet config tree must be an object or slice, is %T", object)
 	}
 
 	if typ, ok := object_["type"].(string); ok {
