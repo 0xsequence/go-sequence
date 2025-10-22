@@ -37,7 +37,7 @@ func RecoverSapientSignature(ctx context.Context, signer common.Address, payload
 		return core.ImageHash{}, fmt.Errorf("unable to abi encode %T payload", payload)
 	}
 
-	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignature", payload_, signature)
+	data, err := contracts.ISapient.Encode("recoverSapientSignature", payload_, signature)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignature call: %w", err)
 	}
@@ -48,7 +48,7 @@ func RecoverSapientSignature(ctx context.Context, signer common.Address, payload
 	}
 
 	var imageHash common.Hash
-	err = contracts.V3.WalletStage1Module.Decode(&imageHash, "recoverSapientSignature", response)
+	err = contracts.ISapient.Decode(&imageHash, "recoverSapientSignature", response)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to decode recoverSapientSignature response: %w", err)
 	}
@@ -74,7 +74,7 @@ func RecoverSapientSignatureCompact(ctx context.Context, signer common.Address, 
 		return core.ImageHash{}, fmt.Errorf("unable to recover sapient signature compact without provider")
 	}
 
-	data, err := contracts.V3.WalletStage1Module.Encode("recoverSapientSignatureCompact", payload.Digest().Hash, signature)
+	data, err := contracts.ISapientCompact.Encode("recoverSapientSignatureCompact", payload.Digest().Hash, signature)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to encode recoverSapientSignatureCompact call: %w", err)
 	}
@@ -85,7 +85,7 @@ func RecoverSapientSignatureCompact(ctx context.Context, signer common.Address, 
 	}
 
 	var imageHash common.Hash
-	err = contracts.V3.WalletStage1Module.Decode(&imageHash, "recoverSapientSignatureCompact", response)
+	err = contracts.ISapientCompact.Decode(&imageHash, "recoverSapientSignatureCompact", response)
 	if err != nil {
 		return core.ImageHash{}, fmt.Errorf("unable to decode recoverSapientSignatureCompact response: %w", err)
 	}

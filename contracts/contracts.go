@@ -10,6 +10,7 @@ import (
 
 	"github.com/0xsequence/go-sequence/contracts/gen/gasestimator"
 	"github.com/0xsequence/go-sequence/contracts/gen/ierc1271"
+	"github.com/0xsequence/go-sequence/contracts/gen/isapient"
 	"github.com/0xsequence/go-sequence/contracts/gen/niftyswap"
 	seqmarketplace "github.com/0xsequence/go-sequence/contracts/gen/seq_marketplace"
 	seqsale1155v0 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc1155v0"
@@ -40,6 +41,8 @@ import (
 
 var GasEstimator,
 	IERC1271,
+	ISapient,
+	ISapientCompact,
 	ERC20Mock,
 	IERC20,
 	IERC721,
@@ -126,6 +129,8 @@ func init() {
 	ValueForwarder = artifact("VALUE_FORWARDER", valueforwarder.ValueForwarderABI, valueforwarder.ValueForwarderBin)
 
 	IERC1271 = artifact("IERC1271", ierc1271.IERC1271ABI, "")
+	ISapient = artifact("ISapient", isapient.ISapientABI, "")
+	ISapientCompact = artifact("ISapientCompact", isapient.ISapientCompactABI, "")
 
 	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")

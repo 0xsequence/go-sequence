@@ -71,6 +71,12 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=ierc1271 --type=IERC1271 --outFile=./ierc1271/ierc1271.gen.go --artifactsFile=../artifacts/erc1271/ierc1271.json
 
 //
+// sapient signers
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=isapient --type=ISapient --outFile=./isapient/isapient.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/ISapient.sol/ISapient.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=isapient --type=ISapientCompact --outFile=./isapient/isapientcompact.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/ISapient.sol/ISapientCompact.json
+
+//
 // sequence marketplace
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=seq_marketplace --type=SequenceMarketplace --outFile=./seq_marketplace/seq_marketplace.gen.go --artifactsFile=../artifacts/seq_marketplace/ISequenceMarket.sol/ISequenceMarket.json
