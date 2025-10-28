@@ -126,6 +126,18 @@ func (h Hash) IsZeroValue() bool {
 	return false
 }
 
+func (h Hash) IsEmpty() bool {
+	return h == ""
+}
+
+// IsNativeAssetAddress checks if the hash value is the ERC-7528
+// native token address represented as a contract address.
+// see https://eips.ethereum.org/EIPS/eip-7528
+func (h Hash) IsNativeAssetAddress() bool {
+	return h == "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ||
+		h == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+}
+
 func (h Hash) IsValidHex() bool {
 	if len(h) == 0 {
 		return false
