@@ -102,7 +102,7 @@ func (b *BigInt) SetString(s string, base int) bool {
 }
 
 func (b BigInt) String() string {
-	return b.Int().String()
+	return b.AsInt().String()
 }
 
 func (b BigInt) Bytes() []byte {
@@ -110,6 +110,13 @@ func (b BigInt) Bytes() []byte {
 	return bp.Bytes()
 }
 
+// AsInt exposes the underlying *big.Int.
+func (b *BigInt) AsInt() *big.Int {
+	return (*big.Int)(b)
+}
+
+// Int returns the underlying *big.Int, similar to AsInt
+// but for value receiver.
 func (b BigInt) Int() *big.Int {
 	bp := (*big.Int)(&b)
 	return bp
@@ -177,19 +184,34 @@ var (
 
 // MarshalText implements encoding.TextMarshaler.
 func (b BigInt) MarshalText() ([]byte, error) {
-	v := fmt.Sprintf("\"%s\"", b.String())
-	return []byte(v), nil
+	return []byte(fmt.Sprintf("\"%s\"", b.String())), nil
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (b *BigInt) UnmarshalText(text []byte) error {
-	t := string(text)
-	if len(text) <= 2 || t == "null" || t == "" {
+	if len(text) == 0 {
 		return nil
 	}
-	i, ok := big.NewInt(0).SetString(string(text[1:len(text)-1]), 10)
+	if len(text) == 4 && text[0] == 'n' && string(text) == "null" {
+		return nil
+	}
+	for _, c := range text {
+		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+			return fmt.Errorf("BigInt.UnmarshalText: unexpected whitespace in %q", text)
+		}
+	}
+	var digits []byte
+	if text[0] == '-' || (text[0] >= '0' && text[0] <= '9') {
+		digits = text
+	} else {
+		if len(text) < 2 || text[0] != '"' || text[len(text)-1] != '"' {
+			return fmt.Errorf("BigInt.UnmarshalText: unsupported format %q", text)
+		}
+		digits = text[1 : len(text)-1]
+	}
+	i, ok := big.NewInt(0).SetString(string(digits), 10)
 	if !ok {
-		return fmt.Errorf("BigInt.UnmarshalText: failed to unmarshal %q", text)
+		return fmt.Errorf("BigInt.UnmarshalText: failed to parse %q", text)
 	}
 	*b = BigInt(*i)
 	return nil
