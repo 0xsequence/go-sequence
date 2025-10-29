@@ -132,6 +132,13 @@ func (b BigInt) Int64() int64 {
 	return bp.Int64()
 }
 
+var bigIntZero = big.NewInt(0)
+
+func (b BigInt) IsZeroValue() bool {
+	bp := (*big.Int)(&b)
+	return bp.Cmp(bigIntZero) == 0
+}
+
 func (b *BigInt) Add(n *big.Int) {
 	z := b.Int().Add(b.Int(), n)
 	*b = BigInt(*z)
