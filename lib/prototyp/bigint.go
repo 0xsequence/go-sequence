@@ -179,6 +179,18 @@ func (b BigInt) Cmp(n *big.Int) int {
 	return bp.Cmp(n)
 }
 
+func (b BigInt) SetUint64(n uint64) BigInt {
+	bp := (*big.Int)(&b)
+	bp.SetUint64(n)
+	return b
+}
+
+func (b BigInt) SetBigInt(n *big.Int) BigInt {
+	bp := (*big.Int)(&b)
+	bp.Set(n)
+	return b
+}
+
 var (
 	_bi                            = BigInt{}
 	_   encoding.BinaryMarshaler   = _bi
