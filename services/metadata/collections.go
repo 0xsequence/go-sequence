@@ -11,15 +11,15 @@ import (
 	"strings"
 )
 
-type CollectionsService struct {
-	Collections
+type Collections struct {
+	CollectionsClient
 	options    Options
 	httpClient HTTPClient
 }
 
 // NewCollections creates a new Sequence Metadata Collections client instance. Please see
 // https://sequence.build to get a `projectServiceJWTToken` service-level account jwt token.
-func NewCollections(projectServiceJWTToken string, clientOptions ...Options) CollectionsService {
+func NewCollections(projectServiceJWTToken string, clientOptions ...Options) Collections {
 	opts := Options{}
 	if len(clientOptions) > 0 {
 		opts = clientOptions[0]
@@ -41,14 +41,14 @@ func NewCollections(projectServiceJWTToken string, clientOptions ...Options) Col
 
 	serviceClient := NewCollectionsClient(strings.TrimSuffix(serviceURL, "/"), c)
 
-	return CollectionsService{
-		Collections: serviceClient,
-		options:     opts,
-		httpClient:  c,
+	return Collections{
+		CollectionsClient: serviceClient,
+		options:           opts,
+		httpClient:        c,
 	}
 }
 
-func (c *CollectionsService) UploadAsset(ctx context.Context, projectID, collectionID, assetID uint64, assetContent io.Reader) (*Asset, error) {
+func (c *Collections) UploadAsset(ctx context.Context, projectID, collectionID, assetID uint64, assetContent io.Reader) (*Asset, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
