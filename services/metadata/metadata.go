@@ -17,6 +17,9 @@ type Options struct {
 	// HTTPClient is an optional custom HTTP client to use for communicating with the
 	// metadata service.
 	HTTPClient HTTPClient
+
+	// ProjectAccessKey is the access key for the project. (optional)
+	ProjectAccessKey string
 }
 
 const DefaultMetadataServiceURL = "https://metadata.sequence.app"
@@ -31,6 +34,9 @@ func NewClient(projectAccessKey string, clientOptions ...Options) MetadataClient
 	opts := Options{}
 	if len(clientOptions) > 0 {
 		opts = clientOptions[0]
+	}
+	if opts.ProjectAccessKey != "" && projectAccessKey == "" {
+		projectAccessKey = opts.ProjectAccessKey
 	}
 
 	client := &httpClient{

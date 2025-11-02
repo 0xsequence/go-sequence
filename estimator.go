@@ -25,9 +25,11 @@ import (
 	"github.com/goware/cachestore/memlru"
 )
 
+// TODO: migrate from "github.com/goware/cachestore" to
+// "github.com/goware/cachestore2"
+
 const (
 	defaultEstimatorCacheSize = 500
-
 	areEOAsMaxConcurrentTasks = 10
 )
 
