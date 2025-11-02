@@ -41,7 +41,7 @@ type Options struct {
 }
 
 type Client struct {
-	proto.Relayer
+	proto.RelayerClient
 	provider        *ethrpc.Provider
 	receiptListener *ethreceipts.ReceiptsListener
 }
@@ -92,10 +92,10 @@ func NewClient(relayerURL string, projectAccessKey string, rpcProvider *ethrpc.P
 		c.jwtAuthHeader = fmt.Sprintf("BEARER %s", opts.JWTAuthToken)
 	}
 
-	serviceClient := proto.NewRelayerClient(strings.TrimSuffix(relayerURL, "/"), c)
+	relayerClient := proto.NewRelayerClient(strings.TrimSuffix(relayerURL, "/"), c)
 
 	return &Client{
-		Relayer:         serviceClient,
+		RelayerClient:   relayerClient,
 		provider:        rpcProvider,
 		receiptListener: opts.ReceiptsListener,
 	}, nil
@@ -275,7 +275,7 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 		return nil, nil, err
 	}
 
-	options, _, quote, err := r.Relayer.FeeOptions(
+	options, _, quote, err := r.RelayerClient.FeeOptions(
 		ctx,
 		signedTxs.WalletAddress.String(),
 		signedTxs.WalletAddress.String(),
@@ -363,5 +363,5 @@ func (r *Client) IsDeployTransaction(signedTxs *sequence.SignedTransactions) boo
 }
 
 func (r *Client) Client() proto.RelayerClient {
-	return r.Relayer
+	return r.RelayerClient
 }
