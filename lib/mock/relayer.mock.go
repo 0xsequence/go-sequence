@@ -429,7 +429,7 @@ func (mr *RelayerMockRecorder) RuntimeStatus(ctx any) *gomock.Call {
 }
 
 // SendMetaTxn mocks base method.
-func (m *Relayer) SendMetaTxn(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64, preconditions []*proto.IntentPrecondition) (bool, string, error) {
+func (m *Relayer) SendMetaTxn(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64, preconditions []*proto.TransactionPrecondition) (bool, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMetaTxn", ctx, call, quote, projectID, preconditions)
 	ret0, _ := ret[0].(bool)
