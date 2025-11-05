@@ -33,7 +33,7 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 	var result *MetaTxnResult
 
 	metaTxnHash := common.HexToHash(string(metaTxnID))
-	receipt, waitFinality, err := receiptListener.FetchTransactionReceiptWithFilter(ctx, FilterMetaTransactionID(metaTxnHash).LimitOne(true).SearchCache(true))
+	receipt, waitFinality, err := receiptListener.FetchTransactionReceiptWithFilter(ctx, FilterMetaTransactionID(metaTxnHash).LimitOne(true).SearchCache(true).MaxWait(0))
 	if err != nil {
 		return nil, nil, nil, err
 	}
