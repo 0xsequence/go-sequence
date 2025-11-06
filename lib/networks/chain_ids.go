@@ -1,0 +1,109 @@
+package networks
+
+type ChainID uint64
+
+const (
+	ChainID_NONE = 0
+
+	// Ethereum
+	ChainID_MAINNET = 1
+	ChainID_SEPOLIA = 11155111
+
+	// Polygon
+	ChainID_POLYGON       = 137
+	ChainID_POLYGON_ZKEVM = 1101
+	ChainID_POLYGON_AMOY  = 80002
+
+	// BSC
+	ChainID_BSC         = 56
+	ChainID_BSC_TESTNET = 97
+
+	// Optimism
+	ChainID_OPTIMISM         = 10
+	ChainID_OPTIMISM_SEPOLIA = 11155420
+
+	// Arbitrum One
+	ChainID_ARBITRUM         = 42161
+	ChainID_ARBITRUM_SEPOLIA = 421614
+
+	// Arbitrum Nova
+	ChainID_ARBITRUM_NOVA = 42170
+
+	// Avalanche
+	ChainID_AVALANCHE         = 43114
+	ChainID_AVALANCHE_TESTNET = 43113
+
+	// Gnosis Chain (XDAI)
+	ChainID_GNOSIS = 100
+
+	// BASE
+	ChainID_BASE         = 8453
+	ChainID_BASE_SEPOLIA = 84532
+
+	// HOMEVERSE
+	ChainID_HOMEVERSE_TESTNET = 40875
+	ChainID_HOMEVERSE         = 19011
+
+	// Xai
+	ChainID_XAI         = 660279
+	ChainID_XAI_SEPOLIA = 37714555429
+
+	// TELOS
+	ChainID_TELOS         = 40
+	ChainID_TELOS_TESTNET = 41
+
+	// B3 Sepolia
+	ChainID_B3         = 8333
+	ChainID_B3_SEPOLIA = 1993
+
+	// APE Chain
+	ChainID_APECHAIN         = 33139
+	ChainID_APECHAIN_TESTNET = 33111
+
+	// Blast
+	ChainID_BLAST         = 81457
+	ChainID_BLAST_SEPOLIA = 168587773
+
+	// SKALE Nebula
+	ChainID_SKALE_NEBULA         = 1482601649
+	ChainID_SKALE_NEBULA_TESTNET = 37084624
+
+	// Soneium Minato
+	ChainID_SONEIUM_MINATO = 1946
+	ChainID_SONEIUM        = 1868
+
+	// TOY Testnet
+	ChainID_TOY_TESTNET = 21000000
+
+	// Immutable zkEVM
+	ChainID_IMMUTABLE_ZKEVM         = 13371
+	ChainID_IMMUTABLE_ZKEVM_TESTNET = 13473
+
+	// ETHERLINK
+	ChainID_ETHERLINK         = 42793
+	ChainID_ETHERLINK_TESTNET = 128123
+
+	// MOONBEAM
+	ChainID_MOONBEAM       = 1284
+	ChainID_MOONBASE_ALPHA = 1287
+
+	// MONAD
+	ChainID_MONAD         = 143
+	ChainID_MONAD_TESTNET = 10143
+
+	// SOMNIA
+	ChainID_SOMNIA_TESTNET = 50312
+	ChainID_SOMNIA         = 5031
+
+	// INCENTIV
+	ChainID_INCENTIV_TESTNET_V2 = 28802
+
+	// KATANA
+	ChainID_KATANA = 747474
+
+	// SANDBOX
+	ChainID_SANDBOX_TESTNET = 6252
+
+	// ARC
+	ChainID_ARC_TESTNET = 5042002
+)
