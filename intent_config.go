@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Token represents a token with an address and chain ID. Zero addresses represent ETH, or other native tokens.
@@ -63,19 +62,21 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	// Calculate cumulativeCallsHash
 	var cumulativeCallsHash [32]byte
 	for i, callPayload := range params.DestinationCalls {
+		_ = i
+
 		// Change the address to address(0)
 		callPayload, _ := v3.PayloadWithAddress(callPayload, common.Address{})
 
 		individualPayloadDigest := callPayload.Digest()
 
 		packedForKeccak := append(cumulativeCallsHash[:], individualPayloadDigest.Hash[:]...)
-		fmt.Printf("    packedForKeccak: 0x%s\n", common.Bytes2Hex(packedForKeccak))
+		// fmt.Printf("    packedForKeccak: 0x%s\n", common.Bytes2Hex(packedForKeccak))
 
 		cumulativeCallsHash = ethcoder.Keccak256Hash(packedForKeccak)
-		fmt.Printf("    cumulativeCallsHash after callPayload[%d]: 0x%s\n", i, common.Bytes2Hex(cumulativeCallsHash[:]))
+		// fmt.Printf("    cumulativeCallsHash after callPayload[%d]: 0x%s\n", i, common.Bytes2Hex(cumulativeCallsHash[:]))
 	}
-	fmt.Printf("  final cumulativeCallsHash: 0x%s\n", common.Bytes2Hex(cumulativeCallsHash[:]))
-	fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
+	// fmt.Printf("  final cumulativeCallsHash: 0x%s\n", common.Bytes2Hex(cumulativeCallsHash[:]))
+	// fmt.Printf("  destinationTokens: %v\n", params.DestinationTokens)
 
 	// Prepare OriginTokens data
 	originArgs := []OriginToken{}
@@ -150,7 +151,7 @@ func HashIntentParams(params *IntentParams) ([32]byte, error) {
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("failed to ABI pack combined arguments: %w", err)
 	}
-	fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
+	// fmt.Printf("    encoded: 0x%s\n", common.Bytes2Hex(encoded))
 
 	hash := ethcoder.Keccak256(encoded)
 
@@ -249,8 +250,8 @@ func GetIntentConfigurationSignature(
 		return nil, err
 	}
 
-	spew.Dump(config)
-	spew.Dump(config.Tree)
+	// spew.Dump(config)
+	// spew.Dump(config.Tree)
 
 	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		// For mainSigner or other signers, we don't provide a signature here.
@@ -265,26 +266,28 @@ func GetIntentConfigurationSignature(
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
 	}
 
-	spew.Dump(sig)
+	// spew.Dump(sig)
 
 	if regularSig, ok := sig.(*v3.RegularSignature); ok {
 		if regularSig.Signature != nil {
 			signatureTree := regularSig.Signature.Tree
-			fmt.Println("Accessing sig.Signature.Tree:")
-			spew.Dump(signatureTree)
+			_ = signatureTree
+			// fmt.Println("Accessing sig.Signature.Tree:")
+			// spew.Dump(signatureTree)
 		} else {
-			fmt.Println("sig.Signature is nil")
+			// fmt.Println("sig.Signature is nil")
 		}
 	} else if noChainIdSig, ok := sig.(*v3.NoChainIDSignature); ok {
 		if noChainIdSig.Signature != nil {
 			signatureTree := noChainIdSig.Signature.Tree
-			fmt.Println("Accessing sig.Signature.Tree (NoChainID):")
-			spew.Dump(signatureTree)
+			_ = signatureTree
+			// fmt.Println("Accessing sig.Signature.Tree (NoChainID):")
+			// spew.Dump(signatureTree)
 		} else {
-			fmt.Println("sig.Signature is nil for NoChainIDSignature")
+			// fmt.Println("sig.Signature is nil for NoChainIDSignature")
 		}
 	} else {
-		fmt.Printf("sig is not of type *v3.RegularSignature or *v3.NoChainIDSignature, it is %T\n", sig)
+		// fmt.Printf("sig is not of type *v3.RegularSignature or *v3.NoChainIDSignature, it is %T\n", sig)
 	}
 
 	// Get the signature data
@@ -294,7 +297,7 @@ func GetIntentConfigurationSignature(
 	}
 
 	// Print the signature data
-	fmt.Printf("signature data: %s\n", common.Bytes2Hex(data))
+	// fmt.Printf("signature data: %s\n", common.Bytes2Hex(data))
 
 	return data, nil
 }
