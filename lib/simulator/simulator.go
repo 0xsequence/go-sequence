@@ -34,7 +34,11 @@ type Result struct {
 	GasUsed uint64
 }
 
-func SimulateV2(ctx context.Context, wallet common.Address, transactions []walletgasestimator.IModuleCallsTransaction, provider *ethrpc.Provider) ([]Result, error) {
+func SimulateV2(ctx context.Context, wallet common.Address, transactions []walletgasestimator.IModuleCallsTransaction, provider *ethrpc.Provider, gasLimit ...*big.Int) ([]Result, error) {
+	if len(gasLimit) == 0 {
+		gasLimit = append(gasLimit, nil)
+	}
+
 	overrides := map[common.Address]gethclient.OverrideAccount{
 		wallet: {Code: contracts.V2.WalletGasEstimator.DeployedBin},
 	}
@@ -53,8 +57,13 @@ func SimulateV2(ctx context.Context, wallet common.Address, transactions []walle
 		return nil, fmt.Errorf("unable to encode simulateExecute call: %w", err)
 	}
 
+	params := map[string]any{"to": wallet, "input": hexutil.Encode(input)}
+	if gasLimit[0] != nil {
+		params["gas"] = fmt.Sprintf("0x%v", gasLimit[0].Text(16))
+	}
+
 	var encoded string
-	_, err = provider.Do(ctx, ethrpc.NewCallBuilder[string]("eth_call", nil, map[string]any{"to": wallet, "input": hexutil.Encode(input)}, "latest", overrides).Into(&encoded))
+	_, err = provider.Do(ctx, ethrpc.NewCallBuilder[string]("eth_call", nil, params, "latest", overrides).Into(&encoded))
 	if err != nil {
 		return nil, fmt.Errorf("unable to simulateExecute: %w", err)
 	}
@@ -108,7 +117,11 @@ func SimulateV2(ctx context.Context, wallet common.Address, transactions []walle
 	return results_, nil
 }
 
-func SimulateV3(ctx context.Context, wallet common.Address, calls []v3.Call, provider *ethrpc.Provider) ([]Result, error) {
+func SimulateV3(ctx context.Context, wallet common.Address, calls []v3.Call, provider *ethrpc.Provider, gasLimit ...*big.Int) ([]Result, error) {
+	if len(gasLimit) == 0 {
+		gasLimit = append(gasLimit, nil)
+	}
+
 	overrides := map[common.Address]gethclient.OverrideAccount{
 		wallet: {Code: contracts.V3.WalletSimulator.DeployedBin},
 	}
@@ -141,8 +154,13 @@ func SimulateV3(ctx context.Context, wallet common.Address, calls []v3.Call, pro
 		return nil, fmt.Errorf("unable to encode simulate call: %w", err)
 	}
 
+	params := map[string]any{"to": wallet, "input": hexutil.Encode(input)}
+	if gasLimit[0] != nil {
+		params["gas"] = fmt.Sprintf("0x%v", gasLimit[0].Text(16))
+	}
+
 	var encoded string
-	_, err = provider.Do(ctx, ethrpc.NewCallBuilder[string]("eth_call", nil, map[string]any{"to": wallet, "input": hexutil.Encode(input)}, "latest", overrides).Into(&encoded))
+	_, err = provider.Do(ctx, ethrpc.NewCallBuilder[string]("eth_call", nil, params, "latest", overrides).Into(&encoded))
 	if err != nil {
 		return nil, fmt.Errorf("unable to simulate: %w", err)
 	}
