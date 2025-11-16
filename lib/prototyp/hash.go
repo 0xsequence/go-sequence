@@ -92,6 +92,10 @@ func (h Hash) Hex() string {
 	return string(h)
 }
 
+func (h Hash) ToLower() Hash {
+	return Hash(strings.ToLower(string(h)))
+}
+
 func (h Hash) Len() int {
 	return len(h.String())
 }
