@@ -134,11 +134,15 @@ func (h Hash) IsEmpty() bool {
 	return h == ""
 }
 
-// IsEtherNativeTokenAddress checks if the hash value is the ERC-7528
-// native token address represented as a contract address.
-// see https://eips.ethereum.org/EIPS/eip-7528
-func (h Hash) IsEtherNativeTokenAddress() bool {
-	return h == "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ||
+// IsNativeTokenAddress checks if the hash value is the zero address (0x000..000) or
+// ERC-7528 (https://eips.ethereum.org/EIPS/eip-7528) native token address represented
+// as a contract address.
+//
+// For some background, many use 0x000..000 or 0xeee..eee to represent a native token
+// like ETH in the context of erc20 tokens.
+func (h Hash) IsNativeTokenAddress() bool {
+	return h == "0x0000000000000000000000000000000000000000" ||
+		h == "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ||
 		h == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 }
 
