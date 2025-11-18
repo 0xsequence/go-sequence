@@ -13,9 +13,10 @@ import (
 )
 
 var passkeySigners = map[common.Address]struct{}{
+	common.HexToAddress("0x0000000000005204F3711851EAD52CC9c241499a"): {}, // rc4
 	common.HexToAddress("0x0000000000dc2d96870dc108c5E15570B715DFD2"): {}, // rc3
-	common.HexToAddress("0x8f26281dB84C18aAeEa8a53F94c835393229d296"): {}, // dev1
 	common.HexToAddress("0x4491845806B757D67BE05BbD877Cab101B9bee5C"): {}, // dev2
+	common.HexToAddress("0x8f26281dB84C18aAeEa8a53F94c835393229d296"): {}, // dev1
 }
 
 func RecoverSapientSignature(ctx context.Context, signer common.Address, payload core.Payload, signature []byte, provider *ethrpc.Provider) (core.ImageHash, error) {
