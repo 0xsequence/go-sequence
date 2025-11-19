@@ -6,7 +6,7 @@ func GetAllNetworks() Networks {
 }
 
 // GetByChainID returns the network configuration by chain ID
-func GetByChainID(chainID int) *Network {
+func GetByChainID(chainID uint64) *Network {
 	for _, network := range all {
 		if network.ChainID == chainID {
 			return network
