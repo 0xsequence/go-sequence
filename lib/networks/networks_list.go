@@ -1,97 +1,9 @@
 package networks
 
-// GetAllNetworks returns all supported networks
-func GetAllNetworks() Networks {
-	return all
-}
-
-// GetByChainID returns the network configuration by chain ID
-func GetByChainID(chainID uint64) *Network {
-	for _, network := range all {
-		if network.ChainID == chainID {
-			return network
-		}
-	}
-	return nil
-}
-
-// GetByName returns the network configuration by name
-func GetByName(name string) *Network {
-	network, _ := all[name]
-	return network
-}
-
-// List of supported chains ids
-const (
-	ChainID_MAINNET                 uint64 = 1
-	ChainID_ROPSTEN                 uint64 = 3
-	ChainID_RINKEBY                 uint64 = 4
-	ChainID_GOERLI                  uint64 = 5
-	ChainID_OPTIMISM                uint64 = 10
-	ChainID_TELOS                   uint64 = 40
-	ChainID_TELOS_TESTNET           uint64 = 41
-	ChainID_KOVAN                   uint64 = 42
-	ChainID_BSC                     uint64 = 56
-	ChainID_OPTIMISM_KOVAN          uint64 = 69
-	ChainID_BSC_TESTNET             uint64 = 97
-	ChainID_GNOSIS                  uint64 = 100
-	ChainID_POLYGON                 uint64 = 137
-	ChainID_MONAD                   uint64 = 143
-	ChainID_OPTIMISM_GOERLI         uint64 = 420
-	ChainID_POLYGON_ZKEVM           uint64 = 1101
-	ChainID_MOONBEAM                uint64 = 1284
-	ChainID_MOONBASE_ALPHA          uint64 = 1287
-	ChainID_SEI_TESTNET             uint64 = 1328
-	ChainID_SEI                     uint64 = 1329
-	ChainID_SONEIUM                 uint64 = 1868
-	ChainID_SONEIUM_MINATO          uint64 = 1946
-	ChainID_B3_SEPOLIA              uint64 = 1993
-	ChainID_SOMNIA                  uint64 = 5031
-	ChainID_SANDBOX_TESTNET         uint64 = 6252
-	ChainID_B3                      uint64 = 8333
-	ChainID_BASE                    uint64 = 8453
-	ChainID_MONAD_TESTNET           uint64 = 10143
-	ChainID_INCENTIV_TESTNET        uint64 = 11690
-	ChainID_IMMUTABLE_ZKEVM         uint64 = 13371
-	ChainID_IMMUTABLE_ZKEVM_TESTNET uint64 = 13473
-	ChainID_HOMEVERSE               uint64 = 19011
-	ChainID_INCENTIV_TESTNET_V2     uint64 = 28802
-	ChainID_HARDHAT                 uint64 = 31337
-	ChainID_HARDHAT2                uint64 = 31338
-	ChainID_APECHAIN_TESTNET        uint64 = 33111
-	ChainID_APECHAIN                uint64 = 33139
-	ChainID_HOMEVERSE_TESTNET       uint64 = 40875
-	ChainID_ARBITRUM                uint64 = 42161
-	ChainID_ARBITRUM_NOVA           uint64 = 42170
-	ChainID_ETHERLINK               uint64 = 42793
-	ChainID_AVALANCHE_TESTNET       uint64 = 43113
-	ChainID_AVALANCHE               uint64 = 43114
-	ChainID_SOMNIA_TESTNET          uint64 = 50312
-	ChainID_MUMBAI                  uint64 = 80001
-	ChainID_AMOY                    uint64 = 80002
-	ChainID_BLAST                   uint64 = 81457
-	ChainID_BASE_GOERLI             uint64 = 84531
-	ChainID_BASE_SEPOLIA            uint64 = 84532
-	ChainID_BORNE_TESTNET           uint64 = 94984
-	ChainID_ETHERLINK_TESTNET       uint64 = 128123
-	ChainID_ARBITRUM_GOERLI         uint64 = 421613
-	ChainID_ARBITRUM_SEPOLIA        uint64 = 421614
-	ChainID_XAI                     uint64 = 660279
-	ChainID_KATANA                  uint64 = 747474
-	ChainID_ARC_TESTNET             uint64 = 5042002
-	ChainID_SEPOLIA                 uint64 = 11155111
-	ChainID_OPTIMISM_SEPOLIA        uint64 = 11155420
-	ChainID_TOY_TESTNET             uint64 = 21000000
-	ChainID_SKALE_NEBULA_TESTNET    uint64 = 37084624
-	ChainID_BLAST_SEPOLIA           uint64 = 168587773
-	ChainID_SKALE_NEBULA            uint64 = 1482601649
-	ChainID_XAI_SEPOLIA             uint64 = 37714555429
-)
-
 // All supported networks
-var all = Networks{
-	"mainnet": &Network{
-		ChainID: ChainID_MAINNET,
+var (
+	MAINNET = &Network{
+		ChainID: 1,
 		Name:    "Ethereum",
 		Title:   "Ethereum",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1.webp",
@@ -105,9 +17,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-	},
-	"ropsten": &Network{
-		ChainID: ChainID_ROPSTEN,
+	}
+	ROPSTEN = &Network{
+		ChainID: 3,
 		Name:    "Ropsten",
 		Title:   "Ropsten",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/3.webp",
@@ -121,9 +33,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-	},
-	"rinkeby": &Network{
-		ChainID: ChainID_RINKEBY,
+	}
+	RINKEBY = &Network{
+		ChainID: 4,
 		Name:    "Rinkeby",
 		Title:   "Rinkeby",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/4.webp",
@@ -137,9 +49,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-	},
-	"goerli": &Network{
-		ChainID: ChainID_GOERLI,
+	}
+	GOERLI = &Network{
+		ChainID: 5,
 		Name:    "Goerli",
 		Title:   "Goerli",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/5.webp",
@@ -153,9 +65,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-	},
-	"optimism": &Network{
-		ChainID: ChainID_OPTIMISM,
+	}
+	OPTIMISM = &Network{
+		ChainID: 10,
 		Name:    "Optimism",
 		Title:   "Optimism",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/10.webp",
@@ -169,9 +81,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"telos": &Network{
-		ChainID: ChainID_TELOS,
+	}
+	TELOS = &Network{
+		ChainID: 40,
 		Name:    "Telos",
 		Title:   "Telos",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/40.webp",
@@ -185,9 +97,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"telos-testnet": &Network{
-		ChainID: ChainID_TELOS_TESTNET,
+	}
+	TELOS_TESTNET = &Network{
+		ChainID: 41,
 		Name:    "Telos Testnet",
 		Title:   "Telos Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/41.webp",
@@ -201,9 +113,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"kovan": &Network{
-		ChainID: ChainID_KOVAN,
+	}
+	KOVAN = &Network{
+		ChainID: 42,
 		Name:    "Kovan",
 		Title:   "Kovan",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/42.webp",
@@ -217,9 +129,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"bsc": &Network{
-		ChainID: ChainID_BSC,
+	}
+	BSC = &Network{
+		ChainID: 56,
 		Name:    "BNB Smart Chain",
 		Title:   "BNB Smart Chain",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/56.webp",
@@ -233,9 +145,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"optimism-kovan": &Network{
-		ChainID: ChainID_OPTIMISM_KOVAN,
+	}
+	OPTIMISM_KOVAN = &Network{
+		ChainID: 69,
 		Name:    "Optimism Kovan",
 		Title:   "Optimism Kovan",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/69.webp",
@@ -249,9 +161,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"bsc-testnet": &Network{
-		ChainID: ChainID_BSC_TESTNET,
+	}
+	BSC_TESTNET = &Network{
+		ChainID: 97,
 		Name:    "BNB Smart Chain Testnet",
 		Title:   "BNB Smart Chain Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/97.webp",
@@ -265,9 +177,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"gnosis": &Network{
-		ChainID: ChainID_GNOSIS,
+	}
+	GNOSIS = &Network{
+		ChainID: 100,
 		Name:    "Gnosis Chain",
 		Title:   "Gnosis Chain",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/100.webp",
@@ -281,9 +193,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"polygon": &Network{
-		ChainID: ChainID_POLYGON,
+	}
+	POLYGON = &Network{
+		ChainID: 137,
 		Name:    "Polygon",
 		Title:   "Polygon",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/137.webp",
@@ -297,9 +209,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"monad": &Network{
-		ChainID: ChainID_MONAD,
+	}
+	MONAD = &Network{
+		ChainID: 143,
 		Name:    "Monad",
 		Title:   "Monad",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/143.webp",
@@ -313,9 +225,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"optimism-goerli": &Network{
-		ChainID: ChainID_OPTIMISM_GOERLI,
+	}
+	OPTIMISM_GOERLI = &Network{
+		ChainID: 420,
 		Name:    "Optimism Goerli",
 		Title:   "Optimism Goerli",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/420.webp",
@@ -329,9 +241,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"polygon-zkevm": &Network{
-		ChainID: ChainID_POLYGON_ZKEVM,
+	}
+	POLYGON_ZKEVM = &Network{
+		ChainID: 1101,
 		Name:    "Polygon zkEVM",
 		Title:   "Polygon zkEVM",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1101.webp",
@@ -345,9 +257,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"moonbeam": &Network{
-		ChainID: ChainID_MOONBEAM,
+	}
+	MOONBEAM = &Network{
+		ChainID: 1284,
 		Name:    "Moonbeam",
 		Title:   "Moonbeam",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1284.webp",
@@ -361,9 +273,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"moonbase-alpha": &Network{
-		ChainID: ChainID_MOONBASE_ALPHA,
+	}
+	MOONBASE_ALPHA = &Network{
+		ChainID: 1287,
 		Name:    "Moonbase Alpha",
 		Title:   "Moonbase Alpha",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1287.webp",
@@ -377,9 +289,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"sei-testnet": &Network{
-		ChainID: ChainID_SEI_TESTNET,
+	}
+	SEI_TESTNET = &Network{
+		ChainID: 1328,
 		Name:    "Sei Testnet",
 		Title:   "Sei Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1328.webp",
@@ -393,9 +305,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"sei": &Network{
-		ChainID: ChainID_SEI,
+	}
+	SEI = &Network{
+		ChainID: 1329,
 		Name:    "Sei",
 		Title:   "Sei",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1329.webp",
@@ -409,9 +321,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"soneium": &Network{
-		ChainID: ChainID_SONEIUM,
+	}
+	SONEIUM = &Network{
+		ChainID: 1868,
 		Name:    "Soneium",
 		Title:   "Soneium",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1868.webp",
@@ -425,9 +337,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"soneium-minato": &Network{
-		ChainID: ChainID_SONEIUM_MINATO,
+	}
+	SONEIUM_MINATO = &Network{
+		ChainID: 1946,
 		Name:    "Soneium Minato (Testnet)",
 		Title:   "Soneium Minato (Testnet)",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1946.webp",
@@ -441,9 +353,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"b3-sepolia": &Network{
-		ChainID: ChainID_B3_SEPOLIA,
+	}
+	B3_SEPOLIA = &Network{
+		ChainID: 1993,
 		Name:    "B3 Sepolia",
 		Title:   "B3 Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1993.webp",
@@ -457,9 +369,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"somnia": &Network{
-		ChainID: ChainID_SOMNIA,
+	}
+	SOMNIA = &Network{
+		ChainID: 5031,
 		Name:    "Somnia",
 		Title:   "Somnia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/5031.webp",
@@ -473,9 +385,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"sandbox-testnet": &Network{
-		ChainID: ChainID_SANDBOX_TESTNET,
+	}
+	SANDBOX_TESTNET = &Network{
+		ChainID: 6252,
 		Name:    "Sandbox Testnet",
 		Title:   "Sandbox Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/6252.webp",
@@ -489,9 +401,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"b3": &Network{
-		ChainID: ChainID_B3,
+	}
+	B3 = &Network{
+		ChainID: 8333,
 		Name:    "B3",
 		Title:   "B3",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/8333.webp",
@@ -505,9 +417,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"base": &Network{
-		ChainID: ChainID_BASE,
+	}
+	BASE = &Network{
+		ChainID: 8453,
 		Name:    "Base (Coinbase)",
 		Title:   "Base (Coinbase)",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/8453.webp",
@@ -521,9 +433,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"monad-testnet": &Network{
-		ChainID: ChainID_MONAD_TESTNET,
+	}
+	MONAD_TESTNET = &Network{
+		ChainID: 10143,
 		Name:    "Monad Testnet",
 		Title:   "Monad Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/10143.webp",
@@ -537,9 +449,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"incentiv-testnet": &Network{
-		ChainID: ChainID_INCENTIV_TESTNET,
+	}
+	INCENTIV_TESTNET = &Network{
+		ChainID: 11690,
 		Name:    "Incentiv Testnet",
 		Title:   "Incentiv Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/11690.webp",
@@ -553,9 +465,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"immutable-zkevm": &Network{
-		ChainID: ChainID_IMMUTABLE_ZKEVM,
+	}
+	IMMUTABLE_ZKEVM = &Network{
+		ChainID: 13371,
 		Name:    "Immutable zkEVM",
 		Title:   "Immutable zkEVM",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/13371.webp",
@@ -569,9 +481,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"immutable-zkevm-testnet": &Network{
-		ChainID: ChainID_IMMUTABLE_ZKEVM_TESTNET,
+	}
+	IMMUTABLE_ZKEVM_TESTNET = &Network{
+		ChainID: 13473,
 		Name:    "Immutable zkEVM Testnet",
 		Title:   "Immutable zkEVM Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/13473.webp",
@@ -585,9 +497,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"homeverse": &Network{
-		ChainID: ChainID_HOMEVERSE,
+	}
+	HOMEVERSE = &Network{
+		ChainID: 19011,
 		Name:    "Oasys Homeverse",
 		Title:   "Oasys Homeverse",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/19011.webp",
@@ -601,9 +513,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"incentiv-testnet-v2": &Network{
-		ChainID: ChainID_INCENTIV_TESTNET_V2,
+	}
+	INCENTIV_TESTNET_V2 = &Network{
+		ChainID: 28802,
 		Name:    "Incentiv Testnet v2",
 		Title:   "Incentiv Testnet v2",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/28802.webp",
@@ -617,9 +529,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"hardhat": &Network{
-		ChainID: ChainID_HARDHAT,
+	}
+	HARDHAT = &Network{
+		ChainID: 31337,
 		Name:    "Hardhat (local testnet)",
 		Title:   "Hardhat (local testnet)",
 		LogoURL: "",
@@ -633,9 +545,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"hardhat2": &Network{
-		ChainID: ChainID_HARDHAT2,
+	}
+	HARDHAT2 = &Network{
+		ChainID: 31338,
 		Name:    "Hardhat (local testnet)",
 		Title:   "Hardhat (local testnet)",
 		LogoURL: "",
@@ -649,9 +561,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"apechain-testnet": &Network{
-		ChainID: ChainID_APECHAIN_TESTNET,
+	}
+	APECHAIN_TESTNET = &Network{
+		ChainID: 33111,
 		Name:    "APE Chain Testnet",
 		Title:   "APE Chain Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/33111.webp",
@@ -665,9 +577,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"apechain": &Network{
-		ChainID: ChainID_APECHAIN,
+	}
+	APECHAIN = &Network{
+		ChainID: 33139,
 		Name:    "APE Chain",
 		Title:   "APE Chain",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/33139.webp",
@@ -681,9 +593,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"homeverse-testnet": &Network{
-		ChainID: ChainID_HOMEVERSE_TESTNET,
+	}
+	HOMEVERSE_TESTNET = &Network{
+		ChainID: 40875,
 		Name:    "Oasys Homeverse Testnet",
 		Title:   "Oasys Homeverse Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/40875.webp",
@@ -697,9 +609,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"arbitrum": &Network{
-		ChainID: ChainID_ARBITRUM,
+	}
+	ARBITRUM = &Network{
+		ChainID: 42161,
 		Name:    "Arbitrum One",
 		Title:   "Arbitrum One",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/42161.webp",
@@ -713,9 +625,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"arbitrum-nova": &Network{
-		ChainID: ChainID_ARBITRUM_NOVA,
+	}
+	ARBITRUM_NOVA = &Network{
+		ChainID: 42170,
 		Name:    "Arbitrum Nova",
 		Title:   "Arbitrum Nova",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/42170.webp",
@@ -729,9 +641,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"etherlink": &Network{
-		ChainID: ChainID_ETHERLINK,
+	}
+	ETHERLINK = &Network{
+		ChainID: 42793,
 		Name:    "Etherlink",
 		Title:   "Etherlink",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/42793.webp",
@@ -745,9 +657,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"avalanche-testnet": &Network{
-		ChainID: ChainID_AVALANCHE_TESTNET,
+	}
+	AVALANCHE_TESTNET = &Network{
+		ChainID: 43113,
 		Name:    "Avalanche Testnet",
 		Title:   "Avalanche Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/43113.webp",
@@ -761,9 +673,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"avalanche": &Network{
-		ChainID: ChainID_AVALANCHE,
+	}
+	AVALANCHE = &Network{
+		ChainID: 43114,
 		Name:    "Avalanche",
 		Title:   "Avalanche",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/43114.webp",
@@ -777,9 +689,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"somnia-testnet": &Network{
-		ChainID: ChainID_SOMNIA_TESTNET,
+	}
+	SOMNIA_TESTNET = &Network{
+		ChainID: 50312,
 		Name:    "Somnia Testnet",
 		Title:   "Somnia Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/50312.webp",
@@ -793,9 +705,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"mumbai": &Network{
-		ChainID: ChainID_MUMBAI,
+	}
+	MUMBAI = &Network{
+		ChainID: 80001,
 		Name:    "Polygon Mumbai",
 		Title:   "Polygon Mumbai",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/80001.webp",
@@ -809,9 +721,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"amoy": &Network{
-		ChainID: ChainID_AMOY,
+	}
+	AMOY = &Network{
+		ChainID: 80002,
 		Name:    "Polygon Amoy",
 		Title:   "Polygon Amoy",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/80002.webp",
@@ -825,9 +737,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"blast": &Network{
-		ChainID: ChainID_BLAST,
+	}
+	BLAST = &Network{
+		ChainID: 81457,
 		Name:    "Blast",
 		Title:   "Blast",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/81457.webp",
@@ -841,9 +753,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"base-goerli": &Network{
-		ChainID: ChainID_BASE_GOERLI,
+	}
+	BASE_GOERLI = &Network{
+		ChainID: 84531,
 		Name:    "Base Goerli",
 		Title:   "Base Goerli",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/84531.webp",
@@ -857,9 +769,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"base-sepolia": &Network{
-		ChainID: ChainID_BASE_SEPOLIA,
+	}
+	BASE_SEPOLIA = &Network{
+		ChainID: 84532,
 		Name:    "Base Sepolia",
 		Title:   "Base Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/84532.webp",
@@ -873,9 +785,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"borne-testnet": &Network{
-		ChainID: ChainID_BORNE_TESTNET,
+	}
+	BORNE_TESTNET = &Network{
+		ChainID: 94984,
 		Name:    "Borne Testnet",
 		Title:   "Borne Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/94984.webp",
@@ -889,9 +801,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"etherlink-testnet": &Network{
-		ChainID: ChainID_ETHERLINK_TESTNET,
+	}
+	ETHERLINK_TESTNET = &Network{
+		ChainID: 128123,
 		Name:    "Etherlink Testnet",
 		Title:   "Etherlink Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/128123.webp",
@@ -905,9 +817,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"arbitrum-goerli": &Network{
-		ChainID: ChainID_ARBITRUM_GOERLI,
+	}
+	ARBITRUM_GOERLI = &Network{
+		ChainID: 421613,
 		Name:    "Arbitrum Goerli",
 		Title:   "Arbitrum Goerli",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/421613.webp",
@@ -921,9 +833,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"arbitrum-sepolia": &Network{
-		ChainID: ChainID_ARBITRUM_SEPOLIA,
+	}
+	ARBITRUM_SEPOLIA = &Network{
+		ChainID: 421614,
 		Name:    "Arbitrum Sepolia",
 		Title:   "Arbitrum Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/421614.webp",
@@ -937,9 +849,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"xai": &Network{
-		ChainID: ChainID_XAI,
+	}
+	XAI = &Network{
+		ChainID: 660279,
 		Name:    "Xai",
 		Title:   "Xai",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/660279.webp",
@@ -953,9 +865,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"katana": &Network{
-		ChainID: ChainID_KATANA,
+	}
+	KATANA = &Network{
+		ChainID: 747474,
 		Name:    "Katana",
 		Title:   "Katana",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/747474.webp",
@@ -969,9 +881,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"arc-testnet": &Network{
-		ChainID: ChainID_ARC_TESTNET,
+	}
+	ARC_TESTNET = &Network{
+		ChainID: 5042002,
 		Name:    "Arc Testnet",
 		Title:   "Arc Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/5042002.webp",
@@ -985,9 +897,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"sepolia": &Network{
-		ChainID: ChainID_SEPOLIA,
+	}
+	SEPOLIA = &Network{
+		ChainID: 11155111,
 		Name:    "Sepolia",
 		Title:   "Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/11155111.webp",
@@ -1001,9 +913,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"optimism-sepolia": &Network{
-		ChainID: ChainID_OPTIMISM_SEPOLIA,
+	}
+	OPTIMISM_SEPOLIA = &Network{
+		ChainID: 11155420,
 		Name:    "Optimism Sepolia",
 		Title:   "Optimism Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/11155420.webp",
@@ -1017,9 +929,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"toy-testnet": &Network{
-		ChainID: ChainID_TOY_TESTNET,
+	}
+	TOY_TESTNET = &Network{
+		ChainID: 21000000,
 		Name:    "TOY (Testnet)",
 		Title:   "TOY (Testnet)",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/21000000.webp",
@@ -1033,9 +945,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"skale-nebula-testnet": &Network{
-		ChainID: ChainID_SKALE_NEBULA_TESTNET,
+	}
+	SKALE_NEBULA_TESTNET = &Network{
+		ChainID: 37084624,
 		Name:    "SKALE Nebula Gaming Hub Testnet",
 		Title:   "SKALE Nebula Gaming Hub Testnet",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/37084624.webp",
@@ -1049,9 +961,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"blast-sepolia": &Network{
-		ChainID: ChainID_BLAST_SEPOLIA,
+	}
+	BLAST_SEPOLIA = &Network{
+		ChainID: 168587773,
 		Name:    "Blast Sepolia",
 		Title:   "Blast Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/168587773.webp",
@@ -1065,9 +977,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"skale-nebula": &Network{
-		ChainID: ChainID_SKALE_NEBULA,
+	}
+	SKALE_NEBULA = &Network{
+		ChainID: 1482601649,
 		Name:    "SKALE Nebula Gaming Hub",
 		Title:   "SKALE Nebula Gaming Hub",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/1482601649.webp",
@@ -1081,9 +993,9 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-	"xai-sepolia": &Network{
-		ChainID: ChainID_XAI_SEPOLIA,
+	}
+	XAI_SEPOLIA = &Network{
+		ChainID: 37714555429,
 		Name:    "Xai Sepolia",
 		Title:   "Xai Sepolia",
 		LogoURL: "https://assets.sequence.info/images/networks/medium/37714555429.webp",
@@ -1097,5 +1009,139 @@ var all = Networks{
 			Decimals: 18,
 		},
 		ENSAddress: "",
-	},
-}
+	}
+)
+
+var (
+	networksByName = Networks{
+		"mainnet":                 MAINNET,
+		"ropsten":                 ROPSTEN,
+		"rinkeby":                 RINKEBY,
+		"goerli":                  GOERLI,
+		"optimism":                OPTIMISM,
+		"telos":                   TELOS,
+		"telos-testnet":           TELOS_TESTNET,
+		"kovan":                   KOVAN,
+		"bsc":                     BSC,
+		"optimism-kovan":          OPTIMISM_KOVAN,
+		"bsc-testnet":             BSC_TESTNET,
+		"gnosis":                  GNOSIS,
+		"polygon":                 POLYGON,
+		"monad":                   MONAD,
+		"optimism-goerli":         OPTIMISM_GOERLI,
+		"polygon-zkevm":           POLYGON_ZKEVM,
+		"moonbeam":                MOONBEAM,
+		"moonbase-alpha":          MOONBASE_ALPHA,
+		"sei-testnet":             SEI_TESTNET,
+		"sei":                     SEI,
+		"soneium":                 SONEIUM,
+		"soneium-minato":          SONEIUM_MINATO,
+		"b3-sepolia":              B3_SEPOLIA,
+		"somnia":                  SOMNIA,
+		"sandbox-testnet":         SANDBOX_TESTNET,
+		"b3":                      B3,
+		"base":                    BASE,
+		"monad-testnet":           MONAD_TESTNET,
+		"incentiv-testnet":        INCENTIV_TESTNET,
+		"immutable-zkevm":         IMMUTABLE_ZKEVM,
+		"immutable-zkevm-testnet": IMMUTABLE_ZKEVM_TESTNET,
+		"homeverse":               HOMEVERSE,
+		"incentiv-testnet-v2":     INCENTIV_TESTNET_V2,
+		"hardhat":                 HARDHAT,
+		"hardhat2":                HARDHAT2,
+		"apechain-testnet":        APECHAIN_TESTNET,
+		"apechain":                APECHAIN,
+		"homeverse-testnet":       HOMEVERSE_TESTNET,
+		"arbitrum":                ARBITRUM,
+		"arbitrum-nova":           ARBITRUM_NOVA,
+		"etherlink":               ETHERLINK,
+		"avalanche-testnet":       AVALANCHE_TESTNET,
+		"avalanche":               AVALANCHE,
+		"somnia-testnet":          SOMNIA_TESTNET,
+		"mumbai":                  MUMBAI,
+		"amoy":                    AMOY,
+		"blast":                   BLAST,
+		"base-goerli":             BASE_GOERLI,
+		"base-sepolia":            BASE_SEPOLIA,
+		"borne-testnet":           BORNE_TESTNET,
+		"etherlink-testnet":       ETHERLINK_TESTNET,
+		"arbitrum-goerli":         ARBITRUM_GOERLI,
+		"arbitrum-sepolia":        ARBITRUM_SEPOLIA,
+		"xai":                     XAI,
+		"katana":                  KATANA,
+		"arc-testnet":             ARC_TESTNET,
+		"sepolia":                 SEPOLIA,
+		"optimism-sepolia":        OPTIMISM_SEPOLIA,
+		"toy-testnet":             TOY_TESTNET,
+		"skale-nebula-testnet":    SKALE_NEBULA_TESTNET,
+		"blast-sepolia":           BLAST_SEPOLIA,
+		"skale-nebula":            SKALE_NEBULA,
+		"xai-sepolia":             XAI_SEPOLIA,
+	}
+
+	networksByChainID = Networks{
+		1:           MAINNET,
+		3:           ROPSTEN,
+		4:           RINKEBY,
+		5:           GOERLI,
+		10:          OPTIMISM,
+		40:          TELOS,
+		41:          TELOS_TESTNET,
+		42:          KOVAN,
+		56:          BSC,
+		69:          OPTIMISM_KOVAN,
+		97:          BSC_TESTNET,
+		100:         GNOSIS,
+		137:         POLYGON,
+		143:         MONAD,
+		420:         OPTIMISM_GOERLI,
+		1101:        POLYGON_ZKEVM,
+		1284:        MOONBEAM,
+		1287:        MOONBASE_ALPHA,
+		1328:        SEI_TESTNET,
+		1329:        SEI,
+		1868:        SONEIUM,
+		1946:        SONEIUM_MINATO,
+		1993:        B3_SEPOLIA,
+		5031:        SOMNIA,
+		6252:        SANDBOX_TESTNET,
+		8333:        B3,
+		8453:        BASE,
+		10143:       MONAD_TESTNET,
+		11690:       INCENTIV_TESTNET,
+		13371:       IMMUTABLE_ZKEVM,
+		13473:       IMMUTABLE_ZKEVM_TESTNET,
+		19011:       HOMEVERSE,
+		28802:       INCENTIV_TESTNET_V2,
+		31337:       HARDHAT,
+		31338:       HARDHAT2,
+		33111:       APECHAIN_TESTNET,
+		33139:       APECHAIN,
+		40875:       HOMEVERSE_TESTNET,
+		42161:       ARBITRUM,
+		42170:       ARBITRUM_NOVA,
+		42793:       ETHERLINK,
+		43113:       AVALANCHE_TESTNET,
+		43114:       AVALANCHE,
+		50312:       SOMNIA_TESTNET,
+		80001:       MUMBAI,
+		80002:       AMOY,
+		81457:       BLAST,
+		84531:       BASE_GOERLI,
+		84532:       BASE_SEPOLIA,
+		94984:       BORNE_TESTNET,
+		128123:      ETHERLINK_TESTNET,
+		421613:      ARBITRUM_GOERLI,
+		421614:      ARBITRUM_SEPOLIA,
+		660279:      XAI,
+		747474:      KATANA,
+		5042002:     ARC_TESTNET,
+		11155111:    SEPOLIA,
+		11155420:    OPTIMISM_SEPOLIA,
+		21000000:    TOY_TESTNET,
+		37084624:    SKALE_NEBULA_TESTNET,
+		168587773:   BLAST_SEPOLIA,
+		1482601649:  SKALE_NEBULA,
+		37714555429: XAI_SEPOLIA,
+	}
+)
