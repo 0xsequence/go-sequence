@@ -1082,18 +1082,12 @@ func GetAllNetworks() Networks {
 	return all
 }
 
-func GetByChainID(chainID int) (Network, bool) {
-	network, ok := all.GetByChainID(chainID)
-	if !ok {
-		return Network{}, false
-	}
-	return network, true
+func GetByChainID(chainID int) *Network {
+	network, _ := all.GetByChainID(chainID)
+	return network
 }
 
-func GetByName(name string) (Network, bool) {
-	network, ok := all.GetByName(name)
-	if !ok {
-		return Network{}, false
-	}
-	return network, true
+func GetByName(name string) *Network {
+	network, _ := all.GetByName(name)
+	return network
 }
