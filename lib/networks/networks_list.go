@@ -1,5 +1,26 @@
 package networks
 
+// GetAllNetworks returns all supported networks
+func GetAllNetworks() Networks {
+	return all
+}
+
+// GetByChainID returns the network configuration by chain ID
+func GetByChainID(chainID int) *Network {
+	for _, network := range all {
+		if network.ChainID == chainID {
+			return network
+		}
+	}
+	return nil
+}
+
+// GetByName returns the network configuration by name
+func GetByName(name string) *Network {
+	network, _ := all[name]
+	return network
+}
+
 // List of supported chains ids
 const (
 	ChainID_MAINNET                 = 1
@@ -67,6 +88,7 @@ const (
 	ChainID_XAI_SEPOLIA             = 37714555429
 )
 
+// All supported networks
 var all = Networks{
 	"mainnet": &Network{
 		ChainID: ChainID_MAINNET,
@@ -1076,22 +1098,4 @@ var all = Networks{
 		},
 		ENSAddress: "",
 	},
-}
-
-func GetAllNetworks() Networks {
-	return all
-}
-
-func GetByChainID(chainID int) *Network {
-	for _, network := range all {
-		if network.ChainID == chainID {
-			return network
-		}
-	}
-	return nil
-}
-
-func GetByName(name string) *Network {
-	network, _ := all[name]
-	return network
 }
