@@ -1083,11 +1083,15 @@ func GetAllNetworks() Networks {
 }
 
 func GetByChainID(chainID int) *Network {
-	network, _ := all.GetByChainID(chainID)
-	return network
+	for _, network := range all {
+		if network.ChainID == chainID {
+			return network
+		}
+	}
+	return nil
 }
 
 func GetByName(name string) *Network {
-	network, _ := all.GetByName(name)
+	network, _ := all[name]
 	return network
 }
