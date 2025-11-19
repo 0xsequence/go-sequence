@@ -1079,7 +1079,7 @@ var (
 		"xai-sepolia":             XAI_SEPOLIA,
 	}
 
-	networksByChainID = Networks{
+	networksByChainID = map[int64]*Network{
 		1:           MAINNET,
 		3:           ROPSTEN,
 		4:           RINKEBY,
