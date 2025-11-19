@@ -67,75 +67,8 @@ const (
 	ChainID_XAI_SEPOLIA             = 37714555429
 )
 
-// List of supported chains names
-const (
-	ChainName_MAINNET                 = "mainnet"
-	ChainName_ROPSTEN                 = "ropsten"
-	ChainName_RINKEBY                 = "rinkeby"
-	ChainName_GOERLI                  = "goerli"
-	ChainName_OPTIMISM                = "optimism"
-	ChainName_TELOS                   = "telos"
-	ChainName_TELOS_TESTNET           = "telos-testnet"
-	ChainName_KOVAN                   = "kovan"
-	ChainName_BSC                     = "bsc"
-	ChainName_OPTIMISM_KOVAN          = "optimism-kovan"
-	ChainName_BSC_TESTNET             = "bsc-testnet"
-	ChainName_GNOSIS                  = "gnosis"
-	ChainName_POLYGON                 = "polygon"
-	ChainName_MONAD                   = "monad"
-	ChainName_OPTIMISM_GOERLI         = "optimism-goerli"
-	ChainName_POLYGON_ZKEVM           = "polygon-zkevm"
-	ChainName_MOONBEAM                = "moonbeam"
-	ChainName_MOONBASE_ALPHA          = "moonbase-alpha"
-	ChainName_SEI_TESTNET             = "sei-testnet"
-	ChainName_SEI                     = "sei"
-	ChainName_SONEIUM                 = "soneium"
-	ChainName_SONEIUM_MINATO          = "soneium-minato"
-	ChainName_B3_SEPOLIA              = "b3-sepolia"
-	ChainName_SOMNIA                  = "somnia"
-	ChainName_SANDBOX_TESTNET         = "sandbox-testnet"
-	ChainName_B3                      = "b3"
-	ChainName_BASE                    = "base"
-	ChainName_MONAD_TESTNET           = "monad-testnet"
-	ChainName_INCENTIV_TESTNET        = "incentiv-testnet"
-	ChainName_IMMUTABLE_ZKEVM         = "immutable-zkevm"
-	ChainName_IMMUTABLE_ZKEVM_TESTNET = "immutable-zkevm-testnet"
-	ChainName_HOMEVERSE               = "homeverse"
-	ChainName_INCENTIV_TESTNET_V2     = "incentiv-testnet-v2"
-	ChainName_HARDHAT                 = "hardhat"
-	ChainName_HARDHAT2                = "hardhat2"
-	ChainName_APECHAIN_TESTNET        = "apechain-testnet"
-	ChainName_APECHAIN                = "apechain"
-	ChainName_HOMEVERSE_TESTNET       = "homeverse-testnet"
-	ChainName_ARBITRUM                = "arbitrum"
-	ChainName_ARBITRUM_NOVA           = "arbitrum-nova"
-	ChainName_ETHERLINK               = "etherlink"
-	ChainName_AVALANCHE_TESTNET       = "avalanche-testnet"
-	ChainName_AVALANCHE               = "avalanche"
-	ChainName_SOMNIA_TESTNET          = "somnia-testnet"
-	ChainName_MUMBAI                  = "mumbai"
-	ChainName_AMOY                    = "amoy"
-	ChainName_BLAST                   = "blast"
-	ChainName_BASE_GOERLI             = "base-goerli"
-	ChainName_BASE_SEPOLIA            = "base-sepolia"
-	ChainName_BORNE_TESTNET           = "borne-testnet"
-	ChainName_ETHERLINK_TESTNET       = "etherlink-testnet"
-	ChainName_ARBITRUM_GOERLI         = "arbitrum-goerli"
-	ChainName_ARBITRUM_SEPOLIA        = "arbitrum-sepolia"
-	ChainName_XAI                     = "xai"
-	ChainName_KATANA                  = "katana"
-	ChainName_ARC_TESTNET             = "arc-testnet"
-	ChainName_SEPOLIA                 = "sepolia"
-	ChainName_OPTIMISM_SEPOLIA        = "optimism-sepolia"
-	ChainName_TOY_TESTNET             = "toy-testnet"
-	ChainName_SKALE_NEBULA_TESTNET    = "skale-nebula-testnet"
-	ChainName_BLAST_SEPOLIA           = "blast-sepolia"
-	ChainName_SKALE_NEBULA            = "skale-nebula"
-	ChainName_XAI_SEPOLIA             = "xai-sepolia"
-)
-
-var All = Networks{
-	ChainName_MAINNET: &Network{
+var all = Networks{
+	"mainnet": &Network{
 		ChainID: ChainID_MAINNET,
 		Name:    "Ethereum",
 		Title:   "Ethereum",
@@ -151,7 +84,7 @@ var All = Networks{
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 	},
-	ChainName_ROPSTEN: &Network{
+	"ropsten": &Network{
 		ChainID: ChainID_ROPSTEN,
 		Name:    "Ropsten",
 		Title:   "Ropsten",
@@ -167,7 +100,7 @@ var All = Networks{
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 	},
-	ChainName_RINKEBY: &Network{
+	"rinkeby": &Network{
 		ChainID: ChainID_RINKEBY,
 		Name:    "Rinkeby",
 		Title:   "Rinkeby",
@@ -183,7 +116,7 @@ var All = Networks{
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 	},
-	ChainName_GOERLI: &Network{
+	"goerli": &Network{
 		ChainID: ChainID_GOERLI,
 		Name:    "Goerli",
 		Title:   "Goerli",
@@ -199,7 +132,7 @@ var All = Networks{
 		},
 		ENSAddress: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 	},
-	ChainName_OPTIMISM: &Network{
+	"optimism": &Network{
 		ChainID: ChainID_OPTIMISM,
 		Name:    "Optimism",
 		Title:   "Optimism",
@@ -215,7 +148,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_TELOS: &Network{
+	"telos": &Network{
 		ChainID: ChainID_TELOS,
 		Name:    "Telos",
 		Title:   "Telos",
@@ -231,7 +164,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_TELOS_TESTNET: &Network{
+	"telos-testnet": &Network{
 		ChainID: ChainID_TELOS_TESTNET,
 		Name:    "Telos Testnet",
 		Title:   "Telos Testnet",
@@ -247,7 +180,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_KOVAN: &Network{
+	"kovan": &Network{
 		ChainID: ChainID_KOVAN,
 		Name:    "Kovan",
 		Title:   "Kovan",
@@ -263,7 +196,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BSC: &Network{
+	"bsc": &Network{
 		ChainID: ChainID_BSC,
 		Name:    "BNB Smart Chain",
 		Title:   "BNB Smart Chain",
@@ -279,7 +212,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_OPTIMISM_KOVAN: &Network{
+	"optimism-kovan": &Network{
 		ChainID: ChainID_OPTIMISM_KOVAN,
 		Name:    "Optimism Kovan",
 		Title:   "Optimism Kovan",
@@ -295,7 +228,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BSC_TESTNET: &Network{
+	"bsc-testnet": &Network{
 		ChainID: ChainID_BSC_TESTNET,
 		Name:    "BNB Smart Chain Testnet",
 		Title:   "BNB Smart Chain Testnet",
@@ -311,7 +244,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_GNOSIS: &Network{
+	"gnosis": &Network{
 		ChainID: ChainID_GNOSIS,
 		Name:    "Gnosis Chain",
 		Title:   "Gnosis Chain",
@@ -327,7 +260,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_POLYGON: &Network{
+	"polygon": &Network{
 		ChainID: ChainID_POLYGON,
 		Name:    "Polygon",
 		Title:   "Polygon",
@@ -343,7 +276,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_MONAD: &Network{
+	"monad": &Network{
 		ChainID: ChainID_MONAD,
 		Name:    "Monad",
 		Title:   "Monad",
@@ -359,7 +292,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_OPTIMISM_GOERLI: &Network{
+	"optimism-goerli": &Network{
 		ChainID: ChainID_OPTIMISM_GOERLI,
 		Name:    "Optimism Goerli",
 		Title:   "Optimism Goerli",
@@ -375,7 +308,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_POLYGON_ZKEVM: &Network{
+	"polygon-zkevm": &Network{
 		ChainID: ChainID_POLYGON_ZKEVM,
 		Name:    "Polygon zkEVM",
 		Title:   "Polygon zkEVM",
@@ -391,7 +324,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_MOONBEAM: &Network{
+	"moonbeam": &Network{
 		ChainID: ChainID_MOONBEAM,
 		Name:    "Moonbeam",
 		Title:   "Moonbeam",
@@ -407,7 +340,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_MOONBASE_ALPHA: &Network{
+	"moonbase-alpha": &Network{
 		ChainID: ChainID_MOONBASE_ALPHA,
 		Name:    "Moonbase Alpha",
 		Title:   "Moonbase Alpha",
@@ -423,7 +356,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SEI_TESTNET: &Network{
+	"sei-testnet": &Network{
 		ChainID: ChainID_SEI_TESTNET,
 		Name:    "Sei Testnet",
 		Title:   "Sei Testnet",
@@ -439,7 +372,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SEI: &Network{
+	"sei": &Network{
 		ChainID: ChainID_SEI,
 		Name:    "Sei",
 		Title:   "Sei",
@@ -455,7 +388,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SONEIUM: &Network{
+	"soneium": &Network{
 		ChainID: ChainID_SONEIUM,
 		Name:    "Soneium",
 		Title:   "Soneium",
@@ -471,7 +404,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SONEIUM_MINATO: &Network{
+	"soneium-minato": &Network{
 		ChainID: ChainID_SONEIUM_MINATO,
 		Name:    "Soneium Minato (Testnet)",
 		Title:   "Soneium Minato (Testnet)",
@@ -487,7 +420,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_B3_SEPOLIA: &Network{
+	"b3-sepolia": &Network{
 		ChainID: ChainID_B3_SEPOLIA,
 		Name:    "B3 Sepolia",
 		Title:   "B3 Sepolia",
@@ -503,7 +436,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SOMNIA: &Network{
+	"somnia": &Network{
 		ChainID: ChainID_SOMNIA,
 		Name:    "Somnia",
 		Title:   "Somnia",
@@ -519,7 +452,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SANDBOX_TESTNET: &Network{
+	"sandbox-testnet": &Network{
 		ChainID: ChainID_SANDBOX_TESTNET,
 		Name:    "Sandbox Testnet",
 		Title:   "Sandbox Testnet",
@@ -535,7 +468,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_B3: &Network{
+	"b3": &Network{
 		ChainID: ChainID_B3,
 		Name:    "B3",
 		Title:   "B3",
@@ -551,7 +484,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BASE: &Network{
+	"base": &Network{
 		ChainID: ChainID_BASE,
 		Name:    "Base (Coinbase)",
 		Title:   "Base (Coinbase)",
@@ -567,7 +500,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_MONAD_TESTNET: &Network{
+	"monad-testnet": &Network{
 		ChainID: ChainID_MONAD_TESTNET,
 		Name:    "Monad Testnet",
 		Title:   "Monad Testnet",
@@ -583,7 +516,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_INCENTIV_TESTNET: &Network{
+	"incentiv-testnet": &Network{
 		ChainID: ChainID_INCENTIV_TESTNET,
 		Name:    "Incentiv Testnet",
 		Title:   "Incentiv Testnet",
@@ -599,7 +532,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_IMMUTABLE_ZKEVM: &Network{
+	"immutable-zkevm": &Network{
 		ChainID: ChainID_IMMUTABLE_ZKEVM,
 		Name:    "Immutable zkEVM",
 		Title:   "Immutable zkEVM",
@@ -615,7 +548,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_IMMUTABLE_ZKEVM_TESTNET: &Network{
+	"immutable-zkevm-testnet": &Network{
 		ChainID: ChainID_IMMUTABLE_ZKEVM_TESTNET,
 		Name:    "Immutable zkEVM Testnet",
 		Title:   "Immutable zkEVM Testnet",
@@ -631,7 +564,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_HOMEVERSE: &Network{
+	"homeverse": &Network{
 		ChainID: ChainID_HOMEVERSE,
 		Name:    "Oasys Homeverse",
 		Title:   "Oasys Homeverse",
@@ -647,7 +580,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_INCENTIV_TESTNET_V2: &Network{
+	"incentiv-testnet-v2": &Network{
 		ChainID: ChainID_INCENTIV_TESTNET_V2,
 		Name:    "Incentiv Testnet v2",
 		Title:   "Incentiv Testnet v2",
@@ -663,7 +596,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_HARDHAT: &Network{
+	"hardhat": &Network{
 		ChainID: ChainID_HARDHAT,
 		Name:    "Hardhat (local testnet)",
 		Title:   "Hardhat (local testnet)",
@@ -679,7 +612,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_HARDHAT2: &Network{
+	"hardhat2": &Network{
 		ChainID: ChainID_HARDHAT2,
 		Name:    "Hardhat (local testnet)",
 		Title:   "Hardhat (local testnet)",
@@ -695,7 +628,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_APECHAIN_TESTNET: &Network{
+	"apechain-testnet": &Network{
 		ChainID: ChainID_APECHAIN_TESTNET,
 		Name:    "APE Chain Testnet",
 		Title:   "APE Chain Testnet",
@@ -711,7 +644,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_APECHAIN: &Network{
+	"apechain": &Network{
 		ChainID: ChainID_APECHAIN,
 		Name:    "APE Chain",
 		Title:   "APE Chain",
@@ -727,7 +660,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_HOMEVERSE_TESTNET: &Network{
+	"homeverse-testnet": &Network{
 		ChainID: ChainID_HOMEVERSE_TESTNET,
 		Name:    "Oasys Homeverse Testnet",
 		Title:   "Oasys Homeverse Testnet",
@@ -743,7 +676,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ARBITRUM: &Network{
+	"arbitrum": &Network{
 		ChainID: ChainID_ARBITRUM,
 		Name:    "Arbitrum One",
 		Title:   "Arbitrum One",
@@ -759,7 +692,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ARBITRUM_NOVA: &Network{
+	"arbitrum-nova": &Network{
 		ChainID: ChainID_ARBITRUM_NOVA,
 		Name:    "Arbitrum Nova",
 		Title:   "Arbitrum Nova",
@@ -775,7 +708,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ETHERLINK: &Network{
+	"etherlink": &Network{
 		ChainID: ChainID_ETHERLINK,
 		Name:    "Etherlink",
 		Title:   "Etherlink",
@@ -791,7 +724,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_AVALANCHE_TESTNET: &Network{
+	"avalanche-testnet": &Network{
 		ChainID: ChainID_AVALANCHE_TESTNET,
 		Name:    "Avalanche Testnet",
 		Title:   "Avalanche Testnet",
@@ -807,7 +740,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_AVALANCHE: &Network{
+	"avalanche": &Network{
 		ChainID: ChainID_AVALANCHE,
 		Name:    "Avalanche",
 		Title:   "Avalanche",
@@ -823,7 +756,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SOMNIA_TESTNET: &Network{
+	"somnia-testnet": &Network{
 		ChainID: ChainID_SOMNIA_TESTNET,
 		Name:    "Somnia Testnet",
 		Title:   "Somnia Testnet",
@@ -839,7 +772,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_MUMBAI: &Network{
+	"mumbai": &Network{
 		ChainID: ChainID_MUMBAI,
 		Name:    "Polygon Mumbai",
 		Title:   "Polygon Mumbai",
@@ -855,7 +788,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_AMOY: &Network{
+	"amoy": &Network{
 		ChainID: ChainID_AMOY,
 		Name:    "Polygon Amoy",
 		Title:   "Polygon Amoy",
@@ -871,7 +804,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BLAST: &Network{
+	"blast": &Network{
 		ChainID: ChainID_BLAST,
 		Name:    "Blast",
 		Title:   "Blast",
@@ -887,7 +820,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BASE_GOERLI: &Network{
+	"base-goerli": &Network{
 		ChainID: ChainID_BASE_GOERLI,
 		Name:    "Base Goerli",
 		Title:   "Base Goerli",
@@ -903,7 +836,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BASE_SEPOLIA: &Network{
+	"base-sepolia": &Network{
 		ChainID: ChainID_BASE_SEPOLIA,
 		Name:    "Base Sepolia",
 		Title:   "Base Sepolia",
@@ -919,7 +852,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BORNE_TESTNET: &Network{
+	"borne-testnet": &Network{
 		ChainID: ChainID_BORNE_TESTNET,
 		Name:    "Borne Testnet",
 		Title:   "Borne Testnet",
@@ -935,7 +868,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ETHERLINK_TESTNET: &Network{
+	"etherlink-testnet": &Network{
 		ChainID: ChainID_ETHERLINK_TESTNET,
 		Name:    "Etherlink Testnet",
 		Title:   "Etherlink Testnet",
@@ -951,7 +884,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ARBITRUM_GOERLI: &Network{
+	"arbitrum-goerli": &Network{
 		ChainID: ChainID_ARBITRUM_GOERLI,
 		Name:    "Arbitrum Goerli",
 		Title:   "Arbitrum Goerli",
@@ -967,7 +900,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ARBITRUM_SEPOLIA: &Network{
+	"arbitrum-sepolia": &Network{
 		ChainID: ChainID_ARBITRUM_SEPOLIA,
 		Name:    "Arbitrum Sepolia",
 		Title:   "Arbitrum Sepolia",
@@ -983,7 +916,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_XAI: &Network{
+	"xai": &Network{
 		ChainID: ChainID_XAI,
 		Name:    "Xai",
 		Title:   "Xai",
@@ -999,7 +932,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_KATANA: &Network{
+	"katana": &Network{
 		ChainID: ChainID_KATANA,
 		Name:    "Katana",
 		Title:   "Katana",
@@ -1015,7 +948,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_ARC_TESTNET: &Network{
+	"arc-testnet": &Network{
 		ChainID: ChainID_ARC_TESTNET,
 		Name:    "Arc Testnet",
 		Title:   "Arc Testnet",
@@ -1031,7 +964,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SEPOLIA: &Network{
+	"sepolia": &Network{
 		ChainID: ChainID_SEPOLIA,
 		Name:    "Sepolia",
 		Title:   "Sepolia",
@@ -1047,7 +980,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_OPTIMISM_SEPOLIA: &Network{
+	"optimism-sepolia": &Network{
 		ChainID: ChainID_OPTIMISM_SEPOLIA,
 		Name:    "Optimism Sepolia",
 		Title:   "Optimism Sepolia",
@@ -1063,7 +996,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_TOY_TESTNET: &Network{
+	"toy-testnet": &Network{
 		ChainID: ChainID_TOY_TESTNET,
 		Name:    "TOY (Testnet)",
 		Title:   "TOY (Testnet)",
@@ -1079,7 +1012,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SKALE_NEBULA_TESTNET: &Network{
+	"skale-nebula-testnet": &Network{
 		ChainID: ChainID_SKALE_NEBULA_TESTNET,
 		Name:    "SKALE Nebula Gaming Hub Testnet",
 		Title:   "SKALE Nebula Gaming Hub Testnet",
@@ -1095,7 +1028,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_BLAST_SEPOLIA: &Network{
+	"blast-sepolia": &Network{
 		ChainID: ChainID_BLAST_SEPOLIA,
 		Name:    "Blast Sepolia",
 		Title:   "Blast Sepolia",
@@ -1111,7 +1044,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_SKALE_NEBULA: &Network{
+	"skale-nebula": &Network{
 		ChainID: ChainID_SKALE_NEBULA,
 		Name:    "SKALE Nebula Gaming Hub",
 		Title:   "SKALE Nebula Gaming Hub",
@@ -1127,7 +1060,7 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
-	ChainName_XAI_SEPOLIA: &Network{
+	"xai-sepolia": &Network{
 		ChainID: ChainID_XAI_SEPOLIA,
 		Name:    "Xai Sepolia",
 		Title:   "Xai Sepolia",
@@ -1143,4 +1076,24 @@ var All = Networks{
 		},
 		ENSAddress: "",
 	},
+}
+
+func GetAllNetworks() Networks {
+	return all
+}
+
+func GetByChainID(chainID int) (Network, bool) {
+	network, ok := all.GetByChainID(chainID)
+	if !ok {
+		return Network{}, false
+	}
+	return network, true
+}
+
+func GetByName(name string) (Network, bool) {
+	network, ok := all.GetByName(name)
+	if !ok {
+		return Network{}, false
+	}
+	return network, true
 }
