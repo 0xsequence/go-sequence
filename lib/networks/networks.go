@@ -154,16 +154,17 @@ func (n Networks) EthProvidersConfig() ethproviders.Config {
 	return res
 }
 
-func GetByChainID(chainID uint64) (Network, bool) {
-	for _, network := range networksByChainID {
+func (n Networks) GetByChainID(chainID uint64) *Network {
+	for _, network := range n {
 		if network.ChainID == chainID {
-			return network, true
+			return network
 		}
 	}
-	return Network{}, false
+
+	return nil
 }
 
-func GetByName(name string) (Network, bool) {
-	network, ok := networksByName[name]
-	return network, ok
+func (n Networks) GetByName(name string) *Network {
+	network, _ := n[name]
+	return network
 }
