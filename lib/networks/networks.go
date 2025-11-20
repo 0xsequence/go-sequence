@@ -160,7 +160,6 @@ func (n Networks) GetByChainID(chainID uint64) *Network {
 			return network
 		}
 	}
-
 	return nil
 }
 
