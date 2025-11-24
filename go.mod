@@ -13,6 +13,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gibson042/canonicaljson-go v1.0.3
 	github.com/goware/cachestore v0.11.0
+	github.com/goware/cachestore2 v0.12.3
 	github.com/goware/logger v0.3.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.1
@@ -40,7 +41,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/goware/breaker v0.2.0 // indirect
 	github.com/goware/cachestore-mem v0.2.2 // indirect
-	github.com/goware/cachestore2 v0.12.3 // indirect
 	github.com/goware/calc v0.2.0 // indirect
 	github.com/goware/channel v0.5.0 // indirect
 	github.com/goware/singleflight v0.3.0 // indirect

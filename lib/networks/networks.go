@@ -1,52 +1,34 @@
 package networks
 
-import (
-	"github.com/0xsequence/ethkit/ethproviders"
-)
-
-type Networks map[string]*Network
-
 type Network struct {
-	ChainID    uint64      `toml:"chain_id"    json:"chainId,omitempty"`
-	Name       string      `toml:"name"        json:"name,omitempty"`
-	Title      string      `toml:"title"       json:"title,omitempty"`
-	Type       NetworkType `toml:"type"        json:"type,omitempty"`
-	LogoURL    string      `toml:"logo_url"    json:"logoUrl,omitempty"`
-	ENSAddress string      `toml:"ens_address" json:"ensAddress,omitempty"`
-	Deprecated bool        `toml:"deprecated"  json:"deprecated,omitempty"`
-	Disabled   bool        `toml:"disabled"    json:"disabled,omitempty"`
-	WSEnabled  bool        `toml:"ws_enabled"  json:"wsEnabled,omitempty"`
-	WSURL      string      `toml:"ws_url"      json:"wsUrl,omitempty"`
-
-	BlockExplorer *BlockExplorerConfig `toml:"block_explorer" json:"blockExplorer,omitempty"`
-
-	NodeURL            string `toml:"node_url"             json:"nodeUrl,omitempty"`
-	IndexerURL         string `toml:"indexer_url"          json:"indexerUrl,omitempty"`
-	RelayerURL         string `toml:"relayer_url"          json:"relayerUrl,omitempty"`
-	InternalNodeURL    string `toml:"internal_node_url"    json:"-"`
-	InternalIndexerURL string `toml:"internal_indexer_url" json:"-"`
-	InternalRelayerURL string `toml:"internal_relayer_url" json:"-"`
-
-	NativeToken *Currency   `toml:"native_token" json:"nativeToken,omitempty"`
-	Currencies  []*Currency `toml:"currencies"   json:"currencies,omitempty"`
+	ChainID       uint64               `json:"chainId,omitempty"`
+	Name          string               `json:"name,omitempty"`
+	Title         string               `json:"title,omitempty"`
+	Type          NetworkType          `json:"type,omitempty"`
+	LogoURL       string               `json:"logoUrl,omitempty"`
+	ENSAddress    string               `json:"ensAddress,omitempty"`
+	Deprecated    bool                 `json:"deprecated,omitempty"`
+	BlockExplorer *BlockExplorerConfig `json:"blockExplorer,omitempty"`
+	NativeToken   *Currency            `json:"nativeToken,omitempty"`
+	Currencies    []*Currency          `json:"currencies,omitempty"`
 }
 
 type BlockExplorerConfig struct {
-	Name       string `toml:"name"         json:"name,omitempty"`
-	RootURL    string `toml:"root_url"     json:"rootUrl,omitempty"`
-	AddressURL string `toml:"address_url"  json:"addressUrl,omitempty"`
-	TxnHashURL string `toml:"txn_hash_url" json:"txnHashUrl,omitempty"`
+	Name       string `json:"name,omitempty"`
+	RootURL    string `json:"rootUrl,omitempty"`
+	AddressURL string `json:"addressUrl,omitempty"`
+	TxnHashURL string `json:"txnHashUrl,omitempty"`
 }
 
 type Currency struct {
-	ContractAddress *string       `toml:"contract_address" json:"contractAddress,omitempty"`
-	Name            string        `toml:"name"             json:"name,omitempty"`
-	Symbol          string        `toml:"symbol"           json:"symbol,omitempty"`
-	Decimals        uint64        `toml:"decimals"         json:"decimals,omitempty"`
-	ImageURL        string        `toml:"image_url"        json:"imageUrl,omitempty"`
-	Native          bool          `toml:"native"           json:"native,omitempty"`
-	Default         bool          `toml:"default"          json:"default,omitempty"`
-	Group           CurrencyGroup `toml:"group"            json:"group,omitempty"`
+	ContractAddress *string       `json:"contractAddress,omitempty"`
+	Name            string        `json:"name,omitempty"`
+	Symbol          string        `json:"symbol,omitempty"`
+	Decimals        uint64        `json:"decimals,omitempty"`
+	ImageURL        string        `json:"imageUrl,omitempty"`
+	Native          bool          `json:"native,omitempty"`
+	Default         bool          `json:"default,omitempty"`
+	Group           CurrencyGroup `json:"group,omitempty"`
 }
 
 type NetworkType uint8
@@ -123,33 +105,6 @@ func (n *Network) IsMainnet() bool {
 	return n.Type == NetworkTypeMainnet
 }
 
-func (n *Network) IsTesnet() bool {
+func (n *Network) IsTestnet() bool {
 	return n.Type == NetworkTypeTestnet
-}
-
-func (n Networks) Active() Networks {
-	res := Networks{}
-	for name, network := range n {
-		if !network.Disabled {
-			res[name] = network
-		}
-	}
-
-	return res
-}
-
-func (n Networks) EthProvidersConfig() ethproviders.Config {
-	res := ethproviders.Config{}
-	for _, network := range n {
-		res[network.Name] = ethproviders.NetworkConfig{
-			ID:        network.ChainID,
-			URL:       network.NodeURL,
-			WSEnabled: network.WSEnabled,
-			WSURL:     network.WSURL,
-			Testnet:   network.IsTesnet(),
-			Disabled:  network.Disabled,
-		}
-	}
-
-	return res
 }
