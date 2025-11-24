@@ -8,7 +8,6 @@ type Network struct {
 	LogoURL       string               `json:"logoUrl,omitempty"`
 	ENSAddress    string               `json:"ensAddress,omitempty"`
 	Deprecated    bool                 `json:"deprecated,omitempty"`
-	Disabled      bool                 `json:"disabled,omitempty"`
 	BlockExplorer *BlockExplorerConfig `json:"blockExplorer,omitempty"`
 	NativeToken   *Currency            `json:"nativeToken,omitempty"`
 	Currencies    []*Currency          `json:"currencies,omitempty"`
