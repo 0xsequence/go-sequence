@@ -72,10 +72,6 @@ github.com/gibson042/canonicaljson-go v1.0.3 h1:EAyF8L74AWabkyUmrvEFHEt/AGFQeD6R
 github.com/gibson042/canonicaljson-go v1.0.3/go.mod h1:DsLpJTThXyGNO+KZlI85C1/KDcImpP67k/RKVjcaEqo=
 github.com/go-chi/httpvcr v0.2.0 h1:jOsPvc4ZOoyNv9KCv/O4YoSjMFrHFq/Orc90A0DotUU=
 github.com/go-chi/httpvcr v0.2.0/go.mod h1:tGX6IOmSd8LEvItVrT4z7I4BdhjHFU5RPTmvsKudD+Q=
-github.com/go-chi/traceid v0.3.0 h1:BYITxMnIeQasU7/U7+InZWANWxVZeCUBGTAqWleQOeg=
-github.com/go-chi/traceid v0.3.0/go.mod h1:XFfEEYZjqgML4ySh+wYBU29eqJkc2um7oEzgIc63e74=
-github.com/go-chi/transport v0.5.0 h1:xpnYcIOpBRrduJD68gX9YxkJouRGIE1y+rK5yGYnMXE=
-github.com/go-chi/transport v0.5.0/go.mod h1:uoCleTaQiFtoatEiiqcXFZ5OxIp6s1DfGeVsCVbalT4=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.4.0-rc.1/go.mod h1:ceaxUfeHdC40wWswd/P6IGgMaK3YpKi5j83Wpe3EHw8=
 github.com/golang/protobuf v1.4.0-rc.1.0.20200221234624-67d41d38c208/go.mod h1:xKAWHe0F5eneWXFV3EuXVDTCmh+JuBKY0li0aMyXATA=
