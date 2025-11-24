@@ -141,7 +141,7 @@ func (n Networks) Active() Networks {
 func (n Networks) ByChainID(chainID uint64) *Network {
 	for _, network := range n {
 		if network.ChainID == chainID {
-			return networks
+			return network
 		}
 	}
 	return nil
