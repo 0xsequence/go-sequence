@@ -138,6 +138,15 @@ func (n Networks) Active() Networks {
 	return res
 }
 
+func (n Networks) ByChainID(chainID uint64) *Network {
+	for _, network := range n {
+		if network.ChainID == chainID {
+			return networks
+		}
+	}
+	return nil
+}
+
 func (n Networks) EthProvidersConfig() ethproviders.Config {
 	res := ethproviders.Config{}
 	for _, network := range n {
