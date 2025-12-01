@@ -2,6 +2,7 @@ package sequence
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/0xsequence/ethkit"
@@ -53,7 +54,7 @@ done:
 		case V2IsTxExecutedEvent(log, metaTxnHash):
 			result.Status = MetaTxnExecuted
 			break done
-		case V3IsCallSuccessEvent(log, metaTxnHash):
+		case V3IsCallSucceededEvent(log, metaTxnHash):
 			result.Status = MetaTxnExecuted
 			break done
 		case V1IsTxFailedEvent(log, metaTxnHash):
@@ -66,11 +67,13 @@ done:
 			break done
 		case V3IsCallFailedEvent(log, metaTxnHash):
 			result.Status = MetaTxnFailed
-			_, _, result.Reason, _ = V3DecodeCallFailedEvent(log)
+			_, _, reason, _ := V3DecodeCallFailedEvent(log)
+			result.Reason = fmt.Sprint(reason)
 			break done
 		case V3IsCallAbortedEvent(log, metaTxnHash):
 			result.Status = MetaTxnFailed
-			_, _, result.Reason, _ = V3DecodeCallAbortedEvent(log)
+			_, _, reason, _ := V3DecodeCallAbortedEvent(log)
+			result.Reason = fmt.Sprint(reason)
 			break done
 		}
 	}
@@ -90,7 +93,7 @@ func FilterMetaTransactionID(metaTxnID ethkit.Hash) ethreceipts.FilterQuery {
 				fallthrough
 			case V2IsTxFailedEvent(log, metaTxnID):
 				fallthrough
-			case V3IsCallSuccessEvent(log, metaTxnID):
+			case V3IsCallSucceededEvent(log, metaTxnID):
 				fallthrough
 			case V3IsCallFailedEvent(log, metaTxnID):
 				fallthrough

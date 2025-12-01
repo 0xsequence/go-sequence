@@ -9,6 +9,7 @@ import (
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/stretchr/testify/assert"
@@ -130,11 +131,11 @@ func test(t *testing.T, test Test) {
 	assert.Len(t, receipts.Receipts, len(test.Receipts))
 
 	for i, receipt_ := range receipts.Receipts {
-		assert.True(t, isEqual(receipt.Logs, receipt_, test.Receipts[i]))
+		assert.NoError(t, isEqual(receipt.Logs, receipt_, test.Receipts[i]))
 	}
 }
 
-func isEqual(logs []*types.Log, actual receipts.Receipt, expected Receipt) bool {
+func isEqual(logs []*types.Log, actual receipts.Receipt, expected Receipt) error {
 	if expected.LogStart < 0 {
 		panic(fmt.Sprintf("log start %v < 0", expected.LogStart))
 	}
@@ -143,62 +144,64 @@ func isEqual(logs []*types.Log, actual receipts.Receipt, expected Receipt) bool 
 	}
 
 	if actual.Status != expected.Status {
-		return false
+		return fmt.Errorf("receipt status %v, expected %v", actual.Status, expected.Status)
 	}
 
 	if expected.Error == "" {
 		if actual.Error != nil {
-			return false
+			return fmt.Errorf("receipt error %v, expected nil", actual.Error)
 		}
 	} else {
-		if actual.Error == nil || actual.Error.Error() != expected.Error {
-			return false
+		if actual.Error == nil {
+			return fmt.Errorf("receipt error nil, expected %v", expected.Error)
+		} else if actual.Error.Error() != expected.Error {
+			return fmt.Errorf("receipt error %v, expected %v", actual.Error, expected.Error)
 		}
 	}
 
 	if expected.LogEnd > len(logs) {
-		return false
+		return fmt.Errorf("%v transaction logs, expected at least %v", len(logs), expected.LogEnd)
 	}
 	if len(actual.Logs) != expected.LogEnd-expected.LogStart {
-		return false
+		return fmt.Errorf("%v receipt logs, expected %v", actual.Logs, expected.LogEnd-expected.LogStart)
 	}
 
 	for i, log := range actual.Logs {
-		if !isEqualLog(log, logs[expected.LogStart+i]) {
-			return false
+		if err := isEqualLog(log, logs[expected.LogStart+i]); err != nil {
+			return fmt.Errorf("log %v: %w", i, err)
 		}
 	}
 
-	return true
+	return nil
 }
 
-func isEqualLog(a, b *types.Log) bool {
-	if a == b {
-		return true
+func isEqualLog(actual, expected *types.Log) error {
+	if actual == expected {
+		return nil
 	}
-	if a.Address != b.Address {
-		return false
+	if actual.Address != expected.Address {
+		return fmt.Errorf("log address %v, expected %v", actual.Address, expected.Address)
 	}
-	if !slices.Equal(a.Topics, b.Topics) {
-		return false
+	if !slices.Equal(actual.Topics, expected.Topics) {
+		return fmt.Errorf("log topics %v, expected %v", actual.Topics, expected.Topics)
 	}
-	if !bytes.Equal(a.Data, b.Data) {
-		return false
+	if !bytes.Equal(actual.Data, expected.Data) {
+		return fmt.Errorf("log data %v, expected %v", hexutil.Encode(actual.Data), hexutil.Encode(expected.Data))
 	}
-	if a.BlockNumber != b.BlockNumber {
-		return false
+	if actual.BlockNumber != expected.BlockNumber {
+		return fmt.Errorf("log block number %v, expected %v", actual.BlockNumber, expected.BlockNumber)
 	}
-	if a.TxHash != b.TxHash {
-		return false
+	if actual.TxHash != expected.TxHash {
+		return fmt.Errorf("log transaction hash %v, expected %v", actual.TxHash, expected.TxHash)
 	}
-	if a.TxIndex != b.TxIndex {
-		return false
+	if actual.TxIndex != expected.TxIndex {
+		return fmt.Errorf("log transaction index %v, expected %v", actual.TxIndex, expected.TxIndex)
 	}
-	if a.BlockHash != b.BlockHash {
-		return false
+	if actual.BlockHash != expected.BlockHash {
+		return fmt.Errorf("log block hash %v, expected %v", actual.BlockHash, expected.BlockHash)
 	}
-	if a.Index != b.Index {
-		return false
+	if actual.Index != expected.Index {
+		return fmt.Errorf("log index %v, expected %v", actual.Index, expected.Index)
 	}
-	return true
+	return nil
 }
