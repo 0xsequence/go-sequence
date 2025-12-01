@@ -17,6 +17,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
@@ -343,12 +344,15 @@ func (r *Client) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.Meta
 		if err != nil {
 			return sequence.MetaTxnStatusUnknown, nil, err
 		}
-		txnReceipt := metaTxnReceipt.TxnReceipt
+
 		var receipt *types.Receipt
-		err = json.Unmarshal([]byte(txnReceipt), &receipt)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to decode txn receipt data: %w", err)
+		// Only unmarshal TxnReceipt when the field is non-empty, since attempting to decode an empty JSON string would result in an error.
+		if metaTxnReceipt.TxnReceipt != "" {
+			if err = json.Unmarshal([]byte(metaTxnReceipt.TxnReceipt), &receipt); err != nil {
+				return 0, nil, fmt.Errorf("decode txn receipt data: %w", err)
+			}
 		}
+
 		return MetaTxnStatusFromString(metaTxnReceipt.Status), receipt, nil
 	}
 }
