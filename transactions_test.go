@@ -1,7 +1,6 @@
 package sequence_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -683,7 +682,7 @@ func TestTransactionToGuestModuleBasic(t *testing.T) {
 		assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
 		// Assert that first log in the receipt computes to the guest subdigest / id
-		assert.True(t, bytes.Contains(receipt.Logs[0].Data, payload.Digest().Bytes()))
+		assert.Equal(t, payload.Digest().Hash, receipt.Logs[0].Topics[1])
 
 		// Check the value
 		ret, err := testutil.ContractQuery(testChain.Provider, callmockContract.Address, "lastValA()", "uint256", nil)

@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/common/hexutil"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
+	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 )
 
@@ -171,11 +172,8 @@ func V2IsTxExecutedEvent(log *types.Log, hash common.Hash) bool {
 		bytes.Equal(log.Topics[1][:], hash[:])
 }
 
-func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallSucceeded {
-		return false
-	}
-	transaction, _, err := V3DecodeCallSuccessEvent(log)
+func V3IsCallSucceededEvent(log *types.Log, hash common.Hash) bool {
+	transaction, _, err := V3DecodeCallSucceededEvent(log)
 	if err != nil {
 		return false
 	}
@@ -183,9 +181,6 @@ func V3IsCallSuccessEvent(log *types.Log, hash common.Hash) bool {
 }
 
 func V3IsCallFailedEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallFailed {
-		return false
-	}
 	transaction, _, _, err := V3DecodeCallFailedEvent(log)
 	if err != nil {
 		return false
@@ -194,9 +189,6 @@ func V3IsCallFailedEvent(log *types.Log, hash common.Hash) bool {
 }
 
 func V3IsCallAbortedEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallAborted {
-		return false
-	}
 	transaction, _, _, err := V3DecodeCallAbortedEvent(log)
 	if err != nil {
 		return false
@@ -205,9 +197,6 @@ func V3IsCallAbortedEvent(log *types.Log, hash common.Hash) bool {
 }
 
 func V3IsCallSkippedEvent(log *types.Log, hash common.Hash) bool {
-	if len(log.Topics) != 1 || log.Topics[0] != V3CallSkipped {
-		return false
-	}
 	transaction, _, err := V3DecodeCallSkippedEvent(log)
 	if err != nil {
 		return false
@@ -215,54 +204,276 @@ func V3IsCallSkippedEvent(log *types.Log, hash common.Hash) bool {
 	return transaction == hash
 }
 
-func V3DecodeCallSuccessEvent(log *types.Log) (common.Hash, *big.Int, error) {
-	var transaction common.Hash
-	var index *big.Int
-	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
-	if err != nil {
-		return common.Hash{}, nil, err
+func V3DecodeCallSucceededEvent(log *types.Log) (common.Hash, *big.Int, error) {
+	event := contracts.V3.WalletStage1Module.ABI.Events["CallSucceeded"]
+
+	if len(log.Topics) == 0 || log.Topics[0] != event.ID {
+		return common.Hash{}, nil, fmt.Errorf("not CallSucceeded")
 	}
-	return transaction, index, nil
+
+	switch len(log.Topics) {
+	case 1:
+		legacyInputs := make(abi.Arguments, len(event.Inputs))
+		copy(legacyInputs, event.Inputs)
+		legacyInputs[0].Indexed = false
+
+		args, err := legacyInputs.Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, fmt.Errorf("unable to decode CallSucceeded: %w", err)
+		}
+		if len(args) != 2 {
+			return common.Hash{}, nil, fmt.Errorf("%v CallSucceeded arguments, expected two", len(args))
+		}
+
+		digest, ok := args[0].([common.HashLength]byte)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSucceeded digest is %T, expected common.Hash", args[0])
+		}
+
+		index, ok := args[1].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSucceeded index is %T, expected *big.Int", args[1])
+		}
+
+		return digest, index, nil
+
+	case 2:
+		args, err := event.Inputs.NonIndexed().Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, fmt.Errorf("unable to decode CallSucceeded: %w", err)
+		}
+		if len(args) != 1 {
+			return common.Hash{}, nil, fmt.Errorf("%v non-indexed CallSucceeded arguments, expected one", len(args))
+		}
+
+		digest := log.Topics[1]
+
+		index, ok := args[0].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSucceeded index is %T, expected *big.Int", args[0])
+		}
+
+		return digest, index, nil
+
+	default:
+		return common.Hash{}, nil, fmt.Errorf("%v topics, expected one or two", len(log.Topics))
+	}
 }
 
-func V3DecodeCallFailedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
-	var transaction common.Hash
-	var index *big.Int
-	var result []byte
-	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
-	if err != nil {
-		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallFailed event: %w", err)
+func V3DecodeCallFailedEvent(log *types.Log) (common.Hash, *big.Int, error, error) {
+	event := contracts.V3.WalletStage1Module.ABI.Events["CallFailed"]
+
+	if len(log.Topics) == 0 || log.Topics[0] != event.ID {
+		return common.Hash{}, nil, nil, fmt.Errorf("not CallFailed")
 	}
-	revert, err := abi.UnpackRevert(result)
-	if err != nil {
-		return transaction, index, hexutil.Encode(result), nil
+
+	switch len(log.Topics) {
+	case 1:
+		legacyInputs := make(abi.Arguments, len(event.Inputs))
+		copy(legacyInputs, event.Inputs)
+		legacyInputs[0].Indexed = false
+
+		args, err := legacyInputs.Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallFailed: %w", err)
+		}
+		if len(args) != 3 {
+			return common.Hash{}, nil, nil, fmt.Errorf("%v CallFailed arguments, expected three", len(args))
+		}
+
+		digest, ok := args[0].([common.HashLength]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallFailed digest is %T, expected common.Hash", args[0])
+		}
+
+		index, ok := args[1].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallFailed index is %T, expected *big.Int", args[1])
+		}
+
+		reason, ok := args[2].([]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallFailed reason is %T, expected []byte", args[2])
+		}
+
+		var reason_ error
+		if reason__, err := abi.UnpackRevert(reason); err == nil {
+			reason_ = fmt.Errorf("%v", reason__)
+		} else {
+			reason_ = fmt.Errorf("%v", hexutil.Encode(reason))
+		}
+
+		return digest, index, reason_, nil
+
+	case 2:
+		args, err := event.Inputs.NonIndexed().Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallFailed: %w", err)
+		}
+		if len(args) != 2 {
+			return common.Hash{}, nil, nil, fmt.Errorf("%v non-indexed CallFailed arguments, expected two", len(args))
+		}
+
+		digest := log.Topics[1]
+
+		index, ok := args[0].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallFailed index is %T, expected *big.Int", args[0])
+		}
+
+		reason, ok := args[1].([]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallFailed reason is %T, expected []byte", args[1])
+		}
+
+		var reason_ error
+		if reason__, err := abi.UnpackRevert(reason); err == nil {
+			reason_ = fmt.Errorf("%v", reason__)
+		} else {
+			reason_ = fmt.Errorf("%v", hexutil.Encode(reason))
+		}
+
+		return digest, index, reason_, nil
+
+	default:
+		return common.Hash{}, nil, nil, fmt.Errorf("%v topics, expected one or two", len(log.Topics))
 	}
-	return transaction, index, revert, nil
 }
 
-func V3DecodeCallAbortedEvent(log *types.Log) (common.Hash, *big.Int, string, error) {
-	var transaction common.Hash
-	var index *big.Int
-	var result []byte
-	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256", "bytes"}, log.Data, []any{&transaction, &index, &result})
-	if err != nil {
-		return common.Hash{}, nil, "", fmt.Errorf("unable to decode CallAborted event: %w", err)
+func V3DecodeCallAbortedEvent(log *types.Log) (common.Hash, *big.Int, error, error) {
+	event := contracts.V3.WalletStage1Module.ABI.Events["CallAborted"]
+
+	if len(log.Topics) == 0 || log.Topics[0] != event.ID {
+		return common.Hash{}, nil, nil, fmt.Errorf("not CallAborted")
 	}
-	revert, err := abi.UnpackRevert(result)
-	if err != nil {
-		return transaction, index, hexutil.Encode(result), nil
+
+	switch len(log.Topics) {
+	case 1:
+		legacyInputs := make(abi.Arguments, len(event.Inputs))
+		copy(legacyInputs, event.Inputs)
+		legacyInputs[0].Indexed = false
+
+		args, err := legacyInputs.Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallAborted: %w", err)
+		}
+		if len(args) != 3 {
+			return common.Hash{}, nil, nil, fmt.Errorf("%v CallAborted arguments, expected three", len(args))
+		}
+
+		digest, ok := args[0].([common.HashLength]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallAborted digest is %T, expected common.Hash", args[0])
+		}
+
+		index, ok := args[1].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallAborted index is %T, expected *big.Int", args[1])
+		}
+
+		reason, ok := args[2].([]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallAborted reason is %T, expected []byte", args[2])
+		}
+
+		var reason_ error
+		if reason__, err := abi.UnpackRevert(reason); err == nil {
+			reason_ = fmt.Errorf("%v", reason__)
+		} else {
+			reason_ = fmt.Errorf("%v", hexutil.Encode(reason))
+		}
+
+		return digest, index, reason_, nil
+
+	case 2:
+		args, err := event.Inputs.NonIndexed().Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, nil, fmt.Errorf("unable to decode CallAborted: %w", err)
+		}
+		if len(args) != 2 {
+			return common.Hash{}, nil, nil, fmt.Errorf("%v non-indexed CallAborted arguments, expected two", len(args))
+		}
+
+		digest := log.Topics[1]
+
+		index, ok := args[0].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallAborted index is %T, expected *big.Int", args[0])
+		}
+
+		reason, ok := args[1].([]byte)
+		if !ok {
+			return common.Hash{}, nil, nil, fmt.Errorf("CallAborted reason is %T, expected []byte", args[1])
+		}
+
+		var reason_ error
+		if reason__, err := abi.UnpackRevert(reason); err == nil {
+			reason_ = fmt.Errorf("%v", reason__)
+		} else {
+			reason_ = fmt.Errorf("%v", hexutil.Encode(reason))
+		}
+
+		return digest, index, reason_, nil
+
+	default:
+		return common.Hash{}, nil, nil, fmt.Errorf("%v topics, expected one or two", len(log.Topics))
 	}
-	return transaction, index, revert, nil
 }
 
 func V3DecodeCallSkippedEvent(log *types.Log) (common.Hash, *big.Int, error) {
-	var transaction common.Hash
-	var index *big.Int
-	err := ethcoder.ABIUnpackArgumentsByRef([]string{"bytes32", "uint256"}, log.Data, []any{&transaction, &index})
-	if err != nil {
-		return common.Hash{}, nil, err
+	event := contracts.V3.WalletStage1Module.ABI.Events["CallSkipped"]
+
+	if len(log.Topics) == 0 || log.Topics[0] != event.ID {
+		return common.Hash{}, nil, fmt.Errorf("not CallSkipped")
 	}
-	return transaction, index, nil
+
+	switch len(log.Topics) {
+	case 1:
+		legacyInputs := make(abi.Arguments, len(event.Inputs))
+		copy(legacyInputs, event.Inputs)
+		legacyInputs[0].Indexed = false
+
+		args, err := legacyInputs.Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, fmt.Errorf("unable to decode CallSkipped: %w", err)
+		}
+		if len(args) != 2 {
+			return common.Hash{}, nil, fmt.Errorf("%v CallSkipped arguments, expected two", len(args))
+		}
+
+		digest, ok := args[0].([common.HashLength]byte)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSkipped digest is %T, expected common.Hash", args[0])
+		}
+
+		index, ok := args[1].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSkipped index is %T, expected *big.Int", args[1])
+		}
+
+		return digest, index, nil
+
+	case 2:
+		args, err := event.Inputs.NonIndexed().Unpack(log.Data)
+		if err != nil {
+			return common.Hash{}, nil, fmt.Errorf("unable to decode CallSkipped: %w", err)
+		}
+		if len(args) != 1 {
+			return common.Hash{}, nil, fmt.Errorf("%v non-indexed CallSkipped arguments, expected one", len(args))
+		}
+
+		digest := log.Topics[1]
+
+		index, ok := args[0].(*big.Int)
+		if !ok {
+			return common.Hash{}, nil, fmt.Errorf("CallSkipped index is %T, expected *big.Int", args[0])
+		}
+
+		return digest, index, nil
+
+	default:
+		return common.Hash{}, nil, fmt.Errorf("%v topics, expected one or two", len(log.Topics))
+	}
 }
 
 func V2IsTxFailedEvent(log *types.Log, hash common.Hash) bool {
@@ -380,7 +591,7 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 			log, logs = logs[0], logs[1:]
 
 			isTxExecuted := V1IsTxExecutedEvent(log, hash) || V2IsTxExecutedEvent(log, hash)
-			if V3IsCallSuccessEvent(log, digest.Hash) {
+			if V3IsCallSucceededEvent(log, digest.Hash) {
 				isTxExecuted = true
 				receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 			}
@@ -395,13 +606,17 @@ func decodeReceipt(logs []*types.Log, transactions Transactions, nonce *big.Int,
 					failedHash, failedReason, _, err = V2DecodeTxFailedEvent(log)
 				}
 				if err != nil {
-					failedHash, _, failedReason, err = V3DecodeCallFailedEvent(log)
+					var reason error
+					failedHash, _, reason, err = V3DecodeCallFailedEvent(log)
+					failedReason = fmt.Sprint(reason)
 					if err == nil {
 						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 					}
 				}
 				if err != nil {
-					failedHash, _, failedReason, err = V3DecodeCallAbortedEvent(log)
+					var reason error
+					failedHash, _, reason, err = V3DecodeCallAbortedEvent(log)
+					failedReason = fmt.Sprint(reason)
 					if err == nil {
 						receipt.MetaTxnID = MetaTxnID(digest.Hash.String()[2:])
 					}
