@@ -12,11 +12,31 @@ import (
 	sequence "github.com/0xsequence/go-sequence"
 )
 
+const MaxFilterBlockRange = 10000
+
 // FetchReceipts looks up the transaction that emitted Call* events for the given
 // digest and returns all decoded Sequence receipts along with the native receipt.
 func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
 		return Receipts{}, nil, fmt.Errorf("no provider")
+	}
+
+	fromBlock_ := fromBlock
+	if fromBlock_ == nil {
+		fromBlock_ = new(big.Int)
+	}
+
+	toBlock_ := toBlock
+	if toBlock_ == nil {
+		latest, err := provider.BlockNumber(ctx)
+		if err != nil {
+			return Receipts{}, nil, fmt.Errorf("unable to get latest block: %w", err)
+		}
+		toBlock_ = new(big.Int).SetUint64(latest)
+	}
+
+	if new(big.Int).Sub(toBlock_, fromBlock_).Cmp(big.NewInt(MaxFilterBlockRange)) > 0 {
+		return Receipts{}, nil, fmt.Errorf("block range %v to %v exceeds %v, reduce block range", fromBlock_, toBlock_, MaxFilterBlockRange)
 	}
 
 	query := ethereum.FilterQuery{
