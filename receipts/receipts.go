@@ -37,6 +37,10 @@ func (r *Receipts) IsSuccess() bool {
 		case StatusNotExecuted, StatusFailed, StatusAborted:
 			return false
 		}
+
+		if receipt.Receipts != nil && !receipt.Receipts.IsSuccess() {
+			return false
+		}
 	}
 
 	return true
