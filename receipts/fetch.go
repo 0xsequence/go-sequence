@@ -20,6 +20,13 @@ const MaxFilterBlockRange = 10_000
 // The `opHash` is also known as the "MetaTxnID"
 //
 // NOTE: toBlock can also be nil, in which case the latest block is used.
+//
+// Finally, please note that this method will not find meta-transactions if there is a
+// native transaction which fails. In that case, the Call* events are not emitted and
+// thus cannot be found. In such cases, you will need to look up the native transaction
+// receipt directly. However, this is not to be confused with where a "Call" inside
+// of the native transaction fails, but the native transaction itself succeeds which
+// is more common and works fine.
 func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
 		return Receipts{}, nil, fmt.Errorf("no provider")
