@@ -31,6 +31,17 @@ type Receipts struct {
 	Receipts []Receipt
 }
 
+func (r *Receipts) IsSuccess() bool {
+	for _, receipt := range r.Receipts {
+		switch receipt.Status {
+		case StatusNotExecuted, StatusFailed, StatusAborted:
+			return false
+		}
+	}
+
+	return true
+}
+
 func (r *Receipts) Find(digest common.Hash) *Receipts {
 	if digest == r.Digest {
 		return r
