@@ -12,10 +12,14 @@ import (
 	sequence "github.com/0xsequence/go-sequence"
 )
 
-const MaxFilterBlockRange = 10000
+const MaxFilterBlockRange = 10_000
 
 // FetchReceipts looks up the transaction that emitted Call* events for the given
 // digest and returns all decoded Sequence receipts along with the native receipt.
+//
+// The `opHash` is also known as the "MetaTxnID"
+//
+// NOTE: toBlock can also be nil, in which case the latest block is used.
 func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
 		return Receipts{}, nil, fmt.Errorf("no provider")
