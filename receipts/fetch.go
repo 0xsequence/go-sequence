@@ -14,7 +14,7 @@ import (
 
 // FetchReceipts looks up the transaction that emitted Call* events for the given
 // digest and returns all decoded Sequence receipts along with the native receipt.
-func FetchReceipts(ctx context.Context, digest common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
+func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
 		return Receipts{}, nil, fmt.Errorf("no provider")
 	}
@@ -24,7 +24,7 @@ func FetchReceipts(ctx context.Context, digest common.Hash, provider *ethrpc.Pro
 		ToBlock:   toBlock,
 		Topics: [][]common.Hash{
 			{sequence.V3CallSucceeded, sequence.V3CallFailed, sequence.V3CallAborted, sequence.V3CallSkipped},
-			{digest},
+			{opHash},
 		},
 	}
 
@@ -41,7 +41,7 @@ func FetchReceipts(ctx context.Context, digest common.Hash, provider *ethrpc.Pro
 		}
 	}
 
-	log, err := findDigestLog(logs, digest)
+	log, err := findDigestLog(logs, opHash)
 	if err != nil {
 		return Receipts{}, nil, err
 	}
@@ -56,9 +56,9 @@ func FetchReceipts(ctx context.Context, digest common.Hash, provider *ethrpc.Pro
 		return Receipts{}, receipt, fmt.Errorf("unable to decode transaction receipt %v: %w", receipt.TxHash, err)
 	}
 
-	receipts := decoded.Find(digest)
+	receipts := decoded.Find(opHash)
 	if receipts == nil {
-		return Receipts{}, receipt, fmt.Errorf("decoded receipts do not include digest %v", digest)
+		return Receipts{}, receipt, fmt.Errorf("decoded receipts do not include digest %v", opHash)
 	}
 
 	return *receipts, receipt, nil
