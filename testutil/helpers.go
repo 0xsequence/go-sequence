@@ -20,6 +20,7 @@ import (
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var sequenceContext = sequence.WalletContext{
@@ -42,8 +43,8 @@ var sequenceContextV2 = sequence.WalletContext{
 
 var sequenceContextV3 = sequence.WalletContext{
 	FactoryAddress:              common.HexToAddress("0x00000000000018A77519fcCCa060c2537c9D6d3F"),
-	MainModuleAddress:           common.HexToAddress("0x0000000000001f3C39d61698ab21131a12134454"),
-	MainModuleUpgradableAddress: common.HexToAddress("0xD0ae8eF93b7DA4eabb32Ec4d81b7a501DCa04D4C"),
+	MainModuleAddress:           common.HexToAddress("0x0000000000001f3C39d61698ab21131a12134454"), // stage 1
+	MainModuleUpgradableAddress: common.HexToAddress("0xD0ae8eF93b7DA4eabb32Ec4d81b7a501DCa04D4C"), // stage 2
 	GuestModuleAddress:          common.HexToAddress("0x0000000000006Ac72ed1d192fa28f0058D3F8806"),
 	CreationCode:                hexutil.Encode(contracts.V3.CreationCode),
 }
@@ -114,7 +115,7 @@ func DummyPrivateKey(seed uint64) string {
 	return fmt.Sprintf("%064x", seed)
 }
 
-func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) error {
+func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data []byte) (*types.Receipt, error) {
 	stx := &sequence.Transaction{
 		// DelegateCall:  false,
 		// RevertOnError: false,
@@ -123,28 +124,27 @@ func SignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], 
 		To:   to,
 		Data: data,
 	}
-
 	return SignAndSendRawTransaction(t, wallet, stx)
 }
 
-func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) error {
+func SignAndSendRawTransaction[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], stx *sequence.Transaction) (*types.Receipt, error) {
 	// Now, we must sign the meta txn
 	signedTx, err := wallet.SignTransaction(context.Background(), stx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	metaTxnID, _, waitReceipt, err := wallet.SendTransaction(context.Background(), signedTx)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, metaTxnID)
+	require.NoError(t, err)
+	require.NotEmpty(t, metaTxnID)
 
 	receipt, err := waitReceipt(context.Background())
-	assert.NoError(t, err)
-	assert.True(t, receipt.Status == types.ReceiptStatusSuccessful)
+	require.NoError(t, err)
+	require.True(t, receipt.Status == types.ReceiptStatusSuccessful)
 
 	// TODO: decode the receipt, and lets confirm we have the metaTxnID event in there..
 	// NOTE: if you start test chain with `make start-testchain-verbose`, you will see the metaTxnID above
 	// correctly logged..
 
-	return err
+	return receipt, err
 }
 
 func BatchSignAndSend[C core.WalletConfig](t *testing.T, wallet *sequence.Wallet[C], to common.Address, data [][]byte) error {

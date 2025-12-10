@@ -7,7 +7,7 @@ toolchain go1.24.2
 // replace github.com/0xsequence/ethkit => ../ethkit
 
 require (
-	github.com/0xsequence/ethkit v1.38.6
+	github.com/0xsequence/ethkit v1.39.0
 	github.com/0xsequence/go-ethauth v0.14.0
 	github.com/BurntSushi/toml v1.2.1
 	github.com/davecgh/go-spew v1.1.1
@@ -41,7 +41,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/goware/breaker v0.2.0 // indirect
 	github.com/goware/cachestore-mem v0.2.2 // indirect
-	github.com/goware/calc v0.2.0 // indirect
 	github.com/goware/channel v0.5.0 // indirect
 	github.com/goware/singleflight v0.3.0 // indirect
 	github.com/goware/superr v0.0.2 // indirect
@@ -55,7 +54,6 @@ require (
 	github.com/supranational/blst v0.3.16 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect

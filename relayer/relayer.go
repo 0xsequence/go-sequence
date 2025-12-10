@@ -24,6 +24,7 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/lib/simulator"
+	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -303,7 +304,7 @@ func (r *Client) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, optTime
 	}
 
 	// Fetch the meta transaction receipt from the receipt listener
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
 		return 0, nil, err
 	}

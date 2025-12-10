@@ -17,6 +17,7 @@ import (
 
 	"github.com/0xsequence/go-sequence/contracts"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -591,7 +592,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	assert.Equal(t, "2255", ret[0])
 
 	// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-	result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:]))
+	result, _, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:]))
 	assert.NoError(t, err)
 	assert.True(t, result.Status == sequence.MetaTxnExecuted)
 
@@ -775,7 +776,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 		expectedMetaTxnID := sequence.MetaTxnID(opPayload.Digest().Hash.Hex()[2:])
 		fmt.Printf("Expected MetaTxnID Payload %d: %s\n", i+1, expectedMetaTxnID)
 
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, expectedMetaTxnID)
+		result, _, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, expectedMetaTxnID)
 		assert.NoError(t, err)
 		assert.True(t, result.Status == sequence.MetaTxnExecuted)
 	}

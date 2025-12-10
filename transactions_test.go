@@ -16,6 +16,7 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -55,7 +56,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -77,7 +78,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -280,7 +281,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -366,7 +367,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -452,7 +453,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -790,7 +791,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		result, _, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 		// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID)
 		assert.NoError(t, err)
 		assert.True(t, result.Status == sequence.MetaTxnExecuted)
@@ -897,7 +898,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 		assert.Equal(t, "2255", ret[0])
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		result, _, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 		// metaStatus, _, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnID)
 		assert.NoError(t, err)
 		assert.True(t, result.Status == sequence.MetaTxnExecuted)
@@ -995,7 +996,7 @@ func TestTransactionToGuestModuleDeployAndCall(t *testing.T) {
 
 		// Assert sequence.WaitForMetaTxn is able to find the metaTxnID
 		metaTxnID, _, _ := sequence.ComputeMetaTxnIDFromCallsPayload(&payload)
-		result, _, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+		result, _, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 		assert.NoError(t, err)
 		assert.True(t, result.Status == sequence.MetaTxnExecuted)
 

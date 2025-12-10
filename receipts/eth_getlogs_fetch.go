@@ -12,12 +12,15 @@ import (
 	sequence "github.com/0xsequence/go-sequence"
 )
 
-const MaxFilterBlockRange = 10_000
+const MaxFilterBlockRange = 7500
 
-// FetchReceipts looks up the transaction that emitted Call* events for the given
-// digest and returns all decoded Sequence receipts along with the native receipt.
+// FetchMetaTransactionReceiptByETHGetLogs looks up the transaction that emitted Call*
+// events for the given digest and returns all decoded Sequence receipts along with
+// the native receipt.
 //
-// The `opHash` is also known as the "MetaTxnID"
+// The `opHash` is also known as the "MetaTxnID" but please make sure
+// it has the "0x" prefix when passing as a common.Hash, even though
+// sometimes we represent a MetaTxnID without the 0x prefix as a string.
 //
 // NOTE: toBlock can also be nil, in which case the latest block is used.
 //
@@ -27,9 +30,9 @@ const MaxFilterBlockRange = 10_000
 // receipt directly. However, this is not to be confused with where a "Call" inside
 // of the native transaction fails, but the native transaction itself succeeds which
 // is more common and works fine.
-func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
+func FetchMetaTransactionReceiptByETHGetLogs(ctx context.Context, opHash common.Hash, provider ethrpc.Interface, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
-		return Receipts{}, nil, fmt.Errorf("no provider")
+		return Receipts{}, nil, fmt.Errorf("receipts: no provider")
 	}
 
 	fromBlock_ := fromBlock
@@ -54,25 +57,22 @@ func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Pro
 		FromBlock: fromBlock,
 		ToBlock:   toBlock,
 		Topics: [][]common.Hash{
-			{sequence.V3CallSucceeded, sequence.V3CallFailed, sequence.V3CallAborted, sequence.V3CallSkipped},
+			{sequence.V3CallSucceeded, sequence.V3CallFailed}, //, sequence.V3CallAborted, sequence.V3CallSkipped},
 			{opHash},
 		},
 	}
 
+	// TODO: what if there is a node failure here, we should retry a few times
+	// and also check the type of error from the node to see how we should behave/handle.
 	logs, err := provider.FilterLogs(ctx, query)
 	if err != nil {
 		return Receipts{}, nil, fmt.Errorf("unable to filter logs: %w", err)
 	}
 	if len(logs) == 0 {
-		// Fallback for legacy events where the digest is not indexed.
-		query.Topics = [][]common.Hash{{sequence.V3CallSucceeded, sequence.V3CallFailed, sequence.V3CallAborted, sequence.V3CallSkipped}}
-		logs, err = provider.FilterLogs(ctx, query)
-		if err != nil {
-			return Receipts{}, nil, fmt.Errorf("unable to filter logs without digest topic: %w", err)
-		}
+		return Receipts{}, nil, ethereum.NotFound
 	}
 
-	log, err := findDigestLog(logs, opHash)
+	log, err := findV3CallsDigestLog(logs, opHash)
 	if err != nil {
 		return Receipts{}, nil, err
 	}
@@ -91,33 +91,27 @@ func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Pro
 	if receipts == nil {
 		return Receipts{}, receipt, fmt.Errorf("decoded receipts do not include digest %v", opHash)
 	}
-
 	return *receipts, receipt, nil
 }
 
-func findDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
+func findV3CallsDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
 	var selected *types.Log
-
 	for i := range logs {
 		log := &logs[i]
-
-		if !matchesDigest(log, digest) {
+		if !matchesV3CallsDigest(log, digest) {
 			continue
 		}
-
 		if selected == nil || isNewerLog(log, selected) {
 			selected = log
 		}
 	}
-
 	if selected == nil {
 		return nil, fmt.Errorf("no Call* events found for digest %v", digest)
 	}
-
 	return selected, nil
 }
 
-func matchesDigest(log *types.Log, digest common.Hash) bool {
+func matchesV3CallsDigest(log *types.Log, digest common.Hash) bool {
 	if hash, _, err := sequence.V3DecodeCallSucceededEvent(log); err == nil && hash == digest {
 		return true
 	}
