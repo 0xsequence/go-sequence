@@ -49,6 +49,9 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 			// QueryOnChain function is called at the beginning of the subscriber filter
 			// process, so we can quickly query the chain for the receipt without waiting
 			// to check historical blocks up front.
+			//
+			// NOTE: this only works on v3 sequence transactions because only v3
+			// has properly set indexed events.
 			toBlock := receiptListener.LatestBlockNum()
 			if toBlock == nil || toBlock.Cmp(big.NewInt(0)) == 0 {
 				return nil, fmt.Errorf("receipts: no latest block number available from monitor")
@@ -57,6 +60,9 @@ func FetchMetaTransactionReceipt(ctx context.Context, receiptListener *ethreceip
 			if fromBlock.Cmp(big.NewInt(0)) < 0 {
 				fromBlock = big.NewInt(0)
 			}
+			// TODO: consider if there is a node failure to fetch, and we fail to get this
+			// but the window has past, so we need to do better on retrying, to ensure
+			// we actually get a valid response (even if our metatxnid isn't found).
 			_, receipt, err := FetchMetaTransactionReceiptByETHGetLogs(ctx, metaTxnHash, receiptListener.RPCProvider(), fromBlock, toBlock)
 			return receipt, err
 		})

@@ -62,6 +62,8 @@ func FetchMetaTransactionReceiptByETHGetLogs(ctx context.Context, opHash common.
 		},
 	}
 
+	// TODO: what if there is a node failure here, we should retry a few times
+	// and also check the type of error from the node to see how we should behave/handle.
 	logs, err := provider.FilterLogs(ctx, query)
 	if err != nil {
 		return Receipts{}, nil, fmt.Errorf("unable to filter logs: %w", err)
