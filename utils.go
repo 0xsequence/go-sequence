@@ -43,7 +43,7 @@ func DeploySequenceWallet(sender *ethwallet.Wallet, walletConfig core.WalletConf
 		return common.Address{}, nil, nil, err
 	}
 
-	signedDeployTx, err := sender.SignTx(deployTx, chainID)
+	signedDeployTx, err := sender.SignTransaction(deployTx, chainID)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}

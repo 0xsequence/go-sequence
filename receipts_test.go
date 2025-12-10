@@ -30,7 +30,7 @@ func TestReceiptDecoding(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Sign and send the transaction
-	err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+	_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 	assert.NoError(t, err)
 
 	var send [][]byte

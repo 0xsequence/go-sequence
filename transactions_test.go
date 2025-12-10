@@ -34,7 +34,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -56,7 +56,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -78,7 +78,7 @@ func TestTransaction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallet, callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -281,7 +281,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -367,7 +367,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value
@@ -453,7 +453,7 @@ func TestTransactionBundling(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Sign and send the transaction
-		err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
+		_, err = testutil.SignAndSend(t, wallets[0], callmockContract.Address, calldata)
 		assert.NoError(t, err)
 
 		// Check the value

@@ -18,7 +18,9 @@ const MaxFilterBlockRange = 7500
 // events for the given digest and returns all decoded Sequence receipts along with
 // the native receipt.
 //
-// The `opHash` is also known as the "MetaTxnID"
+// The `opHash` is also known as the "MetaTxnID" but please make sure
+// it has the "0x" prefix when passing as a common.Hash, even though
+// sometimes we represent a MetaTxnID without the 0x prefix as a string.
 //
 // NOTE: toBlock can also be nil, in which case the latest block is used.
 //
@@ -65,15 +67,10 @@ func FetchMetaTransactionReceiptByETHGetLogs(ctx context.Context, opHash common.
 		return Receipts{}, nil, fmt.Errorf("unable to filter logs: %w", err)
 	}
 	if len(logs) == 0 {
-		// Fallback for legacy events where the digest is not indexed.
-		query.Topics = [][]common.Hash{{sequence.V3CallSucceeded, sequence.V3CallFailed, sequence.V3CallAborted, sequence.V3CallSkipped}}
-		logs, err = provider.FilterLogs(ctx, query)
-		if err != nil {
-			return Receipts{}, nil, fmt.Errorf("unable to filter logs without digest topic: %w", err)
-		}
+		return Receipts{}, nil, ethereum.NotFound
 	}
 
-	log, err := findDigestLog(logs, opHash)
+	log, err := findV3CallsDigestLog(logs, opHash)
 	if err != nil {
 		return Receipts{}, nil, err
 	}
@@ -92,30 +89,27 @@ func FetchMetaTransactionReceiptByETHGetLogs(ctx context.Context, opHash common.
 	if receipts == nil {
 		return Receipts{}, receipt, fmt.Errorf("decoded receipts do not include digest %v", opHash)
 	}
-
 	return *receipts, receipt, nil
 }
 
-func findDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
+func findV3CallsDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
 	var selected *types.Log
-
 	for i := range logs {
 		log := &logs[i]
-		if !matchesDigest(log, digest) {
+		if !matchesV3CallsDigest(log, digest) {
 			continue
 		}
 		if selected == nil || isNewerLog(log, selected) {
 			selected = log
 		}
 	}
-
 	if selected == nil {
 		return nil, fmt.Errorf("no Call* events found for digest %v", digest)
 	}
 	return selected, nil
 }
 
-func matchesDigest(log *types.Log, digest common.Hash) bool {
+func matchesV3CallsDigest(log *types.Log, digest common.Hash) bool {
 	if hash, _, err := sequence.V3DecodeCallSucceededEvent(log); err == nil && hash == digest {
 		return true
 	}
