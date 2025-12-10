@@ -12,10 +12,11 @@ import (
 	sequence "github.com/0xsequence/go-sequence"
 )
 
-const MaxFilterBlockRange = 10_000
+const MaxFilterBlockRange = 7500
 
-// FetchReceipts looks up the transaction that emitted Call* events for the given
-// digest and returns all decoded Sequence receipts along with the native receipt.
+// FetchMetaTransactionReceiptByETHGetLogs looks up the transaction that emitted Call*
+// events for the given digest and returns all decoded Sequence receipts along with
+// the native receipt.
 //
 // The `opHash` is also known as the "MetaTxnID"
 //
@@ -27,9 +28,9 @@ const MaxFilterBlockRange = 10_000
 // receipt directly. However, this is not to be confused with where a "Call" inside
 // of the native transaction fails, but the native transaction itself succeeds which
 // is more common and works fine.
-func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Provider, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
+func FetchMetaTransactionReceiptByETHGetLogs(ctx context.Context, opHash common.Hash, provider ethrpc.Interface, fromBlock, toBlock *big.Int) (Receipts, *types.Receipt, error) {
 	if provider == nil {
-		return Receipts{}, nil, fmt.Errorf("no provider")
+		return Receipts{}, nil, fmt.Errorf("receipts: no provider")
 	}
 
 	fromBlock_ := fromBlock
@@ -54,7 +55,7 @@ func FetchReceipts(ctx context.Context, opHash common.Hash, provider *ethrpc.Pro
 		FromBlock: fromBlock,
 		ToBlock:   toBlock,
 		Topics: [][]common.Hash{
-			{sequence.V3CallSucceeded, sequence.V3CallFailed, sequence.V3CallAborted, sequence.V3CallSkipped},
+			{sequence.V3CallSucceeded, sequence.V3CallFailed}, //, sequence.V3CallAborted, sequence.V3CallSkipped},
 			{opHash},
 		},
 	}
@@ -100,11 +101,9 @@ func findDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
 
 	for i := range logs {
 		log := &logs[i]
-
 		if !matchesDigest(log, digest) {
 			continue
 		}
-
 		if selected == nil || isNewerLog(log, selected) {
 			selected = log
 		}
@@ -113,7 +112,6 @@ func findDigestLog(logs []types.Log, digest common.Hash) (*types.Log, error) {
 	if selected == nil {
 		return nil, fmt.Errorf("no Call* events found for digest %v", digest)
 	}
-
 	return selected, nil
 }
 

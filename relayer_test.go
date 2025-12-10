@@ -8,6 +8,7 @@ import (
 	"github.com/0xsequence/ethkit/ethcoder"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence"
+	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +47,7 @@ func TestGetReceiptOfTransaction(t *testing.T) {
 
 	// Find receipt
 	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)
@@ -93,7 +94,7 @@ func TestGetReceiptOfErrorTransaction(t *testing.T) {
 
 	// Find receipt
 	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnFailed, result.Status)
@@ -178,7 +179,7 @@ func TestGetReceiptOfFailedTransactionBetweenTransactions(t *testing.T) {
 
 	// Find receipt
 	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status()) // native txn was successful
@@ -238,7 +239,7 @@ func TestGetReceiptOfTransactionBetweenTransactions(t *testing.T) {
 
 	// Find receipt
 	// status, receipt, err := sequence.WaitForMetaTxn(context.Background(), testChain.Provider, metaTxnId)
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(context.Background(), testChain.ReceiptsListener, metaTxnID)
 	assert.NoError(t, err)
 	assert.NotNil(t, receipt)
 	assert.Equal(t, sequence.MetaTxnExecuted, result.Status)

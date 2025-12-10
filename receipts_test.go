@@ -13,6 +13,7 @@ import (
 	"github.com/0xsequence/go-sequence"
 	"github.com/0xsequence/go-sequence/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReceiptDecoding(t *testing.T) {
@@ -248,16 +249,19 @@ func areIsomorphic(receipt *sequence.Receipt, transaction *sequence.Transaction)
 }
 
 func TestZKSyncReceipts(t *testing.T) {
+	t.Skip("skipping this test as appears nodes are unhealthy and unavailable")
+
 	ctx := context.Background()
 
 	provider, err := ethrpc.NewProvider("https://nodes.sequence.app/sandbox-testnet")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	hash := common.HexToHash("0x6ddb43ddf29ed48f302c6b7b6dc9bb47b33dd5099540fb0793f239edb406fa5d")
 
 	receipt, err := provider.TransactionReceipt(ctx, hash)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, receipt)
 
 	_, _, err = sequence.DecodeReceipt(ctx, receipt, provider)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

@@ -84,7 +84,7 @@ func TransactionReceipts(ctx context.Context, transaction common.Hash, provider 
 	return TransactionReceiptsForReceipt(ctx, receipt, provider, chainID...)
 }
 
-func TransactionReceiptsForReceipt(ctx context.Context, receipt *types.Receipt, provider *ethrpc.Provider, chainID ...*big.Int) (Receipts, error) {
+func TransactionReceiptsForReceipt(ctx context.Context, receipt *types.Receipt, provider ethrpc.Interface, chainID ...*big.Int) (Receipts, error) {
 	if provider == nil {
 		return Receipts{}, fmt.Errorf("no provider")
 	}
@@ -111,7 +111,7 @@ func TransactionReceiptsForReceipt(ctx context.Context, receipt *types.Receipt, 
 	return decodeLogs(ctx, *to, transaction_.Data(), receipt.Logs, chainID[0], provider)
 }
 
-func decodeLogs(ctx context.Context, to common.Address, data []byte, logs []*types.Log, chainID *big.Int, provider *ethrpc.Provider) (Receipts, error) {
+func decodeLogs(ctx context.Context, to common.Address, data []byte, logs []*types.Log, chainID *big.Int, provider ethrpc.Interface) (Receipts, error) {
 	if execute := contracts.V3.WalletStage1Module.ABI.Methods["execute"]; bytes.HasPrefix(data, execute.ID) {
 		args, err := execute.Inputs.Unpack(data[4:])
 		if err != nil {

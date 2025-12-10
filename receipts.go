@@ -59,7 +59,7 @@ func (r *Receipt) setNativeReceipt(receipt *types.Receipt) {
 
 // This method is duplicated code from: `compressor/contract.go`
 // can't be used directly, because it would create a circular dependency
-func DecompressCalldata(ctx context.Context, to *common.Address, data []byte, provider *ethrpc.Provider) (common.Address, []byte, error) {
+func DecompressCalldata(ctx context.Context, to *common.Address, data []byte, provider ethrpc.Interface) (common.Address, []byte, error) {
 	if len(data) == 0 {
 		return common.Address{}, nil, fmt.Errorf("empty transaction data")
 	}
@@ -213,6 +213,7 @@ func V3DecodeCallSucceededEvent(log *types.Log) (common.Hash, *big.Int, error) {
 
 	switch len(log.Topics) {
 	case 1:
+		// TODO: we can remove this as its the old v3-rc.4 and earlier format
 		legacyInputs := make(abi.Arguments, len(event.Inputs))
 		copy(legacyInputs, event.Inputs)
 		legacyInputs[0].Indexed = false

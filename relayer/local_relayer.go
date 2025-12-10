@@ -20,6 +20,7 @@ import (
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/lib/simulator"
+	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/relayer/proto"
 )
 
@@ -234,7 +235,7 @@ func (r *LocalRelayer) Wait(ctx context.Context, metaTxnID sequence.MetaTxnID, o
 	if r.receiptListener == nil {
 		return 0, nil, fmt.Errorf("relayer: failed to wait for metaTxnID as receiptListener is not set")
 	}
-	result, receipt, _, err := sequence.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
+	result, receipt, _, err := receipts.FetchMetaTransactionReceipt(ctx, r.receiptListener, metaTxnID, optTimeout...)
 	if err != nil {
 		return 0, nil, err
 	}
