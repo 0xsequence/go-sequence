@@ -2,6 +2,7 @@ package receipts_test
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/0xsequence/ethkit/ethrpc"
@@ -12,9 +13,6 @@ import (
 )
 
 func TestFetchReceiptTokenTransfers(t *testing.T) {
-
-	// TODO: lets find a very simple metamask erc20 transfer, and check it in the test
-	// https://arbiscan.io/tx/0x6753a97203d159702e594662729b06608cf3b9c99c0cce177b9d7b66e6456150
 
 	// TODO2: a txn with a bunch of different erc20 transfers inside of it, ie. batch send
 	// this is a sequence v2 send of usdc and magic on arbitrum.. batch send
@@ -34,9 +32,9 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
 	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
 
-	// Test 1: Simple ERC20 Transfer via EOA, which shows just a simple transfer event
+	// Case 1: Simple ERC20 Transfer via EOA, which shows just a simple transfer event
 	// https://arbiscan.io/tx/0x6753a97203d159702e594662729b06608cf3b9c99c0cce177b9d7b66e6456150
-	t.Run("Simple ERC20 Transfer via EOA", func(t *testing.T) {
+	t.Run("Case 1: Simple ERC20 Transfer via EOA", func(t *testing.T) {
 		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
 		require.NoError(t, err)
 
@@ -46,7 +44,29 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.NotNil(t, receipt)
 		require.Greater(t, len(transfers), 0)
 
+		// spew.Dump(transfers)
+		require.Equal(t, 1, len(transfers))
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), transfers[0].Token) // USDC
+		require.Equal(t, common.HexToAddress("0x1D17C0F90A0b3dFb5124C2FF56B33a0D2E202e1d"), transfers[0].From)
+		require.Equal(t, common.HexToAddress("0x5646E2424A7b7d43740EF14bc5b4f1e00Bf9B6Ba"), transfers[0].To)
+		require.Equal(t, big.NewInt(184840), transfers[0].Value)
+	})
+
+	// Case 2: a txn with a bunch of different erc20 transfers inside of it, ie. batch send
+	// this is a sequence v2 send of usdc and magic on arbitrum.. batch send
+	// https://arbiscan.io/tx/0x65c70290232207a21ef6805ae50622def8d52b7a8f381e1c3eac24d5423e0657
+	t.Run("Case 2: Batch of ERC20 Transfers via SCW", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0x65c70290232207a21ef6805ae50622def8d52b7a8f381e1c3eac24d5423e0657")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+
 		spew.Dump(transfers)
+		require.Equal(t, 2, len(transfers))
 	})
 
 	//--

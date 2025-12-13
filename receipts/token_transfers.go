@@ -40,11 +40,13 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 			continue
 		}
 
+		tokenAddress := log.Address
+
 		if log.Topics[0] == transferTopic {
 			filterer, err := tokens.NewIERC20Filterer(log.Address, provider)
 			if err == nil {
 				if ev, err := filterer.ParseTransfer(*log); err == nil && ev != nil {
-					decoded = append(decoded, &TokenTransfer{From: ev.From, To: ev.To, Value: ev.Value, Raw: *log})
+					decoded = append(decoded, &TokenTransfer{Token: tokenAddress, From: ev.From, To: ev.To, Value: ev.Value, Raw: *log})
 					continue
 				}
 			}
@@ -53,11 +55,12 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 		// TODO: need to try all of the various versions of this.. and we may as well support ERC721 and ERC1155 too
 		// note: "indexed" args, etc.
 
+		// TODO: this is wrong, etc.
 		if len(log.Topics) >= 3 {
 			from := common.BytesToAddress(log.Topics[1].Bytes())
 			to := common.BytesToAddress(log.Topics[2].Bytes())
 			value := new(big.Int).SetBytes(log.Data)
-			decoded = append(decoded, &TokenTransfer{From: from, To: to, Value: value, Raw: *log})
+			decoded = append(decoded, &TokenTransfer{Token: tokenAddress, From: from, To: to, Value: value, Raw: *log})
 		}
 	}
 
@@ -65,9 +68,10 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 }
 
 type TokenTransfer struct {
+	Token common.Address
 	From  common.Address
 	To    common.Address
-	Value *big.Int
+	Value *big.Int // TODO: check the erc20 log spec to see if we should call this value or amount
 	Raw   types.Log
 }
 
