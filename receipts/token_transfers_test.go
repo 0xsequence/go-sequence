@@ -8,7 +8,6 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/receipts"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,6 +30,20 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Equal(t, common.HexToAddress("0x1D17C0F90A0b3dFb5124C2FF56B33a0D2E202e1d"), transfers[0].From)
 		require.Equal(t, common.HexToAddress("0x5646E2424A7b7d43740EF14bc5b4f1e00Bf9B6Ba"), transfers[0].To)
 		require.Equal(t, big.NewInt(184840), transfers[0].Value)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs()
+		require.NotNil(t, balances)
+		require.Equal(t, len(balances), 2)
+		// spew.Dump(balances)
+
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), balances[0].Token) // USDC
+		require.Equal(t, common.HexToAddress("0x1D17C0F90A0b3dFb5124C2FF56B33a0D2E202e1d"), balances[0].Account)
+		require.Equal(t, big.NewInt(-184840), balances[0].Balance)
+
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), balances[1].Token) // USDC
+		require.Equal(t, common.HexToAddress("0x5646E2424A7b7d43740EF14bc5b4f1e00Bf9B6Ba"), balances[1].Account)
+		require.Equal(t, big.NewInt(184840), balances[1].Balance)
 	})
 
 	// Case 2: a txn with a bunch of different erc20 transfers inside of it, ie. batch send
@@ -46,7 +59,7 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.NotNil(t, receipt)
 		require.Greater(t, len(transfers), 0)
 
-		spew.Dump(transfers)
+		// spew.Dump(transfers)
 		require.Equal(t, 2, len(transfers))
 
 		// USDC
@@ -60,11 +73,33 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Equal(t, common.HexToAddress("0x8e3E38fe7367dd3b52D1e281E4e8400447C8d8B9"), transfers[1].From)
 		require.Equal(t, common.HexToAddress("0x9b1A542f3C455E8d6057C3478EB945B48D8e17fF"), transfers[1].To)
 		require.Equal(t, big.NewInt(200000000000000000), transfers[1].Value)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs()
+		require.NotNil(t, balances)
+		require.Equal(t, len(balances), 4)
+		// spew.Dump(balances)
+
+		require.Equal(t, common.HexToAddress("0x539bdE0d7Dbd336b79148AA742883198BBF60342"), balances[0].Token) // MAGIC
+		require.Equal(t, common.HexToAddress("0x8e3E38fe7367dd3b52D1e281E4e8400447C8d8B9"), balances[0].Account)
+		require.Equal(t, big.NewInt(-200000000000000000), balances[0].Balance)
+
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), balances[1].Token) // USDC
+		require.Equal(t, common.HexToAddress("0x8e3E38fe7367dd3b52D1e281E4e8400447C8d8B9"), balances[1].Account)
+		require.Equal(t, big.NewInt(-100000), balances[1].Balance)
+
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), balances[2].Token) // USDC
+		require.Equal(t, common.HexToAddress("0x9b1A542f3C455E8d6057C3478EB945B48D8e17fF"), balances[2].Account)
+		require.Equal(t, big.NewInt(100000), balances[2].Balance)
+
+		require.Equal(t, common.HexToAddress("0x539bdE0d7Dbd336b79148AA742883198BBF60342"), balances[3].Token) // MAGIC
+		require.Equal(t, common.HexToAddress("0x9b1A542f3C455E8d6057C3478EB945B48D8e17fF"), balances[3].Account)
+		require.Equal(t, big.NewInt(200000000000000000), balances[3].Balance)
 	})
 
 	// Case 3: a trails intent call, with bunch of other actions inside of the txn, including erc20 transfers
 	// https://arbiscan.io/tx/0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9
-	t.Run("Case 3: ..", func(t *testing.T) {
+	t.Run("Case 3: Trails intent origin call", func(t *testing.T) {
 		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
 		require.NoError(t, err)
 
@@ -103,7 +138,7 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Equal(t, collector, transfers[2].To)
 		require.Equal(t, big.NewInt(9979), transfers[2].Value)
 
-		// Get the delta / net effects
+		// Get the balance outputs from the transfer logs
 		balances := transfers.ComputeBalanceOutputs()
 		require.NotNil(t, balances)
 		require.Equal(t, len(balances), 3)
@@ -125,23 +160,22 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 	// Case 4: a trails cross-chain swap where we use 0x + cctp to swap from MAGIC to USDC then bridge
 	// over CCTP. This includes many calls with USDC and MAGIC.
 	// https://arbiscan.io/tx/0xa5c17e51443c8a8ce60cdcbe84b89fd2570f073bbb3b9ec8cdc9361aa1ca984f
-	t.Run("Case 4: ..", func(t *testing.T) {
+	t.Run("Case 4: Trails swap intent call", func(t *testing.T) {
 	})
 
 	// Case 5: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
 	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
-	t.Run("Case 5: ..", func(t *testing.T) {
+	t.Run("Case 5: Vault bridge USDC transfer", func(t *testing.T) {
 	})
 
 	// Case 6: polygon POL LogTransfer event
 	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
-	t.Run("Case 6: ..", func(t *testing.T) {
+	t.Run("Case 6: POL with LogTransfer", func(t *testing.T) {
 	})
 
 	// Case 7: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
-	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
 	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
-	t.Run("Case 7: ..", func(t *testing.T) {
+	t.Run("Case 7: Random txn with swap and many tokens", func(t *testing.T) {
 	})
 }
 
