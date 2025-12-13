@@ -10,6 +10,11 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 )
 
+var tokenTransferTopicHashes = []common.Hash{
+	common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"), // ERC20 Transfer
+	common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4"), // Polygon POL LogTransfer (custom)
+}
+
 // FetchReceiptTokenTransfers fetches the transaction receipt for the given transaction hash
 // and decodes any token transfer events (ERC20) that occurred within that transaction. TODOXXX: we
 // currently only support ERC20 token transfers, but we can extend this to support ERC721 and ERC1155 as well.
@@ -68,7 +73,7 @@ type TokenTransfer struct {
 
 type TokenTransfers []*TokenTransfer
 
-func (t TokenTransfers) FilterTokenTransfersByContractAddress(ctx context.Context, contract common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByContractAddress(ctx context.Context, contract common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.Raw.Address == contract {
@@ -78,7 +83,17 @@ func (t TokenTransfers) FilterTokenTransfersByContractAddress(ctx context.Contex
 	return out
 }
 
-func (t TokenTransfers) FilterTokenTransfersByFromAddress(ctx context.Context, from common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByAccountAddress(ctx context.Context, account common.Address) TokenTransfers {
+	var out TokenTransfers
+	for _, transfer := range t {
+		if transfer.From == account || transfer.To == account {
+			out = append(out, transfer)
+		}
+	}
+	return out
+}
+
+func (t TokenTransfers) FilterByFromAddress(ctx context.Context, from common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.From == from {
@@ -88,7 +103,7 @@ func (t TokenTransfers) FilterTokenTransfersByFromAddress(ctx context.Context, f
 	return out
 }
 
-func (t TokenTransfers) FilterTokenTransfersByToAddress(ctx context.Context, to common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByToAddress(ctx context.Context, to common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.To == to {
