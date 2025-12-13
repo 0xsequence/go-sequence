@@ -13,25 +13,6 @@ import (
 )
 
 func TestFetchReceiptTokenTransfers(t *testing.T) {
-
-	// TODO2: a txn with a bunch of different erc20 transfers inside of it, ie. batch send
-	// this is a sequence v2 send of usdc and magic on arbitrum.. batch send
-	// https://arbiscan.io/tx/0x65c70290232207a21ef6805ae50622def8d52b7a8f381e1c3eac24d5423e0657
-
-	// TODO3: a trails intent call, with bunch of other actions inside of the txn, including erc20 transfers
-	// https://arbiscan.io/tx/0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9
-	// .. lets get another one using zerox + cctp for example
-
-	// TODO4: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
-	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
-
-	// TODO5: polygon POL LogTransfer event
-	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
-
-	// TODO6: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
-	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
-	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
-
 	// Case 1: Simple ERC20 Transfer via EOA, which shows just a simple transfer event
 	// https://arbiscan.io/tx/0x6753a97203d159702e594662729b06608cf3b9c99c0cce177b9d7b66e6456150
 	t.Run("Case 1: Simple ERC20 Transfer via EOA", func(t *testing.T) {
@@ -67,6 +48,40 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 
 		spew.Dump(transfers)
 		require.Equal(t, 2, len(transfers))
+
+		// USDC
+		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), transfers[0].Token)
+		require.Equal(t, common.HexToAddress("0x8e3E38fe7367dd3b52D1e281E4e8400447C8d8B9"), transfers[0].From)
+		require.Equal(t, common.HexToAddress("0x9b1A542f3C455E8d6057C3478EB945B48D8e17fF"), transfers[0].To)
+		require.Equal(t, big.NewInt(100000), transfers[0].Value)
+
+		// MAGIC
+		require.Equal(t, common.HexToAddress("0x539bdE0d7Dbd336b79148AA742883198BBF60342"), transfers[1].Token)
+		require.Equal(t, common.HexToAddress("0x8e3E38fe7367dd3b52D1e281E4e8400447C8d8B9"), transfers[1].From)
+		require.Equal(t, common.HexToAddress("0x9b1A542f3C455E8d6057C3478EB945B48D8e17fF"), transfers[1].To)
+		require.Equal(t, big.NewInt(200000000000000000), transfers[1].Value)
+	})
+
+	// Case 3: a trails intent call, with bunch of other actions inside of the txn, including erc20 transfers
+	// https://arbiscan.io/tx/0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9
+	// .. lets get another one using zerox + cctp for example
+	t.Run("Case 3: ..", func(t *testing.T) {
+	})
+
+	// Case 4: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
+	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
+	t.Run("Case 4: ..", func(t *testing.T) {
+	})
+
+	// Case 5: polygon POL LogTransfer event
+	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
+	t.Run("Case 5: ..", func(t *testing.T) {
+	})
+
+	// Case 6: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
+	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
+	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
+	t.Run("Case 6: ..", func(t *testing.T) {
 	})
 
 	//--
