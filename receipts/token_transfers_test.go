@@ -64,58 +64,86 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 
 	// Case 3: a trails intent call, with bunch of other actions inside of the txn, including erc20 transfers
 	// https://arbiscan.io/tx/0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9
-	// .. lets get another one using zerox + cctp for example
 	t.Run("Case 3: ..", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+		require.Equal(t, 13, len(receipt.Logs))
+
+		// Trails intent
+		usdc := common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
+		owner := common.HexToAddress("0x9DAB7A98C207f01A35DF00257949a27609b93ad7")
+		trailsRouter := common.HexToAddress("0xF8A739B9F24E297a98b7aba7A9cdFDBD457F6fF8")
+		bridge := common.HexToAddress("0xf70da97812CB96acDF810712Aa562db8dfA3dbEF")
+		collector := common.HexToAddress("0x76008498f26789dd8b691Bebe24C889A3dd1A2fc")
+
+		// spew.Dump(transfers)
+		require.Equal(t, 3, len(transfers))
+
+		// Log 1, USDC owner to trailsRouter
+		require.Equal(t, usdc, transfers[0].Token)
+		require.Equal(t, owner, transfers[0].From)
+		require.Equal(t, trailsRouter, transfers[0].To)
+		require.Equal(t, big.NewInt(175353), transfers[0].Value)
+
+		// Log 2, USDC trailsRouter from bridge
+		require.Equal(t, usdc, transfers[1].Token)
+		require.Equal(t, trailsRouter, transfers[1].From)
+		require.Equal(t, bridge, transfers[1].To)
+		require.Equal(t, big.NewInt(175353), transfers[1].Value)
+
+		// Log 3, USDC owner to collector
+		require.Equal(t, usdc, transfers[2].Token)
+		require.Equal(t, owner, transfers[2].From)
+		require.Equal(t, collector, transfers[2].To)
+		require.Equal(t, big.NewInt(9979), transfers[2].Value)
+
+		// Get the delta / net effects
+		balances := transfers.ComputeBalanceOutputs()
+		require.NotNil(t, balances)
+		require.Equal(t, len(balances), 3)
+		// spew.Dump(balances)
+
+		require.Equal(t, usdc, balances[0].Token)
+		require.Equal(t, owner, balances[0].Account)
+		require.Equal(t, big.NewInt(-185332), balances[0].Balance)
+
+		require.Equal(t, usdc, balances[1].Token)
+		require.Equal(t, collector, balances[1].Account)
+		require.Equal(t, big.NewInt(9979), balances[1].Balance)
+
+		require.Equal(t, usdc, balances[2].Token)
+		require.Equal(t, bridge, balances[2].Account)
+		require.Equal(t, big.NewInt(175353), balances[2].Balance)
 	})
 
-	// Case 4: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
-	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
+	// Case 4: a trails cross-chain swap where we use 0x + cctp to swap from MAGIC to USDC then bridge
+	// over CCTP. This includes many calls with USDC and MAGIC.
+	// https://arbiscan.io/tx/0xa5c17e51443c8a8ce60cdcbe84b89fd2570f073bbb3b9ec8cdc9361aa1ca984f
 	t.Run("Case 4: ..", func(t *testing.T) {
 	})
 
-	// Case 5: polygon POL LogTransfer event
-	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
+	// Case 5: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
+	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
 	t.Run("Case 5: ..", func(t *testing.T) {
 	})
 
-	// Case 6: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
-	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
-	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
+	// Case 6: polygon POL LogTransfer event
+	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
 	t.Run("Case 6: ..", func(t *testing.T) {
 	})
 
-	//--
-
-	// t.Run("Simple ERC20 Transfer", func(t *testing.T) {
-	// 	// https://arbiscan.io/tx/0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9
-	// 	provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
-	// 	require.NoError(t, err)
-
-	// 	txnHash := common.HexToHash("0xb88cc2fea7cd26c88e169f6244fea76f590fc0797ba4c424669d1b74643f1dc9")
-
-	// 	receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
-	// 	require.NoError(t, err)
-	// 	require.NotNil(t, receipt)
-	// 	require.Greater(t, len(transfers), 0)
-
-	// 	spew.Dump(transfers)
-
-	// })
-
-	// t.Run("Polygon POL LogTransfer", func(t *testing.T) {
-	// 	t.Skip("POL")
-
-	// 	// txnHash := https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
-	// 	provider, err := ethrpc.NewProvider("https://nodes.sequence.app/polygon")
-	// 	require.NoError(t, err)
-
-	// 	txnHash := common.HexToHash("0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5")
-
-	// 	receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
-	// 	require.NoError(t, err)
-	// 	require.NotNil(t, receipt)
-	// 	require.Greater(t, len(transfers), 0)
-
-	// 	spew.Dump(transfers)
-	// })
+	// Case 7: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
+	// and we have to do a delta/diff, and return the "result" maybe "TokenTransferResult" ?
+	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
+	t.Run("Case 7: ..", func(t *testing.T) {
+	})
 }
+
+// TODO: lets test the TokenTransfers directly with mock
+// data we write by hand to ensure aggregation works properly, etc.

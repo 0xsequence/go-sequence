@@ -3,6 +3,7 @@ package receipts
 import (
 	"context"
 	"math/big"
+	"sort"
 
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -77,6 +78,14 @@ type TokenTransfer struct {
 
 type TokenTransfers []*TokenTransfer
 
+type TokenBalance struct {
+	Token   common.Address
+	Account common.Address
+	Balance *big.Int
+}
+
+type TokenBalances []*TokenBalance
+
 func (t TokenTransfers) FilterByContractAddress(ctx context.Context, contract common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
@@ -114,5 +123,80 @@ func (t TokenTransfers) FilterByToAddress(ctx context.Context, to common.Address
 			out = append(out, transfer)
 		}
 	}
+	return out
+}
+
+func (t TokenTransfers) Delta() TokenTransfers {
+	out := TokenTransfers{}
+	return out
+}
+
+// ComputeBalances aggregates net balance changes per token per account from the transfers.
+// For each transfer, it subtracts `Value` from `From` and adds `Value` to `To`.
+// Accounts with a resulting zero balance change for a given token are omitted.
+func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
+	// key: token address + account address
+	type key struct {
+		token   common.Address
+		account common.Address
+	}
+
+	balances := make(map[key]*big.Int)
+
+	for _, tr := range s {
+		if tr == nil || tr.Value == nil {
+			continue
+		}
+
+		// From: subtract value
+		kFrom := key{token: tr.Token, account: tr.From}
+		if _, ok := balances[kFrom]; !ok {
+			balances[kFrom] = new(big.Int)
+		}
+		balances[kFrom].Sub(balances[kFrom], tr.Value)
+
+		// To: add value
+		kTo := key{token: tr.Token, account: tr.To}
+		if _, ok := balances[kTo]; !ok {
+			balances[kTo] = new(big.Int)
+		}
+		balances[kTo].Add(balances[kTo], tr.Value)
+	}
+
+	// Convert to slice, excluding zero balances
+	out := TokenBalances{}
+	zero := big.NewInt(0)
+
+	for k, v := range balances {
+		if v == nil || v.Cmp(zero) == 0 {
+			continue
+		}
+		out = append(out, &TokenBalance{
+			Token:   k.token,
+			Account: k.account,
+			Balance: new(big.Int).Set(v),
+		})
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		bi := out[i].Balance
+		bj := out[j].Balance
+		// ascending by numeric value (negative first)
+		cmp := bi.Cmp(bj)
+		if cmp != 0 {
+			return cmp < 0
+		}
+		// account lexicographic
+		ai := out[i].Account.Hex()
+		aj := out[j].Account.Hex()
+		if ai != aj {
+			return ai < aj
+		}
+		// token lexicographic
+		ti := out[i].Token.Hex()
+		tj := out[j].Token.Hex()
+		return ti < tj
+	})
+
 	return out
 }
