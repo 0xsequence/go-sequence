@@ -260,6 +260,33 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 	// Case 5: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
 	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
 	t.Run("Case 5: Vault bridge USDC transfer", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/katana")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+		require.Equal(t, 1, len(receipt.Logs))
+
+		// Trails intent
+		require.Equal(t, 1, len(transfers))
+		// spew.Dump(transfers)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs()
+		require.NotNil(t, balances)
+		require.Equal(t, len(balances), 2)
+		// spew.Dump(balances)
+
+		require.Equal(t, common.HexToAddress("0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36"), balances[0].Token)
+		require.Equal(t, common.HexToAddress("0x1D17C0F90A0b3dFb5124C2FF56B33a0D2E202e1d"), balances[0].Account)
+		require.Equal(t, makeBigInt(t, "-177353"), balances[0].Balance)
+
+		require.Equal(t, common.HexToAddress("0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36"), balances[1].Token)
+		require.Equal(t, common.HexToAddress("0xE766bc22e31097940FFF8A73B240055EFB2424C8"), balances[1].Account)
+		require.Equal(t, makeBigInt(t, "177353"), balances[1].Balance)
 	})
 
 	// Case 6: polygon POL LogTransfer event
