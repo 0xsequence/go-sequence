@@ -11,11 +11,6 @@ import (
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
 )
 
-var tokenTransferTopicHashes = []common.Hash{
-	common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"), // ERC20 Transfer
-	common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4"), // Polygon POL LogTransfer (custom)
-}
-
 // FetchReceiptTokenTransfers fetches the transaction receipt for the given transaction hash
 // and decodes any token transfer events (ERC20) that occurred within that transaction. TODOXXX: we
 // currently only support ERC20 token transfers, but we can extend this to support ERC721 and ERC1155 as well.
@@ -27,13 +22,25 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 	if receipt == nil {
 		return nil, nil, nil
 	}
+	transfers, err := DecodeTokenTransfersFromLogs(ctx, receipt.Logs)
+	if err != nil {
+		return receipt, nil, err
+	}
+	return receipt, transfers, nil
+}
 
+var tokenTransferTopicHashes = []common.Hash{
+	common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"), // ERC20 Transfer
+	common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4"), // Polygon POL LogTransfer (custom)
+}
+
+func DecodeTokenTransfersFromLogs(ctx context.Context, logs []*types.Log) (TokenTransfers, error) {
 	transferTopic := common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
 	polLogTransferTopic := common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4")
 
 	var decoded []*TokenTransfer
 
-	for _, log := range receipt.Logs {
+	for _, log := range logs {
 		if len(log.Topics) == 0 {
 			continue
 		}
@@ -44,7 +51,7 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 		tokenAddress := log.Address
 
 		if log.Topics[0] == transferTopic {
-			filterer, err := tokens.NewIERC20Filterer(log.Address, provider)
+			filterer, err := tokens.NewIERC20Filterer(log.Address, nil)
 			if err == nil {
 				if ev, err := filterer.ParseTransfer(*log); err == nil && ev != nil {
 					decoded = append(decoded, &TokenTransfer{Token: tokenAddress, From: ev.From, To: ev.To, Value: ev.Value, Raw: *log})
@@ -65,14 +72,14 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 		}
 	}
 
-	return receipt, decoded, nil
+	return decoded, nil
 }
 
 type TokenTransfer struct {
 	Token common.Address
 	From  common.Address
 	To    common.Address
-	Value *big.Int // TODO: check the erc20 log spec to see if we should call this value or amount
+	Value *big.Int
 	Raw   types.Log
 }
 
@@ -131,7 +138,7 @@ func (t TokenTransfers) Delta() TokenTransfers {
 	return out
 }
 
-// ComputeBalances aggregates net balance changes per token per account from the transfers.
+// ComputeBalanceOutputs aggregates net balance changes per token per account from the transfers.
 // For each transfer, it subtracts `Value` from `From` and adds `Value` to `To`.
 // Accounts with a resulting zero balance change for a given token are omitted.
 func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
