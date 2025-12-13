@@ -161,6 +161,100 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 	// over CCTP. This includes many calls with USDC and MAGIC.
 	// https://arbiscan.io/tx/0xa5c17e51443c8a8ce60cdcbe84b89fd2570f073bbb3b9ec8cdc9361aa1ca984f
 	t.Run("Case 4: Trails swap intent call", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0xa5c17e51443c8a8ce60cdcbe84b89fd2570f073bbb3b9ec8cdc9361aa1ca984f")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+		require.Equal(t, 31, len(receipt.Logs))
+
+		// Trails intent
+		require.Equal(t, 10, len(transfers))
+		// spew.Dump(transfers)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs()
+		require.NotNil(t, balances)
+		require.Equal(t, len(balances), 9)
+		// spew.Dump(balances)
+
+		usdc := common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
+		magic := common.HexToAddress("0x539bdE0d7Dbd336b79148AA742883198BBF60342")
+		owner := common.HexToAddress("0x8f2951E6b9Bd9F8cf3522A7Fa98A0F9bC767b155")
+		trailsRouter := common.HexToAddress("0xF8A739B9F24E297a98b7aba7A9cdFDBD457F6fF8")
+		collector := common.HexToAddress("0x76008498f26789dd8b691Bebe24C889A3dd1A2fc")
+
+		// intermediary token used via uniswap
+		weth := common.HexToAddress("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+		uniswap := common.HexToAddress("0xB7E50106A5bd3Cf21AF210A755F9C8740890A8c9")
+
+		// some rando token used in the swap
+		liqBook := common.HexToAddress("0xb7236B927e03542AC3bE0A054F2bEa8868AF9508")
+
+		// NOTE: these balances are not in order of operations
+		// it is the outputs, and sorted by smallest to highest
+		// in terms of numeric value (not USD value obviously)
+		// as decimals are not factored in here per token.
+
+		// owner sending magic
+		require.Equal(t, magic, balances[0].Token)
+		require.Equal(t, owner, balances[0].Account)
+		require.Equal(t, makeBigInt(t, "-10686807000000000000"), balances[0].Balance)
+
+		// uniswap sending out weth
+		require.Equal(t, weth, balances[1].Token)
+		require.Equal(t, uniswap, balances[1].Account)
+		require.Equal(t, makeBigInt(t, "-383769729558864"), balances[1].Balance)
+
+		// liqbook sending usdc
+		require.Equal(t, usdc, balances[2].Token)
+		require.Equal(t, liqBook, balances[2].Account)
+		require.Equal(t, makeBigInt(t, "-1191946"), balances[2].Balance)
+
+		// balance of some 0x related wallet, probably a fee collector for 0x
+		require.Equal(t, usdc, balances[3].Token)
+		require.Equal(t, common.HexToAddress("0xaD01C20d5886137e056775af56915de824c8fCe5"), balances[3].Account)
+		require.Equal(t, makeBigInt(t, "1787"), balances[3].Balance)
+
+		// trailsRouter receiving usdc
+		// TODO: this must be a bug in trails router or calls, as there shouldn't be any
+		// dust left in the router.
+		require.Equal(t, usdc, balances[4].Token)
+		require.Equal(t, trailsRouter, balances[4].Account)
+		require.Equal(t, makeBigInt(t, "36299"), balances[4].Balance)
+
+		// usdc burn for cctp
+		require.Equal(t, usdc, balances[5].Token)
+		require.Equal(t, common.HexToAddress("0x0000000000000000000000000000000000000000"), balances[5].Account)
+		require.Equal(t, makeBigInt(t, "1153860"), balances[5].Balance)
+
+		// liqBook got the weth from the swap flow
+		require.Equal(t, weth, balances[6].Token)
+		require.Equal(t, liqBook, balances[6].Account)
+		require.Equal(t, makeBigInt(t, "383769729558864"), balances[6].Balance)
+
+		// fee collector paid in magic
+		require.Equal(t, magic, balances[7].Token)
+		require.Equal(t, collector, balances[7].Account)
+		require.Equal(t, makeBigInt(t, "109223258035414205"), balances[7].Balance)
+
+		// uniswap ending up with the magic from swap in
+		require.Equal(t, magic, balances[8].Token)
+		require.Equal(t, uniswap, balances[8].Account)
+		require.Equal(t, makeBigInt(t, "10577583741964585795"), balances[8].Balance)
+
+		// Get balance of just the cctp burn address
+		cctpBurnAddress := balances.FilterByAccount(common.HexToAddress("0x0000000000000000000000000000000000000000"), usdc)
+		require.Equal(t, 1, len(cctpBurnAddress))
+		require.Equal(t, usdc, cctpBurnAddress[0].Token)
+		require.Equal(t, makeBigInt(t, "1153860"), cctpBurnAddress[0].Balance)
+
+		// Get balance of uniswap only
+		uniswapBalances := balances.FilterByAccount(uniswap)
+		require.Equal(t, 2, len(uniswapBalances))
 	})
 
 	// Case 5: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
@@ -181,3 +275,9 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 
 // TODO: lets test the TokenTransfers directly with mock
 // data we write by hand to ensure aggregation works properly, etc.
+
+func makeBigInt(t *testing.T, s string) *big.Int {
+	bi, ok := new(big.Int).SetString(s, 10)
+	require.True(t, ok)
+	return bi
+}

@@ -207,3 +207,15 @@ func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
 
 	return out
 }
+
+func (b TokenBalances) FilterByAccount(account common.Address, optToken ...common.Address) TokenBalances {
+	var out TokenBalances
+	for _, bal := range b {
+		if bal.Account == account {
+			if len(optToken) == 0 || bal.Token == optToken[0] {
+				out = append(out, bal)
+			}
+		}
+	}
+	return out
+}
