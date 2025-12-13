@@ -29,28 +29,23 @@ func FetchReceiptTokenTransfers(ctx context.Context, provider *ethrpc.Provider, 
 	return receipt, transfers, nil
 }
 
-var tokenTransferTopicHashes = []common.Hash{
-	common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"), // ERC20 Transfer
-	common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4"), // Polygon POL LogTransfer (custom)
-}
+var (
+	erc20TransferTopic  = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+	polLogTransferTopic = common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4")
+)
 
 func DecodeTokenTransfersFromLogs(ctx context.Context, logs []*types.Log) (TokenTransfers, error) {
-	transferTopic := common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
-	polLogTransferTopic := common.HexToHash("0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4")
-
 	var decoded []*TokenTransfer
 
 	for _, log := range logs {
 		if len(log.Topics) == 0 {
 			continue
 		}
-		if log.Topics[0] != transferTopic && log.Topics[0] != polLogTransferTopic {
-			continue
-		}
-
 		tokenAddress := log.Address
 
-		if log.Topics[0] == transferTopic {
+		switch log.Topics[0] {
+		case erc20TransferTopic:
+			// ERC20 Transfer
 			filterer, err := tokens.NewIERC20Filterer(log.Address, nil)
 			if err == nil {
 				if ev, err := filterer.ParseTransfer(*log); err == nil && ev != nil {
@@ -58,17 +53,28 @@ func DecodeTokenTransfersFromLogs(ctx context.Context, logs []*types.Log) (Token
 					continue
 				}
 			}
-		}
 
-		// TODO: need to try all of the various versions of this.. and we may as well support ERC721 and ERC1155 too
-		// note: "indexed" args, etc.
+		case polLogTransferTopic:
+			// Polygon POL LogTransfer (custom)
+			// https://polygonscan.com/address/0x0000000000000000000000000000000000001010#code
+			//
+			// ABI:
+			// event LogTransfer(address indexed token, address indexed from, address indexed to,
+			//                   uint256 amount, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
+			if len(log.Topics) >= 4 {
+				from := common.BytesToAddress(log.Topics[2].Bytes())
+				to := common.BytesToAddress(log.Topics[3].Bytes())
+				var value *big.Int
+				if len(log.Data) >= 32 {
+					value = new(big.Int).SetBytes(log.Data[:32])
+				} else {
+					value = new(big.Int)
+				}
+				decoded = append(decoded, &TokenTransfer{Token: tokenAddress, From: from, To: to, Value: value, Raw: *log})
+			}
 
-		// TODO: this is wrong, etc.
-		if len(log.Topics) >= 3 {
-			from := common.BytesToAddress(log.Topics[1].Bytes())
-			to := common.BytesToAddress(log.Topics[2].Bytes())
-			value := new(big.Int).SetBytes(log.Data)
-			decoded = append(decoded, &TokenTransfer{Token: tokenAddress, From: from, To: to, Value: value, Raw: *log})
+		default:
+			continue
 		}
 	}
 
@@ -93,7 +99,7 @@ type TokenBalance struct {
 
 type TokenBalances []*TokenBalance
 
-func (t TokenTransfers) FilterByContractAddress(ctx context.Context, contract common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByContractAddress(contract common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.Raw.Address == contract {
@@ -103,7 +109,7 @@ func (t TokenTransfers) FilterByContractAddress(ctx context.Context, contract co
 	return out
 }
 
-func (t TokenTransfers) FilterByAccountAddress(ctx context.Context, account common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByAccountAddress(account common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.From == account || transfer.To == account {
@@ -113,7 +119,7 @@ func (t TokenTransfers) FilterByAccountAddress(ctx context.Context, account comm
 	return out
 }
 
-func (t TokenTransfers) FilterByFromAddress(ctx context.Context, from common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByFromAddress(from common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.From == from {
@@ -123,7 +129,7 @@ func (t TokenTransfers) FilterByFromAddress(ctx context.Context, from common.Add
 	return out
 }
 
-func (t TokenTransfers) FilterByToAddress(ctx context.Context, to common.Address) TokenTransfers {
+func (t TokenTransfers) FilterByToAddress(to common.Address) TokenTransfers {
 	var out TokenTransfers
 	for _, transfer := range t {
 		if transfer.To == to {
@@ -141,7 +147,7 @@ func (t TokenTransfers) Delta() TokenTransfers {
 // ComputeBalanceOutputs aggregates net balance changes per token per account from the transfers.
 // For each transfer, it subtracts `Value` from `From` and adds `Value` to `To`.
 // Accounts with a resulting zero balance change for a given token are omitted.
-func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
+func (s TokenTransfers) ComputeBalanceOutputs(omitZeroBalances ...bool) TokenBalances {
 	// key: token address + account address
 	type key struct {
 		token   common.Address
@@ -175,7 +181,7 @@ func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
 	zero := big.NewInt(0)
 
 	for k, v := range balances {
-		if v == nil || v.Cmp(zero) == 0 {
+		if v == nil || (len(omitZeroBalances) > 0 && omitZeroBalances[0] && v.Cmp(zero) == 0) {
 			continue
 		}
 		out = append(out, &TokenBalance{
@@ -205,6 +211,17 @@ func (s TokenTransfers) ComputeBalanceOutputs() TokenBalances {
 		return ti < tj
 	})
 
+	return out
+}
+
+func (b TokenBalances) OmitZeroBalances() TokenBalances {
+	var out TokenBalances
+	zero := big.NewInt(0)
+	for _, bal := range b {
+		if bal.Balance != nil && bal.Balance.Cmp(zero) != 0 {
+			out = append(out, bal)
+		}
+	}
 	return out
 }
 

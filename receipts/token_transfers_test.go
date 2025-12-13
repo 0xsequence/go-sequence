@@ -34,7 +34,7 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		// Get the balance outputs from the transfer logs
 		balances := transfers.ComputeBalanceOutputs()
 		require.NotNil(t, balances)
-		require.Equal(t, len(balances), 2)
+		require.Equal(t, 2, len(balances))
 		// spew.Dump(balances)
 
 		require.Equal(t, common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831"), balances[0].Token) // USDC
@@ -77,7 +77,7 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		// Get the balance outputs from the transfer logs
 		balances := transfers.ComputeBalanceOutputs()
 		require.NotNil(t, balances)
-		require.Equal(t, len(balances), 4)
+		require.Equal(t, 4, len(balances))
 		// spew.Dump(balances)
 
 		require.Equal(t, common.HexToAddress("0x539bdE0d7Dbd336b79148AA742883198BBF60342"), balances[0].Token) // MAGIC
@@ -139,9 +139,9 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Equal(t, big.NewInt(9979), transfers[2].Value)
 
 		// Get the balance outputs from the transfer logs
-		balances := transfers.ComputeBalanceOutputs()
+		balances := transfers.ComputeBalanceOutputs().OmitZeroBalances()
 		require.NotNil(t, balances)
-		require.Equal(t, len(balances), 3)
+		require.Equal(t, 3, len(balances))
 		// spew.Dump(balances)
 
 		require.Equal(t, usdc, balances[0].Token)
@@ -176,9 +176,9 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		// spew.Dump(transfers)
 
 		// Get the balance outputs from the transfer logs
-		balances := transfers.ComputeBalanceOutputs()
+		balances := transfers.ComputeBalanceOutputs().OmitZeroBalances()
 		require.NotNil(t, balances)
-		require.Equal(t, len(balances), 9)
+		require.Equal(t, 9, len(balances))
 		// spew.Dump(balances)
 
 		usdc := common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
@@ -270,14 +270,13 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Greater(t, len(transfers), 0)
 		require.Equal(t, 1, len(receipt.Logs))
 
-		// Trails intent
 		require.Equal(t, 1, len(transfers))
 		// spew.Dump(transfers)
 
 		// Get the balance outputs from the transfer logs
 		balances := transfers.ComputeBalanceOutputs()
 		require.NotNil(t, balances)
-		require.Equal(t, len(balances), 2)
+		require.Equal(t, 2, len(balances))
 		// spew.Dump(balances)
 
 		require.Equal(t, common.HexToAddress("0x203A662b0BD271A6ed5a60EdFbd04bFce608FD36"), balances[0].Token)
@@ -292,16 +291,45 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 	// Case 6: polygon POL LogTransfer event
 	// https://polygonscan.com/tx/0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5
 	t.Run("Case 6: POL with LogTransfer", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/polygon")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0x252419983224542bfb07dab75808fa57186a7a269d0d267ae655eb7ef037fdd5")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+		require.Equal(t, 25, len(receipt.Logs)) // actually a ton of stuff in here
+
+		// Trails intent
+		transfers = transfers.FilterByContractAddress(common.HexToAddress("0x0000000000000000000000000000000000001010")) // POL token
+		require.Equal(t, 2, len(transfers))
+		// spew.Dump(transfers)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs(true) // omit zero balances
+		require.NotNil(t, balances)
+		require.Equal(t, 2, len(balances))
+		// spew.Dump(balances)
+
+		polPsuedoToken := common.HexToAddress("0x0000000000000000000000000000000000001010")
+
+		require.Equal(t, polPsuedoToken, balances[0].Token)
+		require.Equal(t, common.HexToAddress("0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"), balances[0].Account)
+		require.Equal(t, makeBigInt(t, "-3965683724100320759"), balances[0].Balance)
+
+		require.Equal(t, polPsuedoToken, balances[1].Token)
+		require.Equal(t, common.HexToAddress("0x1D17C0F90A0b3dFb5124C2FF56B33a0D2E202e1d"), balances[1].Account)
+		require.Equal(t, makeBigInt(t, "3965683724100320759"), balances[1].Balance)
 	})
 
 	// Case 7: bunch of logs for the same erc20 token, and we need to sum it up, ie. a big uniswap call
 	// https://etherscan.io/tx/0xb11ff491495e145b07a1d3cc304f7d04b235b80af51b50da9a54095a6882fca4
 	t.Run("Case 7: Random txn with swap and many tokens", func(t *testing.T) {
+		// NOTE, skippig writing this for now as its pretty similar
+		// to case 4
 	})
 }
-
-// TODO: lets test the TokenTransfers directly with mock
-// data we write by hand to ensure aggregation works properly, etc.
 
 func makeBigInt(t *testing.T, s string) *big.Int {
 	bi, ok := new(big.Int).SetString(s, 10)
