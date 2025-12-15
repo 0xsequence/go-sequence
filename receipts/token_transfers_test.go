@@ -257,6 +257,37 @@ func TestFetchReceiptTokenTransfers(t *testing.T) {
 		require.Equal(t, 2, len(uniswapBalances))
 	})
 
+	// This is a similar as case 4 with the fix applied to Trails sweep
+	// https://arbiscan.io/tx/0x6e06f9053b3ecad8372716f1a1f0b3c1dcd773542ac9d37ea371dac014782e1c
+	t.Run("Case 4b: Trails swap intent call", func(t *testing.T) {
+		provider, err := ethrpc.NewProvider("https://nodes.sequence.app/arbitrum")
+		require.NoError(t, err)
+
+		txnHash := common.HexToHash("0x6e06f9053b3ecad8372716f1a1f0b3c1dcd773542ac9d37ea371dac014782e1c")
+		receipt, transfers, err := receipts.FetchReceiptTokenTransfers(context.Background(), provider, txnHash)
+		require.NoError(t, err)
+		require.NotNil(t, receipt)
+		require.Greater(t, len(transfers), 0)
+		require.Equal(t, 36, len(receipt.Logs))
+
+		// Trails intent
+		require.Equal(t, 13, len(transfers))
+		// spew.Dump(transfers)
+
+		// Get the balance outputs from the transfer logs
+		balances := transfers.ComputeBalanceOutputs() //.OmitZeroBalances()
+		require.NotNil(t, balances)
+		// require.Equal(t, 15, len(balances))
+		// spew.Dump(balances)
+
+		trailsRouter := common.HexToAddress("0xF8A739B9F24E297a98b7aba7A9cdFDBD457F6fF8")
+		usdc := common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831")
+
+		require.Equal(t, usdc, balances[6].Token)
+		require.Equal(t, trailsRouter, balances[6].Account)
+		require.Equal(t, makeBigInt(t, "0"), balances[6].Balance)
+	})
+
 	// Case 5: vault bridge USDC .. lets check the token transfer event, prob just erc20 too
 	// https://katanascan.com/tx/0x7bcd0068a5c3352cf4e1d75c7c4f78d99f02b8b2f5f96b2c407972f43e724f52
 	t.Run("Case 5: Vault bridge USDC transfer", func(t *testing.T) {
