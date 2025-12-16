@@ -195,6 +195,10 @@ func (h *Hash) Hash() common.Hash {
 	return common.HexToHash(h.String())
 }
 
+func (h Hash) Equals(other Hash) bool {
+	return strings.EqualFold(h.String(), other.String())
+}
+
 func (h Hash) Value() (driver.Value, error) {
 	s := h.String()
 	if len(s) < 2 {
