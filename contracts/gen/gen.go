@@ -77,6 +77,11 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=isapient --type=ISapientCompact --outFile=./isapient/isapientcompact.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/ISapient.sol/ISapientCompact.json
 
 //
+// trails
+//
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=trailsutils --type=TrailsUtils --outFile=./trailsutils/trails_utils.gen.go --artifactsFile=../artifacts/trails-contracts/TrailsUtils.sol/TrailsUtils.json
+
+//
 // sequence marketplace
 //
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=seq_marketplace --type=SequenceMarketplace --outFile=./seq_marketplace/seq_marketplace.gen.go --artifactsFile=../artifacts/seq_marketplace/ISequenceMarket.sol/ISequenceMarket.json

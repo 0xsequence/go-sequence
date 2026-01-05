@@ -479,6 +479,13 @@ func (c *TestChain) UniDeploy(t *testing.T, contractName string, contractInstanc
 	return ethcontract.NewContractCaller(contractAddress, artifact.ABI, c.Provider)
 }
 
+// DeployTrailsUtils deploys TrailsUtils contract and returns its address.
+// Multiple calls will deploy just a single instance (using contractInstanceNum 0).
+func (c *TestChain) DeployTrailsUtils(t *testing.T) common.Address {
+	contract := c.UniDeploy(t, "TRAILS_UTILS", 0)
+	return contract.Address
+}
+
 // Deploy will deploy a contract registered in `Contracts` registry using the standard deployment method. Each Deploy call
 // will instanitate a new contract on the test chain.
 func (c *TestChain) Deploy(t *testing.T, contractName string, contractConstructorArgs ...interface{}) (*ethcontract.Contract, *types.Receipt) {
