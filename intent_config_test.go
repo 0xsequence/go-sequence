@@ -304,6 +304,641 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	require.NotNil(t, config)
 }
 
+// extractSapientSignerLeaves extracts all SapientSignerLeaves from a WalletConfig tree
+func extractSapientSignerLeaves(tree v3.WalletConfigTree) []*v3.WalletConfigTreeSapientSignerLeaf {
+	var leaves []*v3.WalletConfigTreeSapientSignerLeaf
+
+	var extractRecursive func(v3.WalletConfigTree)
+	extractRecursive = func(t v3.WalletConfigTree) {
+		if t == nil {
+			return
+		}
+		if sapientLeaf, ok := t.(*v3.WalletConfigTreeSapientSignerLeaf); ok {
+			leaves = append(leaves, sapientLeaf)
+			return
+		}
+		if node, ok := t.(*v3.WalletConfigTreeNode); ok {
+			extractRecursive(node.Left)
+			extractRecursive(node.Right)
+		}
+	}
+
+	extractRecursive(tree)
+	return leaves
+}
+
+// extractSapientSignerTree extracts the SapientSigner tree from a WalletConfig
+// The tree structure is: WalletConfig -> WalletConfigTreeNode -> (AddressLeaf, SapientSignerTree)
+func extractSapientSignerTree(config *v3.WalletConfig) v3.WalletConfigTree {
+	if node, ok := config.Tree.(*v3.WalletConfigTreeNode); ok {
+		// The sapient signer tree should be on the right side (left is the main signer)
+		return node.Right
+	}
+	return nil
+}
+
+// extractAnyAddressSubdigestLeaves extracts all AnyAddressSubdigestLeaves from a WalletConfig tree
+func extractAnyAddressSubdigestLeaves(config *v3.WalletConfig) []*v3.WalletConfigTreeAnyAddressSubdigestLeaf {
+	var leaves []*v3.WalletConfigTreeAnyAddressSubdigestLeaf
+
+	var extractRecursive func(v3.WalletConfigTree)
+	extractRecursive = func(t v3.WalletConfigTree) {
+		if t == nil {
+			return
+		}
+		if subdigestLeaf, ok := t.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf); ok {
+			leaves = append(leaves, subdigestLeaf)
+			return
+		}
+		if node, ok := t.(*v3.WalletConfigTreeNode); ok {
+			extractRecursive(node.Left)
+			extractRecursive(node.Right)
+		}
+	}
+
+	// Start from the root tree
+	if node, ok := config.Tree.(*v3.WalletConfigTreeNode); ok {
+		// The subdigest leaves are in the right side (left is the main signer)
+		extractRecursive(node.Right)
+	}
+
+	return leaves
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_EmptyCalls(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	_, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{}, []sequence.MalleableSapientConfig{})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "calls cannot be empty")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_NilProvider(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{
+			To:              common.Address{},
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	_, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: []byte{}, Provider: nil}})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "provider is required")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_SinglePayload(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	config, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider}})
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Verify the config has sapient signer leaves (one per payload)
+	sapientSignerTree := extractSapientSignerTree(config)
+	require.NotNil(t, sapientSignerTree, "config should contain a sapient signer tree")
+	sapientSignerLeaves := extractSapientSignerLeaves(sapientSignerTree)
+	require.Len(t, sapientSignerLeaves, 1, "should have one sapient signer leaf for single payload")
+	assert.Equal(t, malleableSapientAddress, sapientSignerLeaves[0].Address, "sapient signer address should match")
+	assert.NotEqual(t, common.Hash{}, sapientSignerLeaves[0].ImageHash_.Hash, "imageHash should not be zero")
+
+	// Verify that the call with non-zero malleableSapientAddress is NOT included in the subdigest tree
+	subdigestLeaves := extractAnyAddressSubdigestLeaves(config)
+	require.Len(t, subdigestLeaves, 0, "should have no subdigest leaves when call has non-zero malleableSapientAddress")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_MultiplePayloads(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	config, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider},
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Verify the config has sapient signer leaves (one per payload)
+	sapientSignerTree := extractSapientSignerTree(config)
+	require.NotNil(t, sapientSignerTree, "config should contain a sapient signer tree")
+	sapientSignerLeaves := extractSapientSignerLeaves(sapientSignerTree)
+	require.Len(t, sapientSignerLeaves, 2, "should have two sapient signer leaves for two payloads")
+	for i, leaf := range sapientSignerLeaves {
+		assert.Equal(t, malleableSapientAddress, leaf.Address, "sapient signer address should match for leaf %d", i)
+		assert.NotEqual(t, common.Hash{}, leaf.ImageHash_.Hash, "imageHash should not be zero for leaf %d", i)
+	}
+
+	// Verify that calls with non-zero malleableSapientAddress are NOT included in the subdigest tree
+	subdigestLeaves := extractAnyAddressSubdigestLeaves(config)
+	require.Len(t, subdigestLeaves, 0, "should have no subdigest leaves when all calls have non-zero malleableSapientAddress")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_CallsWithNonZeroAddressExcludedFromSubdigest(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	// Create two payloads - one with zero address, one with non-zero address
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Test: payload1 has zero address (should be in subdigest), payload2 has non-zero address (should NOT be in subdigest)
+	config, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: common.Address{}, Signature: []byte{}, Provider: testChain.Provider},        // Zero address - should be in subdigest
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider}, // Non-zero address - should NOT be in subdigest
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Verify sapient signer leaf exists for payload2
+	sapientTree := extractSapientSignerTree(config)
+	require.NotNil(t, sapientTree, "config should contain a sapient signer tree")
+	sapientLeaves := extractSapientSignerLeaves(sapientTree)
+	require.Len(t, sapientLeaves, 1, "should have one sapient signer leaf for payload2")
+	assert.Equal(t, malleableSapientAddress, sapientLeaves[0].Address, "sapient signer address should match")
+
+	// Verify that only payload1 (zero address) is in the subdigest tree, payload2 (non-zero address) is NOT
+	subdigestLeaves := extractAnyAddressSubdigestLeaves(config)
+	require.Len(t, subdigestLeaves, 1, "should have one subdigest leaf for payload1")
+	assert.Equal(t, payload1.Digest().Hash, subdigestLeaves[0].Digest, "subdigest should match payload1")
+
+	// Verify payload2 is NOT in subdigest
+	for _, leaf := range subdigestLeaves {
+		assert.NotEqual(t, payload2.Digest().Hash, leaf.Digest, "payload2 should not be in subdigest")
+	}
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_EmptyAndNilSignaturesProduceSameImageHash(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Create config with empty signature
+	config1, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Create config with nil signature (should be treated same as empty)
+	var nilSignature []byte
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: nilSignature, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Extract imageHashes from sapient signer trees
+	sapientTree1 := extractSapientSignerTree(config1)
+	sapientTree2 := extractSapientSignerTree(config2)
+	require.NotNil(t, sapientTree1, "config1 should contain a sapient signer tree")
+	require.NotNil(t, sapientTree2, "config2 should contain a sapient signer tree")
+	imageHash1 := sapientTree1.ImageHash().Hash
+	imageHash2 := sapientTree2.ImageHash().Hash
+
+	// Empty and nil signatures should produce the same imageHash
+	assert.Equal(t, imageHash1, imageHash2, "empty and nil signatures should produce the same imageHash")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_DifferentSignaturesProduceDifferentImageHashes(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	// Create two identical payloads
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03, 0x04, 0x05}, // Longer data to allow for signature testing
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Create config with empty signature (all data is static)
+	config1, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Create config with a signature that marks some data as malleable
+	// Signature format: tindex (uint8), cindex (uint16), size (uint16)
+	// This signature marks bytes 0-2 as static (committed) and the rest as malleable
+	// tindex=0, cindex=0, size=3
+	signatureWithMalleableParts := []byte{0x00, 0x00, 0x00, 0x00, 0x03}
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: signatureWithMalleableParts, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Extract imageHashes from sapient signer trees
+	sapientTree1 := extractSapientSignerTree(config1)
+	sapientTree2 := extractSapientSignerTree(config2)
+	require.NotNil(t, sapientTree1, "config1 should contain a sapient signer tree")
+	require.NotNil(t, sapientTree2, "config2 should contain a sapient signer tree")
+	imageHash1 := sapientTree1.ImageHash().Hash
+	imageHash2 := sapientTree2.ImageHash().Hash
+
+	// Different signatures should produce different imageHashes
+	assert.NotEqual(t, imageHash1, imageHash2, "different signatures should produce different imageHashes")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_SameSignatureProducesSameImageHash(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	signature := []byte{} // Empty signature
+
+	// Create config twice with same signature
+	config1, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: signature, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: signature, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Extract imageHashes from sapient signer trees
+	sapientTree1 := extractSapientSignerTree(config1)
+	sapientTree2 := extractSapientSignerTree(config2)
+	require.NotNil(t, sapientTree1, "config1 should contain a sapient signer tree")
+	require.NotNil(t, sapientTree2, "config2 should contain a sapient signer tree")
+	imageHash1 := sapientTree1.ImageHash().Hash
+	imageHash2 := sapientTree2.ImageHash().Hash
+
+	// Same signature should produce same imageHash
+	assert.Equal(t, imageHash1, imageHash2, "same signature should produce same imageHash")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_DifferentPayloadsProduceDifferentImageHashes(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	signature := []byte{}
+
+	config1, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: signature, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload2}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: signature, Provider: testChain.Provider}})
+	require.NoError(t, err)
+
+	// Extract imageHashes from sapient signer trees
+	sapientTree1 := extractSapientSignerTree(config1)
+	sapientTree2 := extractSapientSignerTree(config2)
+	require.NotNil(t, sapientTree1, "config1 should contain a sapient signer tree")
+	require.NotNil(t, sapientTree2, "config2 should contain a sapient signer tree")
+	imageHash1 := sapientTree1.ImageHash().Hash
+	imageHash2 := sapientTree2.ImageHash().Hash
+
+	// Different payloads should produce different imageHashes
+	assert.NotEqual(t, imageHash1, imageHash2, "different payloads should produce different imageHashes")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_ConfigsLengthMismatch(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Test with too few configs
+	_, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider}})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "configs length")
+
+	// Test with too many configs
+	_, err = sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1}, []sequence.MalleableSapientConfig{
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider},
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider},
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "configs length")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_DifferentSignaturesPerCall(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	// Create two identical payloads to isolate the effect of different signatures
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03, 0x04, 0x05}, // Longer data to allow for signature testing
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03, 0x04, 0x05}, // Same data as payload1
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Create config with different signatures for each call
+	// Signature 1: empty (all data static)
+	signature1 := []byte{}
+	// Signature 2: marks bytes 0-2 as static, rest malleable (tindex=0, cindex=0, size=3)
+	signature2 := []byte{0x00, 0x00, 0x00, 0x00, 0x03}
+	config1, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: malleableSapientAddress, Signature: signature1, Provider: testChain.Provider},
+		{Address: malleableSapientAddress, Signature: signature2, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config1)
+
+	// Verify the config has sapient signer leaves (one per payload)
+	sapientTree1 := extractSapientSignerTree(config1)
+	require.NotNil(t, sapientTree1, "config1 should contain a sapient signer tree")
+	sapientLeaves1 := extractSapientSignerLeaves(sapientTree1)
+	require.Len(t, sapientLeaves1, 2, "should have two sapient signer leaves for two payloads")
+	for i, leaf := range sapientLeaves1 {
+		assert.Equal(t, malleableSapientAddress, leaf.Address, "sapient signer address should match for leaf %d", i)
+		assert.NotEqual(t, common.Hash{}, leaf.ImageHash_.Hash, "imageHash should not be zero for leaf %d", i)
+	}
+
+	// Create another config with swapped signatures - should produce different imageHash
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: malleableSapientAddress, Signature: signature2, Provider: testChain.Provider},
+		{Address: malleableSapientAddress, Signature: signature1, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config2)
+
+	sapientTree2 := extractSapientSignerTree(config2)
+	require.NotNil(t, sapientTree2, "config2 should contain a sapient signer tree")
+
+	// Different signature assignments per call should produce different imageHashes
+	imageHash1 := sapientTree1.ImageHash().Hash
+	imageHash2 := sapientTree2.ImageHash().Hash
+	assert.NotEqual(t, imageHash1, imageHash2, "different signatures per call should produce different imageHash")
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_DifferentAddressesPerCall(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress1 := testChain.DeployTrailsUtils(t)
+	malleableSapientAddress2 := testChain.DeployTrailsUtils(t) // Deploy again to get a different address (will be same due to UniDeploy, but tests the structure)
+
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Create config with different addresses per call (same provider since we only have one test chain)
+	config, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: malleableSapientAddress1, Signature: []byte{}, Provider: testChain.Provider},
+		{Address: malleableSapientAddress2, Signature: []byte{}, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Verify the config has sapient signer leaves (one per payload)
+	sapientTree := extractSapientSignerTree(config)
+	require.NotNil(t, sapientTree, "config should contain a sapient signer tree")
+	sapientLeaves := extractSapientSignerLeaves(sapientTree)
+	require.Len(t, sapientLeaves, 2, "should have two sapient signer leaves for two payloads")
+
+	// Verify each leaf has the correct address
+	assert.Equal(t, malleableSapientAddress1, sapientLeaves[0].Address, "first leaf should have first address")
+	assert.Equal(t, malleableSapientAddress2, sapientLeaves[1].Address, "second leaf should have second address")
+
+	// Verify imageHashes are not zero
+	for i, leaf := range sapientLeaves {
+		assert.NotEqual(t, common.Hash{}, leaf.ImageHash_.Hash, "imageHash should not be zero for leaf %d", i)
+	}
+}
+
+func TestCreateIntentConfigurationWithMalleableSapient_ZeroAddressSkipsLeaf(t *testing.T) {
+	ctx := context.Background()
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	malleableSapientAddress := testChain.DeployTrailsUtils(t)
+
+	payload1 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000001"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x01, 0x02, 0x03},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	payload2 := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000002"),
+			Value:           big.NewInt(0),
+			Data:            []byte{0x04, 0x05, 0x06},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Test with zero address for first call - should skip creating a leaf for it
+	config, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: common.Address{}, Signature: []byte{}, Provider: testChain.Provider}, // Zero address - should be skipped
+		{Address: malleableSapientAddress, Signature: []byte{}, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Verify only one sapient signer leaf was created (for the second call)
+	sapientTree := extractSapientSignerTree(config)
+	require.NotNil(t, sapientTree, "should have a tree structure")
+	sapientLeaves := extractSapientSignerLeaves(sapientTree)
+	require.Len(t, sapientLeaves, 1, "should have one sapient signer leaf (zero address skipped)")
+	assert.Equal(t, malleableSapientAddress, sapientLeaves[0].Address, "leaf should have the non-zero address")
+
+	// Verify that only the call with zero address (payload1) is included in the subdigest tree
+	subdigestLeaves := extractAnyAddressSubdigestLeaves(config)
+	require.Len(t, subdigestLeaves, 1, "should have one subdigest leaf for the call with zero address")
+	assert.Equal(t, payload1.Digest().Hash, subdigestLeaves[0].Digest, "subdigest should match payload1")
+
+	// Test with all zero addresses - should create config without sapient leaves
+	config2, err := sequence.CreateIntentConfigurationWithMalleableSapient(ctx, mainSigner, []*v3.CallsPayload{&payload1, &payload2}, []sequence.MalleableSapientConfig{
+		{Address: common.Address{}, Signature: []byte{}, Provider: testChain.Provider},
+		{Address: common.Address{}, Signature: []byte{}, Provider: testChain.Provider},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, config2)
+
+	// Verify no sapient signer leaves were created - check the entire config tree
+	sapientTree2 := extractSapientSignerTree(config2)
+	if sapientTree2 != nil {
+		sapientLeaves2 := extractSapientSignerLeaves(sapientTree2)
+		assert.Len(t, sapientLeaves2, 0, "should have no sapient signer leaves when all addresses are zero")
+	}
+
+	// Verify that both calls are included in the subdigest tree (since both have zero addresses)
+	subdigestLeaves2 := extractAnyAddressSubdigestLeaves(config2)
+	require.Len(t, subdigestLeaves2, 2, "should have two subdigest leaves when all addresses are zero")
+}
+
 func TestGetIntentConfigurationSignature(t *testing.T) {
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()

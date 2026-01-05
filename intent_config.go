@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/0xsequence/ethkit/ethcoder"
+	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/go-sequence/core"
@@ -22,6 +23,14 @@ type DestinationToken struct {
 	Address common.Address `abi:"address"`
 	ChainId *big.Int       `abi:"chainId"`
 	Amount  *big.Int       `abi:"amount"`
+}
+
+// MalleableSapientConfig contains the configuration for a MalleableSapient signer for a single call payload.
+// Each call payload can have its own sapient address, signature, and provider (for different chains).
+type MalleableSapientConfig struct {
+	Address   common.Address   // The MalleableSapient contract address
+	Signature []byte           // Signature describing which parts are static vs malleable
+	Provider  *ethrpc.Provider // Provider for the chain this call is on
 }
 
 // IntentParams is a new version of intent parameters that uses CallsPayload for destination calls.
@@ -188,10 +197,15 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
 func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
-	// Create the subdigest leaves from the batched transactions.
-	leaves, err := CreateAnyAddressSubdigestTree(calls)
-	if err != nil {
-		return nil, err
+	var leaves []v3.WalletConfigTree
+
+	if len(calls) > 0 {
+		// Create the subdigest leaves from the batched transactions.
+		subdigestLeaves, err := CreateAnyAddressSubdigestTree(calls)
+		if err != nil {
+			return nil, err
+		}
+		leaves = append(leaves, subdigestLeaves...)
 	}
 
 	// If the sapient signer leaf is not nil, add it to the leaves.
@@ -203,6 +217,10 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapie
 	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
+	}
+
+	if len(leaves) == 0 {
+		return nil, fmt.Errorf("no leaves to create tree from")
 	}
 
 	// If the length of the leaves is 1
@@ -236,6 +254,61 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 	}
 
 	return config, nil
+}
+
+// `CreateIntentConfigurationWithMalleableSapient` creates a wallet configuration with optional MalleableSapient configuration
+func CreateIntentConfigurationWithMalleableSapient(
+	ctx context.Context,
+	mainSigner common.Address,
+	calls []*v3.CallsPayload,
+	configs []MalleableSapientConfig,
+) (*v3.WalletConfig, error) {
+	if len(calls) == 0 {
+		return nil, fmt.Errorf("calls cannot be empty")
+	}
+
+	if len(configs) != len(calls) {
+		return nil, fmt.Errorf("configs length (%d) must match calls length (%d)", len(configs), len(calls))
+	}
+
+	var callsWithoutMalleableSapient []*v3.CallsPayload
+	var sapientSignerLeaves []v3.WalletConfigTree
+	for i, callPayload := range calls {
+		config := configs[i]
+
+		// Skip if address is zero address. Will be handled by CreateIntentConfiguration.
+		if config.Address == (common.Address{}) {
+			callsWithoutMalleableSapient = append(callsWithoutMalleableSapient, callPayload)
+			continue
+		}
+
+		if config.Provider == nil {
+			return nil, fmt.Errorf("provider is required for configs[%d]", i)
+		}
+
+		// Recover the image hash for the payload and configuration
+		imageHash, err := v3.RecoverSapientSignature(ctx, config.Address, *callPayload, config.Signature, config.Provider)
+		if err != nil {
+			return nil, fmt.Errorf("failed to recover sapient signature for configs[%d]: %w", i, err)
+		}
+
+		// Create a SapientSignerLeaf for this payload
+		sapientSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     1,
+			Address:    config.Address,
+			ImageHash_: imageHash,
+		}
+		sapientSignerLeaves = append(sapientSignerLeaves, sapientSignerLeaf)
+	}
+
+	// Create a tree from all the SapientSignerLeaves
+	var sapientSignerTree v3.WalletConfigTree
+	if len(sapientSignerLeaves) > 0 {
+		sapientSignerTree = v3.WalletConfigTreeNodes(sapientSignerLeaves...)
+	}
+
+	// Remaining calls go to CreateIntentConfiguration
+	return CreateIntentConfiguration(mainSigner, callsWithoutMalleableSapient, sapientSignerTree)
 }
 
 // `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
