@@ -188,10 +188,15 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
 func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
-	// Create the subdigest leaves from the batched transactions.
-	leaves, err := CreateAnyAddressSubdigestTree(calls)
-	if err != nil {
-		return nil, err
+	var leaves []v3.WalletConfigTree
+
+	if len(calls) > 0 {
+		// Create the subdigest leaves from the batched transactions.
+		subdigestLeaves, err := CreateAnyAddressSubdigestTree(calls)
+		if err != nil {
+			return nil, err
+		}
+		leaves = append(leaves, subdigestLeaves...)
 	}
 
 	// If the sapient signer leaf is not nil, add it to the leaves.
@@ -203,6 +208,10 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapie
 	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
+	}
+
+	if len(leaves) == 0 {
+		return nil, fmt.Errorf("no leaves to create tree from")
 	}
 
 	// If the length of the leaves is 1
@@ -221,7 +230,7 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapie
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree, checkpoint uint64) (*v3.WalletConfig, error) {
 	// Create the subdigest leaves from the batched transactions.
 	tree, err := CreateIntentTree(mainSigner, calls, sapientSignerLeafNode)
 	if err != nil {
@@ -231,37 +240,41 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 	// Construct the new wallet config using:
 	config := &v3.WalletConfig{
 		Threshold_:  1,
-		Checkpoint_: 0,
+		Checkpoint_: checkpoint,
 		Tree:        *tree,
 	}
 
 	return config, nil
 }
 
-// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
-// The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(
-	mainSigner common.Address,
-	calls []*v3.CallsPayload,
-) ([]byte, error) {
-	// Default case without any sapient signer
-	config, err := CreateIntentConfiguration(mainSigner, calls, nil)
-	if err != nil {
-		return nil, err
-	}
+type SignerSignature struct {
+	Address   common.Address
+	Signature []byte
+	Type      core.SignerSignatureType
+}
 
+// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
+// `SignerSignatures` can be nil when executing a preapproved static payload.
+func GetIntentConfigurationSignature(
+	ctx context.Context,
+	config *v3.WalletConfig,
+	signerSignatures []*SignerSignature,
+) ([]byte, error) {
 	// spew.Dump(config)
 	// spew.Dump(config.Tree)
 
 	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// For mainSigner or other signers, we don't provide a signature here.
-		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
+		for _, signerSignature := range signerSignatures {
+			if signer.Address == signerSignature.Address {
+				return signerSignature.Type, signerSignature.Signature, nil
+			}
+		}
 		return 0, nil, nil
 	}
 
 	// Build the signature using BuildNoChainIDSignature, which allows us to inject custom signatures via SigningFunction.
 	// Set validateSigningPower to false, as we are not necessarily providing signatures for all parts of the config.
-	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
+	sig, err := config.BuildRegularSignature(ctx, signingFunc, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
 	}
@@ -301,42 +314,3 @@ func GetIntentConfigurationSignature(
 
 	return data, nil
 }
-
-// // replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.
-// func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.WalletConfigTree {
-// 	if tree == nil {
-// 		return nil
-// 	}
-
-// 	switch node := tree.(type) {
-// 	case *v3.WalletConfigTreeNode:
-// 		// Recursively call on left and right children
-// 		left := replaceSapientSignerWithNodeInConfigTree(node.Left)
-// 		right := replaceSapientSignerWithNodeInConfigTree(node.Right)
-
-// 		if left == node.Left && right == node.Right {
-// 			return node
-// 		}
-// 		return &v3.WalletConfigTreeNode{Left: left, Right: right}
-
-// 	case *v3.WalletConfigTreeNestedLeaf:
-// 		// Recursively call on the inner tree
-// 		innerTree := replaceSapientSignerWithNodeInConfigTree(node.Tree)
-
-// 		if innerTree == node.Tree { // Check for pointer equality
-// 			return node // No change, return original
-// 		}
-// 		return &v3.WalletConfigTreeNestedLeaf{
-// 			Weight:    node.Weight,
-// 			Threshold: node.Threshold,
-// 			Tree:      innerTree,
-// 		}
-
-// 	case *v3.WalletConfigTreeSapientSignerLeaf:
-// 		// This is the target node type to replace
-// 		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
-
-// 	default:
-// 		return tree
-// 	}
-// }
