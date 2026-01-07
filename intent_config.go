@@ -260,20 +260,20 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 func CreateIntentConfigurationWithMalleableSapient(
 	ctx context.Context,
 	mainSigner common.Address,
-	calls []*v3.CallsPayload,
+	payloads []*v3.CallsPayload,
 	configs []MalleableSapientConfig,
 ) (*v3.WalletConfig, error) {
-	if len(calls) == 0 {
+	if len(payloads) == 0 {
 		return nil, fmt.Errorf("calls cannot be empty")
 	}
 
-	if len(configs) != len(calls) {
-		return nil, fmt.Errorf("configs length (%d) must match calls length (%d)", len(configs), len(calls))
+	if len(configs) != len(payloads) {
+		return nil, fmt.Errorf("configs length (%d) must match payloads length (%d)", len(configs), len(payloads))
 	}
 
 	var callsWithoutMalleableSapient []*v3.CallsPayload
 	var sapientSignerLeaves []v3.WalletConfigTree
-	for i, callPayload := range calls {
+	for i, callPayload := range payloads {
 		config := configs[i]
 
 		// Skip if address is zero address. Will be handled by CreateIntentConfiguration.
@@ -311,30 +311,34 @@ func CreateIntentConfigurationWithMalleableSapient(
 	return CreateIntentConfiguration(mainSigner, callsWithoutMalleableSapient, sapientSignerTree)
 }
 
-// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
-// The signature is based on the transaction bundle digests only.
-func GetIntentConfigurationSignature(
-	mainSigner common.Address,
-	calls []*v3.CallsPayload,
-) ([]byte, error) {
-	// Default case without any sapient signer
-	config, err := CreateIntentConfiguration(mainSigner, calls, nil)
-	if err != nil {
-		return nil, err
-	}
+type SignerSignature struct {
+	Address   common.Address
+	Signature []byte
+	Type      core.SignerSignatureType
+}
 
+// `GetIntentConfigurationSignature` creates a signature for the intent configuration that can be used to bypass chain ID validation.
+// `SignerSignatures` can be nil when executing a preapproved static payload.
+func GetIntentConfigurationSignature(
+	ctx context.Context,
+	config *v3.WalletConfig,
+	signerSignatures []*SignerSignature,
+) ([]byte, error) {
 	// spew.Dump(config)
 	// spew.Dump(config.Tree)
 
 	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// For mainSigner or other signers, we don't provide a signature here.
-		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
+		for _, signerSignature := range signerSignatures {
+			if signer.Address == signerSignature.Address {
+				return signerSignature.Type, signerSignature.Signature, nil
+			}
+		}
 		return 0, nil, nil
 	}
 
 	// Build the signature using BuildNoChainIDSignature, which allows us to inject custom signatures via SigningFunction.
 	// Set validateSigningPower to false, as we are not necessarily providing signatures for all parts of the config.
-	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
+	sig, err := config.BuildRegularSignature(ctx, signingFunc, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build regular signature: %w", err)
 	}
@@ -374,42 +378,3 @@ func GetIntentConfigurationSignature(
 
 	return data, nil
 }
-
-// // replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.
-// func replaceSapientSignerWithNodeInConfigTree(tree v3.WalletConfigTree) v3.WalletConfigTree {
-// 	if tree == nil {
-// 		return nil
-// 	}
-
-// 	switch node := tree.(type) {
-// 	case *v3.WalletConfigTreeNode:
-// 		// Recursively call on left and right children
-// 		left := replaceSapientSignerWithNodeInConfigTree(node.Left)
-// 		right := replaceSapientSignerWithNodeInConfigTree(node.Right)
-
-// 		if left == node.Left && right == node.Right {
-// 			return node
-// 		}
-// 		return &v3.WalletConfigTreeNode{Left: left, Right: right}
-
-// 	case *v3.WalletConfigTreeNestedLeaf:
-// 		// Recursively call on the inner tree
-// 		innerTree := replaceSapientSignerWithNodeInConfigTree(node.Tree)
-
-// 		if innerTree == node.Tree { // Check for pointer equality
-// 			return node // No change, return original
-// 		}
-// 		return &v3.WalletConfigTreeNestedLeaf{
-// 			Weight:    node.Weight,
-// 			Threshold: node.Threshold,
-// 			Tree:      innerTree,
-// 		}
-
-// 	case *v3.WalletConfigTreeSapientSignerLeaf:
-// 		// This is the target node type to replace
-// 		return &v3.WalletConfigTreeNodeLeaf{Node: node.ImageHash()}
-
-// 	default:
-// 		return tree
-// 	}
-// }
