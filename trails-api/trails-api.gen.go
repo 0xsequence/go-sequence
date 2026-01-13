@@ -1023,6 +1023,7 @@ type RelayTransfer struct {
 	OriginTxnID        uint64              `json:"originTxnId" db:"orig_txn_id"`
 	OriginTxnHash      prototyp.Hash       `json:"originTxnHash" db:"orig_txn_hash"`
 	DestinationTxnID   uint64              `json:"destinationTxnId" db:"dest_txn_id"`
+	DestinationTxnHash prototyp.Hash       `json:"destinationTxnHash" db:"dest_txn_hash"`
 	Status             RelayTransferStatus `json:"status" db:"status"`
 	StatusReason       *string             `json:"statusReason" db:"status_reason,omitempty"`
 	CreatedAt          time.Time           `json:"createdAt" db:"created_at,omitempty"`
