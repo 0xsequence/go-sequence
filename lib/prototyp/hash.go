@@ -143,7 +143,8 @@ func (h Hash) IsEmpty() bool {
 func (h Hash) IsNativeTokenAddress() bool {
 	return h == "0x0000000000000000000000000000000000000000" ||
 		h == "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ||
-		h == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+		h == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+	    h == "0x0000000000000000000000000000000000001010"
 }
 
 func (h Hash) IsValidHex() bool {
