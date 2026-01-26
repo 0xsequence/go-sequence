@@ -122,9 +122,9 @@ func (mr *RelayerMockRecorder) AdjustProjectBalance(ctx, projectId, amount, iden
 }
 
 // FeeOptions mocks base method.
-func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool) ([]*proto.FeeOption, bool, *string, error) {
+func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool, nativeValue *string) ([]*proto.FeeOption, bool, *string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate)
+	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate, nativeValue)
 	ret0, _ := ret[0].([]*proto.FeeOption)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(*string)
@@ -133,9 +133,9 @@ func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simul
 }
 
 // FeeOptions indicates an expected call of FeeOptions.
-func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate any) *gomock.Call {
+func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate, nativeValue any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate, nativeValue)
 }
 
 // FeeTokens mocks base method.
