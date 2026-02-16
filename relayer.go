@@ -129,15 +129,61 @@ func EncodeTransactionsForRelayingV3(relayer Relayer, walletAddress common.Addre
 		return common.Address{}, nil, fmt.Errorf("cannot encode empty transactions")
 	}
 
-	payload, err := txns.Payload(walletAddress, chainID, space, nonce)
+	var (
+		deployTxn  *Transaction
+		walletTxns = make(Transactions, 0, len(txns))
+	)
+	for _, txn := range txns {
+		if txn.To == walletContext.FactoryAddress {
+			deployTxn = txn
+		} else {
+			walletTxns = append(walletTxns, txn)
+		}
+	}
+
+	if deployTxn == nil {
+		payload, err := walletTxns.Payload(walletAddress, chainID, space, nonce)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
+
+		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
+
+		return walletAddress, execdata, nil
+	}
+
+	guestTxns := Transactions{deployTxn}
+
+	if len(walletTxns) > 0 {
+		payload, err := walletTxns.Payload(walletAddress, chainID, space, nonce)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
+
+		execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
+		if err != nil {
+			return common.Address{}, nil, err
+		}
+
+		guestTxns = append(guestTxns, &Transaction{
+			To:            walletAddress,
+			Data:          execdata,
+			RevertOnError: true,
+		})
+	}
+
+	guestPayload, err := guestTxns.Payload(
+		walletContext.GuestModuleAddress,
+		chainID,
+		big.NewInt(0),
+		big.NewInt(0),
+	)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
 
-	execdata, err := contracts.V3.WalletStage1Module.Encode("execute", payload.Encode(walletAddress), seqSig)
-	if err != nil {
-		return common.Address{}, nil, err
-	}
-
-	return walletAddress, execdata, nil
+	return walletContext.GuestModuleAddress, guestPayload.Encode(walletContext.GuestModuleAddress), nil
 }
