@@ -11,6 +11,8 @@
     "start:geth:verbose": "docker run -p 8545:8545 --rm ethereum/client-go:v1.16.4 --dev --dev.period 1 --dev.gaslimit ${npm_package_config_testchainGasLimit} --miner.gaslimit ${npm_package_config_testchainGasLimit} --miner.gasprice 1 --http --http.addr 0.0.0.0 --rpc.allow-unprotected-txs",
     "start:anvil": "anvil --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --balance ${npm_package_config_etherBalance} --host 0.0.0.0 --chain-id ${npm_package_config_testchainChainID} --gas-limit ${npm_package_config_testchainGasLimit} --gas-price ${npm_package_config_testchainGasPrice}",
     "start:anvil:verbose": "anvil --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --balance ${npm_package_config_etherBalance} --host 0.0.0.0 --chain-id ${npm_package_config_testchainChainID} --gas-limit ${npm_package_config_testchainGasLimit} --gas-price ${npm_package_config_testchainGasPrice} -vvv",
+    "start:anvil:fork": "sh -c 'anvil --fork-url \"${FORK_URL:-${1:-https://nodes.sequence.app/berachain}}\" --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --host 0.0.0.0 --gas-limit ${npm_package_config_testchainGasLimit}' sh",
+    "start:anvil:fork:verbose": "sh -c 'anvil --fork-url \"${FORK_URL:-${1:-https://nodes.sequence.app/berachain}}\" --mnemonic \"${npm_package_config_mnemonic}\" --block-time 1 --host 0.0.0.0 --gas-limit ${npm_package_config_testchainGasLimit} -vvv' sh",
     "install:anvil": "curl -L https://foundry.paradigm.xyz | bash; foundryup",
     "wait:server": "wait-on -t 120000 tcp:127.0.0.1:8545"
   },

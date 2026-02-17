@@ -28,5 +28,7 @@ func init() {
 }
 
 func TestChainID(t *testing.T) {
-	assert.Equal(t, testChain.ChainID().Uint64(), uint64(1337))
+	// Default testchain (hardhat/anvil) is 1337; polygon-zkevm fork is 1101
+	assert.NotZero(t, testChain.ChainID().Uint64(), "testchain should report a non-zero chain ID")
+	assert.Contains(t, []uint64{1337, 1101}, testChain.ChainID().Uint64(), "expected default testchain (1337) or polygon-zkevm fork (1101)")
 }

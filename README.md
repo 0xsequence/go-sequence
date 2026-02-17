@@ -14,6 +14,8 @@ For documentation on sequence, please see our [docs](https://docs.sequence.xyz) 
 2. `make start-testchain` -- starts the test ethereum chain (id 1337)
 3. (in a separate terminal) `make test` -- runs test suite
 
+To run tests against a forked chain instead: `make start-testchain-fork` (default fork URL is Polygon ZK EVM). Override with `make start-testchain-fork FORK_URL=https://your-rpc-url`.
+
 
 ## Testing
 
