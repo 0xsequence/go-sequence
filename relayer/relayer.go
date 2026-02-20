@@ -283,7 +283,6 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 		signedTxs.WalletAddress.String(),
 		"0x"+common.Bytes2Hex(data),
 		nil,
-		nil,
 	)
 	if err != nil {
 		return nil, nil, err

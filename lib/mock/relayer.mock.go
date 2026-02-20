@@ -122,9 +122,9 @@ func (mr *RelayerMockRecorder) AdjustProjectBalance(ctx, projectId, amount, iden
 }
 
 // FeeOptions mocks base method.
-func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool, bridgeGas *string) ([]*proto.FeeOption, bool, *string, error) {
+func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool) ([]*proto.FeeOption, bool, *string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate, bridgeGas)
+	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate)
 	ret0, _ := ret[0].([]*proto.FeeOption)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(*string)
@@ -133,9 +133,26 @@ func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simul
 }
 
 // FeeOptions indicates an expected call of FeeOptions.
-func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate, bridgeGas any) *gomock.Call {
+func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate, bridgeGas)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate)
+}
+
+// FeeOptionsWithBridgeGas mocks base method.
+func (m *Relayer) FeeOptionsWithBridgeGas(ctx context.Context, wallet, to, data string, simulate *bool, bridgeGas string) ([]*proto.FeeOption, bool, *string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FeeOptionsWithBridgeGas", ctx, wallet, to, data, simulate, bridgeGas)
+	ret0, _ := ret[0].([]*proto.FeeOption)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(*string)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// FeeOptionsWithBridgeGas indicates an expected call of FeeOptionsWithBridgeGas.
+func (mr *RelayerMockRecorder) FeeOptionsWithBridgeGas(ctx, wallet, to, data, simulate, bridgeGas any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptionsWithBridgeGas", reflect.TypeOf((*Relayer)(nil).FeeOptionsWithBridgeGas), ctx, wallet, to, data, simulate, bridgeGas)
 }
 
 // FeeTokens mocks base method.
@@ -446,9 +463,9 @@ func (mr *RelayerMockRecorder) SendMetaTxn(ctx, call, quote, projectID, precondi
 }
 
 // SendMetaTxnWithBridgeGas mocks base method.
-func (m *Relayer) SendMetaTxnWithBridgeGas(ctx context.Context, call *proto.MetaTxn, bridgeGas string, quote *string, projectID *uint64, preconditions []*proto.TransactionPrecondition) (bool, string, error) {
+func (m *Relayer) SendMetaTxnWithBridgeGas(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64, bridgeGas string, preconditions []*proto.TransactionPrecondition) (bool, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMetaTxnWithBridgeGas", ctx, call, bridgeGas, quote, projectID, preconditions)
+	ret := m.ctrl.Call(m, "SendMetaTxnWithBridgeGas", ctx, call, quote, projectID, bridgeGas, preconditions)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -456,9 +473,9 @@ func (m *Relayer) SendMetaTxnWithBridgeGas(ctx context.Context, call *proto.Meta
 }
 
 // SendMetaTxnWithBridgeGas indicates an expected call of SendMetaTxnWithBridgeGas.
-func (mr *RelayerMockRecorder) SendMetaTxnWithBridgeGas(ctx, call, bridgeGas, quote, projectID, preconditions any) *gomock.Call {
+func (mr *RelayerMockRecorder) SendMetaTxnWithBridgeGas(ctx, call, quote, projectID, bridgeGas, preconditions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxnWithBridgeGas", reflect.TypeOf((*Relayer)(nil).SendMetaTxnWithBridgeGas), ctx, call, bridgeGas, quote, projectID, preconditions)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxnWithBridgeGas", reflect.TypeOf((*Relayer)(nil).SendMetaTxnWithBridgeGas), ctx, call, quote, projectID, bridgeGas, preconditions)
 }
 
 // SentTransactions mocks base method.
