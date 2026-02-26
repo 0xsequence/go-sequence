@@ -884,6 +884,8 @@ type IntentAddressBalance struct {
 type IntentTokenBalance struct {
 	ContractAddress prototyp.Hash `json:"contractAddress"`
 	Balance         string        `json:"balance"`
+	BalanceUSD      string        `json:"balanceUsd"`
+	PriceUSD        string        `json:"priceUsd"`
 	Decimals        uint8         `json:"decimals"`
 	ChainID         uint64        `json:"chainId"`
 	Symbol          string        `json:"symbol"`
