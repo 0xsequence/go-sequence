@@ -1122,7 +1122,7 @@ func (l *signatureTreeSignatureERC1271Leaf) recover(ctx context.Context, payload
 	signature := l.Signature
 
 	if provider != nil {
-		isValid, err := eip6492.ValidateEIP6492Offchain(ctx, provider, l.Address, payload.Digest().Hash, signature, nil)
+		isValid, err := eip6492.ValidateEIP6492(ctx, provider, l.Address, payload.Digest().Hash, signature, nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to validate ERC-1271 signature: %w", err)
 		}
