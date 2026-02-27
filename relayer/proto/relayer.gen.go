@@ -1199,7 +1199,7 @@ func (c *relayerClient) StartSender(ctx context.Context, sender int) error {
 		Arg0 int `json:"sender"`
 	}{sender}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[14], in, nil)
+	resp, err := doHTTPRequest(ctx, c.client, c.urls[16], in, nil)
 	if resp != nil {
 		cerr := resp.Body.Close()
 		if err == nil && cerr != nil {
@@ -1215,7 +1215,7 @@ func (c *relayerClient) StopSender(ctx context.Context, sender int) error {
 		Arg0 int `json:"sender"`
 	}{sender}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[15], in, nil)
+	resp, err := doHTTPRequest(ctx, c.client, c.urls[17], in, nil)
 	if resp != nil {
 		cerr := resp.Body.Close()
 		if err == nil && cerr != nil {
@@ -1234,7 +1234,7 @@ func (c *relayerClient) ResetSender(ctx context.Context, sender int) (uint64, er
 		Ret0 uint64 `json:"deleted"`
 	}{}
 
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[16], in, &out)
+	resp, err := doHTTPRequest(ctx, c.client, c.urls[18], in, &out)
 	if resp != nil {
 		cerr := resp.Body.Close()
 		if err == nil && cerr != nil {
