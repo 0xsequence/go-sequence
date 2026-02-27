@@ -11,7 +11,6 @@ import (
 	"github.com/0xsequence/ethkit/ethwallet"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
-	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	"github.com/0xsequence/go-sequence"
 	"github.com/davecgh/go-spew/spew"
 
@@ -299,12 +298,13 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil, 0)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
 
 func TestGetIntentConfigurationSignature(t *testing.T) {
+	ctx := context.Background()
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
@@ -328,11 +328,11 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil, 0)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		signature, err := sequence.GetIntentConfigurationSignature(ctx, config, nil)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -407,10 +407,14 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
+		config1, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload1}, nil, 0)
+		require.NoError(t, err)
+		sig1, err := sequence.GetIntentConfigurationSignature(ctx, config1, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2})
+		config2, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload2}, nil, 0)
+		require.NoError(t, err)
+		sig2, err := sequence.GetIntentConfigurationSignature(ctx, config2, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -419,18 +423,24 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		config1, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil, 0)
+		require.NoError(t, err)
+		sig1, err := sequence.GetIntentConfigurationSignature(ctx, config1, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		config2, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil, 0)
+		require.NoError(t, err)
+		sig2, err := sequence.GetIntentConfigurationSignature(ctx, config2, nil)
 		require.NoError(t, err)
 
-		// Verify signatures are the same
+		// Verify configs and signatures are the same
+		require.Equal(t, config1.Tree, config2.Tree, "same transactions should produce same configuration")
 		require.Equal(t, sig1, sig2, "same transactions should produce same signatures")
 	})
 }
 
 func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
+	ctx := context.Background()
 	// Create test wallets
 	eoa1, err := ethwallet.NewWalletFromRandomEntropy()
 	require.NoError(t, err)
@@ -458,7 +468,9 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
+	config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload1}, nil, 0)
+	require.NoError(t, err)
+	sig, err := sequence.GetIntentConfigurationSignature(ctx, config, nil)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -469,6 +481,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 }
 
 func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
+	ctx := context.Background()
 	// Create normal txn of: callmockContract.testCall(55, 0x112255)
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 	calldata1, err := callmockContract.Encode("setRevertFlag", false)
@@ -529,7 +542,9 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil, 0)
+	require.NoError(t, err)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(ctx, config, nil)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -603,6 +618,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 }
 
 func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.T) {
+	ctx := context.Background()
 	// Create normal txn of: callmockContract.testCall(55, 0x112255) for first chain
 	callmockContract := testChain.UniDeploy(t, "WALLET_CALL_RECV_MOCK", 0)
 	calldata1, err := callmockContract.Encode("setRevertFlag", false)
@@ -687,7 +703,9 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, payloads, nil, 0)
+	require.NoError(t, err)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(ctx, config, nil)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
@@ -814,7 +832,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil, 0)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -864,7 +882,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil, 0)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -917,7 +935,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create intent configuration
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil, 0)
 	require.NoError(t, err)
 
 	// Calculate image hash
@@ -960,24 +978,4 @@ func TestCreateIntentCallsPayloadDigest(t *testing.T) {
 
 	// Print the digest hash for debugging
 	fmt.Printf("Digest Hash: %s\n", digest.Hash.Hex())
-}
-
-func ecrecoverForTest(hash, sig []byte) (common.Address, error) {
-	sigCopy := make([]byte, len(sig))
-	copy(sigCopy, sig)
-	if len(sigCopy) == 65 && sigCopy[64] >= 27 {
-		sigCopy[64] -= 27
-	}
-
-	pubKeyBytes, err := crypto.Ecrecover(hash, sigCopy)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	pubKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	return crypto.PubkeyToAddress(*pubKey), nil
 }
