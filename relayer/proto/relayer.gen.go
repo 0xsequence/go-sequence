@@ -4289,10 +4289,11 @@ var (
 	ErrRateLimited       = WebRPCError{Code: 1007, Name: "RateLimited", Message: "Rate-limited. Please slow down.", HTTPStatus: 429}
 	ErrProjectNotFound   = WebRPCError{Code: 1008, Name: "ProjectNotFound", Message: "Project not found", HTTPStatus: 401}
 	ErrAccessKeyNotFound = WebRPCError{Code: 1101, Name: "AccessKeyNotFound", Message: "Access key not found", HTTPStatus: 401}
-	ErrAccessKeyMismatch = WebRPCError{Code: 1102, Name: "AccessKeyMismatch", Message: "Access key mismatch", HTTPStatus: 409}
+	ErrAccessKeyMismatch = WebRPCError{Code: 1102, Name: "AccessKeyMismatch", Message: "Access key mismatch", HTTPStatus: 403}
 	ErrInvalidOrigin     = WebRPCError{Code: 1103, Name: "InvalidOrigin", Message: "Invalid origin for Access Key", HTTPStatus: 403}
 	ErrInvalidService    = WebRPCError{Code: 1104, Name: "InvalidService", Message: "Service not enabled for Access key", HTTPStatus: 403}
 	ErrUnauthorizedUser  = WebRPCError{Code: 1105, Name: "UnauthorizedUser", Message: "Unauthorized user", HTTPStatus: 403}
+	ErrInvalidChain      = WebRPCError{Code: 1106, Name: "InvalidChain", Message: "Network not enabled for Access key", HTTPStatus: 403}
 	ErrQuotaExceeded     = WebRPCError{Code: 1200, Name: "QuotaExceeded", Message: "Quota request exceeded", HTTPStatus: 429}
 	ErrQuotaRateLimit    = WebRPCError{Code: 1201, Name: "QuotaRateLimit", Message: "Quota rate limit exceeded", HTTPStatus: 429}
 	ErrNoDefaultKey      = WebRPCError{Code: 1300, Name: "NoDefaultKey", Message: "No default access key found", HTTPStatus: 403}
