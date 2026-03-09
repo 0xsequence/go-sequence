@@ -1610,6 +1610,8 @@ type GetIntentHistoryRequest struct {
 	OnlyRecoverable *bool  `json:"onlyRecoverable"`
 	// optional status filter (EXECUTING, FAILED, SUCCEEDED, ABORTED, REFUNDED)
 	ByStatus *IntentStatus `json:"byStatus"`
+	// optional multi-status filter (cannot be used with byStatus)
+	ByStatuses []IntentStatus `json:"byStatuses"`
 }
 
 type GetIntentHistoryResponse struct {
