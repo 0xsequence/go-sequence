@@ -23,6 +23,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func findSapientSignerLeaf(tree v3.WalletConfigTree, address common.Address) *v3.WalletConfigTreeSapientSignerLeaf {
+	switch node := tree.(type) {
+	case *v3.WalletConfigTreeSapientSignerLeaf:
+		if node.Address == address {
+			return node
+		}
+	case *v3.WalletConfigTreeNode:
+		if leaf := findSapientSignerLeaf(node.Left, address); leaf != nil {
+			return leaf
+		}
+		return findSapientSignerLeaf(node.Right, address)
+	case *v3.WalletConfigTreeNestedLeaf:
+		return findSapientSignerLeaf(node.Tree, address)
+	}
+
+	return nil
+}
+
 func TestCreateIntentCallsPayload_Valid(t *testing.T) {
 	// Create a calls payload
 	calls := []v3.Call{
@@ -302,6 +320,89 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, config)
+}
+
+func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	timedRefundSigner := common.HexToAddress("0x3333333333333333333333333333333333333333")
+	destination := common.HexToAddress("0x4444444444444444444444444444444444444444")
+
+	config, err := sequence.CreateIntentConfigurationWithTimedRefundSapient(
+		mainSigner,
+		[]*v3.CallsPayload{&payload},
+		sequence.TimedRefundIntentConfigurationSigner{
+			Address:         timedRefundSigner,
+			Destination:     destination,
+			UnlockTimestamp: 1_750_000_000,
+			Weight:          1,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Solidity reference (trails-contracts/src/autoRecovery/TimedRefundSapient.sol):
+	// keccak256(abi.encode("timed-refund", destination, uint256(1750000000)))
+	expectedSapientImageHash := common.HexToHash("0x577e11f2280512fff4541fc08cc7eb98357bdcff482db5634db7327e3c97ba58")
+	sapientLeaf := findSapientSignerLeaf(config.Tree, timedRefundSigner)
+	require.NotNil(t, sapientLeaf)
+	require.Equal(t, expectedSapientImageHash, sapientLeaf.ImageHash_.Hash)
+
+	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
+
+	signature, err := sequence.BuildIntentConfigurationSignature(config)
+	require.NoError(t, err)
+	require.NotEmpty(t, signature)
+
+	sig, err := v3.Core.DecodeSignature(signature)
+	require.NoError(t, err)
+
+	recoveredConfig, _, err := sig.Recover(context.Background(), payload, nil)
+	require.NoError(t, err)
+	require.Equal(t, config.ImageHash().Hash, recoveredConfig.ImageHash().Hash)
+
+	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
+	require.NoError(t, err)
+	require.NotEqual(t, plainSignature, signature)
+}
+
+func TestCreateIntentConfigurationWithTimedRefundSapient_ZeroWeight(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	_, err := sequence.CreateIntentConfigurationWithTimedRefundSapient(
+		common.HexToAddress("0x2222222222222222222222222222222222222222"),
+		[]*v3.CallsPayload{&payload},
+		sequence.TimedRefundIntentConfigurationSigner{
+			Address:         common.HexToAddress("0x3333333333333333333333333333333333333333"),
+			Destination:     common.HexToAddress("0x4444444444444444444444444444444444444444"),
+			UnlockTimestamp: 1_750_000_000,
+			Weight:          0,
+		},
+	)
+	require.EqualError(t, err, "timed refund sapient signer weight is zero")
 }
 
 func TestGetIntentConfigurationSignature(t *testing.T) {
