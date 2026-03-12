@@ -391,16 +391,24 @@ const (
 	TransactionContext_NONE TransactionContext = 0
 	// Relays Circle's attested CCTP burn message to destination chain, verifying attestation and minting USDC.
 	TransactionContext_CCTPV2_MESSAGE TransactionContext = 1
+	// Retries LayerZero lzCompose execution with an updated msg.value buffer.
+	TransactionContext_LZ_COMPOSE TransactionContext = 2
+	// Retries LayerZero lzReceive execution when delivery fails due to insufficient gas.
+	TransactionContext_LZ_RECEIVE TransactionContext = 3
 )
 
 var TransactionContext_name = map[TransactionContext]string{
 	TransactionContext_NONE:           "NONE",
 	TransactionContext_CCTPV2_MESSAGE: "CCTPV2_MESSAGE",
+	TransactionContext_LZ_COMPOSE:     "LZ_COMPOSE",
+	TransactionContext_LZ_RECEIVE:     "LZ_RECEIVE",
 }
 
 var TransactionContext_value = map[string]TransactionContext{
 	"NONE":           TransactionContext_NONE,
 	"CCTPV2_MESSAGE": TransactionContext_CCTPV2_MESSAGE,
+	"LZ_COMPOSE":     TransactionContext_LZ_COMPOSE,
+	"LZ_RECEIVE":     TransactionContext_LZ_RECEIVE,
 }
 
 func (x TransactionContext) String() string {
