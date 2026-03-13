@@ -445,6 +445,22 @@ func (mr *RelayerMockRecorder) SendMetaTxn(ctx, call, quote, projectID, precondi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxn", reflect.TypeOf((*Relayer)(nil).SendMetaTxn), ctx, call, quote, projectID, preconditions)
 }
 
+// SendMetaTxnWithBridgeGas mocks base method.
+func (m *Relayer) SendMetaTxnWithBridgeGas(ctx context.Context, call *proto.MetaTxn, quote *string, projectID *uint64, bridgeGas string, preconditions []*proto.TransactionPrecondition) (bool, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendMetaTxnWithBridgeGas", ctx, call, quote, projectID, bridgeGas, preconditions)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SendMetaTxnWithBridgeGas indicates an expected call of SendMetaTxnWithBridgeGas.
+func (mr *RelayerMockRecorder) SendMetaTxnWithBridgeGas(ctx, call, quote, projectID, bridgeGas, preconditions any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxnWithBridgeGas", reflect.TypeOf((*Relayer)(nil).SendMetaTxnWithBridgeGas), ctx, call, quote, projectID, bridgeGas, preconditions)
+}
+
 // SentTransactions mocks base method.
 func (m *Relayer) SentTransactions(ctx context.Context, filter *proto.SentTransactionsFilter, page *proto.Page) (*proto.Page, []*proto.Transaction, error) {
 	m.ctrl.T.Helper()
