@@ -42,12 +42,13 @@ func (v3Core) DecodeSignature(data []byte) (core.Signature[*WalletConfig], error
 	}
 
 	signatureFlag := data[0]
-	data = data[1:]
 
 	signatureType := signatureFlag & 0x03
 	if signatureType == 0x01 {
 		return decodeChainedSignature(data)
 	}
+
+	data = data[1:]
 
 	noChainId := (signatureType & 0x02) == 0x02
 
@@ -1316,7 +1317,6 @@ func (l signatureTreeSubdigestLeaf) reduceImageHash() (core.ImageHash, error) {
 
 func (l signatureTreeSubdigestLeaf) write(writer io.Writer) error {
 	_, err := writer.Write([]byte{FLAG_SUBDIGEST << 4})
-
 	if err != nil {
 		return fmt.Errorf("unable to write subdigest leaf type: %w", err)
 	}
@@ -1556,6 +1556,7 @@ func (l *signatureTreeSignatureEthSignLeaf) reduce() signatureTree { return l }
 func (l *signatureTreeSignatureEthSignLeaf) join(other signatureTree) (signatureTree, error) {
 	return l, nil
 }
+
 func (l *signatureTreeSignatureEthSignLeaf) reduceImageHash() (core.ImageHash, error) {
 	return core.ImageHash{}, fmt.Errorf("eth sign signature has signing power")
 }
@@ -1906,6 +1907,8 @@ type WalletConfig struct {
 	Checkpoint_  uint64           `json:"checkpoint" toml:"checkpoint"`
 	Tree         WalletConfigTree `json:"tree" toml:"tree"`
 	Checkpointer common.Address   `json:"checkpointer,omitempty" toml:"checkpointer,omitempty"`
+
+	PendingUpdates []core.Signature[*WalletConfig] `json:"-" toml:"-"`
 }
 
 func (c *WalletConfig) Threshold() uint16 {

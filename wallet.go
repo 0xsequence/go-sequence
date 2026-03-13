@@ -108,7 +108,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	if _, ok := core.WalletConfig(typeOfWallet).(*v1.WalletConfig); ok {
 		// new wallet config v1
 		var config core.WalletConfig = &v1.WalletConfig{
-			Threshold_: 1, //big.NewInt(1),
+			Threshold_: 1, // big.NewInt(1),
 			Signers_: v1.WalletConfigSigners{
 				{Weight: 1, Address: owner.Address()},
 			},
@@ -122,7 +122,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	} else if _, ok := core.WalletConfig(typeOfWallet).(*v2.WalletConfig); ok {
 		// new wallet config v2
 		var config core.WalletConfig = &v2.WalletConfig{
-			Threshold_: 1, //big.NewInt(1),
+			Threshold_: 1, // big.NewInt(1),
 			Tree: &v2.WalletConfigTreeAddressLeaf{
 				Weight: 1, Address: owner.Address(),
 			},
@@ -136,7 +136,7 @@ func GenericNewWalletSingleOwner[C core.WalletConfig](owner Signer, optContext .
 	} else if _, ok := core.WalletConfig(typeOfWallet).(*v3.WalletConfig); ok {
 		// new wallet config v3
 		var config core.WalletConfig = &v3.WalletConfig{
-			Threshold_: 1, //big.NewInt(1),
+			Threshold_: 1, // big.NewInt(1),
 			Tree: &v3.WalletConfigTreeAddressLeaf{
 				Weight: 1, Address: owner.Address(),
 			},
@@ -260,7 +260,6 @@ func (w *Wallet[C]) UseConfig(config C) (*Wallet[C], error) {
 		SkipSortSigners: w.skipSortSigners,
 		Address:         w.address,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("sequence.Wallet#UseConfig: %w", err)
 	}
@@ -286,7 +285,6 @@ func (w *Wallet[C]) UseSigners(signers ...Signer) (*Wallet[C], error) {
 		SkipSortSigners: w.skipSortSigners,
 		Address:         w.address,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("sequence.Wallet#UseSigners: %w", err)
 	}
@@ -485,9 +483,11 @@ func (w *Wallet[C]) SignTypedData(typedData *ethcoder.TypedData) ([]byte, []byte
 	return signature, encodedTypedData, nil
 }
 
-var _ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
-var _ MessageSigner = (*Wallet[*v2.WalletConfig])(nil)
-var _ MessageSigner = (*Wallet[*v3.WalletConfig])(nil)
+var (
+	_ MessageSigner = (*Wallet[*v1.WalletConfig])(nil)
+	_ MessageSigner = (*Wallet[*v2.WalletConfig])(nil)
+	_ MessageSigner = (*Wallet[*v3.WalletConfig])(nil)
+)
 
 func (w *Wallet[C]) SignDigest(ctx context.Context, digest common.Hash, optChainID ...*big.Int) ([]byte, error) {
 	if w.sessions != nil {
@@ -612,8 +612,10 @@ func (w *Wallet[C]) SignV3Payload(ctx context.Context, payload core.Payload, opt
 	return res, sig, err
 }
 
-var _ DigestSigner = (*Wallet[*v1.WalletConfig])(nil)
-var _ DigestSigner = (*Wallet[*v2.WalletConfig])(nil)
+var (
+	_ DigestSigner = (*Wallet[*v1.WalletConfig])(nil)
+	_ DigestSigner = (*Wallet[*v2.WalletConfig])(nil)
+)
 
 func (w *Wallet[C]) SignTransaction(ctx context.Context, txn *Transaction) (*SignedTransactions, error) {
 	return w.SignTransactions(ctx, Transactions{txn})
@@ -874,7 +876,7 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
 	}
 
-	var txn = &Transaction{
+	txn := &Transaction{
 		RevertOnError: true,
 		To:            walletFactoryAddress,
 		Data:          deploymentData,
@@ -1008,6 +1010,10 @@ func (w *Wallet[C]) buildSignature(ctx context.Context, sign core.SigningFunctio
 			if err != nil {
 				return nil, nil, fmt.Errorf("SignDigest, BuildRegularSignature: %w", err)
 			}
+		}
+
+		if len(config.PendingUpdates) > 0 {
+			sig = append(v3.ChainedSignature{sig}, config.PendingUpdates...)
 		}
 
 		sigEnc, err := sig.Data()
