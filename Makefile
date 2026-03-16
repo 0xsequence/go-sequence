@@ -46,6 +46,14 @@ start-testchain-anvil:
 start-testchain-anvil-verbose:
 	cd ./testutil/testchain && pnpm start:anvil:verbose
 
+# Fork a chain: make start-testchain-fork FORK_URL=https://nodes.sequence.app/polygon-zkevm
+FORK_URL ?= https://nodes.sequence.app/polygon-zkevm
+start-testchain-fork:
+	cd ./testutil/testchain && FORK_URL="$(FORK_URL)" pnpm start:anvil:fork -- "$(FORK_URL)"
+
+start-testchain-fork-verbose:
+	cd ./testutil/testchain && FORK_URL="$(FORK_URL)" pnpm start:anvil:fork:verbose -- "$(FORK_URL)"
+
 check-testchain-running:
 	@curl http://localhost:8545 -H"Content-type: application/json" -X POST -d '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' --write-out '%{http_code}' --silent --output /dev/null | grep 200 > /dev/null \
 	|| { echo "*****"; echo "Oops! testchain is not running. Please run 'make start-testchain' in another terminal."; echo "*****"; exit 1; }

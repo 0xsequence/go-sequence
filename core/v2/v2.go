@@ -1036,7 +1036,7 @@ func (l *signatureTreeDynamicSignatureLeaf) recover(ctx context.Context, payload
 		signature := l.signature
 
 		if provider != nil {
-			isValid, err := eip6492.ValidateEIP6492Offchain(ctx, provider, l.address, payload.Digest().Hash, signature, nil)
+			isValid, err := eip6492.ValidateEIP6492(ctx, provider, l.address, payload.Digest().Hash, signature, nil)
 			if err != nil {
 				return nil, nil, fmt.Errorf("unable to validate signature for %v: %w", l.address, err)
 			}
