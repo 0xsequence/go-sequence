@@ -2,6 +2,7 @@ package malleable
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
@@ -58,7 +59,11 @@ func calldataBytesTail(calldata []byte, method abi.Method, argIndex int) (tailSt
 	if !off.IsInt64() {
 		return 0, 0, fmt.Errorf("dynamic offset too large")
 	}
-	tailStart = 4 + int(off.Int64())
+	off64 := off.Int64()
+	if off64 < 0 || off64 > math.MaxInt-4 {
+		return 0, 0, fmt.Errorf("dynamic offset out of range")
+	}
+	tailStart = 4 + int(off64)
 	if tailStart+32 > len(calldata) {
 		return 0, 0, fmt.Errorf("calldata too short for tail length word")
 	}

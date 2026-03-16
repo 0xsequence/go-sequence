@@ -1,6 +1,7 @@
 package malleable
 
 import (
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -69,4 +70,24 @@ func TestCalldataStaticWord(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 32, length)
 	require.Equal(t, calldata[4+32*2:4+32*3], calldata[start:start+length])
+}
+
+// TestCalldataBytesTail_RejectsHugeDynamicOffset ensures that a malformed
+// calldata word with a dynamic offset near math.MaxInt64 does not overflow
+// (4+offset can wrap tailStart negative) and panic on slice; we must return an error.
+func TestCalldataBytesTail_RejectsHugeDynamicOffset(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"payload","type":"bytes"}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+	method := parsedABI.Methods["f"]
+
+	// Build calldata: selector (4) + one 32-byte word. Word = huge offset so 4+offset overflows int.
+	calldata := make([]byte, 4+32)
+	copy(calldata[:4], parsedABI.Methods["f"].ID)
+	offBytes := common.BigToHash(big.NewInt(math.MaxInt64 - 2)).Bytes()
+	copy(calldata[4:4+32], offBytes)
+
+	_, _, err = CalldataBytesContent(calldata, method, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "dynamic offset")
 }

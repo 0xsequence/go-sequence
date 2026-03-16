@@ -47,6 +47,30 @@ func TestBuilder_RepeatValidation(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestBuilder_RepeatRejectsOffsetOrSizeOverUint16(t *testing.T) {
+	// Calldata beyond 65535 bytes: repeat section serializes offset/size as uint16,
+	// so Build() must fail instead of silently wrapping.
+	largeSize := 70000
+	largeData := make([]byte, largeSize)
+	for i := range largeData {
+		largeData[i] = byte(i & 0xff)
+	}
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{Data: largeData},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Repeat with first range at offset > 65535
+	builder := NewBuilder(&payload, nil)
+	builder.Repeat(
+		NewRangeSelector(0, 65536, 4),
+		NewRangeSelector(0, 0, 4),
+	)
+	_, _, err := builder.Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "exceeds uint16 range")
+	require.Contains(t, err.Error(), "65536")
+}
+
 func TestEncodeDecodeSignature_RoundTrip(t *testing.T) {
 	statics := []StaticSection{
 		{TIndex: 0, CIndex: 1, Size: 2},

@@ -8,6 +8,14 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
+// maxRepeatOffset and maxRepeatSize are the maximum values that fit in the
+// repeat section wire format (uint16). Calldata beyond this would wrap and
+// produce a corrupt signature.
+const (
+	maxRepeatOffset = 0xFFFF
+	maxRepeatSize   = 0xFFFF
+)
+
 type BuilderOptions struct {
 	ValidateRepeats     bool
 	MergeAdjacentStatic bool
@@ -148,6 +156,14 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 			if crypto.Keccak256Hash(sectionA) != crypto.Keccak256Hash(sectionB) {
 				return nil, nil, fmt.Errorf("repeat section mismatch")
 			}
+		}
+		if a.Offset > maxRepeatOffset || bb.Offset > maxRepeatOffset {
+			return nil, nil, fmt.Errorf("repeat offset exceeds uint16 range (max %d): a.Offset=%d b.Offset=%d",
+				maxRepeatOffset, a.Offset, bb.Offset)
+		}
+		if a.Size > maxRepeatSize {
+			return nil, nil, fmt.Errorf("repeat size exceeds uint16 range (max %d): a.Size=%d",
+				maxRepeatSize, a.Size)
 		}
 		repeats = append(repeats, RepeatSection{
 			TIndex:  uint8(a.CallIndex),
