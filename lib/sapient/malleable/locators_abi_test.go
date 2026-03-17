@@ -72,6 +72,37 @@ func TestCalldataStaticWord(t *testing.T) {
 	require.Equal(t, calldata[4+32*2:4+32*3], calldata[start:start+length])
 }
 
+// TestCalldataStaticWord_CompositeStaticArg verifies head offset is computed from
+// cumulative ABI sizes, not 32*argIndex. Method has uint256[2] then uint256; arg 0
+// is 2 words, arg 1 is 1 word. With 32*argIndex, arg 1 would be read at offset 36
+// (wrong); correct offset is 4+64=68. We assert the slices at the computed offsets
+// contain the intended ABI-encoded values (111, 222 and 333).
+func TestCalldataStaticWord_CompositeStaticArg(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"pair","type":"uint256[2]"},{"name":"single","type":"uint256"}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	calldata, err := parsedABI.Pack("f", [2]*big.Int{big.NewInt(111), big.NewInt(222)}, big.NewInt(333))
+	require.NoError(t, err)
+
+	// Expected ABI-encoded values (32-byte big-endian each)
+	expectedPair := append(
+		common.BigToHash(big.NewInt(111)).Bytes(),
+		common.BigToHash(big.NewInt(222)).Bytes()...,
+	)
+	expectedSingle := common.BigToHash(big.NewInt(333)).Bytes()
+
+	method := parsedABI.Methods["f"]
+	// Arg 0 = pair (uint256[2]): 2 words at offset 4, length 64
+	start0, length0, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expectedPair, calldata[start0:start0+length0], "arg 0 should be encoded pair (111, 222)")
+	// Arg 1 = single (uint256): 1 word at offset 4+64=68
+	start1, length1, err := CalldataStaticWord(method, 1)
+	require.NoError(t, err)
+	require.Equal(t, expectedSingle, calldata[start1:start1+length1], "arg 1 should be encoded single (333)")
+}
+
 // TestCalldataBytesTail_RejectsHugeDynamicOffset ensures that a malformed
 // calldata word with a dynamic offset near math.MaxInt64 does not overflow
 // (4+offset can wrap tailStart negative) and panic on slice; we must return an error.

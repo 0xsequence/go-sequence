@@ -210,16 +210,19 @@ func (s argSlotStep) apply(payload *v3.CallsPayload, state *pathState) error {
 	if isDynamicType(argType) {
 		return fmt.Errorf("arg %s is dynamic (%s)", s.name, argType.String())
 	}
+	start, length, err := CalldataStaticWord(*state.method, argIndex)
+	if err != nil {
+		return err
+	}
 	var out []ByteRange
 	for _, r := range state.ranges {
-		start := r.Offset + 4 + 32*argIndex
-		if start+32 > r.Offset+r.Size {
+		if start+length > r.Size {
 			return fmt.Errorf("arg slot out of bounds for %s", s.name)
 		}
 		out = append(out, ByteRange{
 			CallIndex: r.CallIndex,
-			Offset:    start,
-			Size:      32,
+			Offset:    r.Offset + start,
+			Size:      length,
 		})
 	}
 	state.ranges = out
@@ -242,16 +245,19 @@ func (s argSlotIndexStep) apply(payload *v3.CallsPayload, state *pathState) erro
 	if isDynamicType(argType) {
 		return fmt.Errorf("arg %d is dynamic (%s)", argIndex, argType.String())
 	}
+	start, length, err := CalldataStaticWord(*state.method, argIndex)
+	if err != nil {
+		return err
+	}
 	var out []ByteRange
 	for _, r := range state.ranges {
-		start := r.Offset + 4 + 32*argIndex
-		if start+32 > r.Offset+r.Size {
+		if start+length > r.Size {
 			return fmt.Errorf("arg slot out of bounds for %d", argIndex)
 		}
 		out = append(out, ByteRange{
 			CallIndex: r.CallIndex,
-			Offset:    start,
-			Size:      32,
+			Offset:    r.Offset + start,
+			Size:      length,
 		})
 	}
 	state.ranges = out

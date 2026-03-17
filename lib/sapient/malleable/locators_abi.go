@@ -8,11 +8,49 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 )
 
-func CalldataStaticWord(method abi.Method, argIndex int) (start, length int, err error) {
-	if argIndex < 0 || argIndex >= len(method.Inputs) {
-		return 0, 0, fmt.Errorf("argIndex out of range")
+// abiHeadWords returns the number of 32-byte words this type occupies in the
+// ABI calldata head. Dynamic types (bytes, string, slice) occupy 1 word (offset).
+func abiHeadWords(t abi.Type) int {
+	switch t.T {
+	case abi.BytesTy, abi.StringTy, abi.SliceTy:
+		return 1
+	case abi.ArrayTy:
+		if t.Size == 0 || isDynamicType(t) {
+			return 1
+		}
+		return t.Size * abiHeadWords(*t.Elem)
+	case abi.TupleTy:
+		n := 0
+		for _, e := range t.TupleElems {
+			n += abiHeadWords(*e)
+		}
+		return n
+	default:
+		return 1
 	}
-	return 4 + 32*argIndex, 32, nil
+}
+
+// calldataArgHeadOffset returns the byte offset (from start of calldata, so
+// selector is 0..3) of the first word of the argument at argIndex. It is
+// 4 + sum of ABI-encoded sizes of all preceding arguments.
+func calldataArgHeadOffset(method abi.Method, argIndex int) (int, error) {
+	if argIndex < 0 || argIndex >= len(method.Inputs) {
+		return 0, fmt.Errorf("argIndex out of range")
+	}
+	offset := 4
+	for j := 0; j < argIndex; j++ {
+		offset += abiHeadWords(method.Inputs[j].Type) * 32
+	}
+	return offset, nil
+}
+
+func CalldataStaticWord(method abi.Method, argIndex int) (start, length int, err error) {
+	start, err = calldataArgHeadOffset(method, argIndex)
+	if err != nil {
+		return 0, 0, err
+	}
+	words := abiHeadWords(method.Inputs[argIndex].Type)
+	return start, words * 32, nil
 }
 
 // CalldataBytesContent returns the raw bytes/string content (excludes length word and padding).
@@ -50,7 +88,10 @@ func calldataBytesTail(calldata []byte, method abi.Method, argIndex int) (tailSt
 	if t.T != abi.BytesTy && t.T != abi.StringTy {
 		return 0, 0, fmt.Errorf("arg %d is not bytes/string (got %s)", argIndex, t.String())
 	}
-	head := 4 + 32*argIndex
+	head, err := calldataArgHeadOffset(method, argIndex)
+	if err != nil {
+		return 0, 0, err
+	}
 	if head+32 > len(calldata) {
 		return 0, 0, fmt.Errorf("calldata too short for head word")
 	}
