@@ -9,7 +9,8 @@ import (
 )
 
 // abiHeadWords returns the number of 32-byte words this type occupies in the
-// ABI calldata head. Dynamic types (bytes, string, slice) occupy 1 word (offset).
+// ABI calldata head. Dynamic types (bytes, string, slice, and tuples/arrays
+// that contain them) occupy 1 word (offset); static types use their encoded size.
 func abiHeadWords(t abi.Type) int {
 	switch t.T {
 	case abi.BytesTy, abi.StringTy, abi.SliceTy:
@@ -20,6 +21,9 @@ func abiHeadWords(t abi.Type) int {
 		}
 		return t.Size * abiHeadWords(*t.Elem)
 	case abi.TupleTy:
+		if isDynamicType(t) {
+			return 1
+		}
 		n := 0
 		for _, e := range t.TupleElems {
 			n += abiHeadWords(*e)

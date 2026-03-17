@@ -68,8 +68,8 @@ func TestCalldataStaticWord(t *testing.T) {
 	method := parsedABI.Methods["permit"]
 	start, length, err := CalldataStaticWord(method, 2)
 	require.NoError(t, err)
-	require.Equal(t, 32, length)
-	require.Equal(t, calldata[4+32*2:4+32*3], calldata[start:start+length])
+	expected := common.BigToHash(big.NewInt(123)).Bytes() // value is arg index 2
+	require.Equal(t, expected, calldata[start:start+length])
 }
 
 // TestCalldataStaticWord_CompositeStaticArg verifies head offset is computed from
@@ -93,14 +93,154 @@ func TestCalldataStaticWord_CompositeStaticArg(t *testing.T) {
 	expectedSingle := common.BigToHash(big.NewInt(333)).Bytes()
 
 	method := parsedABI.Methods["f"]
-	// Arg 0 = pair (uint256[2]): 2 words at offset 4, length 64
 	start0, length0, err := CalldataStaticWord(method, 0)
 	require.NoError(t, err)
 	require.Equal(t, expectedPair, calldata[start0:start0+length0], "arg 0 should be encoded pair (111, 222)")
-	// Arg 1 = single (uint256): 1 word at offset 4+64=68
 	start1, length1, err := CalldataStaticWord(method, 1)
 	require.NoError(t, err)
 	require.Equal(t, expectedSingle, calldata[start1:start1+length1], "arg 1 should be encoded single (333)")
+}
+
+// TestCalldataStaticWord_DynamicTupleBeforeArg verifies a dynamic tuple (e.g. (uint256,bytes))
+// is counted as 1 head word, not the sum of its elements. Otherwise the following arg's
+// head offset would be wrong and ArgSlot/ArgBytesData would read incorrect bytes.
+func TestCalldataStaticWord_DynamicTupleBeforeArg(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"pair","type":"tuple","components":[{"name":"n","type":"uint256"},{"name":"data","type":"bytes"}]},{"name":"value","type":"uint256"}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	// Pack: tuple (big.NewInt(42), []byte("x")) and value 999
+	calldata, err := parsedABI.Pack("f", struct {
+		N    *big.Int
+		Data []byte
+	}{big.NewInt(42), []byte("x")}, big.NewInt(999))
+	require.NoError(t, err)
+
+	method := parsedABI.Methods["f"]
+	// Expected arg 0 head: the offset word the encoder wrote (first head word after selector)
+	expectedArg0 := calldata[4 : 4+32]
+	start0, length0, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expectedArg0, calldata[start0:start0+length0], "arg 0 should be offset word")
+	expectedArg1 := common.BigToHash(big.NewInt(999)).Bytes()
+	start1, length1, err := CalldataStaticWord(method, 1)
+	require.NoError(t, err)
+	require.Equal(t, expectedArg1, calldata[start1:start1+length1], "arg 1 should be encoded value (999)")
+}
+
+// TestCalldataStaticWord_StaticTuple verifies a fully static tuple (uint256,uint256)
+// is counted as 2 head words; the slice covers both words.
+func TestCalldataStaticWord_StaticTuple(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"pair","type":"tuple","components":[{"name":"a","type":"uint256"},{"name":"b","type":"uint256"}]}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	calldata, err := parsedABI.Pack("f", struct {
+		A *big.Int
+		B *big.Int
+	}{big.NewInt(11), big.NewInt(22)})
+	require.NoError(t, err)
+
+	method := parsedABI.Methods["f"]
+	expected := append(
+		common.BigToHash(big.NewInt(11)).Bytes(),
+		common.BigToHash(big.NewInt(22)).Bytes()...,
+	)
+	start, length, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expected, calldata[start:start+length])
+}
+
+// TestCalldataStaticWord_NestedStaticTuple verifies a nested static tuple
+// ((uint256,uint256), uint256) is 3 head words: inner 2 + outer 1.
+func TestCalldataStaticWord_NestedStaticTuple(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"outer","type":"tuple","components":[{"name":"inner","type":"tuple","components":[{"name":"a","type":"uint256"},{"name":"b","type":"uint256"}]},{"name":"c","type":"uint256"}]}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	calldata, err := parsedABI.Pack("f", struct {
+		Inner struct {
+			A *big.Int
+			B *big.Int
+		}
+		C *big.Int
+	}{
+		Inner: struct {
+			A *big.Int
+			B *big.Int
+		}{big.NewInt(1), big.NewInt(2)},
+		C: big.NewInt(3),
+	})
+	require.NoError(t, err)
+
+	method := parsedABI.Methods["f"]
+	expected := append(
+		common.BigToHash(big.NewInt(1)).Bytes(),
+		common.BigToHash(big.NewInt(2)).Bytes()...,
+	)
+	expected = append(expected, common.BigToHash(big.NewInt(3)).Bytes()...)
+	start, length, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expected, calldata[start:start+length])
+}
+
+// TestCalldataStaticWord_MixedStaticAndDynamicArgs verifies head offsets with
+// uint256, then dynamic tuple, then uint256: 1 + 1 + 1 = 3 words.
+func TestCalldataStaticWord_MixedStaticAndDynamicArgs(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"a","type":"uint256"},{"name":"t","type":"tuple","components":[{"name":"n","type":"uint256"},{"name":"data","type":"bytes"}]},{"name":"b","type":"uint256"}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	calldata, err := parsedABI.Pack("f",
+		big.NewInt(100),
+		struct {
+			N    *big.Int
+			Data []byte
+		}{big.NewInt(42), []byte("x")},
+		big.NewInt(200))
+	require.NoError(t, err)
+
+	method := parsedABI.Methods["f"]
+	expectedArg0 := common.BigToHash(big.NewInt(100)).Bytes()
+	start0, len0, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expectedArg0, calldata[start0:start0+len0])
+	// Expected arg 1 head: the offset word the encoder wrote (second head word)
+	expectedArg1 := calldata[4+32 : 4+64]
+	start1, len1, err := CalldataStaticWord(method, 1)
+	require.NoError(t, err)
+	require.Equal(t, expectedArg1, calldata[start1:start1+len1])
+	expectedArg2 := common.BigToHash(big.NewInt(200)).Bytes()
+	start2, len2, err := CalldataStaticWord(method, 2)
+	require.NoError(t, err)
+	require.Equal(t, expectedArg2, calldata[start2:start2+len2])
+}
+
+// TestCalldataStaticWord_NestedDynamicTuple verifies an outer tuple that contains
+// a dynamic element (uint256,(uint256,bytes)) is still 1 head word.
+func TestCalldataStaticWord_NestedDynamicTuple(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"outer","type":"tuple","components":[{"name":"n","type":"uint256"},{"name":"inner","type":"tuple","components":[{"name":"a","type":"uint256"},{"name":"data","type":"bytes"}]}]}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+
+	calldata, err := parsedABI.Pack("f", struct {
+		N     *big.Int
+		Inner struct {
+			A    *big.Int
+			Data []byte
+		}
+	}{big.NewInt(10), struct {
+		A    *big.Int
+		Data []byte
+	}{big.NewInt(20), []byte("y")}})
+	require.NoError(t, err)
+
+	method := parsedABI.Methods["f"]
+	// Expected head: the offset word the encoder wrote (first head word after selector)
+	expected := calldata[4 : 4+32]
+	start, length, err := CalldataStaticWord(method, 0)
+	require.NoError(t, err)
+	require.Equal(t, expected, calldata[start:start+length])
 }
 
 // TestCalldataBytesTail_RejectsHugeDynamicOffset ensures that a malformed
