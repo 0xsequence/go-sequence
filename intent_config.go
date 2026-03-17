@@ -245,14 +245,17 @@ func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 
 // `BuildIntentConfigurationSignature` creates a signature for an already-built intent configuration
 // that can be used to bypass chain ID validation.
-func BuildIntentConfigurationSignature(config *v3.WalletConfig) ([]byte, error) {
+func BuildIntentConfigurationSignature(config *v3.WalletConfig, signerSignatures []*core.SignerSignature) ([]byte, error) {
 	if config == nil {
 		return nil, fmt.Errorf("intent configuration is nil")
 	}
 
 	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		// For mainSigner or other signers, we don't provide a signature here.
-		// This will result in an AddressLeaf or NodeLeaf in the signature tree.
+		for _, signerSignature := range signerSignatures {
+			if signer.Address == signerSignature.Signer.Address {
+				return signerSignature.Type, signerSignature.Signature, nil
+			}
+		}
 		return 0, nil, nil
 	}
 
@@ -281,13 +284,15 @@ func GetIntentConfigurationSignature(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
 	checkpoint uint64,
+	sapientSignerLeafNode v3.WalletConfigTree,
+	signerSignatures []*core.SignerSignature,
 ) ([]byte, error) {
-	config, err := CreateIntentConfiguration(mainSigner, calls, checkpoint, nil)
+	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}
 
-	return BuildIntentConfigurationSignature(config)
+	return BuildIntentConfigurationSignature(config, signerSignatures)
 }
 
 // // replaceSapientSignerWithNodeInConfigTree recursively traverses the WalletConfigTree.

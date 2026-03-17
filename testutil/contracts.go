@@ -12,6 +12,7 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/contracts/gen/sapientmock"
 	"github.com/0xsequence/go-sequence/contracts/gen/walletcallmock"
 )
 
@@ -24,6 +25,7 @@ func init() {
 	Contracts.MustAdd(contracts.V1.WalletFactory)
 
 	Contracts.MustRegisterJSON("WALLET_CALL_RECV_MOCK", walletcallmock.CallReceiverMockABI, common.FromHex(walletcallmock.CallReceiverMockBin))
+	Contracts.MustRegisterJSON("MOCK_SAPIENT", sapientmock.SapientMockABI, common.FromHex(sapientmock.SapientMockBin))
 }
 
 func ContractCall(provider *ethrpc.Provider, contractAddress common.Address, contractABI abi.ABI, result interface{}, method string, args ...interface{}) ([]byte, error) {

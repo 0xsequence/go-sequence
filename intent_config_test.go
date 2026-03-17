@@ -16,6 +16,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/0xsequence/go-sequence/contracts"
+	"github.com/0xsequence/go-sequence/core"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/testutil"
@@ -363,7 +364,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
 
-	signature, err := sequence.BuildIntentConfigurationSignature(config)
+	signature, err := sequence.BuildIntentConfigurationSignature(config, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, signature)
 
@@ -374,7 +375,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, config.ImageHash().Hash, recoveredConfig.ImageHash().Hash)
 
-	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0)
+	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainSignature, signature)
 }
@@ -418,7 +419,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              callmockContract.Address,
-			Value:           nil,
+			Value:           big.NewInt(0),
 			Data:            calldata,
 			GasLimit:        big.NewInt(0),
 			DelegateCall:    false,
@@ -427,13 +428,33 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		},
 	}, big.NewInt(0), big.NewInt(0))
 
+	sapientContract := testChain.UniDeploy(t, "MOCK_SAPIENT", 0)
+	sapientSignerAddress := sapientContract.Address
+	sapientImageHash := common.HexToHash("0x1234567890ABCDEF01234567890ABCDEF01234567890ABCDEF1234567890ABCD")
+	sapientSignerLeafNode := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    sapientSignerAddress,
+		ImageHash_: core.ImageHash{Hash: sapientImageHash},
+	}
+
+	sapientSignerSignature := sapientImageHash.Hex()
+	signerSignature := &core.SignerSignature{
+		Signer: core.Signer{
+			Address:   sapientSignerAddress,
+			IsSapient: true,
+			ImageHash: sapientImageHash,
+		},
+		Signature: common.HexToHash(sapientSignerSignature).Bytes(),
+		Type:      core.SignerSignatureTypeSapient,
+	}
+
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
 		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -508,10 +529,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2}, 0)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -520,14 +541,58 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
 		require.Equal(t, sig1, sig2, "same transactions should produce same signatures")
+	})
+
+	t.Run("signer signature included in the signature tree", func(t *testing.T) {
+		// Create the intent configuration
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, sapientSignerLeafNode)
+		require.NoError(t, err)
+
+		// Create the signature
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, sapientSignerLeafNode, []*core.SignerSignature{signerSignature})
+		require.NoError(t, err)
+
+		sapientLeaf := findSapientSignerLeaf(config.Tree, sapientSignerAddress)
+		require.NotNil(t, sapientLeaf)
+		require.Equal(t, sapientImageHash, sapientLeaf.ImageHash_.Hash)
+
+		// Verify the signature can be decoded
+		sig, err := v3.Core.DecodeSignature(signature)
+		require.NoError(t, err, "signature should be decodable")
+
+		// Get the config from the signature
+		recoveredSignerSignatures := map[core.Signer]core.SignerSignature{}
+		recoveredConfig, _, err := sig.Recover(context.Background(), payload, testChain.Provider, recoveredSignerSignatures)
+		require.NoError(t, err)
+		require.NotNil(t, recoveredConfig, "recovered config should not be nil")
+		require.Len(t, recoveredSignerSignatures, 1, "expected exactly one recovered sapient signer signature")
+		var recoveredSapientSig core.SignerSignature
+		for signer, sig := range recoveredSignerSignatures {
+			if signer.Address == sapientSignerAddress {
+				recoveredSapientSig = sig
+				break
+			}
+		}
+		require.NotNil(t, recoveredSapientSig.Signature, "sapient signer signature should be recovered")
+		require.Equal(t, signerSignature.Signature, recoveredSapientSig.Signature, "recovered sapient signature should match")
+
+		// Get the full signature in string
+		sigDataStr, err := sig.Data()
+		require.NoError(t, err)
+
+		sapientImageHash := sapientLeaf.ImageHash().Hash.Hex()
+		require.Equal(t, sapientImageHash, sapientSignerLeafNode.ImageHash().Hash.Hex())
+
+		// Verify the signature contains the sapient signature
+		require.Contains(t, common.Bytes2Hex(sigDataStr), sapientSignerSignature[2:], "signature should contain the sapient signer signature")
 	})
 }
 
@@ -559,7 +624,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -630,7 +695,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -788,7 +853,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads, 0)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads, 0, nil, nil)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
