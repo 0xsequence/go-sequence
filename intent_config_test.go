@@ -317,7 +317,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -359,7 +359,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NotNil(t, sapientLeaf)
 	require.Equal(t, expectedSapientImageHash, sapientLeaf.ImageHash_.Hash)
 
-	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
 
@@ -374,7 +374,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, config.ImageHash().Hash, recoveredConfig.ImageHash().Hash)
 
-	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
+	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0)
 	require.NoError(t, err)
 	require.NotEqual(t, plainSignature, signature)
 }
@@ -429,11 +429,11 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, nil)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil)
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -508,10 +508,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2}, 0)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -520,10 +520,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload})
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -559,7 +559,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1})
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -630,7 +630,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload})
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -788,7 +788,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads, 0)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
@@ -915,7 +915,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -965,7 +965,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -982,6 +982,51 @@ func TestIntentConfigurationAddress(t *testing.T) {
 
 		assert.Equal(t, common.HexToAddress("0x5784cF2b86eE8C930ee26279e7666241aC7e78B7"), address)
 	})
+}
+
+func TestIntentConfigurationAddress_WithCheckpoint(t *testing.T) {
+	// Create a single operation matching TypeScript test
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{
+			To:              common.HexToAddress("0x0000000000000000000000000000000000000000"),
+			Value:           big.NewInt(0),
+			Data:            common.FromHex("0x1234"),
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	},
+		big.NewInt(0),
+		big.NewInt(0),
+	)
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	context := sequence.V3SequenceContext()
+
+	checkpoint1 := uint64(1)
+	checkpoint2 := uint64(2)
+
+	// Create intent configuration
+	config1, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint1, nil)
+	require.NoError(t, err)
+	config2, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint2, nil)
+	require.NoError(t, err)
+
+	// Checkpoints should be set correctly
+	assert.Equal(t, checkpoint1, config1.Checkpoint())
+	assert.Equal(t, checkpoint2, config2.Checkpoint())
+
+	// Configurations should resolve to different image hashes and addresses
+	imageHash1 := config1.ImageHash()
+	imageHash2 := config2.ImageHash()
+	assert.NotEqual(t, imageHash1.Hash, imageHash2.Hash)
+
+	// Calculate counterfactual address
+	address1, err := sequence.AddressFromImageHash(imageHash1, context)
+	require.NoError(t, err)
+	address2, err := sequence.AddressFromImageHash(imageHash2, context)
+	require.NoError(t, err)
+	assert.NotEqual(t, address1, address2)
 }
 
 func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
@@ -1018,7 +1063,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create intent configuration
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil)
 	require.NoError(t, err)
 
 	// Calculate image hash

@@ -225,7 +225,7 @@ func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapie
 	return createIntentTree(mainSigner, calls, sapientSignerLeafNode)
 }
 
-func createIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, additionalLeaves ...v3.WalletConfigTree) (*v3.WalletConfig, error) {
+func createIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, checkpoint uint64, additionalLeaves ...v3.WalletConfigTree) (*v3.WalletConfig, error) {
 	tree, err := createIntentTree(mainSigner, calls, additionalLeaves...)
 	if err != nil {
 		return nil, err
@@ -233,14 +233,14 @@ func createIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 
 	return &v3.WalletConfig{
 		Threshold_:  1,
-		Checkpoint_: 0,
+		Checkpoint_: checkpoint,
 		Tree:        *tree,
 	}, nil
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
-	return createIntentConfiguration(mainSigner, calls, sapientSignerLeafNode)
+func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, checkpoint uint64, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
+	return createIntentConfiguration(mainSigner, calls, checkpoint, sapientSignerLeafNode)
 }
 
 // `BuildIntentConfigurationSignature` creates a signature for an already-built intent configuration
@@ -280,8 +280,9 @@ func BuildIntentConfigurationSignature(config *v3.WalletConfig) ([]byte, error) 
 func GetIntentConfigurationSignature(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
+	checkpoint uint64,
 ) ([]byte, error) {
-	config, err := CreateIntentConfiguration(mainSigner, calls, nil)
+	config, err := CreateIntentConfiguration(mainSigner, calls, checkpoint, nil)
 	if err != nil {
 		return nil, err
 	}

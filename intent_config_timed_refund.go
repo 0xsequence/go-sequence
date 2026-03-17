@@ -34,7 +34,7 @@ func CreateIntentConfigurationWithTimedRefundSapient(
 		return nil, err
 	}
 
-	return createIntentConfiguration(mainSigner, calls, timedRefundLeaf)
+	return createIntentConfiguration(mainSigner, calls, 0, timedRefundLeaf)
 }
 
 func createTimedRefundSapientSignerLeaf(signer TimedRefundIntentConfigurationSigner) (*v3.WalletConfigTreeSapientSignerLeaf, error) {
