@@ -3,6 +3,7 @@ package malleable
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 )
 
 type PackedCallsLayout struct {
@@ -83,8 +84,11 @@ func ParsePackedCalls(packed []byte) (*PackedCallsLayout, error) {
 			calldataSize := int(packed[p])<<16 | int(packed[p+1])<<8 | int(packed[p+2])
 			p += 3
 
-			if p+calldataSize > len(packed) {
+			if calldataSize < 0 || calldataSize > len(packed)-p {
 				return nil, fmt.Errorf("packed calls truncated reading calldata bytes (i=%d size=%d)", i, calldataSize)
+			}
+			if calldataSize > math.MaxInt-p {
+				return nil, fmt.Errorf("packed calls calldata size overflow (i=%d)", i)
 			}
 			callData[i] = Span{Start: p, Len: calldataSize}
 			p += calldataSize

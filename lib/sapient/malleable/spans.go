@@ -25,8 +25,11 @@ func (r ByteRange) Slice(payload *v3.CallsPayload) ([]byte, error) {
 		return nil, fmt.Errorf("call index out of range: %d", r.CallIndex)
 	}
 	data := payload.Calls[r.CallIndex].Data
-	if r.Offset < 0 || r.Size < 0 || r.Offset+r.Size > len(data) {
-		return nil, fmt.Errorf("range out of bounds: [%d,%d) with len %d", r.Offset, r.Offset+r.Size, len(data))
+	if r.Offset < 0 || r.Size < 0 {
+		return nil, fmt.Errorf("range offset/size negative")
+	}
+	if r.Size > len(data) || r.Offset > len(data)-r.Size {
+		return nil, fmt.Errorf("range out of bounds: offset=%d size=%d with len %d", r.Offset, r.Size, len(data))
 	}
 	return data[r.Offset : r.Offset+r.Size], nil
 }

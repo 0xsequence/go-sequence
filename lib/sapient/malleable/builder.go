@@ -101,8 +101,11 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 			return fmt.Errorf("tindex out of range: %d", r.CallIndex)
 		}
 		dataLen := len(b.payload.Calls[r.CallIndex].Data)
-		if r.Offset < 0 || r.Size < 0 || r.Offset+r.Size > dataLen {
-			return fmt.Errorf("span out of bounds: [%d,%d) > %d", r.Offset, r.Offset+r.Size, dataLen)
+		if r.Offset < 0 || r.Size < 0 {
+			return fmt.Errorf("span offset/size negative")
+		}
+		if r.Size > dataLen || r.Offset > dataLen-r.Size {
+			return fmt.Errorf("span out of bounds: offset=%d size=%d > %d", r.Offset, r.Size, dataLen)
 		}
 		exByCall[r.CallIndex] = append(exByCall[r.CallIndex], Span{Start: r.Offset, Len: r.Size})
 		return nil

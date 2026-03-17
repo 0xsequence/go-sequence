@@ -114,5 +114,8 @@ func calldataBytesTail(calldata []byte, method abi.Method, argIndex int) (tailSt
 		return 0, 0, fmt.Errorf("bytes length too large")
 	}
 	dataLen = int(l.Int64())
+	if dataLen > math.MaxInt-tailStart-32 {
+		return 0, 0, fmt.Errorf("bytes length too large")
+	}
 	return tailStart, dataLen, nil
 }

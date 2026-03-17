@@ -2,6 +2,7 @@ package malleable
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
@@ -146,8 +147,14 @@ func (s sliceStep) apply(payload *v3.CallsPayload, state *pathState) error {
 	}
 	var out []ByteRange
 	for _, r := range state.ranges {
-		if s.offset < 0 || s.size < 0 || s.offset+s.size > r.Size {
-			return fmt.Errorf("slice out of bounds: [%d,%d) within %d", s.offset, s.offset+s.size, r.Size)
+		if s.offset < 0 || s.size < 0 {
+			return fmt.Errorf("slice offset/size negative: %d, %d", s.offset, s.size)
+		}
+		if s.size > r.Size || s.offset > r.Size-s.size {
+			return fmt.Errorf("slice out of bounds: offset=%d size=%d within %d", s.offset, s.size, r.Size)
+		}
+		if s.offset > math.MaxInt-r.Offset {
+			return fmt.Errorf("slice offset overflow with range")
 		}
 		out = append(out, ByteRange{
 			CallIndex: r.CallIndex,
@@ -405,6 +412,9 @@ func (s encodedCallDataStep) apply(payload *v3.CallsPayload, state *pathState) e
 		span := layout.CallData[s.index]
 		if span.Start < 0 || span.Len == 0 {
 			return fmt.Errorf("packed call %d has no calldata", s.index)
+		}
+		if span.Start > math.MaxInt-r.Offset {
+			return fmt.Errorf("packed call %d offset overflow", s.index)
 		}
 		out = append(out, ByteRange{
 			CallIndex: r.CallIndex,

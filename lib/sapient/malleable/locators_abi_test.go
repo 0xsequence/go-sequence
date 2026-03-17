@@ -122,3 +122,25 @@ func TestCalldataBytesTail_RejectsHugeDynamicOffset(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "dynamic offset")
 }
+
+// TestCalldataBytesTail_RejectsHugeBytesLength ensures a malformed length word
+// (e.g. near math.MaxInt64) is rejected so contentStart+dataLen and padding math
+// cannot overflow and cause panics downstream.
+func TestCalldataBytesTail_RejectsHugeBytesLength(t *testing.T) {
+	abiDef := `[{"name":"f","type":"function","inputs":[{"name":"payload","type":"bytes"}]}]`
+	parsedABI, err := abi.JSON(strings.NewReader(abiDef))
+	require.NoError(t, err)
+	method := parsedABI.Methods["f"]
+
+	// Calldata: selector (4) + offset word 32 (points to 4+32=36) + at 36: length word.
+	// Use length = math.MaxInt64 so (dataLen+31) and contentStart+dataLen would overflow.
+	calldata := make([]byte, 4+32+32) // head + offset 32 + length word
+	copy(calldata[:4], method.ID)
+	copy(calldata[4:4+32], common.BigToHash(big.NewInt(32)).Bytes())
+	lenBytes := common.BigToHash(big.NewInt(math.MaxInt64)).Bytes()
+	copy(calldata[36:36+32], lenBytes)
+
+	_, _, err = CalldataBytesContent(calldata, method, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "length")
+}
