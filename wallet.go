@@ -860,9 +860,14 @@ func (w *Wallet[C]) IsDeployed() (bool, error) {
 	return IsWalletDeployed(w.provider, w.Address())
 }
 
-func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+func (w *Wallet[C]) Deploy(ctx context.Context, transactions ...*Transaction) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
+	}
+
+	isDeployed, err := w.IsDeployed()
+	if err == nil && isDeployed {
+		return "", nil, nil, fmt.Errorf("already deployed")
 	}
 
 	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeployment(w.config, w.context)
@@ -871,32 +876,63 @@ func (w *Wallet[C]) Deploy(ctx context.Context) (MetaTxnID, *types.Transaction, 
 	}
 
 	if w.address != (common.Address{}) && w.address != walletAddress {
-		return "", nil, nil, fmt.Errorf("wallet address %s does not match the address derived from the config %s", w.address, walletAddress)
+		return "", nil, nil, fmt.Errorf("derived address %v does not match wallet address %v", walletAddress, w.address)
 	}
 
-	var txn = &Transaction{
-		RevertOnError: true,
-		To:            walletFactoryAddress,
-		Data:          deploymentData,
+	inner := Transactions{{To: walletFactoryAddress, Data: deploymentData, RevertOnError: true}}
+
+	if len(transactions) != 0 {
+		signed, err := w.SignTransactions(ctx, transactions)
+		if err != nil {
+			return "", nil, nil, fmt.Errorf("unable to sign post-deployment transactions: %w", err)
+		}
+
+		space := signed.Space
+		if space == nil {
+			space = new(big.Int)
+		}
+		nonce, err := EncodeNonce(space, signed.Nonce)
+		if err != nil {
+			return "", nil, nil, fmt.Errorf("unable to encode nonce for post-deployment transactions: %w", err)
+		}
+
+		inner = append(inner, &Transaction{
+			To:           walletAddress,
+			Value:        common.Big0,
+			GasLimit:     common.Big0,
+			Transactions: signed.Transactions,
+			Nonce:        nonce,
+			Signature:    signed.Signature,
+		})
 	}
 
-	// for v1 sequence wallet default does not work
-	if _, ok := core.WalletConfig(w.config).(*v1.WalletConfig); ok {
-		// TODO: Move this hardcoded gas limit to a configuration
-		// or fix it with a contract patch
-		txn.GasLimit = big.NewInt(3_000_000)
-	} else if _, ok := core.WalletConfig(w.config).(*v3.WalletConfig); ok {
-		// TODO: Move this hardcoded gas limit to a configuration
-		// or fix it with a contract patch
-		txn.GasLimit = big.NewInt(3_000_000)
+	var digest common.Hash
+	switch core.WalletConfig(w.config).(type) {
+	case *v1.WalletConfig, *v2.WalletConfig:
+		digest, err = ComputeGuestExecDigest(inner)
+	case *v3.WalletConfig:
+		var payload v3.CallsPayload
+		payload, err = inner.Payload(w.context.GuestModuleAddress, w.chainID, nil, nil)
+		if err == nil {
+			digest = payload.Digest().Hash
+		}
 	}
-
-	signerTxn, err := w.SignTransaction(ctx, txn)
 	if err != nil {
-		return "", nil, nil, err
+		return "", nil, nil, fmt.Errorf("unable to compute guest subdigest: %w", err)
 	}
 
-	return w.relayer.Relay(ctx, signerTxn)
+	outer := SignedTransactions{
+		ChainID:       w.chainID,
+		WalletAddress: w.context.GuestModuleAddress,
+		WalletConfig:  w.config,
+		WalletContext: w.context,
+		Transactions:  inner,
+		Space:         new(big.Int),
+		Nonce:         new(big.Int),
+		Digest:        digest,
+	}
+
+	return w.relayer.Relay(ctx, &outer)
 }
 
 // func (w *Wallet) UpdateConfig() // TODO in future

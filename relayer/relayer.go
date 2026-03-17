@@ -215,17 +215,26 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 			signedTxs.Signature,
 		)
 	case *v3.WalletConfig:
-		to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
-			r,
-			signedTxs.WalletAddress,
-			signedTxs.ChainID,
-			signedTxs.WalletConfig,
-			signedTxs.WalletContext,
-			signedTxs.Transactions,
-			signedTxs.Space,
-			signedTxs.Nonce,
-			signedTxs.Signature,
-		)
+		if signedTxs.WalletAddress == signedTxs.WalletContext.GuestModuleAddress {
+			var payload v3.CallsPayload
+			to = signedTxs.WalletAddress
+			payload, err = signedTxs.Payload()
+			if err == nil {
+				execdata = payload.Encode(to)
+			}
+		} else {
+			to, execdata, err = sequence.EncodeTransactionsForRelayingV3(
+				r,
+				signedTxs.WalletAddress,
+				signedTxs.ChainID,
+				signedTxs.WalletConfig,
+				signedTxs.WalletContext,
+				signedTxs.Transactions,
+				signedTxs.Space,
+				signedTxs.Nonce,
+				signedTxs.Signature,
+			)
+		}
 	default:
 		return "", nil, nil, fmt.Errorf("unknown wallet config type: %T", signedTxs.WalletConfig)
 	}
