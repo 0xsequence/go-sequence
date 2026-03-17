@@ -71,6 +71,26 @@ func TestBuilder_RepeatRejectsOffsetOrSizeOverUint16(t *testing.T) {
 	require.Contains(t, err.Error(), "65536")
 }
 
+func TestBuilder_StaticRejectsOffsetOrSizeOverUint16(t *testing.T) {
+	// BuilderOptions.MaxOffset/MaxSize are uint32, but static sections serialize
+	// CIndex/Size as uint16. If options exceed 65535, Build() must fail instead of wrapping.
+	largeSize := 70000
+	largeData := make([]byte, largeSize)
+	for i := range largeData {
+		largeData[i] = byte(i & 0xff)
+	}
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{Data: largeData},
+	}, big.NewInt(0), big.NewInt(0))
+
+	// Options allow large chunk; wire format does not
+	builder := NewBuilder(&payload, &BuilderOptions{MaxSize: 70000})
+	_, _, err := builder.Build()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "exceeds uint16 range")
+	require.Contains(t, err.Error(), "static")
+}
+
 func TestEncodeDecodeSignature_RoundTrip(t *testing.T) {
 	statics := []StaticSection{
 		{TIndex: 0, CIndex: 1, Size: 2},

@@ -8,12 +8,9 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-// maxRepeatOffset and maxRepeatSize are the maximum values that fit in the
-// repeat section wire format (uint16). Calldata beyond this would wrap and
-// produce a corrupt signature.
+// maxUint16 defines the maximum allowed value for size validation of sections using uint16 wire format.
 const (
-	maxRepeatOffset = 0xFFFF
-	maxRepeatSize   = 0xFFFF
+	maxUint16 = 0xFFFF
 )
 
 type BuilderOptions struct {
@@ -160,13 +157,11 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 				return nil, nil, fmt.Errorf("repeat section mismatch")
 			}
 		}
-		if a.Offset > maxRepeatOffset || bb.Offset > maxRepeatOffset {
-			return nil, nil, fmt.Errorf("repeat offset exceeds uint16 range (max %d): a.Offset=%d b.Offset=%d",
-				maxRepeatOffset, a.Offset, bb.Offset)
+		if a.Offset > maxUint16 || bb.Offset > maxUint16 {
+			return nil, nil, fmt.Errorf("repeat offset exceeds uint16 range (max %d): a.Offset=%d b.Offset=%d", maxUint16, a.Offset, bb.Offset)
 		}
-		if a.Size > maxRepeatSize {
-			return nil, nil, fmt.Errorf("repeat size exceeds uint16 range (max %d): a.Size=%d",
-				maxRepeatSize, a.Size)
+		if a.Size > maxUint16 {
+			return nil, nil, fmt.Errorf("repeat size exceeds uint16 range (max %d): a.Size=%d", maxUint16, a.Size)
 		}
 		repeats = append(repeats, RepeatSection{
 			TIndex:  uint8(a.CallIndex),
@@ -240,6 +235,9 @@ func (b *Builder) encodeStaticSections(statics []SpanWithCall) ([]StaticSection,
 			}
 			if uint32(offset) > b.options.MaxOffset {
 				return nil, fmt.Errorf("cindex too large: %d", offset)
+			}
+			if offset > maxUint16 || chunk > maxUint16 {
+				return nil, fmt.Errorf("static section offset/size exceeds uint16 range (max %d): offset=%d chunk=%d", maxUint16, offset, chunk)
 			}
 			sections = append(sections, StaticSection{
 				TIndex: uint8(s.CallIndex),
