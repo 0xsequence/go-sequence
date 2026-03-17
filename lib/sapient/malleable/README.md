@@ -59,6 +59,15 @@ value := malleable.NewPath().
     AsSelector()
 ```
 
+After any step that narrows the active range or descends into a new byte
+frame, ABI context is cleared. This includes steps like `.Slice(...)`,
+`.ArgBytesData(...)`, `.ArgBytesDataIndex(...)`, `.ArgBytesEncoded(...)`,
+`.EncodedCallsPayload()`, and `.EncodedCallData(...)`.
+
+Call `.ABI(...)` again before using `.ArgSlot(...)`, `.ArgSlotIndex(...)`,
+`.ArgBytesData(...)`, `.ArgBytesDataIndex(...)`, or `.ArgBytesEncoded(...)`
+against the new frame.
+
 Compute the image hash:
 
 ```go

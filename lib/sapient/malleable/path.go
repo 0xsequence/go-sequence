@@ -109,11 +109,45 @@ func (p *Path) String() string {
 
 type pathState struct {
 	ranges []ByteRange
+	// method only applies to the current full calldata frame. Any step that
+	// narrows or reinterprets the active range must clear it.
 	method *abi.Method
+}
+
+func (s *pathState) replaceRanges(ranges []ByteRange) {
+	s.ranges = ranges
+	s.method = nil
+}
+
+func (s *pathState) clearMethod() {
+	s.method = nil
+}
+
+func (s *pathState) bindMethod(method abi.Method) {
+	s.method = &method
+}
+
+func (s *pathState) requireMethod(step string) (abi.Method, error) {
+	if s.method == nil {
+		return abi.Method{}, fmt.Errorf("%s step requires ABI context", step)
+	}
+	return *s.method, nil
 }
 
 type pathStep interface {
 	apply(payload *v3.CallsPayload, state *pathState) error
+}
+
+func mapRanges(ranges []ByteRange, fn func(ByteRange) (ByteRange, error)) ([]ByteRange, error) {
+	out := make([]ByteRange, 0, len(ranges))
+	for _, r := range ranges {
+		next, err := fn(r)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, next)
+	}
+	return out, nil
 }
 
 type callDataStep struct {
@@ -127,12 +161,11 @@ func (s callDataStep) apply(payload *v3.CallsPayload, state *pathState) error {
 	if s.index < 0 || s.index >= len(payload.Calls) {
 		return fmt.Errorf("call index out of range: %d", s.index)
 	}
-	state.ranges = []ByteRange{{
+	state.replaceRanges([]ByteRange{{
 		CallIndex: s.index,
 		Offset:    0,
 		Size:      len(payload.Calls[s.index].Data),
-	}}
-	state.method = nil
+	}})
 	return nil
 }
 
@@ -145,24 +178,26 @@ func (s sliceStep) apply(payload *v3.CallsPayload, state *pathState) error {
 	if len(state.ranges) == 0 {
 		return fmt.Errorf("slice step has no active ranges")
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		if s.offset < 0 || s.size < 0 {
-			return fmt.Errorf("slice offset/size negative: %d, %d", s.offset, s.size)
+			return ByteRange{}, fmt.Errorf("slice offset/size negative: %d, %d", s.offset, s.size)
 		}
 		if s.size > r.Size || s.offset > r.Size-s.size {
-			return fmt.Errorf("slice out of bounds: offset=%d size=%d within %d", s.offset, s.size, r.Size)
+			return ByteRange{}, fmt.Errorf("slice out of bounds: offset=%d size=%d within %d", s.offset, s.size, r.Size)
 		}
 		if s.offset > math.MaxInt-r.Offset {
-			return fmt.Errorf("slice offset overflow with range")
+			return ByteRange{}, fmt.Errorf("slice offset overflow with range")
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + s.offset,
 			Size:      s.size,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -197,7 +232,7 @@ func (s abiStep) apply(payload *v3.CallsPayload, state *pathState) error {
 			return fmt.Errorf("calldata selector mismatch for %s", s.method)
 		}
 	}
-	state.method = &method
+	state.bindMethod(method)
 	return nil
 }
 
@@ -206,33 +241,36 @@ type argSlotStep struct {
 }
 
 func (s argSlotStep) apply(payload *v3.CallsPayload, state *pathState) error {
-	if state.method == nil {
-		return fmt.Errorf("argSlot step requires ABI context")
-	}
-	argIndex, err := argIndexByName(*state.method, s.name)
+	method, err := state.requireMethod("argSlot")
 	if err != nil {
 		return err
 	}
-	argType := state.method.Inputs[argIndex].Type
+	argIndex, err := argIndexByName(method, s.name)
+	if err != nil {
+		return err
+	}
+	argType := method.Inputs[argIndex].Type
 	if isDynamicType(argType) {
 		return fmt.Errorf("arg %s is dynamic (%s)", s.name, argType.String())
 	}
-	start, length, err := CalldataStaticWord(*state.method, argIndex)
+	start, length, err := CalldataStaticWord(method, argIndex)
 	if err != nil {
 		return err
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		if start+length > r.Size {
-			return fmt.Errorf("arg slot out of bounds for %s", s.name)
+			return ByteRange{}, fmt.Errorf("arg slot out of bounds for %s", s.name)
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + start,
 			Size:      length,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -241,33 +279,36 @@ type argSlotIndexStep struct {
 }
 
 func (s argSlotIndexStep) apply(payload *v3.CallsPayload, state *pathState) error {
-	if state.method == nil {
-		return fmt.Errorf("argSlotIndex step requires ABI context")
-	}
-	argIndex := s.index
-	if argIndex < 0 || argIndex >= len(state.method.Inputs) {
-		return fmt.Errorf("arg index out of range: %d", argIndex)
-	}
-	argType := state.method.Inputs[argIndex].Type
-	if isDynamicType(argType) {
-		return fmt.Errorf("arg %d is dynamic (%s)", argIndex, argType.String())
-	}
-	start, length, err := CalldataStaticWord(*state.method, argIndex)
+	method, err := state.requireMethod("argSlotIndex")
 	if err != nil {
 		return err
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	argIndex := s.index
+	if argIndex < 0 || argIndex >= len(method.Inputs) {
+		return fmt.Errorf("arg index out of range: %d", argIndex)
+	}
+	argType := method.Inputs[argIndex].Type
+	if isDynamicType(argType) {
+		return fmt.Errorf("arg %d is dynamic (%s)", argIndex, argType.String())
+	}
+	start, length, err := CalldataStaticWord(method, argIndex)
+	if err != nil {
+		return err
+	}
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		if start+length > r.Size {
-			return fmt.Errorf("arg slot out of bounds for %d", argIndex)
+			return ByteRange{}, fmt.Errorf("arg slot out of bounds for %d", argIndex)
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + start,
 			Size:      length,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -276,34 +317,37 @@ type argBytesDataStep struct {
 }
 
 func (s argBytesDataStep) apply(payload *v3.CallsPayload, state *pathState) error {
-	if state.method == nil {
-		return fmt.Errorf("argBytesData step requires ABI context")
-	}
-	argIndex, err := argIndexByName(*state.method, s.name)
+	method, err := state.requireMethod("argBytesData")
 	if err != nil {
 		return err
 	}
-	argType := state.method.Inputs[argIndex].Type
+	argIndex, err := argIndexByName(method, s.name)
+	if err != nil {
+		return err
+	}
+	argType := method.Inputs[argIndex].Type
 	if argType.T != abi.BytesTy && argType.T != abi.StringTy {
 		return fmt.Errorf("arg %s is not bytes/string (%s)", s.name, argType.String())
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		data, err := r.Slice(payload)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesContent(data, *state.method, argIndex)
+		start, length, err := CalldataBytesContent(data, method, argIndex)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + start,
 			Size:      length,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -312,34 +356,37 @@ type argBytesDataIndexStep struct {
 }
 
 func (s argBytesDataIndexStep) apply(payload *v3.CallsPayload, state *pathState) error {
-	if state.method == nil {
-		return fmt.Errorf("argBytesDataIndex step requires ABI context")
+	method, err := state.requireMethod("argBytesDataIndex")
+	if err != nil {
+		return err
 	}
 	argIndex := s.index
-	if argIndex < 0 || argIndex >= len(state.method.Inputs) {
+	if argIndex < 0 || argIndex >= len(method.Inputs) {
 		return fmt.Errorf("arg index out of range: %d", argIndex)
 	}
-	argType := state.method.Inputs[argIndex].Type
+	argType := method.Inputs[argIndex].Type
 	if argType.T != abi.BytesTy && argType.T != abi.StringTy {
 		return fmt.Errorf("arg %d is not bytes/string (%s)", argIndex, argType.String())
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		data, err := r.Slice(payload)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesContent(data, *state.method, argIndex)
+		start, length, err := CalldataBytesContent(data, method, argIndex)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + start,
 			Size:      length,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -348,34 +395,37 @@ type argBytesEncodedStep struct {
 }
 
 func (s argBytesEncodedStep) apply(payload *v3.CallsPayload, state *pathState) error {
-	if state.method == nil {
-		return fmt.Errorf("argBytesEncoded step requires ABI context")
-	}
-	argIndex, err := argIndexByName(*state.method, s.name)
+	method, err := state.requireMethod("argBytesEncoded")
 	if err != nil {
 		return err
 	}
-	argType := state.method.Inputs[argIndex].Type
+	argIndex, err := argIndexByName(method, s.name)
+	if err != nil {
+		return err
+	}
+	argType := method.Inputs[argIndex].Type
 	if argType.T != abi.BytesTy && argType.T != abi.StringTy {
 		return fmt.Errorf("arg %s is not bytes/string (%s)", s.name, argType.String())
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		data, err := r.Slice(payload)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesEncoded(data, *state.method, argIndex)
+		start, length, err := CalldataBytesEncoded(data, method, argIndex)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + start,
 			Size:      length,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 
@@ -385,6 +435,7 @@ func (s encodedCallsPayloadStep) apply(payload *v3.CallsPayload, state *pathStat
 	if len(state.ranges) == 0 {
 		return fmt.Errorf("encodedCallsPayload step has no active ranges")
 	}
+	state.clearMethod()
 	return nil
 }
 
@@ -396,33 +447,35 @@ func (s encodedCallDataStep) apply(payload *v3.CallsPayload, state *pathState) e
 	if len(state.ranges) == 0 {
 		return fmt.Errorf("encodedCallData step has no active ranges")
 	}
-	var out []ByteRange
-	for _, r := range state.ranges {
+	out, err := mapRanges(state.ranges, func(r ByteRange) (ByteRange, error) {
 		data, err := r.Slice(payload)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
 		layout, err := ParsePackedCalls(data)
 		if err != nil {
-			return err
+			return ByteRange{}, err
 		}
 		if s.index < 0 || s.index >= layout.NumCalls {
-			return fmt.Errorf("packed call index out of range: %d", s.index)
+			return ByteRange{}, fmt.Errorf("packed call index out of range: %d", s.index)
 		}
 		span := layout.CallData[s.index]
 		if span.Start < 0 || span.Len == 0 {
-			return fmt.Errorf("packed call %d has no calldata", s.index)
+			return ByteRange{}, fmt.Errorf("packed call %d has no calldata", s.index)
 		}
 		if span.Start > math.MaxInt-r.Offset {
-			return fmt.Errorf("packed call %d offset overflow", s.index)
+			return ByteRange{}, fmt.Errorf("packed call %d offset overflow", s.index)
 		}
-		out = append(out, ByteRange{
+		return ByteRange{
 			CallIndex: r.CallIndex,
 			Offset:    r.Offset + span.Start,
 			Size:      span.Len,
-		})
+		}, nil
+	})
+	if err != nil {
+		return err
 	}
-	state.ranges = out
+	state.replaceRanges(out)
 	return nil
 }
 

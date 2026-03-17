@@ -163,6 +163,72 @@ func TestPath_ResolveDirectTransferFromValueByIndex(t *testing.T) {
 	require.Equal(t, transferCalldata[4+32*2:4+32*3], valueSlice)
 }
 
+func TestPath_ResolveNestedBytesRequiresABIRebind(t *testing.T) {
+	outerABIJSON := `[{"name":"outer","type":"function","inputs":[{"name":"payload","type":"bytes"},{"name":"value","type":"uint256"}]}]`
+	innerABIJSON := `[{"name":"inner","type":"function","inputs":[{"name":"value","type":"uint256"},{"name":"other","type":"uint256"}]}]`
+
+	outerABI, err := abi.JSON(strings.NewReader(outerABIJSON))
+	require.NoError(t, err)
+	innerABI, err := abi.JSON(strings.NewReader(innerABIJSON))
+	require.NoError(t, err)
+
+	innerCalldata, err := innerABI.Pack("inner", big.NewInt(11), big.NewInt(22))
+	require.NoError(t, err)
+	outerCalldata, err := outerABI.Pack("outer", innerCalldata, big.NewInt(33))
+	require.NoError(t, err)
+
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{To: common.HexToAddress("0x1111111111111111111111111111111111111111"), Data: outerCalldata},
+	}, big.NewInt(0), big.NewInt(0))
+
+	valueSel := NewPath().
+		CallData(0).
+		ABI(&outerABI, "outer").
+		ArgBytesData("payload").
+		ArgSlot("value").
+		AsSelector()
+	t.Logf("valueSelWithoutRebind: %s", valueSel.String())
+
+	_, err = valueSel.Resolve(&payload)
+	require.EqualError(t, err, "argSlot step requires ABI context")
+}
+
+func TestPath_ResolveNestedBytesWithABIRebind(t *testing.T) {
+	outerABIJSON := `[{"name":"outer","type":"function","inputs":[{"name":"payload","type":"bytes"},{"name":"value","type":"uint256"}]}]`
+	innerABIJSON := `[{"name":"inner","type":"function","inputs":[{"name":"value","type":"uint256"},{"name":"other","type":"uint256"}]}]`
+
+	outerABI, err := abi.JSON(strings.NewReader(outerABIJSON))
+	require.NoError(t, err)
+	innerABI, err := abi.JSON(strings.NewReader(innerABIJSON))
+	require.NoError(t, err)
+
+	innerCalldata, err := innerABI.Pack("inner", big.NewInt(11), big.NewInt(22))
+	require.NoError(t, err)
+	outerCalldata, err := outerABI.Pack("outer", innerCalldata, big.NewInt(33))
+	require.NoError(t, err)
+
+	payload := v3.NewCallsPayload(common.Address{}, big.NewInt(1), []v3.Call{
+		{To: common.HexToAddress("0x1111111111111111111111111111111111111111"), Data: outerCalldata},
+	}, big.NewInt(0), big.NewInt(0))
+
+	valueSel := NewPath().
+		CallData(0).
+		ABI(&outerABI, "outer").
+		ArgBytesData("payload").
+		ABI(&innerABI, "inner").
+		ArgSlot("value").
+		AsSelector()
+	t.Logf("valueSelWithRebind: %s", valueSel.String())
+
+	ranges, err := valueSel.Resolve(&payload)
+	require.NoError(t, err)
+	require.Len(t, ranges, 1)
+
+	valueSlice, err := ranges[0].Slice(&payload)
+	require.NoError(t, err)
+	require.Equal(t, innerCalldata[4:4+32], valueSlice)
+}
+
 func TestPath_ResolveFailsWithSelectorMismatch(t *testing.T) {
 	erc20ABIJSON := `[{"name":"transferFrom","type":"function","inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}]}]`
 	erc20ABI, err := abi.JSON(strings.NewReader(erc20ABIJSON))
