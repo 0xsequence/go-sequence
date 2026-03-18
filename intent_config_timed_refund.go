@@ -22,6 +22,26 @@ type TimedRefundIntentConfigurationSigner struct {
 	Weight          uint8
 }
 
+// TimedRefundSapientImageHashPreimage is the typed preimage for a timed-refund sapient signer.
+// It preserves the refund destination and unlock timestamp alongside the irreversible hash.
+type TimedRefundSapientImageHashPreimage struct {
+	Destination     common.Address
+	UnlockTimestamp uint64
+}
+
+func (p *TimedRefundSapientImageHashPreimage) ImageHash() core.ImageHash {
+	if p == nil {
+		return core.ImageHash{}
+	}
+
+	imageHash, err := TimedRefundSapientImageHash(p.Destination, p.UnlockTimestamp)
+	if err != nil {
+		panic(fmt.Errorf("timed refund sapient image hash preimage: %w", err))
+	}
+
+	return imageHash
+}
+
 // CreateIntentConfigurationWithTimedRefundSapient creates an intent configuration that includes
 // a timed-refund sapient signer leaf in addition to the default any-address subdigests.
 func CreateIntentConfigurationWithTimedRefundSapient(
@@ -51,7 +71,7 @@ func createTimedRefundSapientSignerLeaf(signer TimedRefundIntentConfigurationSig
 		return nil, fmt.Errorf("timed refund sapient signer weight is zero")
 	}
 
-	imageHash, err := timedRefundSapientImageHash(signer.Destination, signer.UnlockTimestamp)
+	imageHash, err := TimedRefundSapientImageHash(signer.Destination, signer.UnlockTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +106,9 @@ func mustTimedRefundSapientImageHashArguments() abi.Arguments {
 	}
 }
 
-func timedRefundSapientImageHash(destination common.Address, unlockTimestamp uint64) (core.ImageHash, error) {
+// TimedRefundSapientImageHash computes the image hash for a timed-refund sapient signer and
+// includes the recoverable typed preimage in the returned core.ImageHash.
+func TimedRefundSapientImageHash(destination common.Address, unlockTimestamp uint64) (core.ImageHash, error) {
 	encoded, err := timedRefundSapientImageHashArguments.Pack(
 		"timed-refund",
 		destination,
@@ -96,5 +118,13 @@ func timedRefundSapientImageHash(destination common.Address, unlockTimestamp uin
 		return core.ImageHash{}, fmt.Errorf("failed to ABI pack timed refund sapient image hash: %w", err)
 	}
 
-	return core.ImageHash{Hash: crypto.Keccak256Hash(encoded)}, nil
+	preimage := &TimedRefundSapientImageHashPreimage{
+		Destination:     destination,
+		UnlockTimestamp: unlockTimestamp,
+	}
+
+	return core.ImageHash{
+		Hash:     crypto.Keccak256Hash(encoded),
+		Preimage: preimage,
+	}, nil
 }

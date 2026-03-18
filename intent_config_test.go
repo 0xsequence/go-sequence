@@ -359,6 +359,11 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	sapientLeaf := findSapientSignerLeaf(config.Tree, timedRefundSigner)
 	require.NotNil(t, sapientLeaf)
 	require.Equal(t, expectedSapientImageHash, sapientLeaf.ImageHash_.Hash)
+	preimage, ok := sapientLeaf.ImageHash_.Preimage.(*sequence.TimedRefundSapientImageHashPreimage)
+	require.True(t, ok)
+	require.Equal(t, destination, preimage.Destination)
+	require.Equal(t, uint64(1_750_000_000), preimage.UnlockTimestamp)
+	require.Equal(t, expectedSapientImageHash, preimage.ImageHash().Hash)
 
 	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
 	require.NoError(t, err)
@@ -404,6 +409,20 @@ func TestCreateIntentConfigurationWithTimedRefundSapient_ZeroWeight(t *testing.T
 		},
 	)
 	require.EqualError(t, err, "timed refund sapient signer weight is zero")
+}
+
+func TestTimedRefundSapientImageHash(t *testing.T) {
+	destination := common.HexToAddress("0x4444444444444444444444444444444444444444")
+
+	imageHash, err := sequence.TimedRefundSapientImageHash(destination, 1_750_000_000)
+	require.NoError(t, err)
+	require.Equal(t, common.HexToHash("0x577e11f2280512fff4541fc08cc7eb98357bdcff482db5634db7327e3c97ba58"), imageHash.Hash)
+
+	preimage, ok := imageHash.Preimage.(*sequence.TimedRefundSapientImageHashPreimage)
+	require.True(t, ok)
+	require.Equal(t, destination, preimage.Destination)
+	require.Equal(t, uint64(1_750_000_000), preimage.UnlockTimestamp)
+	require.Equal(t, imageHash.Hash, preimage.ImageHash().Hash)
 }
 
 func TestGetIntentConfigurationSignature(t *testing.T) {
