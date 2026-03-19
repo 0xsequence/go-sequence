@@ -18,6 +18,7 @@ import (
 	seqsale721v0 "github.com/0xsequence/go-sequence/contracts/gen/seq_sale/erc721v0"
 	"github.com/0xsequence/go-sequence/contracts/gen/supply"
 	"github.com/0xsequence/go-sequence/contracts/gen/tokens"
+	trailsutils "github.com/0xsequence/go-sequence/contracts/gen/trailsutils"
 	v1Factory "github.com/0xsequence/go-sequence/contracts/gen/v1/walletfactory"
 	v1Estimator "github.com/0xsequence/go-sequence/contracts/gen/v1/walletgasestimator"
 	v1Guest "github.com/0xsequence/go-sequence/contracts/gen/v1/walletguest"
@@ -43,6 +44,7 @@ var GasEstimator,
 	IERC1271,
 	ISapient,
 	ISapientCompact,
+	TrailsUtils,
 	ERC20Mock,
 	IERC20,
 	IERC721,
@@ -131,6 +133,7 @@ func init() {
 	IERC1271 = artifact("IERC1271", ierc1271.IERC1271ABI, "")
 	ISapient = artifact("ISapient", isapient.ISapientABI, "")
 	ISapientCompact = artifact("ISapientCompact", isapient.ISapientCompactABI, "")
+	TrailsUtils = artifact("TRAILS_UTILS", trailsutils.TrailsUtilsABI, trailsutils.TrailsUtilsBin)
 
 	IERC20 = artifact("IERC20", tokens.IERC20ABI, "")
 	IERC721 = artifact("IERC721", tokens.IERC721ABI, "")
