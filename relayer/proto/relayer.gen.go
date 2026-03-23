@@ -1210,41 +1210,6 @@ func (c *relayerClient) StartSender(ctx context.Context, sender int) error {
 	return err
 }
 
-func (c *relayerClient) StopSender(ctx context.Context, sender int) error {
-	in := struct {
-		Arg0 int `json:"sender"`
-	}{sender}
-
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[17], in, nil)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
-
-	return err
-}
-
-func (c *relayerClient) ResetSender(ctx context.Context, sender int) (uint64, error) {
-	in := struct {
-		Arg0 int `json:"sender"`
-	}{sender}
-	out := struct {
-		Ret0 uint64 `json:"deleted"`
-	}{}
-
-	resp, err := doHTTPRequest(ctx, c.client, c.urls[18], in, &out)
-	if resp != nil {
-		cerr := resp.Body.Close()
-		if err == nil && cerr != nil {
-			err = ErrWebrpcRequestFailed.WithCausef("failed to close response body: %w", cerr)
-		}
-	}
-
-	return out.Ret0, err
-}
-
 func (c *relayerClient) GetMetaTransactions(ctx context.Context, projectId uint64, page *Page) (*Page, []*MetaTxnLog, error) {
 	in := struct {
 		Arg0 uint64 `json:"projectId"`
