@@ -863,6 +863,10 @@ func (w *Wallet[C]) IsDeployed() (bool, error) {
 }
 
 func (w *Wallet[C]) Deploy(ctx context.Context, transactions ...*Transaction) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
+	return w.DeployWithImageHash(ctx, w.config.ImageHash(), transactions...)
+}
+
+func (w *Wallet[C]) DeployWithImageHash(ctx context.Context, imageHash core.ImageHash, transactions ...*Transaction) (MetaTxnID, *types.Transaction, ethtxn.WaitReceipt, error) {
 	if w.relayer == nil {
 		return "", nil, nil, ErrRelayerNotSet
 	}
