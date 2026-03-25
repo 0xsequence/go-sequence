@@ -876,7 +876,7 @@ func (w *Wallet[C]) DeployWithImageHash(ctx context.Context, imageHash core.Imag
 		return "", nil, nil, fmt.Errorf("already deployed")
 	}
 
-	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeployment(w.config, w.context)
+	walletAddress, walletFactoryAddress, deploymentData, err := EncodeWalletDeploymentWithImageHash(w.config, w.context, imageHash)
 	if err != nil {
 		return "", nil, nil, err
 	}
