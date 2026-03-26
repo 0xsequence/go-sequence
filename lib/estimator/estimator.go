@@ -208,16 +208,12 @@ func accessList(
 	provider *ethrpc.Provider,
 ) (types.AccessList, error) {
 	into := func(raw json.RawMessage, ret *types.AccessList, strictness ethrpc.StrictnessLevel) error {
-		var response struct {
-			AccessList types.AccessList `json:"accessList,omitempty"`
-		}
-
-		err := json.Unmarshal(raw, &response)
+		decoded, err := decodeAccessListResponse(raw)
 		if err != nil {
-			return fmt.Errorf("unable to decode eth_createAccessList response: %w", err)
+			return err
 		}
 
-		*ret = response.AccessList
+		*ret = decoded
 		return nil
 	}
 
@@ -239,6 +235,37 @@ func accessList(
 		if err != nil {
 			return nil, fmt.Errorf("unable to create access list: %w", err)
 		}
+	}
+
+	return list, nil
+}
+
+func decodeAccessListResponse(raw json.RawMessage) (types.AccessList, error) {
+	type accessTuple struct {
+		Address     *common.Address `json:"address"`
+		StorageKeys []common.Hash   `json:"storageKeys"`
+	}
+
+	var response struct {
+		AccessList []accessTuple `json:"accessList,omitempty"`
+	}
+
+	err := json.Unmarshal(raw, &response)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode eth_createAccessList response: %w", err)
+	}
+
+	list := make(types.AccessList, 0, len(response.AccessList))
+
+	for _, tuple := range response.AccessList {
+		if tuple.Address == nil {
+			return nil, fmt.Errorf("unable to decode eth_createAccessList response: missing required field 'address' for AccessTuple")
+		}
+
+		list = append(list, types.AccessTuple{
+			Address:     *tuple.Address,
+			StorageKeys: tuple.StorageKeys,
+		})
 	}
 
 	return list, nil
