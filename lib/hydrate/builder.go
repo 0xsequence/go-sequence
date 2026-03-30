@@ -129,6 +129,9 @@ func checkReplaceAddress(p *v3.CallsPayload, r abicalldata.ByteRange) (int, erro
 }
 
 func checkReplaceUint256(p *v3.CallsPayload, r abicalldata.ByteRange) error {
+	if r.Size != 32 {
+		return fmt.Errorf("hydrate: replaceUint256 selector must resolve to 32 bytes, got %d", r.Size)
+	}
 	n := calldataLen(p, r.CallIndex)
 	if r.Offset+32 > n {
 		return fmt.Errorf("hydrate: replaceUint256 needs 32 bytes at offset %d (calldata len %d)", r.Offset, n)
