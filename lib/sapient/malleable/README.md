@@ -1,6 +1,8 @@
-# Malleable Sapient (Go)
+# Malleable Sapient
 
 Build MalleableSapient signatures by locating byte ranges in call data, and optionally compute the image hash.
+
+`ByteRange`, `Selector`, `RangeSelector`, and `NewRangeSelector` are defined in [`github.com/0xsequence/go-sequence/lib/abicalldata`](https://github.com/0xsequence/go-sequence/tree/master/lib/abicalldata). `Path` implements `abicalldata.Selector`. This package re-exports those types as aliases (and delegates `NewRangeSelector`) for compatibility with code that imported them from `malleable`.
 
 ## Usage
 

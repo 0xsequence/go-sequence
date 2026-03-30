@@ -7,12 +7,9 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-)
 
-type Selector interface {
-	Resolve(payload *v3.CallsPayload) ([]ByteRange, error)
-	String() string
-}
+	"github.com/0xsequence/go-sequence/lib/abicalldata"
+)
 
 type Path struct {
 	steps []pathStep
@@ -253,7 +250,7 @@ func (s argSlotStep) apply(payload *v3.CallsPayload, state *pathState) error {
 	if isDynamicType(argType) {
 		return fmt.Errorf("arg %s is dynamic (%s)", s.name, argType.String())
 	}
-	start, length, err := CalldataStaticWord(method, argIndex)
+	start, length, err := abicalldata.CalldataStaticWord(method, argIndex)
 	if err != nil {
 		return err
 	}
@@ -291,7 +288,7 @@ func (s argSlotIndexStep) apply(payload *v3.CallsPayload, state *pathState) erro
 	if isDynamicType(argType) {
 		return fmt.Errorf("arg %d is dynamic (%s)", argIndex, argType.String())
 	}
-	start, length, err := CalldataStaticWord(method, argIndex)
+	start, length, err := abicalldata.CalldataStaticWord(method, argIndex)
 	if err != nil {
 		return err
 	}
@@ -334,7 +331,7 @@ func (s argBytesDataStep) apply(payload *v3.CallsPayload, state *pathState) erro
 		if err != nil {
 			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesContent(data, method, argIndex)
+		start, length, err := abicalldata.CalldataBytesContent(data, method, argIndex)
 		if err != nil {
 			return ByteRange{}, err
 		}
@@ -373,7 +370,7 @@ func (s argBytesDataIndexStep) apply(payload *v3.CallsPayload, state *pathState)
 		if err != nil {
 			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesContent(data, method, argIndex)
+		start, length, err := abicalldata.CalldataBytesContent(data, method, argIndex)
 		if err != nil {
 			return ByteRange{}, err
 		}
@@ -412,7 +409,7 @@ func (s argBytesEncodedStep) apply(payload *v3.CallsPayload, state *pathState) e
 		if err != nil {
 			return ByteRange{}, err
 		}
-		start, length, err := CalldataBytesEncoded(data, method, argIndex)
+		start, length, err := abicalldata.CalldataBytesEncoded(data, method, argIndex)
 		if err != nil {
 			return ByteRange{}, err
 		}
