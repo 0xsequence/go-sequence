@@ -109,12 +109,23 @@ func calldataLen(p *v3.CallsPayload, callIndex int) int {
 	return len(p.Calls[callIndex].Data)
 }
 
-func checkReplaceAddress(p *v3.CallsPayload, r abicalldata.ByteRange) error {
+func checkReplaceAddress(p *v3.CallsPayload, r abicalldata.ByteRange) (int, error) {
 	n := calldataLen(p, r.CallIndex)
-	if r.Offset+20 > n {
-		return fmt.Errorf("hydrate: replaceAddress needs 20 bytes at offset %d (calldata len %d)", r.Offset, n)
+	switch r.Size {
+	case 20:
+		if r.Offset+20 > n {
+			return 0, fmt.Errorf("hydrate: replaceAddress needs 20 bytes at offset %d (calldata len %d)", r.Offset, n)
+		}
+		return r.Offset, nil
+	case 32:
+		if r.Offset+32 > n {
+			return 0, fmt.Errorf("hydrate: replaceAddress needs 32-byte slot at offset %d (calldata len %d)", r.Offset, n)
+		}
+		// ABI-encoded address values are right-aligned in a 32-byte slot.
+		return r.Offset + 12, nil
+	default:
+		return 0, fmt.Errorf("hydrate: replaceAddress selector must resolve to 20 or 32 bytes, got %d", r.Size)
 	}
-	return nil
 }
 
 func checkReplaceUint256(p *v3.CallsPayload, r abicalldata.ByteRange) error {
@@ -140,10 +151,11 @@ func (s *CallSection) DataAddress(sel abicalldata.Selector, src AddrSource) erro
 	if err != nil {
 		return err
 	}
-	if err := checkReplaceAddress(s.b.payload, r); err != nil {
+	patchOffset, err := checkReplaceAddress(s.b.payload, r)
+	if err != nil {
 		return err
 	}
-	cidx, err := toCIndex(r.Offset)
+	cidx, err := toCIndex(patchOffset)
 	if err != nil {
 		return err
 	}
