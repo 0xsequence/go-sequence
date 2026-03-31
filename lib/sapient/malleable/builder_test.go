@@ -6,6 +6,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/lib/abicalldata"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,8 +16,8 @@ func TestBuilder_StaticComplement(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	builder := NewBuilder(&payload, &BuilderOptions{MergeAdjacentStatic: true})
-	builder.Malleable(NewRangeSelector(0, 2, 2))
-	builder.Malleable(NewRangeSelector(0, 7, 2))
+	builder.Malleable(abicalldata.NewRangeSelector(0, 2, 2))
+	builder.Malleable(abicalldata.NewRangeSelector(0, 7, 2))
 
 	sig, plan, err := builder.Build()
 	require.NoError(t, err)
@@ -37,12 +38,12 @@ func TestBuilder_RepeatValidation(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	builder := NewBuilder(&payload, &BuilderOptions{ValidateRepeats: true})
-	builder.Repeat(NewRangeSelector(0, 0, 2), NewRangeSelector(1, 0, 2))
+	builder.Repeat(abicalldata.NewRangeSelector(0, 0, 2), abicalldata.NewRangeSelector(1, 0, 2))
 	_, _, err := builder.Build()
 	require.NoError(t, err)
 
 	builder = NewBuilder(&payload, &BuilderOptions{ValidateRepeats: true})
-	builder.Repeat(NewRangeSelector(0, 0, 2), NewRangeSelector(1, 2, 2))
+	builder.Repeat(abicalldata.NewRangeSelector(0, 0, 2), abicalldata.NewRangeSelector(1, 2, 2))
 	_, _, err = builder.Build()
 	require.Error(t, err)
 }
@@ -62,8 +63,8 @@ func TestBuilder_RepeatRejectsOffsetOrSizeOverUint16(t *testing.T) {
 	// Repeat with first range at offset > 65535
 	builder := NewBuilder(&payload, nil)
 	builder.Repeat(
-		NewRangeSelector(0, 65536, 4),
-		NewRangeSelector(0, 0, 4),
+		abicalldata.NewRangeSelector(0, 65536, 4),
+		abicalldata.NewRangeSelector(0, 0, 4),
 	)
 	_, _, err := builder.Build()
 	require.Error(t, err)
