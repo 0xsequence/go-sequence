@@ -92,7 +92,7 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 		return nil, nil, fmt.Errorf("too many calls (%d): tindex is 7-bit", len(b.payload.Calls))
 	}
 
-	exByCall := make([][]Span, len(b.payload.Calls))
+	exByCall := make([][]abicalldata.Span, len(b.payload.Calls))
 
 	addExclude := func(r abicalldata.ByteRange) error {
 		if r.CallIndex < 0 || r.CallIndex >= len(b.payload.Calls) {
@@ -105,7 +105,7 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 		if r.Size > dataLen || r.Offset > dataLen-r.Size {
 			return fmt.Errorf("span out of bounds: offset=%d size=%d > %d", r.Offset, r.Size, dataLen)
 		}
-		exByCall[r.CallIndex] = append(exByCall[r.CallIndex], Span{Start: r.Offset, Len: r.Size})
+		exByCall[r.CallIndex] = append(exByCall[r.CallIndex], abicalldata.Span{Start: r.Offset, Len: r.Size})
 		return nil
 	}
 
@@ -180,12 +180,12 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 		cursor := 0
 		for _, s := range ex {
 			if cursor < s.Start {
-				statics = append(statics, SpanWithCall{CallIndex: t, Span: Span{Start: cursor, Len: s.Start - cursor}})
+				statics = append(statics, SpanWithCall{CallIndex: t, Span: abicalldata.Span{Start: cursor, Len: s.Start - cursor}})
 			}
 			cursor = max(cursor, s.Start+s.Len)
 		}
 		if cursor < length {
-			statics = append(statics, SpanWithCall{CallIndex: t, Span: Span{Start: cursor, Len: length - cursor}})
+			statics = append(statics, SpanWithCall{CallIndex: t, Span: abicalldata.Span{Start: cursor, Len: length - cursor}})
 		}
 	}
 
@@ -215,7 +215,7 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 
 type SpanWithCall struct {
 	CallIndex int
-	Span
+	abicalldata.Span
 }
 
 func (b *Builder) encodeStaticSections(statics []SpanWithCall) ([]StaticSection, error) {
@@ -252,12 +252,12 @@ func (b *Builder) encodeStaticSections(statics []SpanWithCall) ([]StaticSection,
 	return sections, nil
 }
 
-func mergeSpans(spans []Span) []Span {
+func mergeSpans(spans []abicalldata.Span) []abicalldata.Span {
 	if len(spans) == 0 {
 		return nil
 	}
 	sort.Slice(spans, func(i, j int) bool { return spans[i].Start < spans[j].Start })
-	out := []Span{spans[0]}
+	out := []abicalldata.Span{spans[0]}
 	for _, s := range spans[1:] {
 		last := &out[len(out)-1]
 		if s.Start <= last.Start+last.Len {

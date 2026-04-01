@@ -1,6 +1,6 @@
 # ABI calldata
 
-Helpers for **Ethereum ABI-encoded calldata**: head layout, static argument words, and dynamic `bytes`/`string` tails. Also defines **`ByteRange`** and **`Selector`** for locating byte spans inside a v3 **`CallsPayload`**.
+Helpers for **Ethereum ABI-encoded calldata**: head layout, static argument words, and dynamic `bytes`/`string` tails. Also defines **`ByteRange`**, **`Selector`**, and a fluent **`Path`** for locating byte spans inside a v3 **`CallsPayload`**.
 
 ## Calldata layout
 
@@ -33,4 +33,35 @@ sel := abicalldata.NewRangeSelector(0, 0x24, 32)
 ranges, err := sel.Resolve(payload)
 ```
 
-**`Selector`** is implemented by types in other packages that walk `CallsPayload` and nested calldata; they typically use the functions above to turn `abi.Method` + argument index into `ByteRange` updates. **`NewRangeSelector`** is the built-in implementation for a fixed call index, offset, and length.
+## Path builder (`NewPath`)
+
+**`*Path`** is a **`Selector`**: chain steps to walk from a top-level call into nested packed calls and ABI argument slots, then call **`.AsSelector()`** for APIs that take a **`Selector`**.
+
+Typical steps:
+
+- **`.CallData(i)`** — start from `payload.Calls[i].Data`.
+- **`.ABI(contractABI, method)`** — bind the current range to that method (checks the 4-byte selector).
+- **`.ArgSlot(name)`** / **`.ArgSlotIndex(i)`** — static argument word(s) in the current frame.
+- **`.ArgBytesData(name)`** / **`.ArgBytesDataIndex(i)`** — inner payload of a `bytes`/`string` argument (clears ABI context; rebind with `.ABI` before further arg steps).
+- **`.ArgBytesEncoded(name)`** — full ABI-encoded tail for that dynamic argument.
+- **`.EncodedCallsPayload()`** — treat the active range as v3 packed calls; clear ABI context.
+- **`.EncodedCallData(j)`** — select packed call `j`’s calldata within that layout.
+- **`.Slice(offset, size)`** — byte slice within the active range.
+
+```go
+sel := abicalldata.NewPath().
+    CallData(0).
+    ABI(&outerABI, "hydrateExecute").
+    ArgBytesData("payload").
+    EncodedCallsPayload().
+    EncodedCallData(0).
+    ABI(&tokenABI, "permit").
+    ArgSlot("value").
+    AsSelector()
+```
+
+After any step that narrows the range or switches to a new byte frame (including **`.Slice`**, **`.ArgBytesData`**, **`.ArgBytesDataIndex`**, **`.ArgBytesEncoded`**, **`.EncodedCallsPayload`**, **`.EncodedCallData`**), ABI context is cleared. Call **`.ABI(...)`** again before **`.ArgSlot`**, **`.ArgSlotIndex`**, **`.ArgBytesData`**, **`.ArgBytesDataIndex`**, or **`.ArgBytesEncoded`** on the new frame.
+
+## Packed calls layout
+
+**`ParsePackedCalls(packed []byte)`** returns a **`PackedCallsLayout`** describing where each call’s calldata sits inside the encoded packed-calls blob (as produced by `CallsPayload.Encode`). **`CallData`** entries use **`Span`** (`Start`, `Len`; `Start == -1` when that call has no calldata). The path step **`.EncodedCallData(i)`** uses this parser internally.
