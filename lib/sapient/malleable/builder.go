@@ -6,6 +6,7 @@ import (
 
 	"github.com/0xsequence/ethkit/go-ethereum/crypto"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
+	"github.com/0xsequence/go-sequence/lib/abicalldata"
 )
 
 // maxUint16 defines the maximum allowed value for size validation of sections using uint16 wire format.
@@ -23,13 +24,13 @@ type BuilderOptions struct {
 type Builder struct {
 	payload   *v3.CallsPayload
 	options   BuilderOptions
-	malleable []Selector
+	malleable []abicalldata.Selector
 	repeats   []repeatSelector
 }
 
 type repeatSelector struct {
-	a Selector
-	b Selector
+	a abicalldata.Selector
+	b abicalldata.Selector
 }
 
 type Plan struct {
@@ -73,12 +74,12 @@ func NewBuilder(payload *v3.CallsPayload, opts *BuilderOptions) *Builder {
 	}
 }
 
-func (b *Builder) Malleable(sel Selector) *Builder {
+func (b *Builder) Malleable(sel abicalldata.Selector) *Builder {
 	b.malleable = append(b.malleable, sel)
 	return b
 }
 
-func (b *Builder) Repeat(a Selector, b2 Selector) *Builder {
+func (b *Builder) Repeat(a abicalldata.Selector, b2 abicalldata.Selector) *Builder {
 	b.repeats = append(b.repeats, repeatSelector{a: a, b: b2})
 	return b
 }
@@ -93,7 +94,7 @@ func (b *Builder) Build() ([]byte, *Plan, error) {
 
 	exByCall := make([][]Span, len(b.payload.Calls))
 
-	addExclude := func(r ByteRange) error {
+	addExclude := func(r abicalldata.ByteRange) error {
 		if r.CallIndex < 0 || r.CallIndex >= len(b.payload.Calls) {
 			return fmt.Errorf("tindex out of range: %d", r.CallIndex)
 		}

@@ -1,4 +1,4 @@
-package malleable
+package abicalldata
 
 import (
 	"fmt"
@@ -6,17 +6,14 @@ import (
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 )
 
-type Span struct {
-	Start int
-	Len   int
-}
-
+// ByteRange identifies a contiguous slice of one call's calldata (data field) in a CallsPayload.
 type ByteRange struct {
 	CallIndex int
 	Offset    int
 	Size      int
 }
 
+// Slice returns the referenced bytes from payload.Calls[CallIndex].Data.
 func (r ByteRange) Slice(payload *v3.CallsPayload) ([]byte, error) {
 	if payload == nil {
 		return nil, fmt.Errorf("payload is nil")
@@ -34,10 +31,18 @@ func (r ByteRange) Slice(payload *v3.CallsPayload) ([]byte, error) {
 	return data[r.Offset : r.Offset+r.Size], nil
 }
 
+// Selector resolves one or more byte ranges in a calls payload (e.g. ABI paths or fixed ranges).
+type Selector interface {
+	Resolve(payload *v3.CallsPayload) ([]ByteRange, error)
+	String() string
+}
+
+// RangeSelector is a Selector backed by a fixed ByteRange (validated on Resolve).
 type RangeSelector struct {
 	Range ByteRange
 }
 
+// NewRangeSelector returns a Selector for an explicit call index, offset, and size within that call's data.
 func NewRangeSelector(callIndex, offset, size int) RangeSelector {
 	return RangeSelector{
 		Range: ByteRange{

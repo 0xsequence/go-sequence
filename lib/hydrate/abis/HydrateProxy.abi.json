@@ -1,0 +1,517 @@
+[
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "handleSequenceDelegateCall",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "hydrateExecute",
+    "inputs": [
+      {
+        "name": "packedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "hydratePayload",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "hydrateExecuteAndSweep",
+    "inputs": [
+      {
+        "name": "packedPayload",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "hydratePayload",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "sweepTarget",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokensToSweep",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "sweepNative",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "sweep",
+    "inputs": [
+      {
+        "name": "sweepTarget",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokensToSweep",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "sweepNative",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "CallAborted",
+    "inputs": [
+      {
+        "name": "_opHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "_returnData",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CallFailed",
+    "inputs": [
+      {
+        "name": "_opHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "_returnData",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CallSkipped",
+    "inputs": [
+      {
+        "name": "_opHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CallSucceeded",
+    "inputs": [
+      {
+        "name": "_opHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Sweep",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "DelegateCallFailed",
+    "inputs": [
+      {
+        "name": "result",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DelegateCallNotAllowed",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidKind",
+    "inputs": [
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NativeSweepFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEnoughGas",
+    "inputs": [
+      {
+        "name": "_payload",
+        "type": "tuple",
+        "internalType": "struct Payload.Decoded",
+        "components": [
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "noChainId",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "calls",
+            "type": "tuple[]",
+            "internalType": "struct Payload.Call[]",
+            "components": [
+              {
+                "name": "to",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "data",
+                "type": "bytes",
+                "internalType": "bytes"
+              },
+              {
+                "name": "gasLimit",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "delegateCall",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "onlyFallback",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "behaviorOnError",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "space",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "message",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "imageHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "digest",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "parentWallets",
+            "type": "address[]",
+            "internalType": "address[]"
+          }
+        ]
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_gasLeft",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OnlyDelegateCallAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "Reverted",
+    "inputs": [
+      {
+        "name": "_payload",
+        "type": "tuple",
+        "internalType": "struct Payload.Decoded",
+        "components": [
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "noChainId",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "calls",
+            "type": "tuple[]",
+            "internalType": "struct Payload.Call[]",
+            "components": [
+              {
+                "name": "to",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "value",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "data",
+                "type": "bytes",
+                "internalType": "bytes"
+              },
+              {
+                "name": "gasLimit",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "delegateCall",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "onlyFallback",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "behaviorOnError",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "space",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "message",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "imageHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "digest",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "parentWallets",
+            "type": "address[]",
+            "internalType": "address[]"
+          }
+        ]
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_returnData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownHydrateDataCommand",
+    "inputs": [
+      {
+        "name": "flag",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownHydrateTypeCommand",
+    "inputs": [
+      {
+        "name": "flag",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
+]

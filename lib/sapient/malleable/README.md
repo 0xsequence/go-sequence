@@ -1,4 +1,4 @@
-# Malleable Sapient (Go)
+# Malleable Sapient
 
 Build MalleableSapient signatures by locating byte ranges in call data, and optionally compute the image hash.
 
@@ -27,7 +27,7 @@ transferValue := malleable.NewPath().
     ArgSlot("_value").
     AsSelector()
 
-b := malleable.NewBuilder(payload, &malleable.BuilderOptions{
+b := malleable.NewBuilder(&payload, &malleable.BuilderOptions{
     ValidateRepeats:     true,
     MergeAdjacentStatic: true,
 })
@@ -71,5 +71,5 @@ against the new frame.
 Compute the image hash:
 
 ```go
-hash, err := malleable.ComputeImageHash(payload, sig, chainID)
+hash, err := malleable.ComputeImageHash(&payload, sig, chainID)
 ```

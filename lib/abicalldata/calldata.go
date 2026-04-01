@@ -1,4 +1,4 @@
-package malleable
+package abicalldata
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 )
 
-// abiHeadWords returns the number of 32-byte words this type occupies in the
+// AbiHeadWords returns the number of 32-byte words this type occupies in the
 // ABI calldata head. Dynamic types (bytes, string, slice, and tuples/arrays
 // that contain them) occupy 1 word (offset); static types use their encoded size.
-func abiHeadWords(t abi.Type) int {
+func AbiHeadWords(t abi.Type) int {
 	switch t.T {
 	case abi.BytesTy, abi.StringTy, abi.SliceTy:
 		return 1
@@ -19,14 +19,14 @@ func abiHeadWords(t abi.Type) int {
 		if t.Size == 0 || isDynamicType(t) {
 			return 1
 		}
-		return t.Size * abiHeadWords(*t.Elem)
+		return t.Size * AbiHeadWords(*t.Elem)
 	case abi.TupleTy:
 		if isDynamicType(t) {
 			return 1
 		}
 		n := 0
 		for _, e := range t.TupleElems {
-			n += abiHeadWords(*e)
+			n += AbiHeadWords(*e)
 		}
 		return n
 	default:
@@ -43,7 +43,7 @@ func calldataArgHeadOffset(method abi.Method, argIndex int) (int, error) {
 	}
 	offset := 4
 	for j := 0; j < argIndex; j++ {
-		offset += abiHeadWords(method.Inputs[j].Type) * 32
+		offset += AbiHeadWords(method.Inputs[j].Type) * 32
 	}
 	return offset, nil
 }
@@ -53,7 +53,7 @@ func CalldataStaticWord(method abi.Method, argIndex int) (start, length int, err
 	if err != nil {
 		return 0, 0, err
 	}
-	words := abiHeadWords(method.Inputs[argIndex].Type)
+	words := AbiHeadWords(method.Inputs[argIndex].Type)
 	return start, words * 32, nil
 }
 
@@ -122,4 +122,22 @@ func calldataBytesTail(calldata []byte, method abi.Method, argIndex int) (tailSt
 		return 0, 0, fmt.Errorf("bytes length too large")
 	}
 	return tailStart, dataLen, nil
+}
+
+func isDynamicType(t abi.Type) bool {
+	switch t.T {
+	case abi.BytesTy, abi.StringTy, abi.SliceTy:
+		return true
+	case abi.ArrayTy:
+		return t.Size == 0 || isDynamicType(*t.Elem)
+	case abi.TupleTy:
+		for _, elem := range t.TupleElems {
+			if isDynamicType(*elem) {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }
