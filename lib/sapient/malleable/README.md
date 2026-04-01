@@ -2,12 +2,14 @@
 
 Build MalleableSapient signatures by locating byte ranges in call data, and optionally compute the image hash.
 
+**ABI calldata paths** use **`abicalldata.NewPath()`** (see [`lib/abicalldata`](https://github.com/0xsequence/go-sequence/tree/master/lib/abicalldata)); this package supplies **`Builder`**, repeat constraints, and **`ComputeImageHash`**.
+
 ## Usage
 
 ```go
 payload := v3.NewCallsPayload(...)
 
-permitValue := malleable.NewPath().
+permitValue := abicalldata.NewPath().
     CallData(0).
     ABI(trailsABI, "hydrateExecute").
     ArgBytesData("packedPayload").
@@ -17,7 +19,7 @@ permitValue := malleable.NewPath().
     ArgSlot("value").
     AsSelector()
 
-transferValue := malleable.NewPath().
+transferValue := abicalldata.NewPath().
     CallData(0).
     ABI(trailsABI, "hydrateExecute").
     ArgBytesData("packedPayload").
@@ -35,7 +37,7 @@ b := malleable.NewBuilder(&payload, &malleable.BuilderOptions{
 b.Repeat(permitValue, transferValue) // repeat constraint
 
 // mark other malleable fields
-b.Malleable(malleable.NewPath().
+b.Malleable(abicalldata.NewPath().
     CallData(0).
     ABI(trailsABI, "hydrateExecute").
     ArgBytesData("packedPayload").
@@ -52,21 +54,14 @@ sig, _, err := b.Build()
 If ABI params are unnamed, use index-based selectors:
 
 ```go
-value := malleable.NewPath().
+value := abicalldata.NewPath().
     CallData(0).
     ABI(erc20ABI, "transferFrom").
     ArgSlotIndex(2).
     AsSelector()
 ```
 
-After any step that narrows the active range or descends into a new byte
-frame, ABI context is cleared. This includes steps like `.Slice(...)`,
-`.ArgBytesData(...)`, `.ArgBytesDataIndex(...)`, `.ArgBytesEncoded(...)`,
-`.EncodedCallsPayload()`, and `.EncodedCallData(...)`.
-
-Call `.ABI(...)` again before using `.ArgSlot(...)`, `.ArgSlotIndex(...)`,
-`.ArgBytesData(...)`, `.ArgBytesDataIndex(...)`, or `.ArgBytesEncoded(...)`
-against the new frame.
+Path semantics (when to rebind **`.ABI`** after nested steps) are documented in the **abicalldata** README.
 
 Compute the image hash:
 

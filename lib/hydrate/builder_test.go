@@ -10,7 +10,6 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
 	"github.com/0xsequence/go-sequence/lib/abicalldata"
-	"github.com/0xsequence/go-sequence/lib/sapient/malleable"
 	"github.com/stretchr/testify/require"
 )
 
@@ -158,7 +157,7 @@ func TestBuilder_DataAddress_ArgSlotUsesRightAlignedAddressBytes(t *testing.T) {
 		big.NewInt(0),
 	)
 
-	ownerSelector := malleable.NewPath().
+	ownerSelector := abicalldata.NewPath().
 		CallData(0).
 		ABI(&ownerABI, "setOwner").
 		ArgSlot("owner").

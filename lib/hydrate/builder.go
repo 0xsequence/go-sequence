@@ -27,7 +27,7 @@ func SourceTxOrigin() AddrSource                { return AddrSource{kind: DataTx
 func SourceAddress(a common.Address) AddrSource { return AddrSource{kind: DataAnyAddress, addr: a} }
 
 // Builder constructs hydratePayload bytes for HydrateProxy using abicalldata.Selector
-// (calldata selectors: ABI paths via malleable.NewPath().AsSelector() in app code, fixed
+// (calldata selectors: ABI paths via abicalldata.NewPath().AsSelector() in app code, fixed
 // ranges via abicalldata.NewRangeSelector, etc.) so call-data offsets are not hand-computed.
 //
 // Sections are emitted in ascending call index order, which matches how HydrateProxy

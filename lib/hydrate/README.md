@@ -2,7 +2,7 @@
 
 Build `hydratePayload` bytes for **HydrateProxy** (`hydrateExecute` / `hydrateExecuteAndSweep` in trails-contracts) by resolving patch targets with [`abicalldata`](https://github.com/0xsequence/go-sequence/tree/master/lib/abicalldata) **`Selector`** and **`ByteRange`** instead of hand-counting calldata offsets.
 
-`hydrate` depends only on `abicalldata` for selector types. The example below builds an `abicalldata.Selector` using `Path` from `lib/sapient/malleable`; fixed offsets can use `abicalldata.NewRangeSelector` instead.
+This package depends on **`abicalldata`** for selector types and for building selectors with **`abicalldata.NewPath()`** (or **`abicalldata.NewRangeSelector`** for fixed offsets).
 
 ## Usage
 
@@ -10,7 +10,7 @@ Build `hydratePayload` bytes for **HydrateProxy** (`hydrateExecute` / `hydrateEx
 payload := v3.NewCallsPayload(...)
 
 // Selector must resolve to exactly one range on the target call (same index as ForCall).
-permitOwner := malleable.NewPath().
+permitOwner := abicalldata.NewPath().
     CallData(0).
     ABI(trailsABI, "hydrateExecute").
     ArgBytesData("packedPayload").
@@ -47,7 +47,7 @@ calldata, err := hydrate.PackHydrateExecuteAndSweep(
 )
 ```
 
-If ABI parameters are unnamed, use index-based steps such as `ArgSlotIndex` / `ArgBytesDataIndex` when your path builder provides them.
+If ABI parameters are unnamed, use index-based steps such as **`ArgSlotIndex`** / **`ArgBytesDataIndex`** on **`abicalldata.NewPath()`** (see the abicalldata README).
 
 ## Call sections and ordering
 
