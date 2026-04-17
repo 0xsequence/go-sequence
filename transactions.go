@@ -10,6 +10,7 @@ import (
 	"github.com/0xsequence/ethkit/ethrpc"
 	"github.com/0xsequence/ethkit/go-ethereum/accounts/abi"
 	"github.com/0xsequence/ethkit/go-ethereum/common"
+	"github.com/0xsequence/ethkit/go-ethereum/core/types"
 	"github.com/0xsequence/go-sequence/contracts"
 	"github.com/0xsequence/go-sequence/core"
 	v1 "github.com/0xsequence/go-sequence/core/v1"
@@ -507,6 +508,8 @@ type SignedTransactions struct {
 	WalletAddress common.Address
 	WalletConfig  core.WalletConfig
 	WalletContext WalletContext
+
+	Authorization *types.SetCodeAuthorization // Optional EIP-7702 authorization
 
 	Transactions Transactions // The meta-transactions
 	Space        *big.Int     // Nonce space of the transactions
