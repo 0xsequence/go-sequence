@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	trailsUtils = "0x0000000066c426Fe13962e276f894F11Aa6ebbF2"
+	trailsUtils = "0x000000004f702C8398e158108937814d074cD74b"
 	baseRPC     = "https://nodes.sequence.app/base"
 	baseChainID = 8453
 )
