@@ -248,12 +248,16 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
+		if signedTxs.ChainID.Uint64() != signedTxs.Authorization.ChainID.Uint64() {
+			return "", nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
+		}
+
 		var sig [65]byte
 		signedTxs.Authorization.R.WriteToSlice(sig[:32])
 		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
 		sig[64] = signedTxs.Authorization.V
 		authorization = &proto.EIP7702Authorization{
-			ChainId:        signedTxs.ChainID.Uint64(),
+			ChainId:        signedTxs.Authorization.ChainID.Uint64(),
 			Nonce:          signedTxs.Authorization.Nonce,
 			Implementation: signedTxs.Authorization.Address.Hex(),
 			Signature:      hexutil.Encode(sig[:]),
@@ -303,12 +307,16 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
+		if signedTxs.ChainID.Uint64() != signedTxs.Authorization.ChainID.Uint64() {
+			return nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
+		}
+
 		var sig [65]byte
 		signedTxs.Authorization.R.WriteToSlice(sig[:32])
 		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
 		sig[64] = signedTxs.Authorization.V
 		authorization = &proto.EIP7702Authorization{
-			ChainId:        signedTxs.ChainID.Uint64(),
+			ChainId:        signedTxs.Authorization.ChainID.Uint64(),
 			Nonce:          signedTxs.Authorization.Nonce,
 			Implementation: signedTxs.Authorization.Address.Hex(),
 			Signature:      hexutil.Encode(sig[:]),
