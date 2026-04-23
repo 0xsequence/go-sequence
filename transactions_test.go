@@ -1054,3 +1054,64 @@ func TestTxnDecodeExecdata(t *testing.T) {
 
 	assert.Equal(t, nonce, big.NewInt(21))
 }
+
+// TestDecodeExecdataNestedGuestModule reproduces the bug where a V1 execute call that
+// contains a nested transaction targeting the V3 guest module caused ComputeMetaTxnID
+// to fail with "transactions must have both nonce and signature or neither".
+//
+// The root cause: DecodeExecdata's recursive loop decoded the guest module calldata into
+// a bundle with Nonce set but Signature nil, violating the IsValid() invariant.
+func TestDecodeExecdataNestedGuestModule(t *testing.T) {
+	chainID := big.NewInt(8453)
+	walletAddr := common.HexToAddress("0x9777B1541F0e05949ADBFEa35c73be4BDF81219a")
+	guestModuleAddr := common.HexToAddress("0x0000000000006Ac72ed1d192fa28f0058D3F8806")
+	someTarget := common.HexToAddress("0x1234567890123456789012345678901234567890")
+
+	// Build a raw V3 packed payload as if the guest module were the target
+	guestPayload := v3.CallsPayload{
+		Calls: []v3.Call{
+			{
+				To:              someTarget,
+				Value:           big.NewInt(1000000000000000),
+				Data:            []byte{},
+				GasLimit:        big.NewInt(50000),
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+		Space: big.NewInt(0),
+		Nonce: big.NewInt(6),
+	}
+	packedGuestData := guestPayload.Encode(guestModuleAddr)
+
+	// Construct a V1 execute bundle: the wallet calls the guest module with the packed payload
+	outerBundle := &sequence.Transaction{
+		Transactions: sequence.Transactions{
+			{
+				To:   guestModuleAddr,
+				Data: packedGuestData,
+			},
+		},
+		Nonce:     big.NewInt(2),
+		Signature: []byte{0x04, 0x00}, // stub signature
+	}
+
+	execdata, err := outerBundle.Execdata()
+	assert.NoError(t, err)
+
+	// DecodeExecdata must not create an invalid bundle (nonce-without-signature) for the
+	// nested guest module transaction.
+	txns, nonce, _, err := sequence.DecodeExecdata(execdata, walletAddr, chainID)
+	assert.NoError(t, err)
+	assert.Len(t, txns, 1)
+	assert.Equal(t, big.NewInt(2), nonce)
+
+	// The inner guest module transaction should be left as calldata, not decoded into a
+	// bundle, because that would set Nonce without Signature.
+	assert.Nil(t, txns[0].Transactions)
+	assert.NotNil(t, txns[0].Data)
+
+	// ComputeMetaTxnID must succeed — this was the failing call before the fix.
+	metaTxnID, _, err := sequence.ComputeMetaTxnID(chainID, walletAddr, txns, nonce, sequence.MetaTxnWalletExec)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, metaTxnID)
+}
