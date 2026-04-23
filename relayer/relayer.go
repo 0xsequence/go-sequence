@@ -23,7 +23,6 @@ import (
 	v1 "github.com/0xsequence/go-sequence/core/v1"
 	v2 "github.com/0xsequence/go-sequence/core/v2"
 	v3 "github.com/0xsequence/go-sequence/core/v3"
-	"github.com/0xsequence/go-sequence/lib/prototyp"
 	"github.com/0xsequence/go-sequence/lib/simulator"
 	"github.com/0xsequence/go-sequence/receipts"
 	"github.com/0xsequence/go-sequence/relayer/proto"
@@ -249,13 +248,15 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
+		var sig [65]byte
+		signedTxs.Authorization.R.WriteToSlice(sig[:32])
+		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
+		sig[64] = signedTxs.Authorization.V
 		authorization = &proto.EIP7702Authorization{
 			ChainId:        signedTxs.ChainID.Uint64(),
 			Nonce:          signedTxs.Authorization.Nonce,
 			Implementation: signedTxs.Authorization.Address.Hex(),
-			YParity:        uint64(signedTxs.Authorization.V),
-			R:              prototyp.ToBigInt(signedTxs.Authorization.R.ToBig()),
-			S:              prototyp.ToBigInt(signedTxs.Authorization.S.ToBig()),
+			Signature:      hexutil.Encode(sig[:]),
 		}
 	}
 
@@ -302,13 +303,15 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
+		var sig [65]byte
+		signedTxs.Authorization.R.WriteToSlice(sig[:32])
+		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
+		sig[64] = signedTxs.Authorization.V
 		authorization = &proto.EIP7702Authorization{
 			ChainId:        signedTxs.ChainID.Uint64(),
 			Nonce:          signedTxs.Authorization.Nonce,
 			Implementation: signedTxs.Authorization.Address.Hex(),
-			YParity:        uint64(signedTxs.Authorization.V),
-			R:              prototyp.ToBigInt(signedTxs.Authorization.R.ToBig()),
-			S:              prototyp.ToBigInt(signedTxs.Authorization.S.ToBig()),
+			Signature:      hexutil.Encode(sig[:]),
 		}
 	}
 
