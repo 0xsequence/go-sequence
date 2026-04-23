@@ -249,7 +249,7 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
 		chainID := signedTxs.Authorization.ChainID.Uint64()
-		if chainID != 0 && signedTxs.ChainID.Uint64() != chainID {
+		if chainID != 0 && signedTxs.ChainID != nil && signedTxs.ChainID.Uint64() != chainID {
 			return "", nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
 		}
 
@@ -309,7 +309,7 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 	var authorization *proto.EIP7702Authorization
 	if signedTxs.Authorization != nil {
 		chainID := signedTxs.Authorization.ChainID.Uint64()
-		if chainID != 0 && signedTxs.ChainID.Uint64() != chainID {
+		if chainID != 0 && signedTxs.ChainID != nil && signedTxs.ChainID.Uint64() != chainID {
 			return nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
 		}
 
