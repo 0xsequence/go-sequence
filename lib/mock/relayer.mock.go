@@ -138,9 +138,9 @@ func (mr *RelayerMockRecorder) AdjustProjectBalance(ctx, projectId, amount, iden
 }
 
 // FeeOptions mocks base method.
-func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool) ([]*proto.FeeOption, bool, *string, error) {
+func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simulate *bool, authorization *proto.EIP7702Authorization) ([]*proto.FeeOption, bool, *string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate)
+	ret := m.ctrl.Call(m, "FeeOptions", ctx, wallet, to, data, simulate, authorization)
 	ret0, _ := ret[0].([]*proto.FeeOption)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(*string)
@@ -149,15 +149,15 @@ func (m *Relayer) FeeOptions(ctx context.Context, wallet, to, data string, simul
 }
 
 // FeeOptions indicates an expected call of FeeOptions.
-func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate any) *gomock.Call {
+func (mr *RelayerMockRecorder) FeeOptions(ctx, wallet, to, data, simulate, authorization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptions", reflect.TypeOf((*Relayer)(nil).FeeOptions), ctx, wallet, to, data, simulate, authorization)
 }
 
 // FeeOptionsWithBridgeGas mocks base method.
-func (m *Relayer) FeeOptionsWithBridgeGas(ctx context.Context, wallet, to, data string, simulate *bool, bridgeGas string) ([]*proto.FeeOption, bool, *string, error) {
+func (m *Relayer) FeeOptionsWithBridgeGas(ctx context.Context, wallet, to, data string, simulate *bool, bridgeGas string, authorization *proto.EIP7702Authorization) ([]*proto.FeeOption, bool, *string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FeeOptionsWithBridgeGas", ctx, wallet, to, data, simulate, bridgeGas)
+	ret := m.ctrl.Call(m, "FeeOptionsWithBridgeGas", ctx, wallet, to, data, simulate, bridgeGas, authorization)
 	ret0, _ := ret[0].([]*proto.FeeOption)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(*string)
@@ -166,9 +166,9 @@ func (m *Relayer) FeeOptionsWithBridgeGas(ctx context.Context, wallet, to, data 
 }
 
 // FeeOptionsWithBridgeGas indicates an expected call of FeeOptionsWithBridgeGas.
-func (mr *RelayerMockRecorder) FeeOptionsWithBridgeGas(ctx, wallet, to, data, simulate, bridgeGas any) *gomock.Call {
+func (mr *RelayerMockRecorder) FeeOptionsWithBridgeGas(ctx, wallet, to, data, simulate, bridgeGas, authorization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptionsWithBridgeGas", reflect.TypeOf((*Relayer)(nil).FeeOptionsWithBridgeGas), ctx, wallet, to, data, simulate, bridgeGas)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FeeOptionsWithBridgeGas", reflect.TypeOf((*Relayer)(nil).FeeOptionsWithBridgeGas), ctx, wallet, to, data, simulate, bridgeGas, authorization)
 }
 
 // FeeTokens mocks base method.
@@ -432,22 +432,6 @@ func (mr *RelayerMockRecorder) NextGasTankBalanceAdjustmentNonce(ctx, id any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextGasTankBalanceAdjustmentNonce", reflect.TypeOf((*Relayer)(nil).NextGasTankBalanceAdjustmentNonce), ctx, id)
 }
 
-// PendingTransactions mocks base method.
-func (m *Relayer) PendingTransactions(ctx context.Context, page *proto.Page) (*proto.Page, []*proto.Transaction, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PendingTransactions", ctx, page)
-	ret0, _ := ret[0].(*proto.Page)
-	ret1, _ := ret[1].([]*proto.Transaction)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// PendingTransactions indicates an expected call of PendingTransactions.
-func (mr *RelayerMockRecorder) PendingTransactions(ctx, page any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingTransactions", reflect.TypeOf((*Relayer)(nil).PendingTransactions), ctx, page)
-}
-
 // Ping mocks base method.
 func (m *Relayer) Ping(ctx context.Context) (bool, error) {
 	m.ctrl.T.Helper()
@@ -493,19 +477,18 @@ func (mr *RelayerMockRecorder) RemoveGasSponsor(ctx, projectId, id any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveGasSponsor", reflect.TypeOf((*Relayer)(nil).RemoveGasSponsor), ctx, projectId, id)
 }
 
-// ResetSender mocks base method.
-func (m *Relayer) ResetSender(ctx context.Context, sender int) (uint64, error) {
+// RepairSender mocks base method.
+func (m *Relayer) RepairSender(ctx context.Context, sender int, nonce uint64, operation proto.RepairOperation) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResetSender", ctx, sender)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "RepairSender", ctx, sender, nonce, operation)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// ResetSender indicates an expected call of ResetSender.
-func (mr *RelayerMockRecorder) ResetSender(ctx, sender any) *gomock.Call {
+// RepairSender indicates an expected call of RepairSender.
+func (mr *RelayerMockRecorder) RepairSender(ctx, sender, nonce, operation any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetSender", reflect.TypeOf((*Relayer)(nil).ResetSender), ctx, sender)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RepairSender", reflect.TypeOf((*Relayer)(nil).RepairSender), ctx, sender, nonce, operation)
 }
 
 // RuntimeStatus mocks base method.
@@ -553,22 +536,6 @@ func (m *Relayer) SendMetaTxnWithBridgeGas(ctx context.Context, call *proto.Meta
 func (mr *RelayerMockRecorder) SendMetaTxnWithBridgeGas(ctx, call, quote, projectID, bridgeGas, preconditions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetaTxnWithBridgeGas", reflect.TypeOf((*Relayer)(nil).SendMetaTxnWithBridgeGas), ctx, call, quote, projectID, bridgeGas, preconditions)
-}
-
-// SentTransactions mocks base method.
-func (m *Relayer) SentTransactions(ctx context.Context, filter *proto.SentTransactionsFilter, page *proto.Page) (*proto.Page, []*proto.Transaction, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SentTransactions", ctx, filter, page)
-	ret0, _ := ret[0].(*proto.Page)
-	ret1, _ := ret[1].([]*proto.Transaction)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// SentTransactions indicates an expected call of SentTransactions.
-func (mr *RelayerMockRecorder) SentTransactions(ctx, filter, page any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SentTransactions", reflect.TypeOf((*Relayer)(nil).SentTransactions), ctx, filter, page)
 }
 
 // Simulate mocks base method.

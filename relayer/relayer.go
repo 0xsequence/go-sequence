@@ -246,10 +246,30 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 		to = signedTxs.WalletContext.GuestModuleAddress
 	}
 
+	var authorization *proto.EIP7702Authorization
+	if signedTxs.Authorization != nil {
+		chainID := signedTxs.Authorization.ChainID.Uint64()
+		if chainID != 0 && signedTxs.ChainID != nil && signedTxs.ChainID.Uint64() != chainID {
+			return "", nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
+		}
+
+		var sig [65]byte
+		signedTxs.Authorization.R.WriteToSlice(sig[:32])
+		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
+		sig[64] = signedTxs.Authorization.V
+		authorization = &proto.EIP7702Authorization{
+			ChainId:        chainID,
+			Nonce:          signedTxs.Authorization.Nonce,
+			Implementation: signedTxs.Authorization.Address.Hex(),
+			Signature:      hexutil.Encode(sig[:]),
+		}
+	}
+
 	call := &proto.MetaTxn{
 		Contract:      to.Hex(),
 		Input:         hexutil.Encode(execdata),
 		WalletAddress: walletAddress.Hex(),
+		Authorization: authorization,
 	}
 
 	var txQuote *string
@@ -286,12 +306,32 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 		return nil, nil, err
 	}
 
+	var authorization *proto.EIP7702Authorization
+	if signedTxs.Authorization != nil {
+		chainID := signedTxs.Authorization.ChainID.Uint64()
+		if chainID != 0 && signedTxs.ChainID != nil && signedTxs.ChainID.Uint64() != chainID {
+			return nil, nil, fmt.Errorf("chain ID mismatch between signed transactions and authorization")
+		}
+
+		var sig [65]byte
+		signedTxs.Authorization.R.WriteToSlice(sig[:32])
+		signedTxs.Authorization.S.WriteToSlice(sig[32:64])
+		sig[64] = signedTxs.Authorization.V
+		authorization = &proto.EIP7702Authorization{
+			ChainId:        chainID,
+			Nonce:          signedTxs.Authorization.Nonce,
+			Implementation: signedTxs.Authorization.Address.Hex(),
+			Signature:      hexutil.Encode(sig[:]),
+		}
+	}
+
 	options, _, quote, err := r.RelayerClient.FeeOptions(
 		ctx,
 		signedTxs.WalletAddress.String(),
 		signedTxs.WalletAddress.String(),
 		"0x"+common.Bytes2Hex(data),
 		nil,
+		authorization,
 	)
 	if err != nil {
 		return nil, nil, err
