@@ -384,7 +384,7 @@ func (r *Client) waitMetaTxnReceipt(ctx context.Context, metaTxnID sequence.Meta
 		default:
 		}
 
-		metaTxnReceipt, err := r.GetMetaTxnReceipt(ctx, metaTxnID.String())
+		metaTxnReceipt, _, err := r.GetMetaTxnReceipt(ctx, metaTxnID.String())
 		if metaTxnReceipt == nil && err == nil {
 			// currently we assume that if the receipt is nil, and error is nil, then
 			// we're still searching for the transaction. This is a hack, and we should
