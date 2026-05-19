@@ -310,12 +310,13 @@ func (mr *RelayerMockRecorder) GetMetaTxnNonce(ctx, walletContractAddress, space
 }
 
 // GetMetaTxnReceipt mocks base method.
-func (m *Relayer) GetMetaTxnReceipt(ctx context.Context, metaTxID string) (*proto.MetaTxnReceipt, error) {
+func (m *Relayer) GetMetaTxnReceipt(ctx context.Context, metaTxID string) (*proto.MetaTxnReceipt, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetaTxnReceipt", ctx, metaTxID)
 	ret0, _ := ret[0].(*proto.MetaTxnReceipt)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetMetaTxnReceipt indicates an expected call of GetMetaTxnReceipt.
