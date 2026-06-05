@@ -301,9 +301,28 @@ func (r *Client) Relay(ctx context.Context, signedTxs *sequence.SignedTransactio
 }
 
 func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTransactions) ([]*sequence.RelayerFeeOption, *sequence.RelayerFeeQuote, error) {
-	data, err := signedTxs.Execdata()
-	if err != nil {
-		return nil, nil, err
+	// Encode the transaction data and determine the target address.
+	// For V3 guest module bundles (deploy path), use raw V3 payload
+	// encoding with to=guestModule, matching the Relay method.
+	var to common.Address
+	var data []byte
+	var err error
+
+	if v3Config, ok := signedTxs.WalletConfig.(*v3.WalletConfig); ok && v3Config != nil &&
+		signedTxs.WalletAddress == signedTxs.WalletContext.GuestModuleAddress {
+		to = signedTxs.WalletAddress
+		var payload v3.CallsPayload
+		payload, err = signedTxs.Payload()
+		if err != nil {
+			return nil, nil, err
+		}
+		data = payload.Encode(to)
+	} else {
+		to = signedTxs.WalletAddress
+		data, err = signedTxs.Execdata()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	var authorization *proto.EIP7702Authorization
@@ -328,7 +347,7 @@ func (r *Client) FeeOptions(ctx context.Context, signedTxs *sequence.SignedTrans
 	options, _, quote, err := r.RelayerClient.FeeOptions(
 		ctx,
 		signedTxs.WalletAddress.String(),
-		signedTxs.WalletAddress.String(),
+		to.String(),
 		"0x"+common.Bytes2Hex(data),
 		nil,
 		authorization,
