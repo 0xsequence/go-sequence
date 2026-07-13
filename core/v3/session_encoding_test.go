@@ -104,6 +104,16 @@ func TestDecodeSessionPermissionsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestEncodeSessionPermissionsDeadlineOutOfRange(t *testing.T) {
+	sp := sampleSessionPermissions()
+	// A "no expiry" deadline larger than uint64 must error, not panic.
+	sp.Deadline = new(big.Int).Lsh(big.NewInt(1), 64) // 2^64
+
+	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
+		t.Fatal("expected error for deadline out of uint64 range, got nil")
+	}
+}
+
 func sampleAttestation() v3.Attestation {
 	return v3.Attestation{
 		ApprovedSigner:  common.HexToAddress("0x3333333333333333333333333333333333333333"),

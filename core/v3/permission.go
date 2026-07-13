@@ -75,6 +75,9 @@ func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	if deadline == nil {
 		deadline = big.NewInt(0)
 	}
+	if deadline.Sign() < 0 || deadline.BitLen() > 64 {
+		return nil, fmt.Errorf("deadline %v out of range for uint64", deadline)
+	}
 	var deadlineBuf [8]byte
 	deadline.FillBytes(deadlineBuf[:])
 	result = append(result, deadlineBuf[:]...)
