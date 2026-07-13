@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -67,9 +68,19 @@ func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	if chainID == nil {
 		chainID = big.NewInt(0)
 	}
+	if chainID.Sign() < 0 || chainID.BitLen() > 256 {
+		return nil, fmt.Errorf("chainId %v out of range for uint256", chainID)
+	}
 	result = append(result, LeftPad(chainID.Bytes(), 32)...)
 	// Append valueLimit (32 bytes).
-	result = append(result, LeftPad(sp.ValueLimit.Bytes(), 32)...)
+	valueLimit := sp.ValueLimit
+	if valueLimit == nil {
+		valueLimit = big.NewInt(0)
+	}
+	if valueLimit.Sign() < 0 || valueLimit.BitLen() > 256 {
+		return nil, fmt.Errorf("valueLimit %v out of range for uint256", valueLimit)
+	}
+	result = append(result, LeftPad(valueLimit.Bytes(), 32)...)
 	// Append deadline (uint64, 8 bytes).
 	deadline := sp.Deadline
 	if deadline == nil {
@@ -381,14 +392,28 @@ func sessionPermissionsFromParsed(parsed interface{}) (SessionPermissions, error
 	// chainId is optional; a missing value means any chain (0).
 	chainID := big.NewInt(0)
 	if raw, ok := m["chainId"]; ok && raw != nil {
-		chainID = valueToBigInt(raw)
+		var err error
+		chainID, err = bigIntFromJSON(raw)
+		if err != nil {
+			return SessionPermissions{}, fmt.Errorf("invalid chainId: %w", err)
+		}
+	}
+
+	valueLimit, err := bigIntFromJSON(m["valueLimit"])
+	if err != nil {
+		return SessionPermissions{}, fmt.Errorf("invalid valueLimit: %w", err)
+	}
+
+	deadline, err := bigIntFromJSON(m["deadline"])
+	if err != nil {
+		return SessionPermissions{}, fmt.Errorf("invalid deadline: %w", err)
 	}
 
 	return SessionPermissions{
 		Signer:      common.HexToAddress(m["signer"].(string)),
 		ChainID:     chainID,
-		ValueLimit:  valueToBigInt(m["valueLimit"]),
-		Deadline:    valueToBigInt(m["deadline"]),
+		ValueLimit:  valueLimit,
+		Deadline:    deadline,
 		Permissions: perms,
 	}, nil
 }
@@ -475,6 +500,35 @@ func mustDecodeHex(s string) []byte {
 		panic(err)
 	}
 	return b
+}
+
+// bigIntFromJSON converts a JSON value (a decimal string or number) to a
+// big.Int. Numbers are accepted only as exact integers within float64's safe
+// range; larger values must be sent as strings, because encoding/json decodes
+// an unquoted number into a float64 and silently rounds anything at or above
+// 2^53 before it reaches here.
+func bigIntFromJSON(v interface{}) (*big.Int, error) {
+	switch val := v.(type) {
+	case string:
+		i, ok := new(big.Int).SetString(val, 10)
+		if !ok {
+			return nil, fmt.Errorf("invalid numeric string %q", val)
+		}
+		return i, nil
+	case json.Number:
+		i, ok := new(big.Int).SetString(val.String(), 10)
+		if !ok {
+			return nil, fmt.Errorf("invalid number %q", val.String())
+		}
+		return i, nil
+	case float64:
+		if val != math.Trunc(val) || math.Abs(val) >= 1<<53 {
+			return nil, fmt.Errorf("numeric value %v must be an integer within 2^53 or sent as a string", val)
+		}
+		return big.NewInt(int64(val)), nil
+	default:
+		return nil, fmt.Errorf("invalid numeric type %T", v)
+	}
 }
 
 // valueToBigInt converts a string (or number) to *big.Int.

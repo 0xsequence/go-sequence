@@ -2,6 +2,7 @@ package v3_test
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -135,11 +136,68 @@ func TestAttestationFromJsonIssuedAtNumeric(t *testing.T) {
 	}
 
 	// Negative, fractional and out-of-range numbers must be rejected, not
-	// silently coerced into a valid-looking uint64.
-	for _, bad := range []string{"-1", "1.5", "1e20"} {
+	// silently coerced into a valid-looking uint64. 9007199254740993 (2^53+1)
+	// is rounded by encoding/json to 2^53 before we see it, so an unquoted
+	// value at/above 2^53 must be rejected rather than hashed as a different
+	// timestamp.
+	for _, bad := range []string{"-1", "1.5", "1e20", "9007199254740993"} {
 		if _, err := v3.AttestationFromJson(fmt.Sprintf(tmpl, bad)); err == nil {
 			t.Errorf("issuedAt %q: expected error, got nil", bad)
 		}
+	}
+
+	// The string form preserves values that a JSON number could not.
+	att, err = v3.AttestationFromJson(fmt.Sprintf(tmpl, `"9007199254740993"`))
+	if err != nil {
+		t.Fatalf("string issuedAt rejected: %v", err)
+	}
+	if att.AuthData.IssuedAt != 9007199254740993 {
+		t.Errorf("issuedAt: got %v, want 9007199254740993", att.AuthData.IssuedAt)
+	}
+}
+
+func TestEncodeSessionPermissionsChainIdOutOfRange(t *testing.T) {
+	// A negative chainId must be rejected, not encoded as its absolute value
+	// (e.g. JSON "-1" decodes to -1, whose Bytes() is 0x01).
+	sp := sampleSessionPermissions()
+	sp.ChainID = big.NewInt(-1)
+	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
+		t.Error("expected error for negative chainId, got nil")
+	}
+
+	// A chainId wider than 256 bits would spill past the fixed field.
+	sp = sampleSessionPermissions()
+	sp.ChainID = new(big.Int).Lsh(big.NewInt(1), 256) // 2^256
+	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
+		t.Error("expected error for chainId wider than 256 bits, got nil")
+	}
+
+	// Same protection for valueLimit.
+	sp = sampleSessionPermissions()
+	sp.ValueLimit = big.NewInt(-1)
+	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
+		t.Error("expected error for negative valueLimit, got nil")
+	}
+}
+
+// TestSessionPermissionsNegativeChainIdRejected exercises the reviewer's
+// scenario end to end: a JSON chainId of "-1" parses to a negative big.Int, and
+// encoding must reject it rather than emit chain id 1.
+func TestSessionPermissionsNegativeChainIdRejected(t *testing.T) {
+	const j = `{
+		"signer": "0x9ed233eCAE5E093CAff8Ff8E147DdAfc704EC619",
+		"chainId": "-1",
+		"valueLimit": "0",
+		"deadline": "0",
+		"permissions": []
+	}`
+
+	var sp v3.SessionPermissions
+	if err := json.Unmarshal([]byte(j), &sp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
+		t.Error("expected error encoding negative chainId, got nil")
 	}
 }
 

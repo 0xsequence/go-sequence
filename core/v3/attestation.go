@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
-	"strconv"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
@@ -156,20 +154,17 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 		return nil, fmt.Errorf("invalid redirectUrl")
 	}
 
-	// issuedAt is optional and may arrive as a JSON number or string.
+	// issuedAt is optional.
 	var issuedAt uint64
-	switch v := authData["issuedAt"].(type) {
-	case float64:
-		if v < 0 || v != math.Trunc(v) || v >= math.MaxUint64 {
-			return nil, fmt.Errorf("invalid issuedAt: %v", v)
-		}
-		issuedAt = uint64(v)
-	case string:
-		parsed, err := strconv.ParseUint(v, 10, 64)
+	if raw, ok := authData["issuedAt"]; ok && raw != nil {
+		n, err := bigIntFromJSON(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid issuedAt: %w", err)
 		}
-		issuedAt = parsed
+		if n.Sign() < 0 || n.BitLen() > 64 {
+			return nil, fmt.Errorf("issuedAt %v out of range for uint64", n)
+		}
+		issuedAt = n.Uint64()
 	}
 
 	return &Attestation{
