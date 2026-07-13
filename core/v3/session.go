@@ -1005,18 +1005,22 @@ func isExplicitSessionCallSignature(sig SessionCallSignature) bool {
 }
 
 // --- Hashing call with replay protection ---
-//
-// hashCallWithReplayProtection computes the hash of a call with chain id, space and nonce.
-// It concatenates 32-byte representations of chainId, space and nonce with the call hash,
-// then computes the Keccak256 hash, returning it as a hex string.
-func hashCallWithReplayProtection(call PayloadCall, chainId, space, nonce *big.Int) (string, error) {
-	chainIdB := intToBytesBig(chainId, 32)
-	spaceB := intToBytesBig(space, 32)
-	nonceB := intToBytesBig(nonce, 32)
-	callHash := call.HashCall() // Assume call.HashCall() returns []byte in hex format? Adjust as needed.
-	data := ConcatBytes(chainIdB, spaceB, nonceB, callHash)
-	hash := keccak256(data)
-	return "0x" + hex.EncodeToString(hash), nil
+
+// HashPayloadCallIdx computes the digest that a session key signs for
+// the call at callIdx of the given payload. It matches
+// SessionSig.hashPayloadCallIdx in the v3 wallet contracts:
+// keccak256(Payload.hashFor(payload, wallet) ++ uint256(callIdx)), where the
+// payload hash is the EIP-712 digest with the wallet as verifying contract.
+// The session signature is recovered with plain ecrecover over this digest,
+// without an EIP-191 prefix.
+func HashPayloadCallIdx(payload CallsPayload, callIdx int) (common.Hash, error) {
+	if callIdx < 0 || callIdx >= len(payload.Calls) {
+		return common.Hash{}, fmt.Errorf("call index %v out of range [0, %v)", callIdx, len(payload.Calls))
+	}
+	payloadHash := payload.Digest().Hash
+	var idx [32]byte
+	big.NewInt(int64(callIdx)).FillBytes(idx[:])
+	return common.BytesToHash(keccak256(ConcatBytes(payloadHash.Bytes(), idx[:]))), nil
 }
 
 // --- Helper functions ---
@@ -1044,31 +1048,11 @@ func intToBytes(n int, size int) []byte {
 	return b
 }
 
-// intToBytesBig converts a *big.Int to a byte slice of a given size.
-// It left-pads the number with zeros.
-func intToBytesBig(n *big.Int, size int) []byte {
-	b := n.Bytes()
-	if len(b) > size {
-		return b[len(b)-size:]
-	}
-	padded := make([]byte, size)
-	copy(padded[size-len(b):], b)
-	return padded
-}
-
 // keccak256 computes the Keccak256 hash of the given data.
 func keccak256(data []byte) []byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write(data)
 	return h.Sum(nil)
-}
-
-// --- PayloadCall interface ---
-//
-// For hashing calls we assume a minimal interface.
-type PayloadCall interface {
-	// HashCall returns a []byte representing the call data to be hashed.
-	HashCall() []byte
 }
 
 // -----------------------------------------------------------------------------
