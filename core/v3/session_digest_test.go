@@ -85,12 +85,12 @@ func TestHashPayloadCallIdx(t *testing.T) {
 	}
 }
 
-// TestHashCallWithReplayProtectionParentWallets checks that the session wallet,
+// TestHashPayloadCallIdxParentWallets checks that the session wallet,
 // which is the last parent wallet in the signing context, is dropped before
 // hashing (on chain it is the verifying contract, not a parent). The expected
 // digest was produced by SessionSig.hashPayloadCallIdx for the same payload
 // carrying only the real parent wallet.
-func TestHashCallWithReplayProtectionParentWallets(t *testing.T) {
+func TestHashPayloadCallIdxParentWallets(t *testing.T) {
 	wallet := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	parent := common.HexToAddress("0x9999999999999999999999999999999999999999")
 
@@ -109,9 +109,9 @@ func TestHashCallWithReplayProtectionParentWallets(t *testing.T) {
 	)
 
 	expected := common.HexToHash("0x29f4f05700f22db9cfe0272b824961355b2383109f0309542b9a5c495103b69f")
-	hash, err := v3.HashCallWithReplayProtection(payload, 0)
+	hash, err := v3.HashPayloadCallIdx(payload, 0)
 	if err != nil {
-		t.Fatalf("HashCallWithReplayProtection: %v", err)
+		t.Fatalf("HashPayloadCallIdx: %v", err)
 	}
 	if hash != expected {
 		t.Errorf("digest mismatch: got %v, expected %v", hash, expected)
