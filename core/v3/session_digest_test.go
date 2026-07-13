@@ -12,7 +12,7 @@ import (
 // SessionSig.hashPayloadCallIdx in 0xsequence/wallet-contracts-v3 (via a forge
 // test constructing the identical payloads), so this test asserts parity with
 // the on-chain verification.
-func TestHashCallWithReplayProtection(t *testing.T) {
+func TestHashPayloadCallIdx(t *testing.T) {
 	payload := v3.NewCallsPayload(
 		common.HexToAddress("0x1111111111111111111111111111111111111111"),
 		big.NewInt(42161),
@@ -45,9 +45,9 @@ func TestHashCallWithReplayProtection(t *testing.T) {
 		common.HexToHash("0xcb5346174462b1c9a0279b5acbdfe2458ba0825cb10d35eb912fa491c1ee5cdd"),
 	}
 	for i, expected := range expectedCallHashes {
-		hash, err := v3.HashCallWithReplayProtection(payload, i)
+		hash, err := v3.HashPayloadCallIdx(payload, i)
 		if err != nil {
-			t.Fatalf("HashCallWithReplayProtection(%v): %v", i, err)
+			t.Fatalf("HashPayloadCallIdx(%v): %v", i, err)
 		}
 		if hash != expected {
 			t.Errorf("call %v hash mismatch: got %v, expected %v", i, hash, expected)
@@ -69,18 +69,18 @@ func TestHashCallWithReplayProtection(t *testing.T) {
 	)
 
 	expected2 := common.HexToHash("0xde2ebba8ab9a581d22dbb5d066086ae1ab3d884f9becc493448b2875e7f3c6d4")
-	hash2, err := v3.HashCallWithReplayProtection(payload2, 0)
+	hash2, err := v3.HashPayloadCallIdx(payload2, 0)
 	if err != nil {
-		t.Fatalf("HashCallWithReplayProtection: %v", err)
+		t.Fatalf("HashPayloadCallIdx: %v", err)
 	}
 	if hash2 != expected2 {
 		t.Errorf("vector 2 hash mismatch: got %v, expected %v", hash2, expected2)
 	}
 
-	if _, err := v3.HashCallWithReplayProtection(payload2, 1); err == nil {
+	if _, err := v3.HashPayloadCallIdx(payload2, 1); err == nil {
 		t.Errorf("expected out-of-range error for call index 1")
 	}
-	if _, err := v3.HashCallWithReplayProtection(payload2, -1); err == nil {
+	if _, err := v3.HashPayloadCallIdx(payload2, -1); err == nil {
 		t.Errorf("expected out-of-range error for call index -1")
 	}
 }

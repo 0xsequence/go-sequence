@@ -1006,14 +1006,14 @@ func isExplicitSessionCallSignature(sig SessionCallSignature) bool {
 
 // --- Hashing call with replay protection ---
 
-// HashCallWithReplayProtection computes the digest that a session key signs for
+// HashPayloadCallIdx computes the digest that a session key signs for
 // the call at callIdx of the given payload. It matches
 // SessionSig.hashPayloadCallIdx in the v3 wallet contracts:
 // keccak256(Payload.hashFor(payload, wallet) ++ uint256(callIdx)), where the
 // payload hash is the EIP-712 digest with the wallet as verifying contract.
 // The session signature is recovered with plain ecrecover over this digest,
 // without an EIP-191 prefix.
-func HashCallWithReplayProtection(payload CallsPayload, callIdx int) (common.Hash, error) {
+func HashPayloadCallIdx(payload CallsPayload, callIdx int) (common.Hash, error) {
 	if callIdx < 0 || callIdx >= len(payload.Calls) {
 		return common.Hash{}, fmt.Errorf("call index %v out of range [0, %v)", callIdx, len(payload.Calls))
 	}
