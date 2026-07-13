@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
@@ -159,6 +160,9 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 	var issuedAt uint64
 	switch v := authData["issuedAt"].(type) {
 	case float64:
+		if v < 0 || v != math.Trunc(v) || v >= math.MaxUint64 {
+			return nil, fmt.Errorf("invalid issuedAt: %v", v)
+		}
 		issuedAt = uint64(v)
 	case string:
 		parsed, err := strconv.ParseUint(v, 10, 64)

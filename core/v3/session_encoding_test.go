@@ -2,6 +2,7 @@ package v3_test
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -111,6 +112,34 @@ func TestEncodeSessionPermissionsDeadlineOutOfRange(t *testing.T) {
 
 	if _, err := v3.EncodeSessionPermissions(&sp); err == nil {
 		t.Fatal("expected error for deadline out of uint64 range, got nil")
+	}
+}
+
+func TestAttestationFromJsonIssuedAtNumeric(t *testing.T) {
+	const tmpl = `{
+		"approvedSigner": "0x3333333333333333333333333333333333333333",
+		"identityType": "0xaabbccdd",
+		"issuerHash": "0x00000000000000000000000000000000000000000000000000000000000000a1",
+		"audienceHash": "0x00000000000000000000000000000000000000000000000000000000000000b2",
+		"applicationData": "0xdead",
+		"authData": {"redirectUrl": "https://x.example", "issuedAt": %s}
+	}`
+
+	// A valid integral number is accepted.
+	att, err := v3.AttestationFromJson(fmt.Sprintf(tmpl, "1678886400"))
+	if err != nil {
+		t.Fatalf("valid numeric issuedAt rejected: %v", err)
+	}
+	if att.AuthData.IssuedAt != 1678886400 {
+		t.Errorf("issuedAt: got %v, want 1678886400", att.AuthData.IssuedAt)
+	}
+
+	// Negative, fractional and out-of-range numbers must be rejected, not
+	// silently coerced into a valid-looking uint64.
+	for _, bad := range []string{"-1", "1.5", "1e20"} {
+		if _, err := v3.AttestationFromJson(fmt.Sprintf(tmpl, bad)); err == nil {
+			t.Errorf("issuedAt %q: expected error, got nil", bad)
+		}
 	}
 }
 
