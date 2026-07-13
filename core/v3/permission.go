@@ -39,6 +39,7 @@ type Permission struct {
 // SessionPermissions groups a signer with its associated permissions.
 type SessionPermissions struct {
 	Signer      common.Address `json:"signer"`
+	ChainID     *big.Int       `json:"chainId"`
 	ValueLimit  *big.Int       `json:"valueLimit"`
 	Deadline    *big.Int       `json:"deadline"`
 	Permissions []Permission   `json:"permissions"`
@@ -61,9 +62,22 @@ func EncodeSessionPermissions(sp *SessionPermissions) ([]byte, error) {
 	var result []byte
 	// Append signer as 20-byte left‐padded value.
 	result = append(result, LeftPad(sp.Signer.Bytes(), 20)...)
-	// Append valueLimit (32 bytes) and deadline (32 bytes).
+	// Append chainId (32 bytes). 0 means any chain.
+	chainID := sp.ChainID
+	if chainID == nil {
+		chainID = big.NewInt(0)
+	}
+	result = append(result, LeftPad(chainID.Bytes(), 32)...)
+	// Append valueLimit (32 bytes).
 	result = append(result, LeftPad(sp.ValueLimit.Bytes(), 32)...)
-	result = append(result, LeftPad(sp.Deadline.Bytes(), 32)...)
+	// Append deadline (uint64, 8 bytes).
+	deadline := sp.Deadline
+	if deadline == nil {
+		deadline = big.NewInt(0)
+	}
+	var deadlineBuf [8]byte
+	deadline.FillBytes(deadlineBuf[:])
+	result = append(result, deadlineBuf[:]...)
 	// Append a single byte with the number of permissions.
 	result = append(result, byte(len(sp.Permissions)))
 	// Encode each permission.
@@ -115,15 +129,16 @@ func boolToByte(b bool) byte {
 
 // DecodeSessionPermissions decodes a byte slice into a SessionPermissions structure.
 func DecodeSessionPermissions(b []byte) (SessionPermissions, error) {
-	if len(b) < 85 {
+	if len(b) < 93 {
 		return SessionPermissions{}, fmt.Errorf("insufficient bytes for session permissions")
 	}
 	var sp SessionPermissions
 	sp.Signer = common.BytesToAddress(b[0:20])
-	sp.ValueLimit = new(big.Int).SetBytes(b[20:52])
-	sp.Deadline = new(big.Int).SetBytes(b[52:84])
-	permCount := int(b[84])
-	ptr := 85
+	sp.ChainID = new(big.Int).SetBytes(b[20:52])
+	sp.ValueLimit = new(big.Int).SetBytes(b[52:84])
+	sp.Deadline = new(big.Int).SetBytes(b[84:92])
+	permCount := int(b[92])
+	ptr := 93
 	var perms []Permission
 	for i := 0; i < permCount; i++ {
 		perm, consumed, err := decodePermission(b[ptr:])
@@ -275,8 +290,13 @@ func encodeSessionPermissionsForJson(sp *SessionPermissions) map[string]interfac
 	for _, p := range sp.Permissions {
 		perms = append(perms, encodePermissionForJson(&p))
 	}
+	chainID := sp.ChainID
+	if chainID == nil {
+		chainID = big.NewInt(0)
+	}
 	return map[string]interface{}{
 		"signer":      sp.Signer.Hex(),
+		"chainId":     chainID.String(),
 		"valueLimit":  sp.ValueLimit.String(),
 		"deadline":    sp.Deadline.String(),
 		"permissions": perms,
@@ -355,8 +375,15 @@ func sessionPermissionsFromParsed(parsed interface{}) (SessionPermissions, error
 		perms[i] = perm
 	}
 
+	// chainId is optional; a missing value means any chain (0).
+	chainID := big.NewInt(0)
+	if raw, ok := m["chainId"]; ok && raw != nil {
+		chainID = valueToBigInt(raw)
+	}
+
 	return SessionPermissions{
 		Signer:      common.HexToAddress(m["signer"].(string)),
+		ChainID:     chainID,
 		ValueLimit:  valueToBigInt(m["valueLimit"]),
 		Deadline:    valueToBigInt(m["deadline"]),
 		Permissions: perms,

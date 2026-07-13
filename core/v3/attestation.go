@@ -1,9 +1,11 @@
 package v3
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
@@ -21,6 +23,7 @@ type Attestation struct {
 // AuthData represents authentication data with a redirect URL
 type AuthData struct {
 	RedirectUrl string `json:"redirectUrl"`
+	IssuedAt    uint64 `json:"issuedAt,string"`
 }
 
 // Encode converts an Attestation to its binary representation
@@ -55,9 +58,12 @@ func (a *Attestation) Encode() []byte {
 // encodeAuthData converts AuthData to its binary representation
 func encodeAuthData(authData AuthData) []byte {
 	redirectUrlBytes := []byte(authData.RedirectUrl)
+	issuedAt := make([]byte, 8)
+	binary.BigEndian.PutUint64(issuedAt, authData.IssuedAt)
 	return Concat([][]byte{
 		intToBytes(len(redirectUrlBytes), 3), // 3 bytes for length
 		redirectUrlBytes,                     // variable length
+		issuedAt,                             // uint64 (8 bytes)
 	})
 }
 
@@ -149,6 +155,19 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 		return nil, fmt.Errorf("invalid redirectUrl")
 	}
 
+	// issuedAt is optional and may arrive as a JSON number or string.
+	var issuedAt uint64
+	switch v := authData["issuedAt"].(type) {
+	case float64:
+		issuedAt = uint64(v)
+	case string:
+		parsed, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid issuedAt: %w", err)
+		}
+		issuedAt = parsed
+	}
+
 	return &Attestation{
 		ApprovedSigner:  common.HexToAddress(approvedSigner),
 		IdentityType:    identityTypeBytes,
@@ -157,6 +176,7 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 		ApplicationData: applicationDataBytes,
 		AuthData: AuthData{
 			RedirectUrl: redirectUrl,
+			IssuedAt:    issuedAt,
 		},
 	}, nil
 }
