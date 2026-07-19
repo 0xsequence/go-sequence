@@ -84,3 +84,36 @@ func TestHashPayloadCallIdx(t *testing.T) {
 		t.Errorf("expected out-of-range error for call index -1")
 	}
 }
+
+// TestHashPayloadCallIdxParentWallets checks that the session wallet,
+// which is the last parent wallet in the signing context, is dropped before
+// hashing (on chain it is the verifying contract, not a parent). The expected
+// digest was produced by SessionSig.hashPayloadCallIdx for the same payload
+// carrying only the real parent wallet.
+func TestHashPayloadCallIdxParentWallets(t *testing.T) {
+	wallet := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	parent := common.HexToAddress("0x9999999999999999999999999999999999999999")
+
+	payload := v3.NewCallsPayload(
+		wallet,
+		big.NewInt(42161),
+		[]v3.Call{
+			{
+				To:              common.HexToAddress("0x2222222222222222222222222222222222222222"),
+				BehaviorOnError: v3.BehaviorOnErrorRevert,
+			},
+		},
+		big.NewInt(0),
+		big.NewInt(7),
+		[]common.Address{parent, wallet},
+	)
+
+	expected := common.HexToHash("0x29f4f05700f22db9cfe0272b824961355b2383109f0309542b9a5c495103b69f")
+	hash, err := v3.HashPayloadCallIdx(payload, 0)
+	if err != nil {
+		t.Fatalf("HashPayloadCallIdx: %v", err)
+	}
+	if hash != expected {
+		t.Errorf("digest mismatch: got %v, expected %v", hash, expected)
+	}
+}

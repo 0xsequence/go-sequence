@@ -72,6 +72,7 @@ func handleEncodeSessionCallSignatures(p *EncodeSessionCallSignaturesParams) (st
 				ApplicationData: applicationData,
 				AuthData: v3.AuthData{
 					RedirectUrl: sig.Attestation.AuthData.RedirectUrl,
+					IssuedAt:    sig.Attestation.AuthData.IssuedAt,
 				},
 			}
 

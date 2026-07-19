@@ -1,6 +1,7 @@
 package v3
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,7 @@ type Attestation struct {
 // AuthData represents authentication data with a redirect URL
 type AuthData struct {
 	RedirectUrl string `json:"redirectUrl"`
+	IssuedAt    uint64 `json:"issuedAt,string"`
 }
 
 // Encode converts an Attestation to its binary representation
@@ -55,9 +57,12 @@ func (a *Attestation) Encode() []byte {
 // encodeAuthData converts AuthData to its binary representation
 func encodeAuthData(authData AuthData) []byte {
 	redirectUrlBytes := []byte(authData.RedirectUrl)
+	issuedAt := make([]byte, 8)
+	binary.BigEndian.PutUint64(issuedAt, authData.IssuedAt)
 	return Concat([][]byte{
 		intToBytes(len(redirectUrlBytes), 3), // 3 bytes for length
 		redirectUrlBytes,                     // variable length
+		issuedAt,                             // uint64 (8 bytes)
 	})
 }
 
@@ -149,6 +154,19 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 		return nil, fmt.Errorf("invalid redirectUrl")
 	}
 
+	// issuedAt is optional.
+	var issuedAt uint64
+	if raw, ok := authData["issuedAt"]; ok && raw != nil {
+		n, err := bigIntFromJSON(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid issuedAt: %w", err)
+		}
+		if n.Sign() < 0 || n.BitLen() > 64 {
+			return nil, fmt.Errorf("issuedAt %v out of range for uint64", n)
+		}
+		issuedAt = n.Uint64()
+	}
+
 	return &Attestation{
 		ApprovedSigner:  common.HexToAddress(approvedSigner),
 		IdentityType:    identityTypeBytes,
@@ -157,6 +175,7 @@ func AttestationFromParsed(parsed map[string]interface{}) (*Attestation, error) 
 		ApplicationData: applicationDataBytes,
 		AuthData: AuthData{
 			RedirectUrl: redirectUrl,
+			IssuedAt:    issuedAt,
 		},
 	}, nil
 }

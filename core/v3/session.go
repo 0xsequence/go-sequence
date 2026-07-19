@@ -1017,6 +1017,12 @@ func HashPayloadCallIdx(payload CallsPayload, callIdx int) (common.Hash, error) 
 	if callIdx < 0 || callIdx >= len(payload.Calls) {
 		return common.Hash{}, fmt.Errorf("call index %v out of range [0, %v)", callIdx, len(payload.Calls))
 	}
+	// The session-holding wallet is the last parent wallet in the signing
+	// context, but on chain it is the verifying contract (msg.sender), not a
+	// parent entry. Drop it before hashing to match SessionSig.hashPayloadCallIdx.
+	if n := len(payload.parentWallets); n > 0 {
+		payload.parentWallets = payload.parentWallets[:n-1]
+	}
 	payloadHash := payload.Digest().Hash
 	var idx [32]byte
 	big.NewInt(int64(callIdx)).FillBytes(idx[:])

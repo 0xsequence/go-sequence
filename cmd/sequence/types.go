@@ -118,6 +118,7 @@ type CallSignaturesParams struct {
 		ApplicationData string `json:"applicationData"`
 		AuthData        struct {
 			RedirectUrl string `json:"redirectUrl"`
+			IssuedAt    uint64 `json:"issuedAt,string"`
 		} `json:"authData"`
 	} `json:"attestation"`
 	IdentitySignature string `json:"identitySignature"` // RSV string
