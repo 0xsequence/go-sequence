@@ -30,12 +30,14 @@
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletfactory --type=WalletFactory --outFile=./v3/walletfactory/wallet_factory.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Factory.sol/Factory.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage1 --type=WalletStage1 --outFile=./v3/walletstage1/wallet_stage1.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage1Module.sol/Stage1Module.json
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage2 --type=WalletStage2 --outFile=./v3/walletstage2/wallet_stage2.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage2Module.sol/Stage2Module.json
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletstage7702 --type=WalletStage7702 --outFile=./v3/walletstage7702/wallet_stage7702.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Stage7702Module.sol/Stage7702Module.json --includeDeployedBin
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletguest --type=WalletGuest --outFile=./v3/walletguest/wallet_guest.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Guest.sol/Guest.json
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=passkeys --type=Passkeys --outFile=./v3/passkeys/passkeys.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Passkeys.sol/Passkeys.json
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployedBin
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployedBin
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sessionmanager --type=SessionManager --outFile=./v3/sessionmanager/session_manager.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/SessionManager.sol/SessionManager.json --includeDeployedBin
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sapientmock --type=SapientMock --outFile=./sapientmock/sapient_mock.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/MockSapient.sol/MockSapient.json
 
