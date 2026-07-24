@@ -125,7 +125,7 @@ func init() {
 	V3.WalletFactory = artifact("WALLET_FACTORY", v3Factory.WalletFactoryABI, v3Factory.WalletFactoryBin)
 	V3.WalletStage1Module = artifact("WALLET_STAGE_1", v3Stage1.WalletStage1ABI, v3Stage1.WalletStage1Bin)
 	V3.WalletStage2Module = artifact("WALLET_STAGE_2", v3Stage2.WalletStage2ABI, v3Stage2.WalletStage2Bin)
-	V3.WalletStage7702Module = artifact("WALLET_STAGE_7702", v3Stage7702.WalletStage7702ABI, v3Stage7702.WalletStage7702Bin)
+	V3.WalletStage7702Module = artifact("WALLET_STAGE_7702", v3Stage7702.WalletStage7702ABI, v3Stage7702.WalletStage7702Bin, v3Stage7702.WalletStage7702DeployedBin)
 	V3.WalletGuestModule = artifact("WALLET_GUEST", v3Guest.WalletGuestABI, v3Guest.WalletGuestBin)
 	V3.WalletEstimator = artifact("WALLET_ESTIMATOR", v3Estimator.WalletEstimatorABI, v3Estimator.WalletEstimatorBin, v3Estimator.WalletEstimatorDeployedBin)
 	V3.WalletSimulator = artifact("WALLET_SIMULATOR", v3Simulator.WalletSimulatorABI, v3Simulator.WalletSimulatorBin, v3Simulator.WalletSimulatorDeployedBin)
