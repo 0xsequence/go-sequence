@@ -36,6 +36,7 @@
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletestimator --type=WalletEstimator --outFile=./v3/walletestimator/wallet_estimator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Estimator.sol/Estimator.json --includeDeployedBin
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=walletsimulator --type=WalletSimulator --outFile=./v3/walletsimulator/wallet_simulator.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/Simulator.sol/Simulator.json --includeDeployedBin
+//go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sessionmanager --type=SessionManager --outFile=./v3/sessionmanager/session_manager.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/SessionManager.sol/SessionManager.json --includeDeployedBin
 
 //go:generate go run github.com/0xsequence/ethkit/cmd/ethkit abigen --pkg=sapientmock --type=SapientMock --outFile=./sapientmock/sapient_mock.gen.go --artifactsFile=../artifacts/wallet-contracts-v3/MockSapient.sol/MockSapient.json
 
