@@ -186,17 +186,52 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-func createIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, additionalLeaves ...v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
+// wrapPayloadGate pairs callsLeaves (the calls' own any-address-subdigest leaves) with
+// payloadGateLeaf under a 2-of-2 subtree: satisfying it requires both a signature from
+// payloadGateLeaf and callsLeaves' own threshold to be met (weight 1 each, gate threshold
+// 2), so withholding payloadGateLeaf's signature makes the whole gate unsatisfiable
+// regardless of callsLeaves' own (possibly uncapped, e.g. any-address-subdigest) weight.
+// payloadGateLeaf must carry weight 1.
+func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, callsLeaves ...v3.WalletConfigTree) v3.WalletConfigTree {
+	inner := &v3.WalletConfigTreeNestedLeaf{
+		Weight:    1,
+		Threshold: 1,
+		Tree:      v3.WalletConfigTreeNodes(callsLeaves...),
+	}
+	gate := v3.WalletConfigTreeNodes(payloadGateLeaf, inner)
+	return &v3.WalletConfigTreeNestedLeaf{
+		Weight:    1,
+		Threshold: 2,
+		Tree:      gate,
+	}
+}
+
+func createIntentTree(
+	mainSigner common.Address,
+	calls []*v3.CallsPayload,
+	payloadGateLeafNode v3.WalletConfigTree,
+	sapientSignerLeafNode v3.WalletConfigTree,
+) (*v3.WalletConfigTree, error) {
 	// Create the subdigest leaves from the batched transactions.
-	leaves, err := CreateAnyAddressSubdigestTree(calls)
+	subdigestLeaves, err := CreateAnyAddressSubdigestTree(calls)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, leaf := range additionalLeaves {
-		if leaf != nil {
-			leaves = append(leaves, leaf)
-		}
+	var leaves []v3.WalletConfigTree
+
+	if payloadGateLeafNode != nil {
+		// calls && payloadGateLeafNode must match together; sapientSignerLeafNode below is
+		// untouched by this gate either way.
+		leaves = append(leaves, wrapPayloadGate(payloadGateLeafNode, subdigestLeaves...))
+	} else {
+		// No gate: preserve the exact flat structure of the original (pre-gating) tree so
+		// already-derived counterfactual addresses do not change.
+		leaves = append(leaves, subdigestLeaves...)
+	}
+
+	if sapientSignerLeafNode != nil {
+		leaves = append(leaves, sapientSignerLeafNode)
 	}
 
 	// Create the main signer leaf (with weight 1).
@@ -221,12 +256,23 @@ func createIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, addit
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer address.
-func CreateIntentTree(mainSigner common.Address, calls []*v3.CallsPayload, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfigTree, error) {
-	return createIntentTree(mainSigner, calls, sapientSignerLeafNode)
+func CreateIntentTree(
+	mainSigner common.Address,
+	calls []*v3.CallsPayload,
+	payloadGateLeafNode v3.WalletConfigTree,
+	sapientSignerLeafNode v3.WalletConfigTree,
+) (*v3.WalletConfigTree, error) {
+	return createIntentTree(mainSigner, calls, payloadGateLeafNode, sapientSignerLeafNode)
 }
 
-func createIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, checkpoint uint64, additionalLeaves ...v3.WalletConfigTree) (*v3.WalletConfig, error) {
-	tree, err := createIntentTree(mainSigner, calls, additionalLeaves...)
+func createIntentConfiguration(
+	mainSigner common.Address,
+	calls []*v3.CallsPayload,
+	checkpoint uint64,
+	payloadGateLeafNode v3.WalletConfigTree,
+	sapientSignerLeafNode v3.WalletConfigTree,
+) (*v3.WalletConfig, error) {
+	tree, err := createIntentTree(mainSigner, calls, payloadGateLeafNode, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}
@@ -238,9 +284,17 @@ func createIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPaylo
 	}, nil
 }
 
-// `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction batches are grouped into the initial subdigest.
-func CreateIntentConfiguration(mainSigner common.Address, calls []*v3.CallsPayload, checkpoint uint64, sapientSignerLeafNode v3.WalletConfigTree) (*v3.WalletConfig, error) {
-	return createIntentConfiguration(mainSigner, calls, checkpoint, sapientSignerLeafNode)
+// `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction
+// batches are grouped into the initial subdigest. See CreateIntentTree for
+// payloadGateLeafNode and sapientSignerLeafNode semantics.
+func CreateIntentConfiguration(
+	mainSigner common.Address,
+	calls []*v3.CallsPayload,
+	checkpoint uint64,
+	payloadGateLeafNode v3.WalletConfigTree,
+	sapientSignerLeafNode v3.WalletConfigTree,
+) (*v3.WalletConfig, error) {
+	return createIntentConfiguration(mainSigner, calls, checkpoint, payloadGateLeafNode, sapientSignerLeafNode)
 }
 
 // `BuildIntentConfigurationSignature` creates a signature for an already-built intent configuration
@@ -287,7 +341,7 @@ func GetIntentConfigurationSignature(
 	sapientSignerLeafNode v3.WalletConfigTree,
 	signerSignatures []*core.SignerSignature,
 ) ([]byte, error) {
-	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, sapientSignerLeafNode)
+	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, nil, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}

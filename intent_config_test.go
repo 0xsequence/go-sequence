@@ -215,7 +215,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	t.Run("One batch", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1}, nil)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1}, nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -239,7 +239,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Two batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2}, nil)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2}, nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, tree)
 
@@ -267,7 +267,7 @@ func TestCreateIntentTree_Valid(t *testing.T) {
 	})
 
 	t.Run("Three batches", func(t *testing.T) {
-		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2, &payload3}, nil)
+		tree, err := sequence.CreateIntentTree(common.Address{}, []*v3.CallsPayload{&payload1, &payload2, &payload3}, nil, nil)
 		require.NoError(t, err)
 
 		// spew.Dump(tree)
@@ -318,7 +318,7 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	// Use a valid main signer address.
 	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 }
@@ -348,7 +348,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 		ImageHash_: timedRefundImageHash,
 	}
 
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, timedRefundLeaf)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, timedRefundLeaf)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 
@@ -364,7 +364,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.Equal(t, uint64(1_750_000_000), preimage.UnlockTimestamp)
 	require.Equal(t, expectedSapientImageHash, preimage.ImageHash().Hash)
 
-	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
+	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
 
@@ -382,6 +382,166 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainSignature, signature)
+}
+
+// With payloadGateLeaf nil (the default/legacy case), the tree must keep the exact flat
+// shape it had before this parameter existed: Node(mainSignerLeaf, Node(subdigestLeaf,
+// additionalLeaf)) — no extra nesting — so already-derived counterfactual addresses do
+// not change.
+func TestCreateIntentConfigurationPayloadGateLeafNilUnchanged(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	sapientSignerLeafNode := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    common.HexToAddress("0x3333333333333333333333333333333333333333"),
+		ImageHash_: core.ImageHash{Hash: common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111")},
+	}
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, sapientSignerLeafNode)
+	require.NoError(t, err)
+
+	top, ok := config.Tree.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+	ownerLeaf, ok := top.Left.(*v3.WalletConfigTreeAddressLeaf)
+	require.True(t, ok)
+	require.Equal(t, mainSigner, ownerLeaf.Address)
+
+	rest, ok := top.Right.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+	_, subdigestOk := rest.Left.(*v3.WalletConfigTreeAnyAddressSubdigestLeaf)
+	require.True(t, subdigestOk)
+	require.Same(t, sapientSignerLeafNode, rest.Right)
+}
+
+func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
+	peerSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    peerSigner,
+		ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(1))},
+	}
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, peerSignerLeaf, nil)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	sapientLeaf := findSapientSignerLeaf(config.Tree, peerSigner)
+	require.NotNil(t, sapientLeaf)
+
+	// The gate must change the counterfactual address relative to an ungated config.
+	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
+
+	// A signature that does not include the peer signer's co-signature must not meet the
+	// gate's threshold, even though the any-address-subdigest leaf matches the payload
+	// (which alone would satisfy an ungated config's threshold).
+	signatureWithoutPeerSig, err := sequence.BuildIntentConfigurationSignature(config, nil)
+	require.NoError(t, err)
+
+	sigWithoutPeerSig, err := v3.Core.DecodeSignature(signatureWithoutPeerSig)
+	require.NoError(t, err)
+
+	recoveredConfig, weight, err := sigWithoutPeerSig.Recover(context.Background(), payload, nil)
+	require.NoError(t, err)
+	require.Equal(t, config.ImageHash().Hash, recoveredConfig.ImageHash().Hash)
+	require.Truef(t, weight.Cmp(big.NewInt(int64(config.Threshold()))) < 0,
+		"recovered weight %v must not meet threshold %v without the peer signer's co-signature", weight, config.Threshold())
+
+	// Including the peer signer's co-signature must produce a different signature
+	// encoding than omitting it, proving the leaf is actually wired into the built signature.
+	signatureWithPeerSig, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{
+		{
+			Signer:    core.SapientSigner(peerSigner, peerSignerLeaf.ImageHash_.Hash),
+			Signature: []byte{},
+			Type:      core.SignerSignatureTypeSapientCompact,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
+}
+
+// additionalLeaves (e.g. a timed-refund leaf) must sit as a plain sibling of the
+// [calls && payloadGateLeaf] gate, completely untouched by it, so they keep working even
+// while the gate leaf withholds its signature (e.g. a paused contract).
+func TestCreateIntentConfigurationWithPayloadGateLeaf_AdditionalLeavesUntouched(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
+	peerSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    peerSigner,
+		ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(1))},
+	}
+	timedRefundSigner := common.HexToAddress("0x4444444444444444444444444444444444444444")
+	destination := common.HexToAddress("0x5555555555555555555555555555555555555555")
+
+	timedRefundImageHash, err := sequence.TimedRefundSapientImageHash(destination, 1_750_000_000)
+	require.NoError(t, err)
+	timedRefundLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    timedRefundSigner,
+		ImageHash_: timedRefundImageHash,
+	}
+
+	config, err := sequence.CreateIntentConfiguration(
+		mainSigner,
+		[]*v3.CallsPayload{&payload},
+		0,
+		peerSignerLeaf,
+		timedRefundLeaf,
+	)
+	require.NoError(t, err)
+
+	// timedRefundLeaf must be reachable directly, not nested inside the gate.
+	top, ok := config.Tree.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+	rest, ok := top.Right.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+	_, gateIsLeft := rest.Left.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, gateIsLeft)
+	untouchedLeaf, ok := rest.Right.(*v3.WalletConfigTreeSapientSignerLeaf)
+	require.True(t, ok)
+	require.Equal(t, timedRefundSigner, untouchedLeaf.Address)
+
+	// The gate leaf must be reachable inside the gate; timedRefundLeaf outside it.
+	require.NotNil(t, findSapientSignerLeaf(config.Tree, peerSigner))
+	require.NotNil(t, findSapientSignerLeaf(config.Tree, timedRefundSigner))
 }
 
 func TestTimedRefundSapientImageHash(t *testing.T) {
@@ -442,7 +602,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signature matches subdigest", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// Create the signature
@@ -545,7 +705,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("signer signature included in the signature tree", func(t *testing.T) {
 		// Create the intent configuration
-		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, sapientSignerLeafNode)
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, sapientSignerLeafNode)
 		require.NoError(t, err)
 
 		// Create the signature
@@ -972,7 +1132,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1022,7 +1182,7 @@ func TestIntentConfigurationAddress(t *testing.T) {
 		)
 
 		// Create intent configuration
-		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil)
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil, nil)
 		require.NoError(t, err)
 
 		// Calculate image hash
@@ -1064,9 +1224,9 @@ func TestIntentConfigurationAddress_WithCheckpoint(t *testing.T) {
 	checkpoint2 := uint64(2)
 
 	// Create intent configuration
-	config1, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint1, nil)
+	config1, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint1, nil, nil)
 	require.NoError(t, err)
-	config2, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint2, nil)
+	config2, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, checkpoint2, nil, nil)
 	require.NoError(t, err)
 
 	// Checkpoints should be set correctly
@@ -1120,7 +1280,7 @@ func TestIntentConfigurationAddress_RealWorldExample(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create intent configuration
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil)
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload1, &payload2}, 0, nil, nil)
 	require.NoError(t, err)
 
 	// Calculate image hash
