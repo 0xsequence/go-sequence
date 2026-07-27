@@ -340,16 +340,15 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	timedRefundSigner := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	destination := common.HexToAddress("0x4444444444444444444444444444444444444444")
 
-	config, err := sequence.CreateIntentConfigurationWithTimedRefundSapient(
-		mainSigner,
-		[]*v3.CallsPayload{&payload},
-		sequence.TimedRefundIntentConfigurationSigner{
-			Address:         timedRefundSigner,
-			Destination:     destination,
-			UnlockTimestamp: 1_750_000_000,
-			Weight:          1,
-		},
-	)
+	timedRefundImageHash, err := sequence.TimedRefundSapientImageHash(destination, 1_750_000_000)
+	require.NoError(t, err)
+	timedRefundLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    timedRefundSigner,
+		ImageHash_: timedRefundImageHash,
+	}
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, timedRefundLeaf)
 	require.NoError(t, err)
 	require.NotNil(t, config)
 
@@ -383,32 +382,6 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainSignature, signature)
-}
-
-func TestCreateIntentConfigurationWithTimedRefundSapient_ZeroWeight(t *testing.T) {
-	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
-		{
-			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
-			Value:           nil,
-			Data:            []byte{0x12, 0x34},
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
-
-	_, err := sequence.CreateIntentConfigurationWithTimedRefundSapient(
-		common.HexToAddress("0x2222222222222222222222222222222222222222"),
-		[]*v3.CallsPayload{&payload},
-		sequence.TimedRefundIntentConfigurationSigner{
-			Address:         common.HexToAddress("0x3333333333333333333333333333333333333333"),
-			Destination:     common.HexToAddress("0x4444444444444444444444444444444444444444"),
-			UnlockTimestamp: 1_750_000_000,
-			Weight:          0,
-		},
-	)
-	require.EqualError(t, err, "timed refund sapient signer weight is zero")
 }
 
 func TestTimedRefundSapientImageHash(t *testing.T) {
