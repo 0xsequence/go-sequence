@@ -219,7 +219,9 @@ func createIntentTree(
 
 	var leaves []v3.WalletConfigTree
 
-	if payloadGateLeafNode != nil {
+	if len(subdigestLeaves) == 0 {
+		// No calls to gate (sapient-only config): omit the calls gate entirely.
+	} else if payloadGateLeafNode != nil {
 		// calls && payloadGateLeafNode must match together.
 		leaves = append(leaves, wrapPayloadGate(payloadGateLeafNode, subdigestLeaves...))
 	} else {

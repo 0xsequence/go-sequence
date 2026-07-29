@@ -485,6 +485,39 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
+// A sapient-only config (calls is empty) must not build a broken calls gate: with no
+// subdigest leaves to wrap, wrapPayloadGate's inner threshold-1 node would otherwise end up
+// with a nil Tree, panicking on ImageHash or any other tree traversal. The calls gate must
+// simply be omitted, leaving the separately gated sapient leaf intact.
+func TestCreateIntentConfigurationWithPayloadGateLeaf_EmptyCallsOmitsCallsGate(t *testing.T) {
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
+	peerSignerLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    peerSigner,
+		ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(1))},
+	}
+	timedRefundSigner := common.HexToAddress("0x4444444444444444444444444444444444444444")
+	destination := common.HexToAddress("0x5555555555555555555555555555555555555555")
+	timedRefundImageHash, err := sequence.TimedRefundSapientImageHash(destination, 1_750_000_000)
+	require.NoError(t, err)
+	timedRefundLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    timedRefundSigner,
+		ImageHash_: timedRefundImageHash,
+	}
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, nil, 0, peerSignerLeaf, timedRefundLeaf)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+
+	// Must not panic computing the image hash — this is exactly what a nil inner Tree breaks.
+	require.NotEqual(t, common.Hash{}, config.ImageHash().Hash)
+
+	require.NotNil(t, findSapientSignerLeaf(config.Tree, timedRefundSigner))
+	require.NotNil(t, findSapientSignerLeaf(config.Tree, peerSigner))
+}
+
 // A sapient signer leaf (e.g. a timed-refund or gasless-deposit leaf) passed as
 // sapientSignerLeafNode is gated the same way as the calls leaves: it also requires
 // payloadGateLeaf's co-signature, in its own independent 2-of-2 subtree. mainSignerLeaf is
