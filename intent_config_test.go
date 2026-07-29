@@ -485,10 +485,12 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
-// additionalLeaves (e.g. a timed-refund leaf) must sit as a plain sibling of the
-// [calls && payloadGateLeaf] gate, completely untouched by it, so they keep working even
-// while the gate leaf withholds its signature (e.g. a paused contract).
-func TestCreateIntentConfigurationWithPayloadGateLeaf_AdditionalLeavesUntouched(t *testing.T) {
+// A sapient signer leaf (e.g. a timed-refund or gasless-deposit leaf) passed as
+// sapientSignerLeafNode is gated the same way as the calls leaves: it also requires
+// payloadGateLeaf's co-signature, in its own independent 2-of-2 subtree. mainSignerLeaf is
+// the only leaf never gated, so the owner can always act (e.g. recover funds) regardless of
+// the gate's paused state.
+func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testing.T) {
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
 			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
@@ -528,20 +530,60 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_AdditionalLeavesUntouched(
 	)
 	require.NoError(t, err)
 
-	// timedRefundLeaf must be reachable directly, not nested inside the gate.
+	// mainSignerLeaf stays a plain sibling, never wrapped by any gate.
 	top, ok := config.Tree.(*v3.WalletConfigTreeNode)
 	require.True(t, ok)
+	ownerLeaf, ok := top.Left.(*v3.WalletConfigTreeAddressLeaf)
+	require.True(t, ok)
+	require.Equal(t, mainSigner, ownerLeaf.Address)
+
+	// Both the calls leaves and timedRefundLeaf must now be reachable only inside a gate
+	// (NestedLeaf), as siblings of each other.
 	rest, ok := top.Right.(*v3.WalletConfigTreeNode)
 	require.True(t, ok)
-	_, gateIsLeft := rest.Left.(*v3.WalletConfigTreeNestedLeaf)
-	require.True(t, gateIsLeft)
-	untouchedLeaf, ok := rest.Right.(*v3.WalletConfigTreeSapientSignerLeaf)
-	require.True(t, ok)
-	require.Equal(t, timedRefundSigner, untouchedLeaf.Address)
+	_, callsGateOk := rest.Left.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, callsGateOk, "calls leaves must be gated")
+	_, sapientGateOk := rest.Right.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, sapientGateOk, "timedRefundLeaf must now be gated too")
 
-	// The gate leaf must be reachable inside the gate; timedRefundLeaf outside it.
 	require.NotNil(t, findSapientSignerLeaf(config.Tree, peerSigner))
 	require.NotNil(t, findSapientSignerLeaf(config.Tree, timedRefundSigner))
+
+	// Absent any signatures, neither gate has anything to recover: weight must be 0. Real
+	// providers are only invoked to check an actually-embedded sapient signature, so this
+	// stays a pure offline check.
+	signatureNoSigs, err := sequence.BuildIntentConfigurationSignature(config, nil)
+	require.NoError(t, err)
+	decodedNoSigs, err := v3.Core.DecodeSignature(signatureNoSigs)
+	require.NoError(t, err)
+	_, weightNoSigs, err := decodedNoSigs.Recover(context.Background(), payload, nil)
+	require.NoError(t, err)
+	require.Truef(t, weightNoSigs.Cmp(big.NewInt(int64(config.Threshold()))) < 0,
+		"recovered weight %v must not meet threshold %v with no signatures at all", weightNoSigs, config.Threshold())
+
+	// Providing only the gate's co-signature (withholding timedRefundLeaf's own signature)
+	// must change the encoding, proving the gate leaf is wired into timedRefundLeaf's new
+	// gate position, not just the pre-existing calls gate.
+	peerSignature := &core.SignerSignature{
+		Signer:    core.SapientSigner(peerSigner, peerSignerLeaf.ImageHash_.Hash),
+		Signature: []byte{},
+		Type:      core.SignerSignatureTypeSapientCompact,
+	}
+	signatureGateOnly, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{peerSignature})
+	require.NoError(t, err)
+	require.NotEqual(t, signatureNoSigs, signatureGateOnly)
+
+	// Adding timedRefundLeaf's own signature alongside the gate's co-signature must change
+	// the encoding again, proving timedRefundLeaf's signature is actually consumed from its
+	// new (gated) position in the tree.
+	timedRefundSignature := &core.SignerSignature{
+		Signer:    core.SapientSigner(timedRefundSigner, timedRefundLeaf.ImageHash_.Hash),
+		Signature: []byte{},
+		Type:      core.SignerSignatureTypeSapientCompact,
+	}
+	signatureGateAndTimedRefund, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{peerSignature, timedRefundSignature})
+	require.NoError(t, err)
+	require.NotEqual(t, signatureGateOnly, signatureGateAndTimedRefund)
 }
 
 func TestTimedRefundSapientImageHash(t *testing.T) {
