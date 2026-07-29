@@ -186,26 +186,46 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// wrapPayloadGate requires both payloadGateLeaf and protectedLeaves (weight 1 each,
-// threshold 2). payloadGateLeaf is capped to weight 1 via its own nested leaf, since it's an
-// opaque caller-supplied tree that could otherwise satisfy the gate alone. Safe to call more
-// than once with the same payloadGateLeaf.
-func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, protectedLeaves ...v3.WalletConfigTree) v3.WalletConfigTree {
-	cappedGate := &v3.WalletConfigTreeNestedLeaf{
+// wrapPayloadGate requires payloadGateLeaf's co-signature alongside any one of
+// gateableLeaves. An inner threshold-1 nest OR's the groups and contributes weight 1 at
+// most, so satisfying many groups still cannot clear the outer threshold without the gate
+// leaf. The outer threshold is payloadGateLeaf's weight + 1, so any gate weight is safe by
+// construction (the gate alone cannot meet it).
+func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.WalletConfigTree) (v3.WalletConfigTree, error) {
+	gateWeight, err := leafWeight(payloadGateLeaf)
+	if err != nil {
+		return nil, fmt.Errorf("invalid payloadGateLeafNode: %w", err)
+	}
+	if gateWeight == 0 {
+		return nil, fmt.Errorf("invalid payloadGateLeafNode: weight must be > 0")
+	}
+	gateableTree := &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
 		Threshold: 1,
-		Tree:      payloadGateLeaf,
+		Tree:      v3.WalletConfigTreeNodes(gateableLeaves...),
 	}
-	inner := &v3.WalletConfigTreeNestedLeaf{
-		Weight:    1,
-		Threshold: 1,
-		Tree:      v3.WalletConfigTreeNodes(protectedLeaves...),
-	}
-	gate := v3.WalletConfigTreeNodes(cappedGate, inner)
 	return &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
-		Threshold: 2,
-		Tree:      gate,
+		Threshold: uint16(gateWeight) + 1,
+		Tree:      v3.WalletConfigTreeNodes(payloadGateLeaf, gateableTree),
+	}, nil
+}
+
+// leafWeight returns the contribution weight of a single leaf. Nodes and other types whose
+// effective weight can't be read from outside package v3 are rejected.
+func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
+	if tree == nil {
+		return 0, fmt.Errorf("nil leaf")
+	}
+	switch t := tree.(type) {
+	case *v3.WalletConfigTreeAddressLeaf:
+		return t.Weight, nil
+	case *v3.WalletConfigTreeSapientSignerLeaf:
+		return t.Weight, nil
+	case *v3.WalletConfigTreeNestedLeaf:
+		return t.Weight, nil
+	default:
+		return 0, fmt.Errorf("unsupported leaf type %T", tree)
 	}
 }
 
@@ -215,58 +235,59 @@ func createIntentTree(
 	payloadGateLeafNode v3.WalletConfigTree,
 	sapientSignerLeafNode v3.WalletConfigTree,
 ) (*v3.WalletConfigTree, error) {
+	var leaves []v3.WalletConfigTree
+
 	// Create the subdigest leaves from the batched transactions.
-	subdigestLeaves, err := CreateAnyAddressSubdigestTree(calls)
+	gateableLeaves, err := CreateAnyAddressSubdigestTree(calls)
 	if err != nil {
 		return nil, err
 	}
 
-	var leaves []v3.WalletConfigTree
-
-	if len(subdigestLeaves) == 0 {
-		// No calls to gate (sapient-only config): omit the calls gate entirely.
-	} else if payloadGateLeafNode != nil {
-		// calls && payloadGateLeafNode must match together.
-		leaves = append(leaves, wrapPayloadGate(payloadGateLeafNode, subdigestLeaves...))
-	} else {
-		// No gate: preserve the exact flat structure of the original (pre-gating) tree so
-		// already-derived counterfactual addresses do not change.
-		leaves = append(leaves, subdigestLeaves...)
+	// Add the sapient signer leaf to the gateable leaves.
+	if sapientSignerLeafNode != nil {
+		gateableLeaves = append(gateableLeaves, sapientSignerLeafNode)
 	}
 
-	if sapientSignerLeafNode != nil {
-		if payloadGateLeafNode != nil {
-			// Gated the same way as the calls leaves.
-			leaves = append(leaves, wrapPayloadGate(payloadGateLeafNode, sapientSignerLeafNode))
+	// If there are any gateable leaves, wrap them in a gate if a payload gate leaf is provided.
+	if len(gateableLeaves) > 0 {
+		if payloadGateLeafNode == nil {
+			// No gate: preserve flat structure so counterfactual addresses stay stable.
+			leaves = append(leaves, gateableLeaves...)
 		} else {
-			leaves = append(leaves, sapientSignerLeafNode)
+			// Calls and sapient share one gate; either needs payloadGateLeaf's co-signature.
+			gate, err := wrapPayloadGate(payloadGateLeafNode, gateableLeaves...)
+			if err != nil {
+				return nil, err
+			}
+			leaves = append(leaves, gate)
 		}
 	}
 
-	// Main signer leaf (weight 1). Never gated, so the owner can always act.
+	// Add the main signer leaf to the leaves (ungated).
 	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
 	}
 
-	// If the length of the leaves is 1
+	// If the length of the leaves is 1.
 	if len(leaves) == 1 {
 		tree := v3.WalletConfigTreeNodes(mainSignerLeaf, leaves[0])
 		return &tree, nil
 	}
 
-	// Create a tree from the subdigest leaves.
+	// Create a tree from the (gated) leaves.
 	tree := v3.WalletConfigTreeNodes(leaves...)
 
-	// Construct the new wallet config using:
+	// Construct the new wallet config.
 	fullTree := v3.WalletConfigTreeNodes(mainSignerLeaf, tree)
 
 	return &fullTree, nil
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer
-// address. When payloadGateLeafNode is set, calls and sapientSignerLeafNode are each gated
-// behind it (see wrapPayloadGate); mainSigner never is. nil preserves the legacy tree shape.
+// address. When payloadGateLeafNode is set, calls and sapientSignerLeafNode share one gate
+// that requires its co-signature (see wrapPayloadGate); mainSigner never is. nil preserves
+// the legacy tree shape.
 func CreateIntentTree(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,

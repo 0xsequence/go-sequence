@@ -485,55 +485,9 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
-// payloadGateLeafNode is an opaque v3.WalletConfigTree the caller controls; an overweighted
-// or otherwise misweighted leaf must not be able to satisfy the gate on its own. wrapPayloadGate
-// caps it to weight 1 behind its own nested leaf, regardless of the leaf's declared weight.
-func TestCreateIntentConfigurationWithPayloadGateLeaf_OverweightedGateLeafCapped(t *testing.T) {
-	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
-		{
-			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
-			Value:           nil,
-			Data:            []byte{0x12, 0x34},
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
-
-	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
-	// Overweighted on purpose: this alone must not be enough to satisfy the gate's
-	// threshold-2 requirement without the calls leaves also contributing.
-	overweightedGateLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
-		Weight:     5,
-		Address:    peerSigner,
-		ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(1))},
-	}
-
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, overweightedGateLeaf, nil)
-	require.NoError(t, err)
-
-	top, ok := config.Tree.(*v3.WalletConfigTreeNode)
-	require.True(t, ok)
-	outerGate, ok := top.Right.(*v3.WalletConfigTreeNestedLeaf)
-	require.True(t, ok)
-	require.Equal(t, uint16(2), outerGate.Threshold)
-
-	gateNode, ok := outerGate.Tree.(*v3.WalletConfigTreeNode)
-	require.True(t, ok)
-
-	cappedGate, ok := gateNode.Left.(*v3.WalletConfigTreeNestedLeaf)
-	require.True(t, ok, "payloadGateLeafNode must be capped behind its own weight-1 nested leaf")
-	require.Equal(t, uint8(1), cappedGate.Weight)
-	require.Equal(t, uint16(1), cappedGate.Threshold)
-	require.Same(t, overweightedGateLeaf, cappedGate.Tree)
-}
-
-// A sapient-only config (calls is empty) must not build a broken calls gate: with no
-// subdigest leaves to wrap, wrapPayloadGate's inner threshold-1 node would otherwise end up
-// with a nil Tree, panicking on ImageHash or any other tree traversal. The calls gate must
-// simply be omitted, leaving the separately gated sapient leaf intact.
+// A sapient-only config (calls is empty) must not build a broken calls group: with no
+// subdigest leaves, only the sapient leaf is gated behind payloadGateLeaf. ImageHash must
+// still succeed (a nil inner Tree would panic on traversal).
 func TestCreateIntentConfigurationWithPayloadGateLeaf_EmptyCallsOmitsCallsGate(t *testing.T) {
 	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
 	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
@@ -564,10 +518,10 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_EmptyCallsOmitsCallsGate(t
 }
 
 // A sapient signer leaf (e.g. a timed-refund or gasless-deposit leaf) passed as
-// sapientSignerLeafNode is gated the same way as the calls leaves: it also requires
-// payloadGateLeaf's co-signature, in its own independent 2-of-2 subtree. mainSignerLeaf is
-// the only leaf never gated, so the owner can always act (e.g. recover funds) regardless of
-// the gate's paused state.
+// sapientSignerLeafNode shares payloadGateLeaf's gate with the calls leaves: either group
+// alone, plus payloadGateLeaf's co-signature, is sufficient. mainSignerLeaf is the only leaf
+// never gated, so the owner can always act (e.g. recover funds) regardless of the gate's
+// paused state.
 func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testing.T) {
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
@@ -615,14 +569,11 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testin
 	require.True(t, ok)
 	require.Equal(t, mainSigner, ownerLeaf.Address)
 
-	// Both the calls leaves and timedRefundLeaf must now be reachable only inside a gate
-	// (NestedLeaf), as siblings of each other.
-	rest, ok := top.Right.(*v3.WalletConfigTreeNode)
-	require.True(t, ok)
-	_, callsGateOk := rest.Left.(*v3.WalletConfigTreeNestedLeaf)
-	require.True(t, callsGateOk, "calls leaves must be gated")
-	_, sapientGateOk := rest.Right.(*v3.WalletConfigTreeNestedLeaf)
-	require.True(t, sapientGateOk, "timedRefundLeaf must now be gated too")
+	// The calls leaves and timedRefundLeaf share a single merged gate
+	// (threshold = gateWeight+1), not two separate gates.
+	mergedGate, ok := top.Right.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, ok, "calls and timedRefundLeaf must share one gate")
+	require.Equal(t, uint16(peerSignerLeaf.Weight)+1, mergedGate.Threshold, "outer gate is gateWeight+1")
 
 	require.NotNil(t, findSapientSignerLeaf(config.Tree, peerSigner))
 	require.NotNil(t, findSapientSignerLeaf(config.Tree, timedRefundSigner))
