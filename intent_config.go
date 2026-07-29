@@ -186,18 +186,22 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
-// wrapPayloadGate requires both payloadGateLeaf and protectedLeaves' own threshold to be
-// satisfied (weight 1 each, gate threshold 2), so withholding payloadGateLeaf's signature
-// blocks protectedLeaves regardless of their own weight. payloadGateLeaf must carry weight
-// 1. Safe to call more than once with the same payloadGateLeaf: one signature satisfies
-// every occurrence.
+// wrapPayloadGate requires both payloadGateLeaf and protectedLeaves (weight 1 each,
+// threshold 2). payloadGateLeaf is capped to weight 1 via its own nested leaf, since it's an
+// opaque caller-supplied tree that could otherwise satisfy the gate alone. Safe to call more
+// than once with the same payloadGateLeaf.
 func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, protectedLeaves ...v3.WalletConfigTree) v3.WalletConfigTree {
+	cappedGate := &v3.WalletConfigTreeNestedLeaf{
+		Weight:    1,
+		Threshold: 1,
+		Tree:      payloadGateLeaf,
+	}
 	inner := &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
 		Threshold: 1,
 		Tree:      v3.WalletConfigTreeNodes(protectedLeaves...),
 	}
-	gate := v3.WalletConfigTreeNodes(payloadGateLeaf, inner)
+	gate := v3.WalletConfigTreeNodes(cappedGate, inner)
 	return &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
 		Threshold: 2,
@@ -232,16 +236,14 @@ func createIntentTree(
 
 	if sapientSignerLeafNode != nil {
 		if payloadGateLeafNode != nil {
-			// Gated the same way as the calls leaves. mainSignerLeaf below is the only
-			// leaf left unaffected by the gate.
+			// Gated the same way as the calls leaves.
 			leaves = append(leaves, wrapPayloadGate(payloadGateLeafNode, sapientSignerLeafNode))
 		} else {
 			leaves = append(leaves, sapientSignerLeafNode)
 		}
 	}
 
-	// Create the main signer leaf (with weight 1). Never gated: the owner must remain able
-	// to act (e.g. recover funds) regardless of the gate's paused state.
+	// Main signer leaf (weight 1). Never gated, so the owner can always act.
 	mainSignerLeaf := &v3.WalletConfigTreeAddressLeaf{
 		Weight:  1,
 		Address: mainSigner,
@@ -263,10 +265,8 @@ func createIntentTree(
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer
-// address. When payloadGateLeafNode is set, the calls leaves and sapientSignerLeafNode (if
-// provided) are each gated behind it in their own 2-of-2 subtree (see wrapPayloadGate).
-// mainSigner is never gated. Passing nil for payloadGateLeafNode preserves the legacy tree
-// shape.
+// address. When payloadGateLeafNode is set, calls and sapientSignerLeafNode are each gated
+// behind it (see wrapPayloadGate); mainSigner never is. nil preserves the legacy tree shape.
 func CreateIntentTree(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,

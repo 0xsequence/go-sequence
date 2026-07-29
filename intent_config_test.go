@@ -485,6 +485,51 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
+// payloadGateLeafNode is an opaque v3.WalletConfigTree the caller controls; an overweighted
+// or otherwise misweighted leaf must not be able to satisfy the gate on its own. wrapPayloadGate
+// caps it to weight 1 behind its own nested leaf, regardless of the leaf's declared weight.
+func TestCreateIntentConfigurationWithPayloadGateLeaf_OverweightedGateLeafCapped(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	peerSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
+	// Overweighted on purpose: this alone must not be enough to satisfy the gate's
+	// threshold-2 requirement without the calls leaves also contributing.
+	overweightedGateLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     5,
+		Address:    peerSigner,
+		ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(1))},
+	}
+
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, overweightedGateLeaf, nil)
+	require.NoError(t, err)
+
+	top, ok := config.Tree.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+	outerGate, ok := top.Right.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, ok)
+	require.Equal(t, uint16(2), outerGate.Threshold)
+
+	gateNode, ok := outerGate.Tree.(*v3.WalletConfigTreeNode)
+	require.True(t, ok)
+
+	cappedGate, ok := gateNode.Left.(*v3.WalletConfigTreeNestedLeaf)
+	require.True(t, ok, "payloadGateLeafNode must be capped behind its own weight-1 nested leaf")
+	require.Equal(t, uint8(1), cappedGate.Weight)
+	require.Equal(t, uint16(1), cappedGate.Threshold)
+	require.Same(t, overweightedGateLeaf, cappedGate.Tree)
+}
+
 // A sapient-only config (calls is empty) must not build a broken calls gate: with no
 // subdigest leaves to wrap, wrapPayloadGate's inner threshold-1 node would otherwise end up
 // with a nil Tree, panicking on ImageHash or any other tree traversal. The calls gate must
@@ -594,29 +639,28 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testin
 	require.Truef(t, weightNoSigs.Cmp(big.NewInt(int64(config.Threshold()))) < 0,
 		"recovered weight %v must not meet threshold %v with no signatures at all", weightNoSigs, config.Threshold())
 
-	// Providing only the gate's co-signature (withholding timedRefundLeaf's own signature)
-	// must change the encoding, proving the gate leaf is wired into timedRefundLeaf's new
-	// gate position, not just the pre-existing calls gate.
+	// Each leaf's signature must change the encoding on its own, proving it's wired into
+	// its gated position. Checked independently (not combined) because the gate leaf alone
+	// already meets the overall threshold via the calls gate's auto-satisfying subdigest
+	// leaf, which would race BuildRegularSignature's early-cancellation against collecting
+	// the other signer's signature.
 	peerSignature := &core.SignerSignature{
 		Signer:    core.SapientSigner(peerSigner, peerSignerLeaf.ImageHash_.Hash),
 		Signature: []byte{},
 		Type:      core.SignerSignatureTypeSapientCompact,
 	}
-	signatureGateOnly, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{peerSignature})
+	signatureWithGate, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{peerSignature})
 	require.NoError(t, err)
-	require.NotEqual(t, signatureNoSigs, signatureGateOnly)
+	require.NotEqual(t, signatureNoSigs, signatureWithGate)
 
-	// Adding timedRefundLeaf's own signature alongside the gate's co-signature must change
-	// the encoding again, proving timedRefundLeaf's signature is actually consumed from its
-	// new (gated) position in the tree.
 	timedRefundSignature := &core.SignerSignature{
 		Signer:    core.SapientSigner(timedRefundSigner, timedRefundLeaf.ImageHash_.Hash),
 		Signature: []byte{},
 		Type:      core.SignerSignatureTypeSapientCompact,
 	}
-	signatureGateAndTimedRefund, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{peerSignature, timedRefundSignature})
+	signatureWithTimedRefund, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{timedRefundSignature})
 	require.NoError(t, err)
-	require.NotEqual(t, signatureGateOnly, signatureGateAndTimedRefund)
+	require.NotEqual(t, signatureNoSigs, signatureWithTimedRefund)
 }
 
 func TestTimedRefundSapientImageHash(t *testing.T) {
