@@ -226,6 +226,7 @@ func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
 }
 
 // IntentConfigOption configures the optional leaves of an intent configuration tree.
+// A nil IntentConfigOption is ignored.
 type IntentConfigOption func(*intentConfigOptions)
 
 type intentConfigOptions struct {
@@ -249,7 +250,9 @@ func WithSapientSigner(leaf v3.WalletConfigTree) IntentConfigOption {
 func applyIntentConfigOptions(opts []IntentConfigOption) intentConfigOptions {
 	var options intentConfigOptions
 	for _, opt := range opts {
-		opt(&options)
+		if opt != nil {
+			opt(&options)
+		}
 	}
 	return options
 }

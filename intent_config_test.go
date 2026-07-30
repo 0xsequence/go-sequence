@@ -323,6 +323,31 @@ func TestCreateIntentConfiguration_Valid(t *testing.T) {
 	require.NotNil(t, config)
 }
 
+func TestCreateIntentConfigurationNilOptionsIgnored(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.Address{},
+			Value:           nil,
+			Data:            nil,
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x1111111111111111111111111111111111111111")
+
+	// Legacy callers passed nil for the removed positional leaf params; those nils now
+	// arrive as nil options and must mean "no option", not panic.
+	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
+	require.NoError(t, err)
+
+	plainConfig, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0)
+	require.NoError(t, err)
+	require.Equal(t, plainConfig.ImageHash().Hash, config.ImageHash().Hash)
+}
+
 func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
 		{
