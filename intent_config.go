@@ -225,6 +225,35 @@ func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
 	}
 }
 
+// IntentConfigOption configures the optional leaves of an intent configuration tree.
+type IntentConfigOption func(*intentConfigOptions)
+
+type intentConfigOptions struct {
+	payloadGateLeafNode   v3.WalletConfigTree
+	sapientSignerLeafNode v3.WalletConfigTree
+}
+
+// WithPayloadGate gates the calls and the sapient signer leaf behind leaf's co-signature:
+// either group, plus leaf's signature, authorizes the wallet (see wrapPayloadGate). The
+// main signer is never gated.
+func WithPayloadGate(leaf v3.WalletConfigTree) IntentConfigOption {
+	return func(o *intentConfigOptions) { o.payloadGateLeafNode = leaf }
+}
+
+// WithSapientSigner adds leaf (e.g. a timed-refund or gasless-deposit signer) as an
+// authorizer alongside the calls' subdigest leaves.
+func WithSapientSigner(leaf v3.WalletConfigTree) IntentConfigOption {
+	return func(o *intentConfigOptions) { o.sapientSignerLeafNode = leaf }
+}
+
+func applyIntentConfigOptions(opts []IntentConfigOption) intentConfigOptions {
+	var options intentConfigOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+	return options
+}
+
 func createIntentTree(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
@@ -281,16 +310,15 @@ func createIntentTree(
 }
 
 // `CreateIntentTree` creates a tree from a list of intent operations and a main signer
-// address. When payloadGateLeafNode is set, calls and sapientSignerLeafNode share one gate
-// that requires its co-signature (see wrapPayloadGate); mainSigner never is. nil preserves
-// the legacy tree shape.
+// address. See WithPayloadGate and WithSapientSigner for the optional leaves; with no
+// options the legacy tree shape is preserved.
 func CreateIntentTree(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
-	payloadGateLeafNode v3.WalletConfigTree,
-	sapientSignerLeafNode v3.WalletConfigTree,
+	opts ...IntentConfigOption,
 ) (*v3.WalletConfigTree, error) {
-	return createIntentTree(mainSigner, calls, payloadGateLeafNode, sapientSignerLeafNode)
+	options := applyIntentConfigOptions(opts)
+	return createIntentTree(mainSigner, calls, options.payloadGateLeafNode, options.sapientSignerLeafNode)
 }
 
 func createIntentConfiguration(
@@ -313,16 +341,16 @@ func createIntentConfiguration(
 }
 
 // `CreateIntentConfiguration` creates a wallet configuration where the intent's transaction
-// batches are grouped into the initial subdigest. See CreateIntentTree for
-// payloadGateLeafNode and sapientSignerLeafNode semantics.
+// batches are grouped into the initial subdigest. See WithPayloadGate and WithSapientSigner
+// for the optional leaves.
 func CreateIntentConfiguration(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
 	checkpoint uint64,
-	payloadGateLeafNode v3.WalletConfigTree,
-	sapientSignerLeafNode v3.WalletConfigTree,
+	opts ...IntentConfigOption,
 ) (*v3.WalletConfig, error) {
-	return createIntentConfiguration(mainSigner, calls, checkpoint, payloadGateLeafNode, sapientSignerLeafNode)
+	options := applyIntentConfigOptions(opts)
+	return createIntentConfiguration(mainSigner, calls, checkpoint, options.payloadGateLeafNode, options.sapientSignerLeafNode)
 }
 
 // `BuildIntentConfigurationSignature` creates a signature for an already-built intent configuration
@@ -360,11 +388,11 @@ func GetIntentConfigurationSignature(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
 	checkpoint uint64,
-	payloadGateLeafNode v3.WalletConfigTree,
-	sapientSignerLeafNode v3.WalletConfigTree,
 	signerSignatures []*core.SignerSignature,
+	opts ...IntentConfigOption,
 ) ([]byte, error) {
-	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, payloadGateLeafNode, sapientSignerLeafNode)
+	options := applyIntentConfigOptions(opts)
+	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, options.payloadGateLeafNode, options.sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}

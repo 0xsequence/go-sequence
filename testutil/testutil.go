@@ -728,7 +728,7 @@ func (c *TestChain) V3DummySequenceWalletWithIntentConfig(seed uint64, calls []*
 	}
 
 	// Create an intent config
-	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), calls, 0, nil, nil)
+	intentConfig, err := sequence.CreateIntentConfiguration(owner.Address(), calls, 0)
 	if err != nil {
 		return nil, err
 	}
