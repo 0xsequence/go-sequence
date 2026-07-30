@@ -1999,7 +1999,6 @@ func (c *WalletConfig) BuildSubdigestSignature(noChainID bool) (core.Signature[*
 }
 
 func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
-	var isValid bool
 	configSigners := c.Signers()
 
 	signCtx, signCancel := context.WithCancel(ctx)
@@ -2020,15 +2019,18 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 			signerSignatures[signerSignature.Signer] = signerSignature
 			signedSigners[signerSignature.Signer] = configSigners[signerSignature.Signer]
 
-			weight := c.Tree.signersWeight(signedSigners)
+			// Cancel outstanding signers only once collected signatures alone meet the
+			// threshold. signersWeight counts payload-blind subdigest leaves as satisfied,
+			// and cancelling on that estimate nondeterministically drops signatures that
+			// recovery of a non-matching payload still needs.
+			weight := c.Tree.collectedSignersWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
 				signCancel()
-				isValid = true
 			}
 		}
 	}
 
-	if !isValid && validateSigningPower {
+	if validateSigningPower && c.Tree.signersWeight(signedSigners).Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) < 0 {
 		return nil, fmt.Errorf("not enough signers to build regular signature")
 	}
 
@@ -2048,7 +2050,6 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 }
 
 func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
-	var isValid bool
 	configSigners := c.Signers()
 
 	signCtx, signCancel := context.WithCancel(ctx)
@@ -2069,15 +2070,18 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 			signerSignatures[signerSignature.Signer] = signerSignature
 			signedSigners[signerSignature.Signer] = configSigners[signerSignature.Signer]
 
-			weight := c.Tree.signersWeight(signedSigners)
+			// Cancel outstanding signers only once collected signatures alone meet the
+			// threshold. signersWeight counts payload-blind subdigest leaves as satisfied,
+			// and cancelling on that estimate nondeterministically drops signatures that
+			// recovery of a non-matching payload still needs.
+			weight := c.Tree.collectedSignersWeight(signedSigners)
 			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
 				signCancel()
-				isValid = true
 			}
 		}
 	}
 
-	if !isValid && validateSigningPower {
+	if validateSigningPower && c.Tree.signersWeight(signedSigners).Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) < 0 {
 		return nil, fmt.Errorf("not enough signers to build no chain ID signature")
 	}
 
@@ -2096,36 +2100,17 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 	}}, nil
 }
 
-// BuildRegularSignatureFromSignatures builds a regular signature directly from
-// pre-collected signer signatures, with no signing orchestration. Use this instead of
-// BuildRegularSignature when all signatures are already in hand: BuildRegularSignature
-// cancels outstanding signers once the config threshold looks met, and payload-independent
-// leaves (e.g. WalletConfigTreeAnyAddressSubdigestLeaf) can satisfy the threshold early,
-// nondeterministically dropping supplied signatures that recovery still needs. Signers
-// without a matching entry are encoded as their image hash; no signing power validation
-// is performed.
-func (c *WalletConfig) BuildRegularSignatureFromSignatures(signerSignatures map[core.Signer]core.SignerSignature, checkpointerData ...[]byte) core.Signature[*WalletConfig] {
-	var cpData []byte
-	if len(checkpointerData) > 0 {
-		cpData = checkpointerData[0]
-	}
-
-	return &RegularSignature{&Signature{
-		NoChainId:        false,
-		Threshold:        c.Threshold_,
-		Checkpoint:       c.Checkpoint_,
-		Tree:             c.Tree.buildSignatureTree(signerSignatures),
-		Checkpointer:     c.Checkpointer,
-		CheckpointerData: cpData,
-	}}
-}
-
 type WalletConfigTree interface {
 	core.ImageHashable
 
 	isComplete() bool
 	maxWeight() *big.Int
 	signersWeight(signers map[core.Signer]uint16) *big.Int
+	// collectedSignersWeight is signersWeight with payload-blind leaves (subdigest
+	// leaves, which claim max weight for any payload) counting zero, so it only
+	// reflects weight from actually collected signatures. Safe to use for early
+	// cancellation decisions; signersWeight is not.
+	collectedSignersWeight(signers map[core.Signer]uint16) *big.Int
 	readSignersIntoMap(signers map[core.Signer]uint16)
 	buildSignatureTree(signerSignatures map[core.Signer]core.SignerSignature) signatureTree
 }
@@ -2291,6 +2276,10 @@ func (n *WalletConfigTreeNode) signersWeight(signers map[core.Signer]uint16) *bi
 	return new(big.Int).Add(n.Left.signersWeight(signers), n.Right.signersWeight(signers))
 }
 
+func (n *WalletConfigTreeNode) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return new(big.Int).Add(n.Left.collectedSignersWeight(signers), n.Right.collectedSignersWeight(signers))
+}
+
 func (n *WalletConfigTreeNode) readSignersIntoMap(signers map[core.Signer]uint16) {
 	n.Left.readSignersIntoMap(signers)
 	n.Right.readSignersIntoMap(signers)
@@ -2367,6 +2356,10 @@ func (l *WalletConfigTreeAddressLeaf) signersWeight(signers map[core.Signer]uint
 	} else {
 		return new(big.Int)
 	}
+}
+
+func (l *WalletConfigTreeAddressLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return l.signersWeight(signers)
 }
 
 func (l *WalletConfigTreeAddressLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
@@ -2466,6 +2459,10 @@ func (l WalletConfigTreeNodeLeaf) signersWeight(signers map[core.Signer]uint16) 
 	return new(big.Int)
 }
 
+func (l WalletConfigTreeNodeLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return new(big.Int)
+}
+
 func (l WalletConfigTreeNodeLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
 }
 
@@ -2553,6 +2550,13 @@ func (l *WalletConfigTreeNestedLeaf) signersWeight(signers map[core.Signer]uint1
 	return new(big.Int)
 }
 
+func (l *WalletConfigTreeNestedLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	if l.Tree.collectedSignersWeight(signers).Cmp(new(big.Int).SetUint64(uint64(l.Threshold))) >= 0 {
+		return new(big.Int).SetUint64(uint64(l.Weight))
+	}
+	return new(big.Int)
+}
+
 func (l *WalletConfigTreeNestedLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
 	l.Tree.readSignersIntoMap(signers)
 }
@@ -2617,6 +2621,10 @@ func (l WalletConfigTreeSubdigestLeaf) maxWeight() *big.Int {
 
 func (l WalletConfigTreeSubdigestLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
 	return new(big.Int).Set(maxUint256)
+}
+
+func (l WalletConfigTreeSubdigestLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return new(big.Int)
 }
 
 func (l WalletConfigTreeSubdigestLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
@@ -2709,6 +2717,10 @@ func (l *WalletConfigTreeSapientSignerLeaf) signersWeight(signers map[core.Signe
 	}
 }
 
+func (l *WalletConfigTreeSapientSignerLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return l.signersWeight(signers)
+}
+
 func (l *WalletConfigTreeSapientSignerLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
 	signers[core.SapientSigner(l.Address, l.ImageHash_.Hash)] = uint16(l.Weight)
 }
@@ -2783,6 +2795,10 @@ func (l WalletConfigTreeAnyAddressSubdigestLeaf) maxWeight() *big.Int {
 
 func (l WalletConfigTreeAnyAddressSubdigestLeaf) signersWeight(signers map[core.Signer]uint16) *big.Int {
 	return new(big.Int).Set(maxUint256)
+}
+
+func (l WalletConfigTreeAnyAddressSubdigestLeaf) collectedSignersWeight(signers map[core.Signer]uint16) *big.Int {
+	return new(big.Int)
 }
 
 func (l WalletConfigTreeAnyAddressSubdigestLeaf) readSignersIntoMap(signers map[core.Signer]uint16) {
