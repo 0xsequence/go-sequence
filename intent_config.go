@@ -367,10 +367,11 @@ func GetIntentConfigurationSignature(
 	mainSigner common.Address,
 	calls []*v3.CallsPayload,
 	checkpoint uint64,
+	payloadGateLeafNode v3.WalletConfigTree,
 	sapientSignerLeafNode v3.WalletConfigTree,
 	signerSignatures []*core.SignerSignature,
 ) ([]byte, error) {
-	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, nil, sapientSignerLeafNode)
+	config, err := createIntentConfiguration(mainSigner, calls, checkpoint, payloadGateLeafNode, sapientSignerLeafNode)
 	if err != nil {
 		return nil, err
 	}

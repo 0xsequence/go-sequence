@@ -379,7 +379,7 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, config.ImageHash().Hash, recoveredConfig.ImageHash().Hash)
 
-	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
+	plainSignature, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, plainSignature, signature)
 }
@@ -676,7 +676,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil, nil)
 		require.NoError(t, err)
 
 		// fmt.Println("==> signature", common.Bytes2Hex(signature))
@@ -751,10 +751,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		}, big.NewInt(0), big.NewInt(0))
 
 		// Create signatures for each payload as separate batches
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2}, 0, nil, nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload2}, 0, nil, nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are different
@@ -763,10 +763,10 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 
 	t.Run("same transactions produce same signatures", func(t *testing.T) {
 		// Use the payload directly
-		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
+		sig1, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil, nil)
 		require.NoError(t, err)
 
-		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil)
+		sig2, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, nil, nil)
 		require.NoError(t, err)
 
 		// Verify signatures are the same
@@ -779,7 +779,7 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create the signature
-		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, sapientSignerLeafNode, []*core.SignerSignature{signerSignature})
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, nil, sapientSignerLeafNode, []*core.SignerSignature{signerSignature})
 		require.NoError(t, err)
 
 		sapientLeaf := findSapientSignerLeaf(config.Tree, sapientSignerAddress)
@@ -816,6 +816,134 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		// Verify the signature contains the sapient signature
 		require.Contains(t, common.Bytes2Hex(sigDataStr), sapientSignerSignature[2:], "signature should contain the sapient signer signature")
 	})
+
+	t.Run("payload gate signature included in the signature tree", func(t *testing.T) {
+		gateContract := testChain.UniDeploy(t, "MOCK_SAPIENT", 1)
+		gateSignerAddress := gateContract.Address
+		gateImageHash := common.HexToHash("0xABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456789A")
+		gateLeafNode := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     1,
+			Address:    gateSignerAddress,
+			ImageHash_: core.ImageHash{Hash: gateImageHash},
+		}
+		gateSignature := &core.SignerSignature{
+			Signer: core.Signer{
+				Address:   gateSignerAddress,
+				IsSapient: true,
+				ImageHash: gateImageHash,
+			},
+			Signature: gateImageHash.Bytes(),
+			Type:      core.SignerSignatureTypeSapient,
+		}
+
+		// Create the intent configuration
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, nil)
+		require.NoError(t, err)
+
+		// Create the signature
+		signature, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, nil, []*core.SignerSignature{gateSignature})
+		require.NoError(t, err)
+
+		gateLeaf := findSapientSignerLeaf(config.Tree, gateSignerAddress)
+		require.NotNil(t, gateLeaf)
+		require.Equal(t, gateImageHash, gateLeaf.ImageHash_.Hash)
+
+		// Verify the signature can be decoded
+		sig, err := v3.Core.DecodeSignature(signature)
+		require.NoError(t, err, "signature should be decodable")
+
+		// Get the config from the signature
+		recoveredSignerSignatures := map[core.Signer]core.SignerSignature{}
+		recoveredConfig, _, err := sig.Recover(context.Background(), payload, testChain.Provider, recoveredSignerSignatures)
+		require.NoError(t, err)
+		require.NotNil(t, recoveredConfig, "recovered config should not be nil")
+		require.Len(t, recoveredSignerSignatures, 1, "expected exactly one recovered gate signer signature")
+		var recoveredGateSig core.SignerSignature
+		for signer, sig := range recoveredSignerSignatures {
+			if signer.Address == gateSignerAddress {
+				recoveredGateSig = sig
+				break
+			}
+		}
+		require.NotNil(t, recoveredGateSig.Signature, "gate signer signature should be recovered")
+		require.Equal(t, gateSignature.Signature, recoveredGateSig.Signature, "recovered gate signature should match")
+
+		// Get the full signature in string
+		sigDataStr, err := sig.Data()
+		require.NoError(t, err)
+
+		// Verify the signature contains the gate signature
+		require.Contains(t, common.Bytes2Hex(sigDataStr), gateImageHash.Hex()[2:], "signature should contain the gate signer signature")
+	})
+
+	t.Run("payload gate and sapient signer signatures included in the signature tree", func(t *testing.T) {
+		gateContract := testChain.UniDeploy(t, "MOCK_SAPIENT", 2)
+		gateSignerAddress := gateContract.Address
+		gateImageHash := common.HexToHash("0xFEDCBA0987654321FEDCBA0987654321FEDCBA0987654321FEDCBA098765432")
+		gateLeafNode := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     1,
+			Address:    gateSignerAddress,
+			ImageHash_: core.ImageHash{Hash: gateImageHash},
+		}
+		gateSignature := &core.SignerSignature{
+			Signer: core.Signer{
+				Address:   gateSignerAddress,
+				IsSapient: true,
+				ImageHash: gateImageHash,
+			},
+			Signature: gateImageHash.Bytes(),
+			Type:      core.SignerSignatureTypeSapient,
+		}
+
+		// Create the intent configuration
+		config, err := sequence.CreateIntentConfiguration(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode)
+		require.NoError(t, err)
+
+		sapientLeaf := findSapientSignerLeaf(config.Tree, sapientSignerAddress)
+		require.NotNil(t, sapientLeaf)
+		require.Equal(t, sapientImageHash, sapientLeaf.ImageHash_.Hash)
+
+		gateLeaf := findSapientSignerLeaf(config.Tree, gateSignerAddress)
+		require.NotNil(t, gateLeaf)
+		require.Equal(t, gateImageHash, gateLeaf.ImageHash_.Hash)
+
+		// Checked independently (not combined in one call) because the gate leaf alone
+		// already meets the overall threshold via the calls gate's auto-satisfying
+		// subdigest leaf, which would race BuildRegularSignature's early-cancellation
+		// against collecting the other signer's signature.
+		signatureNoSigs, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode, nil)
+		require.NoError(t, err)
+
+		signatureWithGateSig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode, []*core.SignerSignature{gateSignature})
+		require.NoError(t, err)
+		require.NotEqual(t, signatureNoSigs, signatureWithGateSig, "including the gate signature must change the encoding")
+
+		sigWithGateSig, err := v3.Core.DecodeSignature(signatureWithGateSig)
+		require.NoError(t, err, "signature should be decodable")
+		gateRecoveredSignatures := map[core.Signer]core.SignerSignature{}
+		_, _, err = sigWithGateSig.Recover(context.Background(), payload, testChain.Provider, gateRecoveredSignatures)
+		require.NoError(t, err)
+		require.Len(t, gateRecoveredSignatures, 1, "expected exactly one recovered gate signer signature")
+		for signer, sig := range gateRecoveredSignatures {
+			require.Equal(t, gateSignerAddress, signer.Address)
+			require.Equal(t, gateSignature.Signature, sig.Signature, "recovered gate signature should match")
+		}
+
+		signatureWithSapientSig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode, []*core.SignerSignature{signerSignature})
+		require.NoError(t, err)
+		require.NotEqual(t, signatureNoSigs, signatureWithSapientSig, "including the sapient signature must change the encoding")
+
+		sigWithSapientSig, err := v3.Core.DecodeSignature(signatureWithSapientSig)
+		require.NoError(t, err, "signature should be decodable")
+		sapientRecoveredSignatures := map[core.Signer]core.SignerSignature{}
+		_, _, err = sigWithSapientSig.Recover(context.Background(), payload, testChain.Provider, sapientRecoveredSignatures)
+		require.NoError(t, err)
+		require.Len(t, sapientRecoveredSignatures, 1, "expected exactly one recovered sapient signer signature")
+		for signer, sig := range sapientRecoveredSignatures {
+			require.Equal(t, sapientSignerAddress, signer.Address)
+			require.Equal(t, signerSignature.Signature, sig.Signature, "recovered sapient signature should match")
+		}
+	})
 }
 
 func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
@@ -846,7 +974,7 @@ func TestGetIntentConfigurationSignature_MultipleTransactions(t *testing.T) {
 	}, big.NewInt(0), big.NewInt(0))
 
 	// Create a signature
-	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil)
+	sig, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload1}, 0, nil, nil, nil)
 	require.NoError(t, err)
 
 	// Convert the full signature into a hex string.
@@ -917,7 +1045,7 @@ func TestIntentTransactionToGuestModuleDeployAndCall(t *testing.T) {
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for the batch.
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, []*v3.CallsPayload{&payload}, 0, nil, nil, nil)
 	require.NoError(t, err)
 
 	// fmt.Println("==> bundle.Digest", bundle.Digest().Hash)
@@ -1075,7 +1203,7 @@ func TestIntentTransactionToGuestModuleDeployAndCallMultiplePayloads(t *testing.
 	require.NotZero(t, mainSigner)
 
 	// Generate a configuration signature for both batches
-	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads, 0, nil, nil)
+	intentConfigSig, err := sequence.GetIntentConfigurationSignature(mainSigner, payloads, 0, nil, nil, nil)
 	require.NoError(t, err)
 	fmt.Printf("--- Intent Config Signature (for all payloads) ---\n%s\n", common.Bytes2Hex(intentConfigSig))
 
