@@ -1,7 +1,6 @@
 package sequence
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -327,29 +326,23 @@ func CreateIntentConfiguration(
 }
 
 // `BuildIntentConfigurationSignature` creates a signature for an already-built intent configuration
-// that can be used to bypass chain ID validation.
+// that can be used to bypass chain ID validation. All supplied signer signatures are
+// embedded deterministically; signers without a supplied signature are encoded as their
+// image hash.
 func BuildIntentConfigurationSignature(config *v3.WalletConfig, signerSignatures []*core.SignerSignature) ([]byte, error) {
 	if config == nil {
 		return nil, fmt.Errorf("intent configuration is nil")
 	}
 
-	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
-		for _, signerSignature := range signerSignatures {
-			if signer == signerSignature.Signer {
-				return signerSignature.Type, signerSignature.Signature, nil
-			}
+	signatures := make(map[core.Signer]core.SignerSignature, len(signerSignatures))
+	for _, signerSignature := range signerSignatures {
+		if signerSignature != nil {
+			signatures[signerSignature.Signer] = *signerSignature
 		}
-		return 0, nil, nil
 	}
 
-	// Build the signature using BuildNoChainIDSignature, which allows us to inject custom signatures via SigningFunction.
-	// Set validateSigningPower to false, as we are not necessarily providing signatures for all parts of the config.
-	sig, err := config.BuildRegularSignature(context.Background(), signingFunc, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build regular signature: %w", err)
-	}
+	sig := config.BuildRegularSignatureFromSignatures(signatures)
 
-	// Get the signature data
 	data, err := sig.Data()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature data: %w", err)

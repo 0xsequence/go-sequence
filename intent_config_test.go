@@ -591,10 +591,7 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testin
 		"recovered weight %v must not meet threshold %v with no signatures at all", weightNoSigs, config.Threshold())
 
 	// Each leaf's signature must change the encoding on its own, proving it's wired into
-	// its gated position. Checked independently (not combined) because the gate leaf alone
-	// already meets the overall threshold via the calls gate's auto-satisfying subdigest
-	// leaf, which would race BuildRegularSignature's early-cancellation against collecting
-	// the other signer's signature.
+	// its gated position.
 	peerSignature := &core.SignerSignature{
 		Signer:    core.SapientSigner(peerSigner, peerSignerLeaf.ImageHash_.Hash),
 		Signature: []byte{},
@@ -612,6 +609,22 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf_SapientLeafGated(t *testin
 	signatureWithTimedRefund, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{timedRefundSignature})
 	require.NoError(t, err)
 	require.NotEqual(t, signatureNoSigs, signatureWithTimedRefund)
+
+	// Supplying both signatures must embed both, deterministically. The gate leaf alone
+	// meets the config threshold via the calls gate's payload-independent subdigest leaf,
+	// so an early-cancelling builder could drop the other signature depending on goroutine
+	// scheduling; every build must include both signatures and produce identical bytes.
+	both := []*core.SignerSignature{peerSignature, timedRefundSignature}
+	signatureCombined, err := sequence.BuildIntentConfigurationSignature(config, both)
+	require.NoError(t, err)
+	require.NotEqual(t, signatureNoSigs, signatureCombined)
+	require.NotEqual(t, signatureWithGate, signatureCombined, "combined signature must also embed the timed refund signature")
+	require.NotEqual(t, signatureWithTimedRefund, signatureCombined, "combined signature must also embed the gate signature")
+	for range 50 {
+		rebuilt, err := sequence.BuildIntentConfigurationSignature(config, both)
+		require.NoError(t, err)
+		require.Equal(t, signatureCombined, rebuilt, "combined signature must be deterministic")
+	}
 }
 
 func TestTimedRefundSapientImageHash(t *testing.T) {
@@ -907,10 +920,8 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		require.NotNil(t, gateLeaf)
 		require.Equal(t, gateImageHash, gateLeaf.ImageHash_.Hash)
 
-		// Checked independently (not combined in one call) because the gate leaf alone
-		// already meets the overall threshold via the calls gate's auto-satisfying
-		// subdigest leaf, which would race BuildRegularSignature's early-cancellation
-		// against collecting the other signer's signature.
+		// Each signature is checked independently first to prove its leaf's wiring, then
+		// combined to prove a single build embeds both.
 		signatureNoSigs, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode, nil)
 		require.NoError(t, err)
 
@@ -942,6 +953,31 @@ func TestGetIntentConfigurationSignature(t *testing.T) {
 		for signer, sig := range sapientRecoveredSignatures {
 			require.Equal(t, sapientSignerAddress, signer.Address)
 			require.Equal(t, signerSignature.Signature, sig.Signature, "recovered sapient signature should match")
+		}
+
+		// Supplying both signatures in one call must embed both: the gate leaf alone meets
+		// the config threshold via the calls gate's payload-independent subdigest leaf, so
+		// an early-cancelling builder could nondeterministically drop the sapient signature.
+		signatureCombined, err := sequence.GetIntentConfigurationSignature(eoa1.Address(), []*v3.CallsPayload{&payload}, 0, gateLeafNode, sapientSignerLeafNode, []*core.SignerSignature{gateSignature, signerSignature})
+		require.NoError(t, err)
+		require.NotEqual(t, signatureWithGateSig, signatureCombined, "combined signature must also embed the sapient signature")
+		require.NotEqual(t, signatureWithSapientSig, signatureCombined, "combined signature must also embed the gate signature")
+
+		sigCombined, err := v3.Core.DecodeSignature(signatureCombined)
+		require.NoError(t, err, "signature should be decodable")
+		combinedRecoveredSignatures := map[core.Signer]core.SignerSignature{}
+		_, _, err = sigCombined.Recover(context.Background(), payload, testChain.Provider, combinedRecoveredSignatures)
+		require.NoError(t, err)
+		require.Len(t, combinedRecoveredSignatures, 2, "expected both the gate and sapient signer signatures recovered")
+		for signer, sig := range combinedRecoveredSignatures {
+			switch signer.Address {
+			case gateSignerAddress:
+				require.Equal(t, gateSignature.Signature, sig.Signature, "recovered gate signature should match")
+			case sapientSignerAddress:
+				require.Equal(t, signerSignature.Signature, sig.Signature, "recovered sapient signature should match")
+			default:
+				require.Failf(t, "unexpected recovered signer", "address %s", signer.Address)
+			}
 		}
 	})
 }
