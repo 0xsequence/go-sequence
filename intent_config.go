@@ -211,8 +211,7 @@ func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.W
 	}, nil
 }
 
-// leafWeight returns the contribution weight of a single leaf. Nodes and other types whose
-// effective weight can't be read from outside package v3 are rejected.
+// leafWeight returns the contribution weight of a single terminal leaf.
 func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
 	if tree == nil {
 		return 0, fmt.Errorf("nil leaf")
@@ -221,8 +220,6 @@ func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
 	case *v3.WalletConfigTreeAddressLeaf:
 		return t.Weight, nil
 	case *v3.WalletConfigTreeSapientSignerLeaf:
-		return t.Weight, nil
-	case *v3.WalletConfigTreeNestedLeaf:
 		return t.Weight, nil
 	default:
 		return 0, fmt.Errorf("unsupported leaf type %T", tree)
