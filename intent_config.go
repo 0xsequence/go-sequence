@@ -388,7 +388,7 @@ func BuildIntentConfigurationSignature(config *v3.WalletConfig, signerSignatures
 
 	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
 		for _, signerSignature := range signerSignatures {
-			if signer == signerSignature.Signer {
+			if signerSignature != nil && signer == signerSignature.Signer {
 				return signerSignature.Type, signerSignature.Signature, nil
 			}
 		}
