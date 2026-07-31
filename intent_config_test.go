@@ -573,6 +573,44 @@ func TestCreateIntentConfigurationGateDuplicateSapientRejected(t *testing.T) {
 		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
 	})
 
+	t.Run("gate signer inside a nested leaf is rejected", func(t *testing.T) {
+		nested := &v3.WalletConfigTreeNestedLeaf{
+			Weight:    1,
+			Threshold: 1,
+			Tree:      gateLeaf,
+		}
+		_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithGate(gateLeaf), sequence.WithSapientSigner(nested))
+		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
+	})
+
+	t.Run("gate signer inside a node branch is rejected", func(t *testing.T) {
+		otherLeaf := &v3.WalletConfigTreeAddressLeaf{
+			Weight:  1,
+			Address: common.HexToAddress("0x3333333333333333333333333333333333333333"),
+		}
+		branch := v3.WalletConfigTreeNodes(otherLeaf, gateLeaf)
+		_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithGate(gateLeaf), sequence.WithSapientSigner(branch))
+		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
+	})
+
+	t.Run("nested tree without the gate signer is allowed", func(t *testing.T) {
+		nested := &v3.WalletConfigTreeNestedLeaf{
+			Weight:    1,
+			Threshold: 1,
+			Tree: &v3.WalletConfigTreeSapientSignerLeaf{
+				Weight:     1,
+				Address:    common.HexToAddress("0x4444444444444444444444444444444444444444"),
+				ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(4))},
+			},
+		}
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithGate(gateLeaf), sequence.WithSapientSigner(nested))
+		require.NoError(t, err)
+		require.NotNil(t, config)
+	})
+
 	t.Run("payload-matching leaf as gate is rejected", func(t *testing.T) {
 		subdigestGate := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
 			Digest: common.BigToHash(big.NewInt(3)),

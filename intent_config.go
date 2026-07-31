@@ -204,12 +204,11 @@ func wrapGate(gateLeaf v3.WalletConfigTree, gateableLeaves ...v3.WalletConfigTre
 	if gateWeight.Cmp(maxUint64) > 0 {
 		return nil, fmt.Errorf("invalid gateLeafNode: weight is too large")
 	}
-	// A gated signer leaf sharing the gate's identity satisfies both sides of the outer
+	// The gate's identity anywhere in the gated subtree satisfies both sides of the outer
 	// threshold with one signature, letting the gate authorize alone
-	for _, leaf := range gateableLeaves {
-		if signer, _, err := signerLeaf(leaf); err == nil && signer == gateSigner {
-			return nil, fmt.Errorf("invalid gateLeafNode: gate signer must not appear among gated leaves")
-		}
+	gatedSigners := (&v3.WalletConfig{Tree: v3.WalletConfigTreeNodes(gateableLeaves...)}).Signers()
+	if _, ok := gatedSigners[gateSigner]; ok {
+		return nil, fmt.Errorf("invalid gateLeafNode: gate signer must not appear among gated leaves")
 	}
 	gateableTree := &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
