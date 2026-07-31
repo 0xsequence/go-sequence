@@ -66,3 +66,25 @@ func TestBuildRegularSignatureCollectsAllSignersDespiteSubdigestLeaf(t *testing.
 		require.Equal(t, first, data, "signature encoding must be deterministic")
 	}
 }
+
+// A subdigest leaf reports max signersWeight even for an empty signer set, so
+// signing-power validation must still fail when no signature is collected at all.
+func TestBuildSignatureValidationRejectsEmptySignerSetDespiteSubdigestLeaf(t *testing.T) {
+	config := &v3.WalletConfig{
+		Threshold_: 2,
+		Tree: v3.WalletConfigTreeNodes(
+			v3.WalletConfigTreeSubdigestLeaf{Subdigest: common.BigToHash(big.NewInt(1))},
+			&v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0x1111111111111111111111111111111111111111")},
+		),
+	}
+
+	signingFunc := func(ctx context.Context, signer core.Signer, _ []core.SignerSignature) (core.SignerSignatureType, []byte, error) {
+		return 0, nil, nil
+	}
+
+	_, err := config.BuildRegularSignature(context.Background(), signingFunc, true)
+	require.ErrorContains(t, err, "not enough signers")
+
+	_, err = config.BuildNoChainIDSignature(context.Background(), signingFunc, true)
+	require.ErrorContains(t, err, "not enough signers")
+}

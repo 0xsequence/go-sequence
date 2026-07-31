@@ -1999,7 +1999,9 @@ func (c *WalletConfig) BuildSubdigestSignature(noChainID bool) (core.Signature[*
 }
 
 func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
+	var isValid bool
 	configSigners := c.Signers()
+	threshold := new(big.Int).SetUint64(uint64(c.Threshold_))
 
 	signCtx, signCancel := context.WithCancel(ctx)
 	defer signCancel()
@@ -2023,14 +2025,17 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 			// threshold. signersWeight counts payload-blind subdigest leaves as satisfied,
 			// and cancelling on that estimate nondeterministically drops signatures that
 			// recovery of a non-matching payload still needs.
-			weight := c.Tree.collectedSignersWeight(signedSigners)
-			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
+			if c.Tree.collectedSignersWeight(signedSigners).Cmp(threshold) >= 0 {
 				signCancel()
+			}
+
+			if c.Tree.signersWeight(signedSigners).Cmp(threshold) >= 0 {
+				isValid = true
 			}
 		}
 	}
 
-	if validateSigningPower && c.Tree.signersWeight(signedSigners).Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) < 0 {
+	if !isValid && validateSigningPower {
 		return nil, fmt.Errorf("not enough signers to build regular signature")
 	}
 
@@ -2050,7 +2055,9 @@ func (c *WalletConfig) BuildRegularSignature(ctx context.Context, sign core.Sign
 }
 
 func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.SigningFunction, validateSigningPower bool, checkpointerData ...[]byte) (core.Signature[*WalletConfig], error) {
+	var isValid bool
 	configSigners := c.Signers()
+	threshold := new(big.Int).SetUint64(uint64(c.Threshold_))
 
 	signCtx, signCancel := context.WithCancel(ctx)
 	defer signCancel()
@@ -2074,14 +2081,17 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 			// threshold. signersWeight counts payload-blind subdigest leaves as satisfied,
 			// and cancelling on that estimate nondeterministically drops signatures that
 			// recovery of a non-matching payload still needs.
-			weight := c.Tree.collectedSignersWeight(signedSigners)
-			if weight.Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) >= 0 {
+			if c.Tree.collectedSignersWeight(signedSigners).Cmp(threshold) >= 0 {
 				signCancel()
+			}
+
+			if c.Tree.signersWeight(signedSigners).Cmp(threshold) >= 0 {
+				isValid = true
 			}
 		}
 	}
 
-	if validateSigningPower && c.Tree.signersWeight(signedSigners).Cmp(new(big.Int).SetUint64(uint64(c.Threshold_))) < 0 {
+	if !isValid && validateSigningPower {
 		return nil, fmt.Errorf("not enough signers to build no chain ID signature")
 	}
 
