@@ -191,12 +191,19 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 // leaf. The outer threshold is payloadGateLeaf's weight + 1, so any gate weight is safe by
 // construction (the gate alone cannot meet it).
 func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.WalletConfigTree) (v3.WalletConfigTree, error) {
-	gateWeight, err := leafWeight(payloadGateLeaf)
+	gateSigner, gateWeight, err := signerLeaf(payloadGateLeaf)
 	if err != nil {
 		return nil, fmt.Errorf("invalid payloadGateLeafNode: %w", err)
 	}
-	if gateWeight == 0 {
+	if gateWeight.Sign() <= 0 {
 		return nil, fmt.Errorf("invalid payloadGateLeafNode: weight must be > 0")
+	}
+	// A gated signer leaf sharing the gate's identity satisfies both sides of the outer
+	// threshold with one signature, letting the gate authorize alone
+	for _, leaf := range gateableLeaves {
+		if signer, _, err := signerLeaf(leaf); err == nil && signer == gateSigner {
+			return nil, fmt.Errorf("invalid payloadGateLeafNode: gate signer must not appear among gated leaves")
+		}
 	}
 	gateableTree := &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
@@ -205,23 +212,23 @@ func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.W
 	}
 	return &v3.WalletConfigTreeNestedLeaf{
 		Weight:    1,
-		Threshold: uint16(gateWeight) + 1,
+		Threshold: uint16(gateWeight.Uint64()) + uint16(gateableTree.Weight),
 		Tree:      v3.WalletConfigTreeNodes(payloadGateLeaf, gateableTree),
 	}, nil
 }
 
-// leafWeight returns the contribution weight of a single terminal leaf.
-func leafWeight(tree v3.WalletConfigTree) (uint8, error) {
+// signerLeaf returns the signer identity and contribution weight of a single terminal leaf
+func signerLeaf(tree v3.WalletConfigTree) (core.Signer, *big.Int, error) {
 	if tree == nil {
-		return 0, fmt.Errorf("nil leaf")
+		return core.Signer{}, nil, fmt.Errorf("nil leaf")
 	}
 	switch t := tree.(type) {
 	case *v3.WalletConfigTreeAddressLeaf:
-		return t.Weight, nil
+		return core.Signer{Address: t.Address}, big.NewInt(int64(t.Weight)), nil
 	case *v3.WalletConfigTreeSapientSignerLeaf:
-		return t.Weight, nil
+		return core.SapientSigner(t.Address, t.ImageHash_.Hash), big.NewInt(int64(t.Weight)), nil
 	default:
-		return 0, fmt.Errorf("unsupported leaf type %T", tree)
+		return core.Signer{}, nil, fmt.Errorf("unsupported leaf type %T", tree)
 	}
 }
 

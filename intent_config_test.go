@@ -510,6 +510,60 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
+// A gated signer leaf sharing the gate's identity would satisfy both sides of the outer
+// threshold with one signature, so the config must be rejected at construction.
+func TestCreateIntentConfigurationPayloadGateDuplicateSapientRejected(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	gateSigner := common.HexToAddress("0x72030E1dbf0a847196ae62EA3ee84BD7ce99D6c1")
+	gateImageHash := core.ImageHash{Hash: common.BigToHash(big.NewInt(1))}
+	gateLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+		Weight:     1,
+		Address:    gateSigner,
+		ImageHash_: gateImageHash,
+	}
+
+	t.Run("identical leaf in both roles is rejected", func(t *testing.T) {
+		_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithPayloadGate(gateLeaf), sequence.WithSapientSigner(gateLeaf))
+		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
+	})
+
+	t.Run("same signer with different weight is rejected", func(t *testing.T) {
+		heavierLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     2,
+			Address:    gateSigner,
+			ImageHash_: gateImageHash,
+		}
+		_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithPayloadGate(gateLeaf), sequence.WithSapientSigner(heavierLeaf))
+		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
+	})
+
+	t.Run("same address with different image hash is allowed", func(t *testing.T) {
+		otherImageHashLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     1,
+			Address:    gateSigner,
+			ImageHash_: core.ImageHash{Hash: common.BigToHash(big.NewInt(2))},
+		}
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithPayloadGate(gateLeaf), sequence.WithSapientSigner(otherImageHashLeaf))
+		require.NoError(t, err)
+		require.NotNil(t, config)
+	})
+}
+
 // A sapient-only config (calls is empty) must not build a broken calls group: with no
 // subdigest leaves, only the sapient leaf is gated behind payloadGateLeaf. ImageHash must
 // still succeed (a nil inner Tree would panic on traversal).
