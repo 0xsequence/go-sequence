@@ -551,6 +551,27 @@ func TestCreateIntentConfigurationPayloadGateDuplicateSapientRejected(t *testing
 		require.ErrorContains(t, err, "gate signer must not appear among gated leaves")
 	})
 
+	t.Run("payload-matching leaf as gate is rejected", func(t *testing.T) {
+		subdigestGate := &v3.WalletConfigTreeAnyAddressSubdigestLeaf{
+			Digest: common.BigToHash(big.NewInt(3)),
+		}
+		_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithPayloadGate(subdigestGate))
+		require.ErrorContains(t, err, "weight is too large")
+	})
+
+	t.Run("gate weight above 1 is allowed", func(t *testing.T) {
+		heavyGate := &v3.WalletConfigTreeSapientSignerLeaf{
+			Weight:     2,
+			Address:    gateSigner,
+			ImageHash_: gateImageHash,
+		}
+		config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+			sequence.WithPayloadGate(heavyGate))
+		require.NoError(t, err)
+		require.NotNil(t, config)
+	})
+
 	t.Run("same address with different image hash is allowed", func(t *testing.T) {
 		otherImageHashLeaf := &v3.WalletConfigTreeSapientSignerLeaf{
 			Weight:     1,

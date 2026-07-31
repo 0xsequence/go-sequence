@@ -185,11 +185,14 @@ func CreateAnyAddressSubdigestTree(calls []*v3.CallsPayload) ([]v3.WalletConfigT
 	return leaves, nil
 }
 
+var maxUint256 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+var maxUint64 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 64), big.NewInt(1))
+
 // wrapPayloadGate requires payloadGateLeaf's co-signature alongside any one of
 // gateableLeaves. An inner threshold-1 nest OR's the groups and contributes weight 1 at
 // most, so satisfying many groups still cannot clear the outer threshold without the gate
-// leaf. The outer threshold is payloadGateLeaf's weight + 1, so any gate weight is safe by
-// construction (the gate alone cannot meet it).
+// leaf. The outer threshold is payloadGateLeaf's weight + 1, so any signer-leaf gate
+// weight is safe by construction (the gate alone cannot meet it).
 func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.WalletConfigTree) (v3.WalletConfigTree, error) {
 	gateSigner, gateWeight, err := signerLeaf(payloadGateLeaf)
 	if err != nil {
@@ -197,6 +200,9 @@ func wrapPayloadGate(payloadGateLeaf v3.WalletConfigTree, gateableLeaves ...v3.W
 	}
 	if gateWeight.Sign() <= 0 {
 		return nil, fmt.Errorf("invalid payloadGateLeafNode: weight must be > 0")
+	}
+	if gateWeight.Cmp(maxUint64) > 0 {
+		return nil, fmt.Errorf("invalid payloadGateLeafNode: weight is too large")
 	}
 	// A gated signer leaf sharing the gate's identity satisfies both sides of the outer
 	// threshold with one signature, letting the gate authorize alone
@@ -227,6 +233,10 @@ func signerLeaf(tree v3.WalletConfigTree) (core.Signer, *big.Int, error) {
 		return core.Signer{Address: t.Address}, big.NewInt(int64(t.Weight)), nil
 	case *v3.WalletConfigTreeSapientSignerLeaf:
 		return core.SapientSigner(t.Address, t.ImageHash_.Hash), big.NewInt(int64(t.Weight)), nil
+	case *v3.WalletConfigTreeSubdigestLeaf, v3.WalletConfigTreeSubdigestLeaf,
+		*v3.WalletConfigTreeAnyAddressSubdigestLeaf, v3.WalletConfigTreeAnyAddressSubdigestLeaf:
+		// Payload-matching leaves report a signerless identity and maxUint256 weight.
+		return core.Signer{}, new(big.Int).Set(maxUint256), nil
 	default:
 		return core.Signer{}, nil, fmt.Errorf("unsupported leaf type %T", tree)
 	}
