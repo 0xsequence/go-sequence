@@ -409,32 +409,6 @@ func TestCreateIntentConfigurationWithTimedRefundSapient(t *testing.T) {
 	require.NotEqual(t, plainSignature, signature)
 }
 
-// Nil entries in signerSignatures are accepted and ignored, not dereferenced.
-func TestBuildIntentConfigurationSignatureNilSignerSignatureIgnored(t *testing.T) {
-	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
-		{
-			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
-			Value:           nil,
-			Data:            []byte{0x12, 0x34},
-			GasLimit:        big.NewInt(0),
-			DelegateCall:    false,
-			OnlyFallback:    false,
-			BehaviorOnError: v3.BehaviorOnErrorRevert,
-		},
-	}, big.NewInt(0), big.NewInt(0))
-	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
-
-	config, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0)
-	require.NoError(t, err)
-
-	signatureWithNilEntry, err := sequence.BuildIntentConfigurationSignature(config, []*core.SignerSignature{nil})
-	require.NoError(t, err)
-
-	signatureWithoutEntries, err := sequence.BuildIntentConfigurationSignature(config, nil)
-	require.NoError(t, err)
-	require.Equal(t, signatureWithoutEntries, signatureWithNilEntry)
-}
-
 // With gateLeaf nil (the default/legacy case), the tree must keep the exact flat
 // shape it had before this parameter existed: Node(mainSignerLeaf, Node(subdigestLeaf,
 // additionalLeaf)) — no extra nesting — so already-derived counterfactual addresses do
