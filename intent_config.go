@@ -230,8 +230,14 @@ func signerLeaf(tree v3.WalletConfigTree) (core.Signer, *big.Int, error) {
 	}
 	switch t := tree.(type) {
 	case *v3.WalletConfigTreeAddressLeaf:
+		if t == nil {
+			return core.Signer{}, nil, fmt.Errorf("nil leaf")
+		}
 		return core.Signer{Address: t.Address}, big.NewInt(int64(t.Weight)), nil
 	case *v3.WalletConfigTreeSapientSignerLeaf:
+		if t == nil {
+			return core.Signer{}, nil, fmt.Errorf("nil leaf")
+		}
 		return core.SapientSigner(t.Address, t.ImageHash_.Hash), big.NewInt(int64(t.Weight)), nil
 	case *v3.WalletConfigTreeSubdigestLeaf, v3.WalletConfigTreeSubdigestLeaf,
 		*v3.WalletConfigTreeAnyAddressSubdigestLeaf, v3.WalletConfigTreeAnyAddressSubdigestLeaf:

@@ -510,6 +510,28 @@ func TestCreateIntentConfigurationWithPayloadGateLeaf(t *testing.T) {
 	require.NotEqual(t, signatureWithoutPeerSig, signatureWithPeerSig)
 }
 
+// A typed-nil gate leaf passes the interface nil check, so signerLeaf must reject it
+// before dereferencing the concrete pointer.
+func TestCreateIntentConfigurationPayloadGateTypedNilRejected(t *testing.T) {
+	payload := v3.NewCallsPayload(common.Address{}, testChain.ChainID(), []v3.Call{
+		{
+			To:              common.HexToAddress("0x1111111111111111111111111111111111111111"),
+			Value:           nil,
+			Data:            []byte{0x12, 0x34},
+			GasLimit:        big.NewInt(0),
+			DelegateCall:    false,
+			OnlyFallback:    false,
+			BehaviorOnError: v3.BehaviorOnErrorRevert,
+		},
+	}, big.NewInt(0), big.NewInt(0))
+	mainSigner := common.HexToAddress("0x2222222222222222222222222222222222222222")
+
+	var gate *v3.WalletConfigTreeSapientSignerLeaf
+	_, err := sequence.CreateIntentConfiguration(mainSigner, []*v3.CallsPayload{&payload}, 0,
+		sequence.WithPayloadGate(gate))
+	require.ErrorContains(t, err, "nil leaf")
+}
+
 // A gated signer leaf sharing the gate's identity would satisfy both sides of the outer
 // threshold with one signature, so the config must be rejected at construction.
 func TestCreateIntentConfigurationPayloadGateDuplicateSapientRejected(t *testing.T) {
