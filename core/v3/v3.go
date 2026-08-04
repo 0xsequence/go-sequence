@@ -2096,6 +2096,30 @@ func (c *WalletConfig) BuildNoChainIDSignature(ctx context.Context, sign core.Si
 	}}, nil
 }
 
+// BuildRegularSignatureFromSignatures builds a regular signature directly from
+// pre-collected signer signatures, with no signing orchestration. Use this instead of
+// BuildRegularSignature when all signatures are already in hand: BuildRegularSignature
+// cancels outstanding signers once the config threshold looks met, and payload-independent
+// leaves (e.g. WalletConfigTreeAnyAddressSubdigestLeaf) can satisfy the threshold early,
+// nondeterministically dropping supplied signatures that recovery still needs. Signers
+// without a matching entry are encoded as their image hash; no signing power validation
+// is performed.
+func (c *WalletConfig) BuildRegularSignatureFromSignatures(signerSignatures map[core.Signer]core.SignerSignature, checkpointerData ...[]byte) core.Signature[*WalletConfig] {
+	var cpData []byte
+	if len(checkpointerData) > 0 {
+		cpData = checkpointerData[0]
+	}
+
+	return &RegularSignature{&Signature{
+		NoChainId:        false,
+		Threshold:        c.Threshold_,
+		Checkpoint:       c.Checkpoint_,
+		Tree:             c.Tree.buildSignatureTree(signerSignatures),
+		Checkpointer:     c.Checkpointer,
+		CheckpointerData: cpData,
+	}}
+}
+
 type WalletConfigTree interface {
 	core.ImageHashable
 
