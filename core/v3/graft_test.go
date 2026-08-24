@@ -107,6 +107,39 @@ func TestGraftConfigTreeNodeAlreadyPresent(t *testing.T) {
 	require.Same(t, present, grafted)
 }
 
+// TestGraftConfigTreeNodeAllOccurrences covers the duplicate-hash case: an
+// already-materialized occurrence must not stop the traversal from grafting a
+// later anonymous occurrence, and multiple anonymous occurrences are all
+// replaced.
+func TestGraftConfigTreeNodeAllOccurrences(t *testing.T) {
+	replacement := graftTestSapientLeaf()
+
+	// Materialized on the left, anonymous on the right.
+	tree := &v3.WalletConfigTreeNode{
+		Left:  graftTestSapientLeaf(),
+		Right: v3.WalletConfigTreeNodeLeaf{Node: anonymousNodeLeaf(replacement)},
+	}
+	grafted, ok := v3.GraftConfigTreeNode(tree, replacement)
+	require.True(t, ok)
+	require.Equal(t, tree.ImageHash().Hash, grafted.ImageHash().Hash)
+	node, isNode := grafted.(*v3.WalletConfigTreeNode)
+	require.True(t, isNode)
+	require.Same(t, replacement, node.Right)
+
+	// Two anonymous occurrences: both replaced.
+	tree = &v3.WalletConfigTreeNode{
+		Left:  &v3.WalletConfigTreeNodeLeaf{Node: anonymousNodeLeaf(replacement)},
+		Right: v3.WalletConfigTreeNodeLeaf{Node: anonymousNodeLeaf(replacement)},
+	}
+	grafted, ok = v3.GraftConfigTreeNode(tree, replacement)
+	require.True(t, ok)
+	require.Equal(t, tree.ImageHash().Hash, grafted.ImageHash().Hash)
+	node, isNode = grafted.(*v3.WalletConfigTreeNode)
+	require.True(t, isNode)
+	require.Same(t, replacement, node.Left)
+	require.Same(t, replacement, node.Right)
+}
+
 func TestGraftConfigTreeNodeNotFound(t *testing.T) {
 	tree := &v3.WalletConfigTreeNode{
 		Left:  &v3.WalletConfigTreeAddressLeaf{Weight: 1, Address: common.HexToAddress("0x1111111111111111111111111111111111111111")},

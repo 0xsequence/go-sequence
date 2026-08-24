@@ -4,11 +4,11 @@ import (
 	"github.com/0xsequence/ethkit/go-ethereum/common"
 )
 
-// GraftConfigTreeNode returns tree with the first anonymous node-hash leaf
-// whose image hash equals replacement.ImageHash() swapped for replacement,
-// leaving the tree's image hash unchanged. ok reports whether the hash was
-// found, either as a node leaf (replaced) or already as a full subtree
-// (returned unchanged).
+// GraftConfigTreeNode returns tree with every anonymous node-hash leaf whose
+// image hash equals replacement.ImageHash() swapped for replacement, leaving
+// the tree's image hash unchanged. ok reports whether the hash was found,
+// either as a node leaf (replaced) or already as a full subtree (returned
+// unchanged).
 func GraftConfigTreeNode(tree WalletConfigTree, replacement WalletConfigTree) (grafted WalletConfigTree, ok bool) {
 	if tree == nil || replacement == nil {
 		return tree, false
@@ -31,11 +31,10 @@ func graftConfigTreeNode(tree WalletConfigTree, replacement WalletConfigTree, ha
 
 	switch n := tree.(type) {
 	case *WalletConfigTreeNode:
-		if left, ok := graftConfigTreeNode(n.Left, replacement, hash); ok {
-			return &WalletConfigTreeNode{Left: left, Right: n.Right}, true
-		}
-		if right, ok := graftConfigTreeNode(n.Right, replacement, hash); ok {
-			return &WalletConfigTreeNode{Left: n.Left, Right: right}, true
+		left, leftOk := graftConfigTreeNode(n.Left, replacement, hash)
+		right, rightOk := graftConfigTreeNode(n.Right, replacement, hash)
+		if leftOk || rightOk {
+			return &WalletConfigTreeNode{Left: left, Right: right}, true
 		}
 	case *WalletConfigTreeNestedLeaf:
 		if inner, ok := graftConfigTreeNode(n.Tree, replacement, hash); ok {
