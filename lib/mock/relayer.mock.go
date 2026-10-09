@@ -43,9 +43,9 @@ func (m *Relayer) EXPECT() *RelayerMockRecorder {
 }
 
 // AddEcosystemGasSponsor mocks base method.
-func (m *Relayer) AddEcosystemGasSponsor(ctx context.Context, ecosystemId uint64, address string, name *string, active *bool) (bool, *proto.GasSponsor, error) {
+func (m *Relayer) AddEcosystemGasSponsor(ctx context.Context, ecosystemId uint64, address string, name *string, active *bool, webhookUrl, webhookAuthToken *string) (bool, *proto.GasSponsor, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddEcosystemGasSponsor", ctx, ecosystemId, address, name, active)
+	ret := m.ctrl.Call(m, "AddEcosystemGasSponsor", ctx, ecosystemId, address, name, active, webhookUrl, webhookAuthToken)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(*proto.GasSponsor)
 	ret2, _ := ret[2].(error)
@@ -53,15 +53,15 @@ func (m *Relayer) AddEcosystemGasSponsor(ctx context.Context, ecosystemId uint64
 }
 
 // AddEcosystemGasSponsor indicates an expected call of AddEcosystemGasSponsor.
-func (mr *RelayerMockRecorder) AddEcosystemGasSponsor(ctx, ecosystemId, address, name, active any) *gomock.Call {
+func (mr *RelayerMockRecorder) AddEcosystemGasSponsor(ctx, ecosystemId, address, name, active, webhookUrl, webhookAuthToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEcosystemGasSponsor", reflect.TypeOf((*Relayer)(nil).AddEcosystemGasSponsor), ctx, ecosystemId, address, name, active)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEcosystemGasSponsor", reflect.TypeOf((*Relayer)(nil).AddEcosystemGasSponsor), ctx, ecosystemId, address, name, active, webhookUrl, webhookAuthToken)
 }
 
 // AddGasSponsor mocks base method.
-func (m *Relayer) AddGasSponsor(ctx context.Context, projectId uint64, address string, name *string, active *bool) (bool, *proto.GasSponsor, error) {
+func (m *Relayer) AddGasSponsor(ctx context.Context, projectId uint64, address string, name *string, active *bool, webhookUrl, webhookAuthToken *string) (bool, *proto.GasSponsor, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddGasSponsor", ctx, projectId, address, name, active)
+	ret := m.ctrl.Call(m, "AddGasSponsor", ctx, projectId, address, name, active, webhookUrl, webhookAuthToken)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(*proto.GasSponsor)
 	ret2, _ := ret[2].(error)
@@ -69,9 +69,9 @@ func (m *Relayer) AddGasSponsor(ctx context.Context, projectId uint64, address s
 }
 
 // AddGasSponsor indicates an expected call of AddGasSponsor.
-func (mr *RelayerMockRecorder) AddGasSponsor(ctx, projectId, address, name, active any) *gomock.Call {
+func (mr *RelayerMockRecorder) AddGasSponsor(ctx, projectId, address, name, active, webhookUrl, webhookAuthToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGasSponsor", reflect.TypeOf((*Relayer)(nil).AddGasSponsor), ctx, projectId, address, name, active)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGasSponsor", reflect.TypeOf((*Relayer)(nil).AddGasSponsor), ctx, projectId, address, name, active, webhookUrl, webhookAuthToken)
 }
 
 // AddGasTank mocks base method.
@@ -264,9 +264,9 @@ func (mr *RelayerMockRecorder) GetGasTankBalanceAdjustment(ctx, id, nonce any) *
 }
 
 // GetMetaTransactions mocks base method.
-func (m *Relayer) GetMetaTransactions(ctx context.Context, projectId uint64, page *proto.Page) (*proto.Page, []*proto.MetaTxnLog, error) {
+func (m *Relayer) GetMetaTransactions(ctx context.Context, projectId uint64, page *proto.Page, includeNonSponsored *bool) (*proto.Page, []*proto.MetaTxnLog, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMetaTransactions", ctx, projectId, page)
+	ret := m.ctrl.Call(m, "GetMetaTransactions", ctx, projectId, page, includeNonSponsored)
 	ret0, _ := ret[0].(*proto.Page)
 	ret1, _ := ret[1].([]*proto.MetaTxnLog)
 	ret2, _ := ret[2].(error)
@@ -274,9 +274,9 @@ func (m *Relayer) GetMetaTransactions(ctx context.Context, projectId uint64, pag
 }
 
 // GetMetaTransactions indicates an expected call of GetMetaTransactions.
-func (mr *RelayerMockRecorder) GetMetaTransactions(ctx, projectId, page any) *gomock.Call {
+func (mr *RelayerMockRecorder) GetMetaTransactions(ctx, projectId, page, includeNonSponsored any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetaTransactions", reflect.TypeOf((*Relayer)(nil).GetMetaTransactions), ctx, projectId, page)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetaTransactions", reflect.TypeOf((*Relayer)(nil).GetMetaTransactions), ctx, projectId, page, includeNonSponsored)
 }
 
 // GetMetaTxnNetworkFeeOptions mocks base method.
@@ -323,6 +323,23 @@ func (m *Relayer) GetMetaTxnReceipt(ctx context.Context, metaTxID string) (*prot
 func (mr *RelayerMockRecorder) GetMetaTxnReceipt(ctx, metaTxID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetaTxnReceipt", reflect.TypeOf((*Relayer)(nil).GetMetaTxnReceipt), ctx, metaTxID)
+}
+
+// GetMetaTxnStatus mocks base method.
+func (m *Relayer) GetMetaTxnStatus(ctx context.Context, metaTxID string) (proto.ETHTxnStatus, bool, *proto.MetaTxnReceipt, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMetaTxnStatus", ctx, metaTxID)
+	ret0, _ := ret[0].(proto.ETHTxnStatus)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(*proto.MetaTxnReceipt)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// GetMetaTxnStatus indicates an expected call of GetMetaTxnStatus.
+func (mr *RelayerMockRecorder) GetMetaTxnStatus(ctx, metaTxID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetaTxnStatus", reflect.TypeOf((*Relayer)(nil).GetMetaTxnStatus), ctx, metaTxID)
 }
 
 // GetProjectBalance mocks base method.
@@ -598,9 +615,9 @@ func (mr *RelayerMockRecorder) StopSender(ctx, sender any) *gomock.Call {
 }
 
 // UpdateEcosystemGasSponsor mocks base method.
-func (m *Relayer) UpdateEcosystemGasSponsor(ctx context.Context, ecosystemId, id uint64, name *string, active *bool) (bool, *proto.GasSponsor, error) {
+func (m *Relayer) UpdateEcosystemGasSponsor(ctx context.Context, ecosystemId, id uint64, name *string, active *bool, webhookUrl, webhookAuthToken *string) (bool, *proto.GasSponsor, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateEcosystemGasSponsor", ctx, ecosystemId, id, name, active)
+	ret := m.ctrl.Call(m, "UpdateEcosystemGasSponsor", ctx, ecosystemId, id, name, active, webhookUrl, webhookAuthToken)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(*proto.GasSponsor)
 	ret2, _ := ret[2].(error)
@@ -608,15 +625,15 @@ func (m *Relayer) UpdateEcosystemGasSponsor(ctx context.Context, ecosystemId, id
 }
 
 // UpdateEcosystemGasSponsor indicates an expected call of UpdateEcosystemGasSponsor.
-func (mr *RelayerMockRecorder) UpdateEcosystemGasSponsor(ctx, ecosystemId, id, name, active any) *gomock.Call {
+func (mr *RelayerMockRecorder) UpdateEcosystemGasSponsor(ctx, ecosystemId, id, name, active, webhookUrl, webhookAuthToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEcosystemGasSponsor", reflect.TypeOf((*Relayer)(nil).UpdateEcosystemGasSponsor), ctx, ecosystemId, id, name, active)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEcosystemGasSponsor", reflect.TypeOf((*Relayer)(nil).UpdateEcosystemGasSponsor), ctx, ecosystemId, id, name, active, webhookUrl, webhookAuthToken)
 }
 
 // UpdateGasSponsor mocks base method.
-func (m *Relayer) UpdateGasSponsor(ctx context.Context, projectId, id uint64, name *string, active *bool) (bool, *proto.GasSponsor, error) {
+func (m *Relayer) UpdateGasSponsor(ctx context.Context, projectId, id uint64, name *string, active *bool, webhookUrl, webhookAuthToken *string) (bool, *proto.GasSponsor, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateGasSponsor", ctx, projectId, id, name, active)
+	ret := m.ctrl.Call(m, "UpdateGasSponsor", ctx, projectId, id, name, active, webhookUrl, webhookAuthToken)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(*proto.GasSponsor)
 	ret2, _ := ret[2].(error)
@@ -624,9 +641,9 @@ func (m *Relayer) UpdateGasSponsor(ctx context.Context, projectId, id uint64, na
 }
 
 // UpdateGasSponsor indicates an expected call of UpdateGasSponsor.
-func (mr *RelayerMockRecorder) UpdateGasSponsor(ctx, projectId, id, name, active any) *gomock.Call {
+func (mr *RelayerMockRecorder) UpdateGasSponsor(ctx, projectId, id, name, active, webhookUrl, webhookAuthToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGasSponsor", reflect.TypeOf((*Relayer)(nil).UpdateGasSponsor), ctx, projectId, id, name, active)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGasSponsor", reflect.TypeOf((*Relayer)(nil).UpdateGasSponsor), ctx, projectId, id, name, active, webhookUrl, webhookAuthToken)
 }
 
 // UpdateGasTank mocks base method.
