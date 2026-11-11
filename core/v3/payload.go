@@ -229,6 +229,22 @@ func (p basePayload) domain() ethcoder.TypedDataDomain {
 	}
 }
 
+func (p basePayload) wallets() []any {
+	wallets := make([]any, 0, len(p.parentWallets))
+	for _, wallet := range p.parentWallets {
+		wallets = append(wallets, any(wallet))
+	}
+	return wallets
+}
+
+func (p basePayload) digest(data *ethcoder.TypedData, payload core.Payload) core.PayloadDigest {
+	digest, err := data.EncodeDigest()
+	if err != nil {
+		panic(err)
+	}
+	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: payload}
+}
+
 func NewCallsPayload(address common.Address, chainID *big.Int, calls_ []Call, space, nonce *big.Int, parentWallets ...[]common.Address) CallsPayload {
 	if chainID == nil {
 		chainID = big.NewInt(0)
@@ -418,18 +434,15 @@ type CallsPayload struct {
 	Nonce *big.Int
 }
 
-func (p CallsPayload) Digest() core.PayloadDigest {
+// TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
+// encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+func (p CallsPayload) TypedData() *ethcoder.TypedData {
 	calls := make([]any, 0, len(p.Calls))
 	for _, call := range p.Calls {
 		calls = append(calls, any(call.asMap()))
 	}
 
-	wallets := make([]any, 0, len(p.parentWallets))
-	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
-	}
-
-	data := ethcoder.TypedData{
+	return &ethcoder.TypedData{
 		Domain:      p.domain(),
 		PrimaryType: "Calls",
 		Types: map[string][]ethcoder.TypedDataArgument{
@@ -454,16 +467,13 @@ func (p CallsPayload) Digest() core.PayloadDigest {
 			"calls":   calls,
 			"space":   p.Space,
 			"nonce":   p.Nonce,
-			"wallets": wallets,
+			"wallets": p.wallets(),
 		},
 	}
+}
 
-	digest, err := data.EncodeDigest()
-	if err != nil {
-		panic(err)
-	}
-
-	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
+func (p CallsPayload) Digest() core.PayloadDigest {
+	return p.digest(p.TypedData(), p)
 }
 
 func (p CallsPayload) Encode(address common.Address) []byte {
@@ -617,13 +627,10 @@ type MessagePayload struct {
 	Message []byte
 }
 
-func (p MessagePayload) Digest() core.PayloadDigest {
-	wallets := make([]any, 0, len(p.parentWallets))
-	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
-	}
-
-	data := ethcoder.TypedData{
+// TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
+// encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+func (p MessagePayload) TypedData() *ethcoder.TypedData {
+	return &ethcoder.TypedData{
 		Domain:      p.domain(),
 		PrimaryType: "Message",
 		Types: map[string][]ethcoder.TypedDataArgument{
@@ -635,16 +642,13 @@ func (p MessagePayload) Digest() core.PayloadDigest {
 		},
 		Message: map[string]any{
 			"message": p.Message,
-			"wallets": wallets,
+			"wallets": p.wallets(),
 		},
 	}
+}
 
-	digest, err := data.EncodeDigest()
-	if err != nil {
-		panic(err)
-	}
-
-	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
+func (p MessagePayload) Digest() core.PayloadDigest {
+	return p.digest(p.TypedData(), p)
 }
 
 func (p MessagePayload) Encode(address common.Address) []byte {
@@ -721,13 +725,10 @@ type ConfigUpdatePayload struct {
 	ImageHash core.ImageHashable
 }
 
-func (p ConfigUpdatePayload) Digest() core.PayloadDigest {
-	wallets := make([]any, 0, len(p.parentWallets))
-	for _, wallet := range p.parentWallets {
-		wallets = append(wallets, any(wallet))
-	}
-
-	data := ethcoder.TypedData{
+// TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
+// encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+func (p ConfigUpdatePayload) TypedData() *ethcoder.TypedData {
+	return &ethcoder.TypedData{
 		Domain:      p.domain(),
 		PrimaryType: "ConfigUpdate",
 		Types: map[string][]ethcoder.TypedDataArgument{
@@ -739,16 +740,13 @@ func (p ConfigUpdatePayload) Digest() core.PayloadDigest {
 		},
 		Message: map[string]any{
 			"imageHash": p.ImageHash.ImageHash().Hash,
-			"wallets":   wallets,
+			"wallets":   p.wallets(),
 		},
 	}
+}
 
-	digest, err := data.EncodeDigest()
-	if err != nil {
-		panic(err)
-	}
-
-	return core.PayloadDigest{Hash: common.Hash(digest), Address_: p.address, ChainID_: p.chainID, Payload: p}
+func (p ConfigUpdatePayload) Digest() core.PayloadDigest {
+	return p.digest(p.TypedData(), p)
 }
 
 func (p ConfigUpdatePayload) Encode(address common.Address) []byte {
