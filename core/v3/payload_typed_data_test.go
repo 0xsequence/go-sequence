@@ -60,8 +60,32 @@ func TestPayloadTypedDataRoundTrip(t *testing.T) {
 					digest, err := parsed.EncodeDigest()
 					require.NoError(t, err)
 					require.Equal(t, p.Digest().Hash, common.Hash(digest))
+
+					td := p.TypedData()
+					td.Domain.ChainID.SetInt64(99)
+					scramble(td.Message)
+					require.Equal(t, common.Hash(digest), p.Digest().Hash, "TypedData result must not alias the payload")
 				})
 			}
+		}
+	}
+}
+
+func scramble(v any) {
+	switch v := v.(type) {
+	case *big.Int:
+		v.Add(v, big.NewInt(1))
+	case []byte:
+		if len(v) > 0 {
+			v[0] ^= 0xff
+		}
+	case map[string]any:
+		for _, x := range v {
+			scramble(x)
+		}
+	case []any:
+		for _, x := range v {
+			scramble(x)
 		}
 	}
 }

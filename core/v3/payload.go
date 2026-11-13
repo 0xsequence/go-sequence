@@ -198,11 +198,14 @@ func (p basePayload) Address() common.Address {
 }
 
 func (p basePayload) ChainID() *big.Int {
-	if p.chainID != nil {
-		return new(big.Int).Set(p.chainID)
-	} else {
+	return cloneBig(p.chainID)
+}
+
+func cloneBig(x *big.Int) *big.Int {
+	if x == nil {
 		return new(big.Int)
 	}
+	return new(big.Int).Set(x)
 }
 
 func (p basePayload) withAddress(address common.Address) basePayload {
@@ -224,7 +227,7 @@ func (p basePayload) domain() ethcoder.TypedDataDomain {
 	return ethcoder.TypedDataDomain{
 		Name:              "Sequence Wallet",
 		Version:           "3",
-		ChainID:           p.chainID,
+		ChainID:           p.ChainID(),
 		VerifyingContract: &p.address,
 	}
 }
@@ -295,26 +298,11 @@ type Call struct {
 }
 
 func (c Call) asMap() map[string]any {
-	value := c.Value
-	if value == nil {
-		value = big.NewInt(0)
-	}
-
-	data := c.Data
-	if data == nil {
-		data = []byte{}
-	}
-
-	gasLimit := c.GasLimit
-	if gasLimit == nil {
-		gasLimit = big.NewInt(0)
-	}
-
 	return map[string]any{
 		"to":              c.To,
-		"value":           value,
-		"data":            data,
-		"gasLimit":        gasLimit,
+		"value":           cloneBig(c.Value),
+		"data":            append([]byte{}, c.Data...),
+		"gasLimit":        cloneBig(c.GasLimit),
 		"delegateCall":    c.DelegateCall,
 		"onlyFallback":    c.OnlyFallback,
 		"behaviorOnError": new(big.Int).SetInt64(int64(c.BehaviorOnError)),
@@ -436,6 +424,7 @@ type CallsPayload struct {
 
 // TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
 // encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+// The result shares no memory with the payload.
 func (p CallsPayload) TypedData() *ethcoder.TypedData {
 	calls := make([]any, 0, len(p.Calls))
 	for _, call := range p.Calls {
@@ -465,8 +454,8 @@ func (p CallsPayload) TypedData() *ethcoder.TypedData {
 		},
 		Message: map[string]any{
 			"calls":   calls,
-			"space":   p.Space,
-			"nonce":   p.Nonce,
+			"space":   cloneBig(p.Space),
+			"nonce":   cloneBig(p.Nonce),
 			"wallets": p.wallets(),
 		},
 	}
@@ -629,6 +618,7 @@ type MessagePayload struct {
 
 // TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
 // encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+// The result shares no memory with the payload.
 func (p MessagePayload) TypedData() *ethcoder.TypedData {
 	return &ethcoder.TypedData{
 		Domain:      p.domain(),
@@ -641,7 +631,7 @@ func (p MessagePayload) TypedData() *ethcoder.TypedData {
 			},
 		},
 		Message: map[string]any{
-			"message": p.Message,
+			"message": bytes.Clone(p.Message),
 			"wallets": p.wallets(),
 		},
 	}
@@ -727,6 +717,7 @@ type ConfigUpdatePayload struct {
 
 // TypedData returns the EIP-712 typed data that Digest hashes. Its JSON
 // encoding round-trips through ethcoder.TypedDataFromJSON to the same digest.
+// The result shares no memory with the payload.
 func (p ConfigUpdatePayload) TypedData() *ethcoder.TypedData {
 	return &ethcoder.TypedData{
 		Domain:      p.domain(),
