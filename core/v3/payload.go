@@ -216,11 +216,13 @@ func (p basePayload) withAddress(address common.Address) basePayload {
 	}
 }
 
-var eip712Domain = []ethcoder.TypedDataArgument{
-	{Name: "name", Type: "string"},
-	{Name: "version", Type: "string"},
-	{Name: "chainId", Type: "uint256"},
-	{Name: "verifyingContract", Type: "address"},
+func eip712Domain() []ethcoder.TypedDataArgument {
+	return []ethcoder.TypedDataArgument{
+		{Name: "name", Type: "string"},
+		{Name: "version", Type: "string"},
+		{Name: "chainId", Type: "uint256"},
+		{Name: "verifyingContract", Type: "address"},
+	}
 }
 
 func (p basePayload) domain() ethcoder.TypedDataDomain {
@@ -435,7 +437,7 @@ func (p CallsPayload) TypedData() *ethcoder.TypedData {
 		Domain:      p.domain(),
 		PrimaryType: "Calls",
 		Types: map[string][]ethcoder.TypedDataArgument{
-			"EIP712Domain": eip712Domain,
+			"EIP712Domain": eip712Domain(),
 			"Calls": {
 				{Name: "calls", Type: "Call[]"},
 				{Name: "space", Type: "uint256"},
@@ -624,7 +626,7 @@ func (p MessagePayload) TypedData() *ethcoder.TypedData {
 		Domain:      p.domain(),
 		PrimaryType: "Message",
 		Types: map[string][]ethcoder.TypedDataArgument{
-			"EIP712Domain": eip712Domain,
+			"EIP712Domain": eip712Domain(),
 			"Message": {
 				{Name: "message", Type: "bytes"},
 				{Name: "wallets", Type: "address[]"},
@@ -723,7 +725,7 @@ func (p ConfigUpdatePayload) TypedData() *ethcoder.TypedData {
 		Domain:      p.domain(),
 		PrimaryType: "ConfigUpdate",
 		Types: map[string][]ethcoder.TypedDataArgument{
-			"EIP712Domain": eip712Domain,
+			"EIP712Domain": eip712Domain(),
 			"ConfigUpdate": {
 				{Name: "imageHash", Type: "bytes32"},
 				{Name: "wallets", Type: "address[]"},

@@ -63,6 +63,9 @@ func TestPayloadTypedDataRoundTrip(t *testing.T) {
 
 					td := p.TypedData()
 					td.Domain.ChainID.SetInt64(99)
+					for _, args := range td.Types {
+						args[0].Name = "scrambled"
+					}
 					scramble(td.Message)
 					require.Equal(t, common.Hash(digest), p.Digest().Hash, "TypedData result must not alias the payload")
 				})
