@@ -158,6 +158,11 @@ func (h Hash) IsValidHex() bool {
 	if len(s) == 0 {
 		return true // its valid, but its empty
 	}
+	if len(s)%2 != 0 {
+		// odd-length bodies decode lossily: the hex decoder pads a leading
+		// nibble, shifting the value, so they are not valid hex
+		return false
+	}
 	for _, c := range s {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
 			return false
