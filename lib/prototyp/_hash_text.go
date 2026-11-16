@@ -70,23 +70,26 @@ func (h HashText) IsZeroValue() bool {
 }
 
 func (h HashText) IsValidAddress() bool {
-	if h[0:2] != "0x" {
+	if len(h) < 2 || h[0:2] != "0x" {
 		return false
 	}
 	if len(h) != 42 {
 		return false
 	}
-	return true
+	// require hex, so ToAddress decodes the value losslessly
+	return common.IsHexAddress(string(h))
 }
 
 func (h HashText) IsValidTxnHash() bool {
-	if h[0:2] != "0x" {
+	if len(h) < 2 || h[0:2] != "0x" {
 		return false
 	}
 	if len(h) != 66 {
 		return false
 	}
-	return true
+	// require hex, so ToHash decodes the value losslessly
+	_, err := hex.DecodeString(string(h[2:]))
+	return err == nil
 }
 
 func (h *HashText) Hash() common.Hash {

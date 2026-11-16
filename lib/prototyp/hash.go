@@ -158,6 +158,11 @@ func (h Hash) IsValidHex() bool {
 	if len(s) == 0 {
 		return true // its valid, but its empty
 	}
+	if len(s)%2 != 0 {
+		// odd-length bodies decode lossily: the hex decoder pads a leading
+		// nibble, shifting the value, so they are not valid hex
+		return false
+	}
 	for _, c := range s {
 		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
 			return false
@@ -174,17 +179,20 @@ func (h Hash) IsValidAddress() bool {
 	if len(h) != 42 {
 		return false
 	}
-	return true
+	// require hex, so ToAddress decodes the value losslessly
+	return common.IsHexAddress(string(h))
 }
 
 func (h Hash) IsValidTxnHash() bool {
-	if h[0:2] != "0x" {
+	if len(h) < 2 || h[0:2] != "0x" {
 		return false
 	}
 	if len(h) != 66 {
 		return false
 	}
-	return true
+	// require hex, so ToHash decodes the value losslessly
+	_, err := hex.DecodeString(string(h[2:]))
+	return err == nil
 }
 
 func (h Hash) Bytes() []byte {
