@@ -414,10 +414,15 @@ func DecodeExecdata(data []byte, walletAddress common.Address, chainID *big.Int)
 		if len(transactions[i].Data) > 0 {
 			decodedTransactions, decodedNonce, decodedSignature, err := DecodeExecdata(transactions[i].Data, transactions[i].To, chainID)
 			if err == nil {
-				transactions[i].Data = nil
-				transactions[i].Transactions = decodedTransactions
-				transactions[i].Nonce = decodedNonce
-				transactions[i].Signature = decodedSignature
+				// Only apply the decoded bundle if it satisfies IsValid() — e.g. the guest
+				// module path sets nonce without a signature, which would violate invariant 2.
+				tmp := &Transaction{Transactions: decodedTransactions, Nonce: decodedNonce, Signature: decodedSignature}
+				if tmp.IsValid() == nil {
+					transactions[i].Data = nil
+					transactions[i].Transactions = decodedTransactions
+					transactions[i].Nonce = decodedNonce
+					transactions[i].Signature = decodedSignature
+				}
 			}
 		}
 	}
