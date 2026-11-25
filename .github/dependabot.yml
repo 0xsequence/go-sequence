@@ -2,9 +2,10 @@
 # open-pull-requests-limit: 0 turns off routine version-update pull requests.
 version: 2
 updates:
-  - package-ecosystem: npm
+  - package-ecosystem: gomod
     directories:
-      - "/testutil/testchain"
+      - "/"
+      - "/tools"
     schedule:
       interval: weekly
     open-pull-requests-limit: 0
@@ -13,10 +14,10 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
-  - package-ecosystem: gomod
+  - package-ecosystem: npm
     directories:
-      - "/"
-      - "/tools"
+      - "/contracts"
+      - "/testutil/testchain"
     schedule:
       interval: weekly
     open-pull-requests-limit: 0
