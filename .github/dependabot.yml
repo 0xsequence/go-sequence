@@ -1,0 +1,27 @@
+# Security updates only, grouped into one pull request per ecosystem.
+# open-pull-requests-limit: 0 turns off routine version-update pull requests.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories:
+      - "/testutil/testchain"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+  - package-ecosystem: gomod
+    directories:
+      - "/"
+      - "/tools"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
